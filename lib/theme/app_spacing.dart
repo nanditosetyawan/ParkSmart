@@ -1,0 +1,10 @@
+/// Spacing tokens — Stitch uses generous spacing.
+class AppSpacing {
+  static const double xs = 4.0;
+  static const double sm = 8.0;
+  static const double md = 16.0;
+  static const double lg = 24.0;
+  static const double xl = 32.0;
+  static const double xl2 = 40.0;
+  static const double pageH = 24.0; // horizontal page margin px-6
+}
