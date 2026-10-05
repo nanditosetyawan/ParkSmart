@@ -261,7 +261,7 @@ Future<void> _initNotifications() async {
 Future<void> _showSystemUrgentNotification() async {
   await _initNotifications();
   const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'urgent_channel', 'Urgent Notifications',
+    'urgent_channel_v2', 'Urgent Notifications',
     channelDescription: 'Peringatan waktu parkir',
     importance: Importance.max,
     priority: Priority.high,
@@ -282,7 +282,7 @@ Future<void> _showSystemUrgentNotification() async {
 Future<void> _showSystemInfoNotification() async {
   await _initNotifications();
   const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'info_channel', 'Info Notifications',
+    'info_channel_v2', 'Info Notifications',
     channelDescription: 'Informasi umum',
     importance: Importance.max,
     priority: Priority.high,
