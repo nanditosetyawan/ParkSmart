@@ -4,6 +4,7 @@
 // CTA: h-[56px] bg-charcoal rounded-full shadow
 
 import 'package:flutter/material.dart';
+import 'package:local_auth/local_auth.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -180,7 +181,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     child: _SecondaryButton(
                       label: 'Biometrik',
                       icon: Icons.fingerprint,
-                      onTap: () {},
+                      onTap: () async {
+                        final LocalAuthentication auth = LocalAuthentication();
+                        try {
+                          final bool didAuthenticate = await auth.authenticate(
+                            localizedReason: 'Gunakan sidik jari untuk masuk',
+                            biometricOnly: true,
+                          );
+                          if (didAuthenticate && context.mounted) {
+                            Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const HomeScreen()));
+                          }
+                        } catch (e) {
+                          debugPrint(e.toString());
+                        }
+                      },
                     ),
                   ),
                   const SizedBox(width: 12),

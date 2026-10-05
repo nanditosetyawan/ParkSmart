@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import '../session/extend_session_screen.dart' as extend;
+import '../session/session_checkout_screen.dart' as checkout;
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../auth/login_screen.dart' as auth;
@@ -152,14 +155,19 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   _MenuItem(icon: Icons.account_balance_wallet, subtitle: 'METODE PEMBAYARAN & DOMPET', title: 'ParkSmart Pay (Rp 145.000)', onTap: () {}),
                   const SizedBox(height: 12),
-                  _MenuItem(
-                    icon: Icons.receipt_long, subtitle: 'AKTIVITAS & LOG', title: 'Riwayat Transaksi & Blockchain',
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const history.HistoryScreen())),
-                  ),
-                  const SizedBox(height: 12),
+
                   _MenuItem(
                     icon: Icons.contact_support, subtitle: 'CUSTOMER CARE', title: 'Bantuan & Dukungan',
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen())),
+                  ),
+                  const SizedBox(height: 24),
+                  
+
+                  _MenuItem(
+                    icon: Icons.notifications_active, subtitle: 'DEVELOPER OPTIONS', title: 'Test Notification',
+                    onTap: () {
+                      _showNotificationTestMenu(context);
+                    },
                   ),
                   const SizedBox(height: 24),
                   
@@ -190,6 +198,201 @@ class ProfileScreen extends StatelessWidget {
       ),
     );
   }
+}
+
+
+void _showNotificationTestMenu(BuildContext context) {
+  showModalBottomSheet(
+    context: context,
+    backgroundColor: Colors.white,
+    shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+    builder: (context) => Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(width: 48, height: 4, decoration: BoxDecoration(color: const Color(0xFFE4DFD5), borderRadius: BorderRadius.circular(2))),
+          const SizedBox(height: 24),
+          Text('Test Notifications', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          const SizedBox(height: 16),
+          ListTile(
+            leading: const CircleAvatar(backgroundColor: Color(0xFFFDE8E8), child: Icon(Icons.timer_off, color: Color(0xFF9B1C1C))),
+            title: Text('Urgent Action (10 Min Left)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+            subtitle: Text('Simulate overstay warning', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
+            onTap: () {
+              Navigator.pop(context);
+              _showSystemUrgentNotification();
+            },
+          ),
+          ListTile(
+            leading: const CircleAvatar(backgroundColor: Color(0xFFE1EFFE), child: Icon(Icons.info_outline, color: Color(0xFF1E429F))),
+            title: Text('Info Notification (Success)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+            subtitle: Text('Simulate success message', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
+            onTap: () {
+              Navigator.pop(context);
+              _showSystemInfoNotification();
+            },
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
+bool _notificationsInitialized = false;
+
+Future<void> _initNotifications() async {
+  if (_notificationsInitialized) return;
+  const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
+  const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
+  
+  await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
+  
+  // Meminta izin notifikasi secara eksplisit (Wajib untuk Android 13+)
+  await flutterLocalNotificationsPlugin
+      .resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>()
+      ?.requestNotificationsPermission();
+      
+  _notificationsInitialized = true;
+}
+
+Future<void> _showSystemUrgentNotification() async {
+  await _initNotifications();
+  const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    'urgent_channel', 'Urgent Notifications',
+    channelDescription: 'Peringatan waktu parkir',
+    importance: Importance.max,
+    priority: Priority.high,
+    actions: <AndroidNotificationAction>[
+      AndroidNotificationAction('perpanjang_id', 'Perpanjang'),
+      AndroidNotificationAction('checkout_id', 'Checkout'),
+    ],
+  );
+  const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+  await flutterLocalNotificationsPlugin.show(
+    id: 0,
+    title: 'Sisa Waktu Parkir 10 Menit!',
+    body: 'Waktu hampir habis. Segera perpanjang atau checkout.',
+    notificationDetails: platformChannelSpecifics,
+  );
+}
+
+Future<void> _showSystemInfoNotification() async {
+  await _initNotifications();
+  const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+    'info_channel', 'Info Notifications',
+    channelDescription: 'Informasi umum',
+    importance: Importance.max,
+    priority: Priority.high,
+  );
+  const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+  await flutterLocalNotificationsPlugin.show(
+    id: 1,
+    title: 'Pembelian Sukses',
+    body: 'Voucher parkir berhasil ditambahkan ke dompet.',
+    notificationDetails: platformChannelSpecifics,
+  );
+}
+
+void _showUrgentNotification(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (context) => Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      child: Container(
+        padding: const EdgeInsets.all(24),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          boxShadow: [BoxShadow(color: const Color(0xFF9B1C1C).withValues(alpha: 0.15), blurRadius: 32, offset: const Offset(0, 12))],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 64, height: 64,
+              decoration: BoxDecoration(color: const Color(0xFFFDE8E8), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFF98080), width: 2)),
+              child: const Icon(Icons.timer_off, size: 32, color: Color(0xFFC81E1E)),
+            ),
+            const SizedBox(height: 16),
+            Text('Waktu Parkir Hampir Habis!', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF9B1C1C))),
+            const SizedBox(height: 8),
+            Text('Sisa waktu parkir Anda tinggal 10 menit. Segera perpanjang sesi atau lakukan checkout untuk menghindari denda overstay sebesar Rp 50.000/jam.', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const extend.ExtendSessionScreen()));
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFC81E1E), foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text('Perpanjang', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const checkout.SessionCheckoutScreen()));
+                    },
+                    style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1C1D1F), foregroundColor: Colors.white, elevation: 0, padding: const EdgeInsets.symmetric(vertical: 12), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12))),
+                    child: Text('Checkout', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text('Abaikan', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B), fontWeight: FontWeight.w600)),
+            )
+          ],
+        ),
+      ),
+    ),
+  );
+}
+
+void _showInfoNotification(BuildContext context) {
+  ScaffoldMessenger.of(context).showSnackBar(
+    SnackBar(
+      behavior: SnackBarBehavior.floating,
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      content: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: const Color(0xFFE1EFFE),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFF76A9FA)),
+          boxShadow: [BoxShadow(color: const Color(0xFF1E429F).withValues(alpha: 0.1), blurRadius: 12, offset: const Offset(0, 4))],
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.check_circle, color: Color(0xFF1C64F2)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('Pembelian Sukses', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1E429F))),
+                  Text('Voucher parkir berhasil ditambahkan.', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF3F83F8))),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    )
+  );
 }
 
 class _MenuItem extends StatelessWidget {
