@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'history_detail_screen.dart' as history_detail;
 
@@ -16,6 +17,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: const BottomDockNavigation(activeTab: DockTab.history),
       body: SafeArea(
         child: Column(
           children: [
@@ -79,7 +82,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
             
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 140),
                 children: [
                   // Filter Chips
                   SingleChildScrollView(

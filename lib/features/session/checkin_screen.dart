@@ -349,25 +349,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                             ),
                       ),
                     ),
-                    const SizedBox(height: 12),
-                    SizedBox(
-                      width: double.infinity, height: 48,
-                      child: TextButton(
-                        onPressed: () {},
-                        style: TextButton.styleFrom(
-                          backgroundColor: Colors.white, foregroundColor: const Color(0xFF1C1D1F),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24), side: const BorderSide(color: Color(0xFFE5E2DB))),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            const Icon(Icons.alt_route, size: 16, color: Color(0xFF76777B)),
-                            const SizedBox(width: 8),
-                            Text('Navigasi ke Gerbang Alternatif', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600)),
-                          ],
-                        ),
-                      ),
-                    ),
+
                   ],
                 ),
               ),

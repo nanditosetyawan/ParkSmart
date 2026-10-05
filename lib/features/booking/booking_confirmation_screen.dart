@@ -89,25 +89,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                       padding: const EdgeInsets.all(16),
                       child: Column(
                         children: [
-                          Container(
-                            padding: const EdgeInsets.all(20),
-                            decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
-                            child: const Icon(Icons.qr_code_2, size: 160, color: AppColors.textPrimary),
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                            decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: AppRadii.pillRadius),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(width: 6, height: 6, decoration: const BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle)),
-                                const SizedBox(width: 8),
-                                Text('Siap Dipindai di Gate', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: AppColors.textSecondary)),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 24),
+
                           
                           // Ticket Details
                           Row(
@@ -149,33 +131,7 @@ class BookingConfirmationScreen extends StatelessWidget {
               ),
               const SizedBox(height: 24),
 
-              // Smart Gate Note
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: BorderRadius.circular(16), boxShadow: const [AppShadows.soft]),
-                child: Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 36, height: 36,
-                      decoration: BoxDecoration(color: const Color(0xFFFFDBD2).withValues(alpha: 0.4), shape: BoxShape.circle),
-                      child: const Icon(Icons.sensors, size: 20, color: Color(0xFF742814)),
-                    ),
-                    const SizedBox(width: 14),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Pendeteksian Kamera ANPR', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600)),
-                          const SizedBox(height: 4),
-                          Text('Palang masuk akan terbuka otomatis saat kamera membaca plat nomor Anda.', style: AppTypography.bodySm(color: AppColors.textSecondary)),
-                        ],
-                      ),
-                    )
-                  ],
-                ),
-              ),
-              const SizedBox(height: 24),
+              
 
               // CTA
               SizedBox(
@@ -187,7 +143,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                     shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),
                   ),
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
-                    Text('Buka Navigasi ke Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600)),
+                    Text('Check-in', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600)),
                     const SizedBox(width: 8),
                     const Icon(Icons.arrow_forward, size: 20),
                   ]),
@@ -205,7 +161,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                   child: Row(mainAxisAlignment: MainAxisAlignment.center, children: [
                     const Icon(Icons.account_balance_wallet_outlined, size: 20),
                     const SizedBox(width: 8),
-                    Text('Simpan ke Dompet Digital', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600)),
+                    Text('Simpan Saja', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600)),
                   ]),
                 ),
               ),

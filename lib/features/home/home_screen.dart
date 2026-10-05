@@ -5,6 +5,7 @@
 // Active booking card: rounded-[32px] bg-white
 
 import 'package:flutter/material.dart';
+import '../../widgets/bottom_dock_navigation.dart';
 import '../sitemap_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -41,7 +42,7 @@ class HomeScreen extends StatelessWidget {
           SafeArea(
             bottom: false,
             child: ListView(
-              padding: const EdgeInsets.only(bottom: 120),
+              padding: const EdgeInsets.only(bottom: 140),
               children: [
                 // ─── Header ──────────────────────────────────────
                 Padding(
@@ -54,7 +55,7 @@ class HomeScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           // Calendar icon button
-                          _NavIconBtn(icon: Icons.calendar_today_outlined),
+                          Visibility(visible: false, maintainSize: true, maintainAnimation: true, maintainState: true, child: _NavIconBtn(icon: Icons.calendar_today_outlined)),
                           // Location pill
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
@@ -386,39 +387,7 @@ class HomeScreen extends StatelessWidget {
             left: AppSpacing.pageH,
             right: AppSpacing.pageH,
             child: Center(
-              child: Container(
-                height: 68,
-                constraints: const BoxConstraints(maxWidth: 360),
-                decoration: BoxDecoration(
-                  color: AppColors.dockBg,
-                  borderRadius: AppRadii.xl2Radius,
-                  boxShadow: const [AppShadows.dock],
-                ),
-                padding: const EdgeInsets.symmetric(horizontal: 12),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    // Active: Home
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(color: AppColors.secondary, shape: BoxShape.circle),
-                      child: const Icon(Icons.home, size: 22, color: AppColors.white),
-                    ),
-                    _DockIcon(icon: Icons.receipt_long_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const history.HistoryScreen()))),
-                    // Center: Scan/focus rounded-2xl
-                    Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.white.withOpacity(0.1),
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      child: const Icon(Icons.filter_center_focus, size: 24, color: AppColors.white),
-                    ),
-                    _DockIcon(icon: Icons.auto_awesome_outlined, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ai.AiAssistantScreen()))),
-                    _DockIcon(icon: Icons.person_outline, onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const profile.ProfileScreen()))),
-                  ],
-                ),
-              ),
+              child: const BottomDockNavigation(activeTab: DockTab.home),
             ),
           ),
         ],

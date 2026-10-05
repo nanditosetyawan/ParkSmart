@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../auth/login_screen.dart' as auth;
 import 'vehicle_screen.dart' as vehicle;
 import 'settings_screen.dart' as settings;
 import 'feedback_screen.dart' as feedback;
@@ -12,6 +14,8 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
+      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
+      floatingActionButton: const BottomDockNavigation(activeTab: DockTab.profile),
       body: SafeArea(
         child: Column(
           children: [
@@ -42,7 +46,7 @@ class ProfileScreen extends StatelessWidget {
             
             Expanded(
               child: ListView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                padding: const EdgeInsets.fromLTRB(20, 20, 20, 140),
                 children: [
                   // Profile Card
                   Container(

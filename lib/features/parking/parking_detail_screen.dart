@@ -75,16 +75,15 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  _HeroPill(
-                                    color: AppColors.white.withOpacity(0.9),
-                                    child: Row(children: [
-                                      Container(
-                                        width: 8, height: 8,
-                                        decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text('Sensor Otomatis', style: AppTypography.caption()),
-                                    ]),
+                                  Visibility(
+
+                                    visible: false, maintainSize: true, maintainAnimation: true, maintainState: true,
+
+                                    child: _HeroPill(
+                                    color: Colors.transparent,
+                                    child: const SizedBox(width: 100),
+                                  ),
+
                                   ),
                                   _HeroPill(
                                     color: AppColors.primary.withOpacity(0.7),
@@ -194,11 +193,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                               )),
                               Text('Siap pakai di Basement B2', style: AppTypography.bodySm(color: AppColors.textSecondary)),
                             ]),
-                            Container(
-                              width: 60, height: 60,
-                              decoration: const BoxDecoration(color: Color(0xFFDCEFE8), shape: BoxShape.circle),
-                              child: const Icon(Icons.local_parking, size: 28, color: AppColors.accentTeal),
-                            ),
+                            const SizedBox(width: 60, height: 60),
                           ],
                         ),
                         const SizedBox(height: 16),

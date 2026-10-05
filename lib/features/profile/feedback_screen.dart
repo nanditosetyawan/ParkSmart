@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../home/home_screen.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -57,13 +58,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         ),
                       ),
                       const SizedBox(width: 12),
-                      Row(
-                        children: [
-                          Icon(Icons.local_parking, size: 24, color: const Color(0xFF114177)),
-                          const SizedBox(width: 8),
-                          Text('Live Spot Details', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                        ],
-                      ),
+                      Text('Ulasan', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                     ],
                   ),
                   const CircleAvatar(
@@ -120,11 +115,8 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                               onTap: () => setState(() => _rating = starVal),
                               child: Container(
                                 width: 48, height: 48,
-                                decoration: BoxDecoration(
-                                  color: isSelected ? const Color(0xFFFFDBD2) : const Color(0xFFF1EEE7),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: Icon(Icons.star, size: 24, color: isSelected ? const Color(0xFF9A442D) : const Color(0xFF76777B)),
+                                alignment: Alignment.center,
+                                child: Icon(Icons.star, size: 40, color: isSelected ? Colors.amber : const Color(0xFFE5E2DB)),
                               ),
                             );
                           }),
@@ -163,64 +155,9 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Quick Appreciations
-                  Row(
-                    children: [
-                      const Icon(Icons.favorite, size: 18, color: Color(0xFF9A442D)),
-                      const SizedBox(width: 8),
-                      Text('Apresiasi Singkat', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Wrap(
-                    spacing: 8, runSpacing: 8,
-                    children: _appreciations.map((app) {
-                      bool isSelected = _selectedAppreciations.contains(app);
-                      return GestureDetector(
-                        onTap: () => setState(() {
-                          isSelected ? _selectedAppreciations.remove(app) : _selectedAppreciations.add(app);
-                        }),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          decoration: BoxDecoration(color: isSelected ? const Color(0xFFFFDBD2).withValues(alpha: 0.6) : const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(20)),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(Icons.check_circle, size: 16, color: const Color(0xFF9A442D)),
-                              const SizedBox(width: 6),
-                              Text(app, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w500, color: isSelected ? const Color(0xFF7C2E19) : const Color(0xFF1C1C18))),
-                            ],
-                          ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                  const SizedBox(height: 24),
                   
-                  // Text Area
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('Catatan Tambahan', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                      Text('${_feedbackController.text.length}/500', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Container(
-                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: const Color(0xFF1C1D1F).withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2))]),
-                    child: TextField(
-                      controller: _feedbackController,
-                      maxLines: 4, maxLength: 500,
-                      onChanged: (text) => setState(() {}),
-                      decoration: InputDecoration(
-                        hintText: 'Tuliskan pengalaman atau kendala yang Anda temui di lokasi...',
-                        hintStyle: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B)),
-                        border: InputBorder.none, counterText: '',
-                        contentPadding: const EdgeInsets.all(16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+                  
+                  
                   
                   // Location Pill
                   Container(
@@ -266,7 +203,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                               SizedBox(
                                 width: double.infinity, height: 48,
                                 child: ElevatedButton(
-                                  onPressed: () { Navigator.pop(context); Navigator.pop(context); },
+                                  onPressed: () { Navigator.pushAndRemoveUntil(context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false); },
                                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF020304), foregroundColor: Colors.white, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
                                   child: Text('Selesai', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
                                 ),

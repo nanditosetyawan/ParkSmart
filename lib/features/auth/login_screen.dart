@@ -49,11 +49,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           boxShadow: const [AppShadows.soft],
                         ),
                         padding: const EdgeInsets.all(10),
-                        child: Image.network(
-                          'https://lh3.googleusercontent.com/aida-public/AB6AXuDLoi5lUQ_yrFCiVd8Dn2G6gCles-BYgcTxBL84YCio-v87VwFAUXzZNSU4lSvMRVYDwjCsxDZT6zWWVB4I6mZk1ECThwKRQgDkuX52G2yY4KjXPSwgwTD9-6wsXAiRbZoOgT2H_aCckZh7wYnfAoiafvPV51YKXOCqTZIi2ALwyhdPF9wla46O98kKzJGoxd0FWCJRSbTv4K8UDpXaY5gWkklWhGTetALtFVgOkJ6NLhNU2LKzp4sL',
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(Icons.local_parking, color: AppColors.warmTerracotta),
-                        ),
+                        child: ClipRRect(borderRadius: BorderRadius.circular(20), child: Image.asset('assets/images/app_icon.png', fit: BoxFit.cover)),
                       ),
                       const SizedBox(width: 12),
                       Column(
@@ -73,15 +69,7 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ],
                   ),
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: AppColors.surfaceCard,
-                      shape: BoxShape.circle,
-                      border: Border.all(color: AppColors.warmBorder.withOpacity(0.6)),
-                    ),
-                    child: const Icon(Icons.local_parking, size: 20, color: AppColors.textSecondary),
-                  ),
+                  const SizedBox(width: 40, height: 40),
                 ],
               ),
 

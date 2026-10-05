@@ -84,18 +84,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                               color: const Color(0xFF45474A), decoration: null),
                           ),
                         ]),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                          decoration: BoxDecoration(color: _kSecondaryFixed, borderRadius: AppRadii.pillRadius),
-                          child: Row(children: [
-                            Container(
-                              width: 6, height: 6,
-                              decoration: const BoxDecoration(color: _kSecondary, shape: BoxShape.circle),
-                            ),
-                            const SizedBox(width: 4),
-                            Text('Sensor ANPR Aktif', style: AppTypography.overline(color: const Color(0xFF742814))),
-                          ]),
-                        ),
+                        const SizedBox(width: 130, height: 24),
                       ]),
                       const SizedBox(height: 8),
                       // slot count
@@ -179,36 +168,10 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                       boxShadow: [BoxShadow(color: const Color(0xFF1C1D1F).withOpacity(0.04), offset: const Offset(0, 2), blurRadius: 8)],
                     ),
                     child: Column(children: [
-                      // Elevator landmark
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: _kSurfaceContainerLowest.withOpacity(0.8),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                          Row(children: [
-                            Container(
-                              width: 28, height: 28,
-                              decoration: const BoxDecoration(color: _kTertiaryFixed, shape: BoxShape.circle),
-                              child: const Icon(Icons.elevator, size: 18, color: Color(0xFF002115)),
-                            ),
-                            const SizedBox(width: 8),
-                            Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                              Text('Akses Lift Mall', style: AppTypography.labelMd().copyWith(fontSize: 14, fontWeight: FontWeight.w600)),
-                              Text('Pintu Barat • Lobby Laguna', style: AppTypography.caption(color: const Color(0xFF45474A))),
-                            ]),
-                          ]),
-                          Row(children: [
-                            const Icon(Icons.north, size: 16, color: _kSecondary),
-                            Text('15m jalan kaki', style: AppTypography.caption(color: _kSecondary).copyWith(fontWeight: FontWeight.w600)),
-                          ]),
-                        ]),
-                      ),
-                      const SizedBox(height: 16),
+                      
 
                       // Zone A
-                      _ZoneLabel(label: 'Zona A (Terdekat Lift)', count: '3 Tersedia'),
+                      _ZoneLabel(label: 'Zona A', count: '3 Tersedia'),
                       const SizedBox(height: 8),
                       GridView.count(
                         crossAxisCount: 4, crossAxisSpacing: 10, mainAxisSpacing: 10,
@@ -243,7 +206,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                       const SizedBox(height: 12),
 
                       // Zone B
-                      _ZoneLabel(label: 'Zona B (Akses Ram Cepat)', count: '2 Tersedia'),
+                      _ZoneLabel(label: 'Zona B', count: '2 Tersedia'),
                       const SizedBox(height: 8),
                       GridView.count(
                         crossAxisCount: 4, crossAxisSpacing: 10, mainAxisSpacing: 10,

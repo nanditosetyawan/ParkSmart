@@ -4,6 +4,7 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../../theme/app_typography.dart';
 import '../booking/booking_confirmation_screen.dart';
+import '../profile/vehicle_screen.dart';
 
 const _kSurface = Color(0xFFFCF9F2);
 const _kCard = Color(0xFFFFFFFF);
@@ -109,35 +110,56 @@ class CheckoutScreen extends StatelessWidget {
                 ),
                 const SizedBox(height: 12),
                 Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: _kSurfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-                  child: Row(children: [
-                    const Icon(Icons.calendar_today_outlined, size: 20, color: _kOnSurfaceVariant),
-                    const SizedBox(width: 12),
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('JADWAL KEDATANGAN', style: AppTypography.overline(color: _kOutline)),
-                      Text('Hari ini, 24 Okt  14:00 - 16:00 WIB',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
-                    ]),
-                  ]),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kOutline.withOpacity(0.3)), boxShadow: const [AppShadows.soft]),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () {},
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Row(children: [
+                          const Icon(Icons.calendar_today_outlined, size: 20, color: _kOnSurfaceVariant),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('JADWAL KEDATANGAN', style: AppTypography.overline(color: _kOutline)),
+                            Text('Hari ini, 24 Okt  14:00 - 16:00 WIB',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
+                          ])),
+                          const Icon(Icons.chevron_right, size: 20, color: _kOutline),
+                        ]),
+                      ),
+                    ),
+                  ),
                 ),
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(color: _kSurfaceContainerLow, borderRadius: BorderRadius.circular(10)),
-                  child: Row(children: [
-                    const Icon(Icons.directions_car_outlined, size: 20, color: _kOnSurfaceVariant),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('KENDARAAN TERDAFTAR', style: AppTypography.overline(color: _kOutline)),
-                      Text('Toyota Raize', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
-                    ])),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: _kSurfaceContainerHigh, borderRadius: AppRadii.pillRadius),
-                      child: Text('B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600)),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kOutline.withOpacity(0.3)), boxShadow: const [AppShadows.soft]),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(12),
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const VehicleScreen())),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                        child: Row(children: [
+                          const Icon(Icons.directions_car_outlined, size: 20, color: _kOnSurfaceVariant),
+                          const SizedBox(width: 12),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text('KENDARAAN TERDAFTAR', style: AppTypography.overline(color: _kOutline)),
+                            Text('Toyota Raize', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
+                          ])),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                            decoration: BoxDecoration(color: _kSurfaceContainerHigh, borderRadius: AppRadii.pillRadius),
+                            child: Text('B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600)),
+                          ),
+                          const SizedBox(width: 8),
+                          const Icon(Icons.chevron_right, size: 20, color: _kOutline),
+                        ]),
+                      ),
                     ),
-                  ]),
+                  ),
                 ),
               ]),
             ),
