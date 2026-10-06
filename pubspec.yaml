@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
   flutter_local_notifications: ^22.3.1
   google_fonts: ^8.2.1
   local_auth: ^3.0.2
