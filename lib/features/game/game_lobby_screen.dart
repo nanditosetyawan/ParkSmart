@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'game_list_screen.dart';
 
 class GameLobbyScreen extends StatelessWidget {
   const GameLobbyScreen({super.key});
@@ -24,7 +25,7 @@ class GameLobbyScreen extends StatelessWidget {
                   padding: const EdgeInsets.all(20),
                   child: Row(
                     children: [
-                      Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF475569))), child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0))),
+                      GestureDetector(onTap: () => Navigator.pop(context), child: Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF475569))), child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0)))),
                     ],
                   ),
                 ),
@@ -45,7 +46,9 @@ class GameLobbyScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 56,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.push(context, MaterialPageRoute(builder: (context) => const GameListScreen()));
+                      },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF17A18A),
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

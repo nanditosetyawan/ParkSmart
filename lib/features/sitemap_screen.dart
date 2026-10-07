@@ -100,7 +100,7 @@ class SitemapScreen extends StatelessWidget {
             _Item('Tambah Kendaraan', (c) => const AddVehicleScreen()),
             _Item('Bagaimana Pengalaman Parkir', (c) => const FeedbackScreen()),
           ]),
-          _buildCategory('Games & AR', [
+          _buildCategory('Games & AR, mini game belom', [
             _Item('AR Navigation', (c) => const ArNavigationScreen()),
             _Item('Game Lobby', (c) => const GameLobbyScreen()),
             _Item('Mini Game', (c) => const MiniGameScreen()),

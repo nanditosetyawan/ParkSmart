@@ -11,7 +11,6 @@ class AddVehicleScreen extends StatefulWidget {
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
   String _selectedCategory = 'suv';
   String _selectedColor = 'Abu-Abu Metalik';
-  bool _anprEnabled = true;
 
   @override
   Widget build(BuildContext context) {
@@ -196,8 +195,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                         ],
                       ),
                     ),
-                    const SizedBox(height: 8),
-                    Text('Ketik nomor polisi sesuai STNK resmi kendaraan Anda.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF78716C))),
+                    
                   ],
                 ),
               ),
@@ -267,56 +265,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
 
               const SizedBox(height: 20),
 
-              // 6. Auto-Gate Toggle
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E3DB)),
-                  boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 12, offset: const Offset(0, 4))],
-                ),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 40, height: 40,
-                      decoration: BoxDecoration(color: const Color(0xFFF5F5F4), borderRadius: BorderRadius.circular(12)),
-                      child: const Icon(Icons.sensors, color: Color(0xFF141518)),
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            children: [
-                              Text('Buka Palang Otomatis (ANPR)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF141518))),
-                            ],
-                          ),
-                          const SizedBox(height: 4),
-                          Text('Palang masuk & keluar otomatis terbuka saat plat terbaca oleh kamera CCTV rekanan.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF5E6066))),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Switch(
-                      value: _anprEnabled,
-                      activeThumbColor: Colors.white,
-                      activeTrackColor: const Color(0xFF141518),
-                      onChanged: (val) => setState(() => _anprEnabled = val),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(Icons.verified, size: 16, color: Color(0xFF57534E)),
-                  const SizedBox(width: 6),
-                  Text('Didukung 120+ gerbang mall & gedung perkantoran Jabodetabek', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF78716C))),
-                ],
-              ),
+
             ],
           ),
           

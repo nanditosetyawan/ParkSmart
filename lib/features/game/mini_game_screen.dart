@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'dart:async';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class MiniGameScreen extends StatefulWidget {
@@ -10,24 +13,94 @@ class MiniGameScreen extends StatefulWidget {
 
 class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProviderStateMixin {
   late AnimationController _pulseController;
+  bool _sensorsConnected = false;
+  StreamSubscription? _accelSub;
+  StreamSubscription? _gyroSub;
 
   @override
   void initState() {
     super.initState();
+    SystemChrome.setPreferredOrientations([
+      DeviceOrientation.landscapeRight,
+      DeviceOrientation.landscapeLeft,
+    ]);
+
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
+
+    bool accelReady = false;
+    bool gyroReady = false;
+
+    _accelSub = accelerometerEventStream().listen((event) {
+      if (!accelReady) {
+        accelReady = true;
+        if (gyroReady && mounted) {
+          setState(() => _sensorsConnected = true);
+        }
+      }
+    });
+
+    _gyroSub = gyroscopeEventStream().listen((event) {
+      if (!gyroReady) {
+        gyroReady = true;
+        if (accelReady && mounted) {
+          setState(() => _sensorsConnected = true);
+        }
+      }
+    });
+    
+    // Fallback for emulator testing: 
+    // Future.delayed(const Duration(seconds: 3), () {
+    //   if (mounted && !_sensorsConnected) {
+    //     setState(() => _sensorsConnected = true);
+    //   }
+    // });
   }
 
   @override
   void dispose() {
+    _accelSub?.cancel();
+    _gyroSub?.cancel();
     _pulseController.dispose();
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
+    if (!_sensorsConnected) {
+      return Scaffold(
+        backgroundColor: const Color(0xFF0F172A),
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(color: Color(0xFF34D399)),
+              const SizedBox(height: 24),
+              Text('Menghubungkan Sensor Kendaraan...', style: GoogleFonts.inter(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('Pastikan Gyroscope & Accelerometer aktif.', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12)),
+              const SizedBox(height: 32),
+              GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF475569)),
+                  ),
+                  child: Text('Batal', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: const Color(0xFF0F172A),
       body: SafeArea(
@@ -49,7 +122,10 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
                       Container(
                         width: 40, height: 40,
                         decoration: BoxDecoration(color: const Color(0xFF1E293B), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFF475569))),
-                        child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0), size: 20),
+                        child: GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0), size: 20),
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Container(
