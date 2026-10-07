@@ -84,7 +84,7 @@ class ProfileScreen extends StatelessWidget {
                         const SizedBox(height: 16),
                         Text('Sarah Pramudita', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                         const SizedBox(height: 4),
-                        Text('sarah.pramudita@email.com • +62 812-3456-7890', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF62615B))),
+                        Text('sarah.pramudita@email.com\n+62 812-3456-7890', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF62615B), height: 1.5)),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
