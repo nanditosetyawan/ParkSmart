@@ -122,21 +122,8 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                       ),
                     ),
                   ),
-                  Row(
-                    children: [
-                      Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF10B981), shape: BoxShape.circle)),
-                      const SizedBox(width: 8),
-                      Text('Check-in Gerbang', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1C1C))),
-                    ],
-                  ),
-                  Container(
-                    width: 40, height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFE8E8E8).withValues(alpha: 0.6), shape: BoxShape.circle,
-                      border: Border.all(color: const Color(0xFFC3C6D1).withValues(alpha: 0.3)),
-                    ),
-                    child: const Icon(Icons.help_outline, size: 20, color: Color(0xFF1A1C1C)),
-                  ),
+
+
                 ],
               ),
             ),
@@ -147,24 +134,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Status Pill & Headline
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF022C22).withValues(alpha: 0.05),
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: const Color(0xFF065F46).withValues(alpha: 0.15)),
-                      ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF059669), shape: BoxShape.circle)),
-                          const SizedBox(width: 8),
-                          Text('GEOFENCE & ANPR GATE 01 AKTIF', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF064E3B), letterSpacing: 0.5)),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 12),
+
                     Text('Selamat Datang di\nCentral Park Mall.', style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.bold, height: 1.2, color: const Color(0xFF1C1D1F), letterSpacing: -0.5)),
                     const SizedBox(height: 12),
                     Text('Sistem ANPR mendeteksi plat nomor Anda pada radius 50 meter dari Gate 01 South Entrance.', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A), height: 1.5)),

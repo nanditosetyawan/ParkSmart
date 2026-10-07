@@ -107,7 +107,7 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF5F1E8).withValues(alpha: 0.7),
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(24),
                       border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.7)),
                     ),
@@ -177,15 +177,15 @@ class ProfileScreen extends StatelessWidget {
                     child: TextButton(
                       onPressed: () {},
                       style: TextButton.styleFrom(
-                        backgroundColor: Colors.white.withValues(alpha: 0.6),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16), side: BorderSide(color: const Color(0xFFE4DFD5).withValues(alpha: 0.8))),
+                        backgroundColor: const Color(0xFF8B0000), // Merah darah tua
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.logout, size: 18, color: Color(0xFF62615B)),
+                          const Icon(Icons.logout, size: 18, color: Colors.white),
                           const SizedBox(width: 8),
-                          Text('KELUAR DARI AKUN', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF62615B), letterSpacing: 1.0)),
+                          Text('KELUAR DARI AKUN', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.0)),
                         ],
                       ),
                     ),

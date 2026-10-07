@@ -62,7 +62,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                       decoration: const BoxDecoration(
-                        color: Color(0xFFF6F3EC),
+                        color: Colors.white,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                       ),
                       child: Row(
@@ -205,7 +205,7 @@ class _InfoBox extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(12)),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E2DB))),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [

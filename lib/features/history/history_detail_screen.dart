@@ -126,7 +126,7 @@ class HistoryDetailScreen extends StatelessWidget {
                               const Divider(color: Color(0xFFF1EEE7), height: 1),
                               _ReceiptRow(icon: Icons.account_balance_wallet, label: 'Metode Bayar', valueWidget: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
+                                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
                                 child: Row(
                                   children: [
                                     const Icon(Icons.payments, size: 15, color: Color(0xFF9A442D)),
@@ -147,7 +147,7 @@ class HistoryDetailScreen extends StatelessWidget {
                   // Blockchain Card
                   Container(
                     padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFEBE8E1))),
+                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFEBE8E1))),
                     child: Column(
                       children: [
                         Row(
@@ -155,7 +155,7 @@ class HistoryDetailScreen extends StatelessWidget {
                           children: [
                             Row(
                               children: [
-                                Container(width: 36, height: 36, decoration: const BoxDecoration(color: Color(0xFF002216), shape: BoxShape.circle), child: const Icon(Icons.verified_user, size: 20, color: Color(0xFF9FD1B8))),
+                                Container(width: 36, height: 36, decoration: const BoxDecoration(color: Color(0xFF002216), shape: BoxShape.circle), child: const Icon(Icons.verified_user, size: 20, color: Colors.white)),
                                 const SizedBox(width: 10),
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -171,9 +171,9 @@ class HistoryDetailScreen extends StatelessWidget {
                               decoration: BoxDecoration(color: const Color(0xFF002216), borderRadius: BorderRadius.circular(16)),
                               child: Row(
                                 children: [
-                                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFF9FD1B8), shape: BoxShape.circle)),
+                                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
                                   const SizedBox(width: 6),
-                                  Text('Tervalidasi 100% On-Chain', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF9FD1B8))),
+                                  Text('Tervalidasi 100% On-Chain', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
                                 ],
                               ),
                             ),

@@ -52,10 +52,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       ),
                     ],
                   ),
-                  const CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
-                  ),
+
                 ],
               ),
             ),
@@ -171,7 +168,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                         _SettingStatusRow(
-                          icon: Icons.palette, title: 'Mode Tampilan', subtitle: 'Warm Editorial (Default)',
+                          icon: Icons.palette, title: 'Light Mode', subtitle: '',
                           statusWidget: Row(children: [Container(width: 16, height: 16, decoration: const BoxDecoration(color: Color(0xFF9A442D), shape: BoxShape.circle)), const SizedBox(width: 6), Text('Default', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)))]),
                         ),
                       ],
@@ -187,11 +184,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: const Color(0xFF1C1D1F).withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))]),
                     child: Column(
                       children: [
-                        _SettingActionRow(
-                          icon: Icons.camera_outdoor, title: 'Log Akses ANPR & Geofence', subtitle: 'Riwayat sensor pelat & lokasi masuk',
-                          actionWidget: Container(width: 32, height: 32, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: const Icon(Icons.chevron_right, size: 18, color: Color(0xFF1C1C18))),
-                        ),
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
+
                         Row(
                           children: [
                             Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFFF6F3EC), shape: BoxShape.circle), child: const Icon(Icons.cleaning_services, size: 20, color: Color(0xFF1C1C18))),
@@ -325,7 +318,7 @@ class _SettingToggleRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
-              Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
+              if (subtitle.isNotEmpty) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
             ],
           ),
         ),
@@ -355,7 +348,7 @@ class _SettingActionRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
-              Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
+              if (subtitle.isNotEmpty) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
             ],
           ),
         ),
@@ -397,7 +390,7 @@ class _SettingStatusRow extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
-              Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
+              if (subtitle.isNotEmpty) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
             ],
           ),
         ),

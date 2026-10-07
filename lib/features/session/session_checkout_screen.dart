@@ -92,7 +92,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                 children: [
                                   Container(
                                     width: 40, height: 40,
-                                    decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
+                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
                                     child: const Icon(Icons.local_parking, size: 22, color: Color(0xFF1C1C18)),
                                   ),
                                   const SizedBox(width: 12),
@@ -115,7 +115,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                           const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                           Container(
                             padding: const EdgeInsets.all(16),
-                            decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
+                            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
                             child: Column(
                               children: [
                                 Row(

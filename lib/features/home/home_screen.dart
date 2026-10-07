@@ -294,14 +294,14 @@ class HomeScreen extends StatelessWidget {
                           ])),
                           Container(
                             width: 40, height: 40,
-                            decoration: BoxDecoration(color: AppColors.surfaceDim, shape: BoxShape.circle),
-                            child: const Icon(Icons.qr_code_2, size: 20, color: AppColors.textPrimary),
+                            decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
+                            child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
                           ),
                         ]),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(color: AppColors.background, borderRadius: AppRadii.lgRadius),
+                          decoration: BoxDecoration(color: AppColors.white, borderRadius: AppRadii.lgRadius, border: Border.all(color: const Color(0xFFE5E2DB))),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [

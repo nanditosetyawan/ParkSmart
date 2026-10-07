@@ -48,7 +48,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
             children: [
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
                 child: Row(
                   children: [
                     Container(
@@ -60,7 +60,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                   ],
                 ),
               ),
-              Text('Auto-Sync ANPR', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF9A442D))),
+              
             ],
           ),
           const SizedBox(height: 16),
@@ -104,7 +104,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E2DB))),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
@@ -136,7 +136,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                   children: [
                     Row(
                       children: [
-                        const Icon(Icons.verified, size: 18, color: Color(0xFF76777B)),
+                        const Icon(Icons.verified, size: 18, color: Color(0xFF059669)),
                         const SizedBox(width: 8),
                         Text('Toyota Raize • B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                       ],
@@ -277,8 +277,8 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('Metode Pembayaran', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
                             Text('ParkSmart Wallet', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                             Text('Saldo Aktif: Rp 45.000', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF1F4F3C))),
                           ],
@@ -294,9 +294,9 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
           const SizedBox(height: 24),
           Row(
             children: [
-              const Icon(Icons.info_outline, size: 20, color: Color(0xFF76777B)),
+              const Icon(Icons.info_outline, size: 20, color: Color.fromARGB(255, 45, 46, 47)),
               const SizedBox(width: 12),
-              Expanded(child: Text('Perpanjangan otomatis dikonfirmasi ke sistem sensor ANPR & petugas lapangan Central Park Mall tanpa perlu tiket baru.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)))),
+              Expanded(child: Text('Perpanjangan otomatis dikonfirmasi tanpa perlu tiket baru.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)))),
             ],
           ),
           const SizedBox(height: 24),

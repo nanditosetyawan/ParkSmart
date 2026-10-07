@@ -105,7 +105,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                       // tip
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                        decoration: BoxDecoration(color: _kSurfaceContainerLow, borderRadius: BorderRadius.circular(10)),
+                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(10), border: Border.all(color: const Color(0xFFE5E2DB))),
                         child: Row(children: [
                           const Icon(Icons.tips_and_updates_outlined, size: 18, color: AppColors.accentTeal),
                           const SizedBox(width: 8),

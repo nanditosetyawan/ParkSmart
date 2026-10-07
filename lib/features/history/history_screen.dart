@@ -47,35 +47,6 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       Text('Riwayat Transaksi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF76777B))),
                     ],
                   ),
-                  Row(
-                    children: [
-                      Container(
-                        width: 44, height: 44,
-                        decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle),
-                        child: const Icon(Icons.calendar_today, size: 22, color: Color(0xFF1C1C18)),
-                      ),
-                      const SizedBox(width: 8),
-                      Stack(
-                        children: [
-                          Container(
-                            width: 44, height: 44,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(color: Colors.white, width: 2),
-                              image: const DecorationImage(image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'), fit: BoxFit.cover),
-                            ),
-                          ),
-                          Positioned(
-                            bottom: 0, right: 0,
-                            child: Container(
-                              width: 12, height: 12,
-                              decoration: BoxDecoration(color: const Color(0xFF10B981), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFFAF7F2), width: 2)),
-                            ),
-                          )
-                        ],
-                      )
-                    ],
-                  ),
                 ],
               ),
             ),
@@ -215,8 +186,8 @@ class _HistoryCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEBE8E1))),
-                    child: Icon(icon, size: 24, color: const Color(0xFF1C1C18)),
+                    width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFF1C1D1F), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEBE8E1))),
+                    child: Icon(icon, size: 24, color: Colors.white),
                   ),
                   const SizedBox(width: 12),
                   Column(
@@ -251,7 +222,7 @@ class _HistoryCard extends StatelessWidget {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(color: const Color(0xFFFAF7F2), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEBE8E1).withValues(alpha: 0.8))),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFEBE8E1).withValues(alpha: 0.8))),
             child: Row(
               children: [
                 Expanded(
@@ -304,12 +275,12 @@ class _HistoryCard extends StatelessWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
+                decoration: BoxDecoration(color: const Color.fromARGB(255, 0, 0, 0), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
                 child: Row(
                   children: [
                     const Icon(Icons.verified, size: 15, color: Color(0xFF047857)),
                     const SizedBox(width: 6),
-                    Text('Verified by Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
+                    Text('Verified by Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
                   ],
                 ),
               ),

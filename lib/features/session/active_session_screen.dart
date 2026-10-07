@@ -225,7 +225,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                   Expanded(
                                     child: Container(
                                       padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(color: const Color(0xFFF7F5EF), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFECE7DE).withValues(alpha: 0.4))),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFECE7DE).withValues(alpha: 0.4))),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
@@ -246,7 +246,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                   Expanded(
                                     child: Container(
                                       padding: const EdgeInsets.all(14),
-                                      decoration: BoxDecoration(color: const Color(0xFFF7F5EF), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFECE7DE).withValues(alpha: 0.4))),
+                                      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFECE7DE).withValues(alpha: 0.4))),
                                       child: Column(
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [

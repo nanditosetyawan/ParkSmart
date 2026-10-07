@@ -71,12 +71,12 @@ class VehicleScreen extends StatelessWidget {
                         ),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: BorderRadius.circular(20)),
+                          decoration: BoxDecoration(color: const Color(0xFF1C1D1F), borderRadius: BorderRadius.circular(20)),
                           child: Row(
                             children: [
-                              const Icon(Icons.add, size: 18, color: Color(0xFF1C1C18)),
+                              const Icon(Icons.add, size: 18, color: Colors.white),
                               const SizedBox(width: 4),
-                              Text('Tambah', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
+                              Text('Tambah', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
                             ],
                           ),
                         ),
@@ -111,7 +111,7 @@ class VehicleScreen extends StatelessWidget {
                                 ),
                               ),
                               Container(
-                                width: 32, height: 32, decoration: const BoxDecoration(color: Color(0xFFF6F3EC), shape: BoxShape.circle),
+                                width: 32, height: 32, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
                                 child: const Icon(Icons.more_horiz, size: 18, color: Color(0xFF45474A)),
                               ),
                             ],
@@ -152,49 +152,21 @@ class VehicleScreen extends StatelessWidget {
                                   Text('Putih Pearl • Milik Pribadi', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A))),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(16)),
-                                child: Row(
-                                  children: [
-                                    Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF9FD1B8), shape: BoxShape.circle)),
-                                    const SizedBox(width: 6),
-                                    Text('Auto-Gate Siap', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                                  ],
-                                ),
-                              ),
+
                             ],
                           ),
                           const SizedBox(height: 12),
                           Container(
-                            padding: const EdgeInsets.all(14),
-                            decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
+                            padding: const EdgeInsets.all(0),
+                            decoration: BoxDecoration(color: Colors.transparent),
                             child: Column(
                               children: [
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Row(
-                                      children: [
-                                        Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFFBBEED4), shape: BoxShape.circle)),
-                                        const SizedBox(width: 8),
-                                        Text('RFID & ANPR Sensor', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                                      ],
-                                    ),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                      decoration: BoxDecoration(color: const Color(0xFFBBEED4).withValues(alpha: 0.3), borderRadius: BorderRadius.circular(12)),
-                                      child: Text('Terhubung Otomatis', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF5F8F78))),
-                                    ),
-                                  ],
-                                ),
-                                const SizedBox(height: 8),
                                 Row(
                                   children: [
                                     Expanded(
                                       child: Container(
                                         padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E2DB))),
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
@@ -209,15 +181,15 @@ class VehicleScreen extends StatelessWidget {
                                     Expanded(
                                       child: Container(
                                         padding: const EdgeInsets.all(10),
-                                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12)),
+                                        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E2DB))),
                                         child: Column(
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
-                                            Text('Masa Berlaku Sensor', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF45474A))),
+                                            Text('Masa Berlaku', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF45474A))),
                                             const SizedBox(height: 2),
                                             Row(
                                               children: [
-                                                const Icon(Icons.verified, size: 16, color: Color(0xFF9FD1B8)),
+                                                const Icon(Icons.verified, size: 16, color: Color.fromARGB(255, 122, 211, 167)),
                                                 const SizedBox(width: 4),
                                                 Text('Aktif Selamanya', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                                               ],
@@ -241,7 +213,7 @@ class VehicleScreen extends StatelessWidget {
                                   },
                                   child: Container(
                                     height: 48,
-                                    decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: BorderRadius.circular(24)),
+                                    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFE5E2DB))),
                                     child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
@@ -256,7 +228,7 @@ class VehicleScreen extends StatelessWidget {
                               const SizedBox(width: 8),
                               Container(
                                 width: 48, height: 48,
-                                decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle),
+                                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
                                 child: const Icon(Icons.tune, size: 20, color: Color(0xFF1C1C18)),
                               ),
                             ],
@@ -299,20 +271,14 @@ class VehicleScreen extends StatelessWidget {
                                         Text('B 5678 KLM', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                                         Container(
                                           padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                          decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: BorderRadius.circular(12)),
+                                          decoration: BoxDecoration(color: const Color.fromARGB(255, 255, 255, 255), borderRadius: BorderRadius.circular(12)),
                                           child: Text('Cadangan', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
                                         ),
                                       ],
                                     ),
                                     Text('Honda HR-V • Abu-Abu Metalik', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A))),
                                     const SizedBox(height: 8),
-                                    Row(
-                                      children: [
-                                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFBBEED4), shape: BoxShape.circle)),
-                                        const SizedBox(width: 8),
-                                        Text('Sensor ANPR Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF45474A))),
-                                      ],
-                                    ),
+                                   
                                   ],
                                 ),
                               ),
@@ -342,38 +308,6 @@ class VehicleScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 20),
                   
-                  // Auto-Debit Setting
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(24)),
-                      child: Row(
-                        children: [
-                          Container(
-                            width: 40, height: 40, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                            child: const Icon(Icons.contactless, size: 20, color: Color(0xFF1C1C18)),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Auto-Debit Saldo Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                                Text('Palang terbuka otomatis tanpa henti', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A))),
-                              ],
-                            ),
-                          ),
-                          Switch(
-                            value: true,
-                            onChanged: (val) {},
-                            activeThumbColor: Colors.white, activeTrackColor: const Color(0xFF020304),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
                   
                   // Add button
                   Padding(
