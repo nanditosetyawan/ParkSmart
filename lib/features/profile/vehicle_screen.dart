@@ -44,10 +44,7 @@ class VehicleScreen extends StatelessWidget {
                       ),
                     ],
                   ),
-                  const CircleAvatar(
-                    radius: 16,
-                    backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
-                  ),
+                  
                 ],
               ),
             ),
@@ -335,8 +332,7 @@ class VehicleScreen extends StatelessWidget {
                             ),
                           ),
                         ),
-                        const SizedBox(height: 10),
-                        Text('Mendukung verifikasi plat nomor instan via Samsat Online', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF45474A))),
+                        
                       ],
                     ),
                   ),

@@ -132,13 +132,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                         _SettingActionRow(
                           icon: Icons.pin, title: 'Kunci Transaksi PIN', subtitle: 'Wajib untuk sesi parkir otomatis',
-                          actionText: 'Ubah',
+                          actionWidget: Container(
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
+                            child: const Icon(Icons.chevron_right, size: 16, color: Color(0xFF1C1C18)),
+                          ),
                         ),
-                        const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
-                        _SettingStatusRow(
-                          icon: Icons.verified_user, title: 'Autentikasi 2 Langkah', subtitle: 'SMS OTP & Aplikasi Authenticator',
-                          statusText: 'Aktif',
-                        ),
+
                       ],
                     ),
                   ),
@@ -169,7 +169,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                         _SettingStatusRow(
                           icon: Icons.palette, title: 'Light Mode', subtitle: '',
-                          statusWidget: Row(children: [Container(width: 16, height: 16, decoration: const BoxDecoration(color: Color(0xFF9A442D), shape: BoxShape.circle)), const SizedBox(width: 6), Text('Default', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)))]),
+                          statusWidget: Text('Default', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
                         ),
                       ],
                     ),
@@ -220,31 +220,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                   const SizedBox(height: 24),
                   
-                  // Footer info
-                  Container(
-                    padding: const EdgeInsets.all(20),
-                    decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
-                    child: Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Container(width: 40, height: 40, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle), child: const Icon(Icons.hub, size: 20, color: Color(0xFF9A442D))),
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Auto-Sync Blockchain Node', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
-                                Text('Sinkronisasi ledger tiket real-time', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
-                              ],
-                            ),
-                          ],
-                        ),
-                        Container(width: 10, height: 10, decoration: const BoxDecoration(color: Color(0xFFFC9174), shape: BoxShape.circle)),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 24),
+
                   
                   Center(
                     child: Column(

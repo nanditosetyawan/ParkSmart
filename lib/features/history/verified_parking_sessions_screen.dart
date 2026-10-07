@@ -17,12 +17,9 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
         ),
         title: Text('Parking Spot Detail', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
         actions: [
-          IconButton(icon: const Icon(Icons.share, color: Color(0xFF45474A)), onPressed: () {}),
-          Container(
-            margin: const EdgeInsets.only(right: 16),
-            width: 32, height: 32,
-            decoration: const BoxDecoration(shape: BoxShape.circle, color: Color(0xFFE5E2DB)),
-            child: const Icon(Icons.person, size: 20, color: Color(0xFF45474A)),
+          Padding(
+            padding: const EdgeInsets.only(right: 8.0),
+            child: IconButton(icon: const Icon(Icons.share, color: Color(0xFF45474A)), onPressed: () {}),
           ),
         ],
       ),
@@ -54,17 +51,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
                         ],
                       ),
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                      decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(12)),
-                      child: Row(
-                        children: [
-                          Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF9FD1B8), shape: BoxShape.circle)),
-                          const SizedBox(width: 6),
-                          Text('Auto-Gate Siap', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                        ],
-                      ),
-                    ),
+                    const SizedBox(),
                   ],
                 ),
                 const SizedBox(height: 20),
@@ -73,8 +60,13 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
                   children: [
                     Container(
                       width: 96, height: 80,
-                      decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
-                      child: const Center(child: Icon(Icons.directions_car, size: 40, color: Color(0xFF45474A))), // Placeholder for car image
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        image: const DecorationImage(
+                          image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuAVnuwsaKhsc7ics-r8dq6xuhI1zrkeHWSoZpyeq7EGmKQYw_C4-dH5RuUyb8nRM_xEGAiy_s1PFU9iUZV8tTt6--jZfseZAh0cZzgeIN9Xb1Ast9BcH5Cokm2HgwLn_xJgSfbo-f_0EtvOuGrZhDzpZKtCkpM02ODxLjayW4pG6ArEONBVHlKbqLWK-KfYXVz7aTTfb1ng9nNOIsi0YE8MOPywan78pT3axi0Zbww-sKrIymmec4yi'),
+                          fit: BoxFit.cover,
+                        ),
+                      ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
@@ -84,13 +76,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
                           Text('B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                           Text('Toyota Raize • Putih Pearl', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A))),
                           const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              const Icon(Icons.verified, size: 16, color: Color(0xFF9FD1B8)),
-                              const SizedBox(width: 6),
-                              Text('Sensor ANPR & RFID Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                            ],
-                          ),
+                          const SizedBox(),
                         ],
                       ),
                     ),
@@ -99,7 +85,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
                 const SizedBox(height: 20),
                 Container(
                   padding: const EdgeInsets.symmetric(vertical: 12),
-                  decoration: BoxDecoration(color: const Color(0xFFF6F3EC).withValues(alpha: 0.7), borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
+                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                     children: [
@@ -154,13 +140,9 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
             children: [
               Row(
                 children: [
-                  Text('Sesi Parkir Terverifikasi', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                  Text('Sesi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                   const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: BorderRadius.circular(12)),
-                    child: Text('3 Sesi Baru', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                  ),
+                 
                 ],
               ),
               Row(
@@ -184,7 +166,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
             duration: '1 Jam 45 Mnt',
             timeIn: 'Masuk: 13:30 WIB',
             timeOut: 'Keluar: 15:15 WIB',
-            status: 'Selesai • Auto-Gate ANPR',
+            status: 'Selesai',
             icon: Icons.local_parking,
           ),
           const SizedBox(height: 12),
@@ -197,7 +179,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
             duration: '2 Jam 45 Mnt',
             timeIn: 'Masuk: 18:20 WIB',
             timeOut: 'Keluar: 21:05 WIB',
-            status: 'Selesai • Sensor ANPR',
+            status: 'Selesai',
             icon: Icons.corporate_fare,
           ),
           
@@ -208,7 +190,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF020304),
               foregroundColor: Colors.white,
-              padding: const EdgeInsets.symmetric(vertical: 16),
+              padding: const EdgeInsets.symmetric(vertical: 24),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
             ),
             child: Row(
@@ -216,7 +198,7 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
               children: [
                 const Icon(Icons.download, size: 20),
                 const SizedBox(width: 8),
-                Text('Unduh Rekap Pajak & Parkir (PDF)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text('Unduh Rekap Parkir (PDF)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -314,7 +296,6 @@ class _HistoryItem extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.end,
                 children: [
                   Text(price, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                  Text(paymentMethod, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF9FD1B8))),
                 ],
               ),
             ],
@@ -322,7 +303,7 @@ class _HistoryItem extends StatelessWidget {
           const SizedBox(height: 16),
           Container(
             padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(color: const Color(0xFFF6F3EC), borderRadius: BorderRadius.circular(16)),
+            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
             child: Column(
               children: [
                 Row(
@@ -367,12 +348,12 @@ class _HistoryItem extends StatelessWidget {
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFFEBE8E1), borderRadius: BorderRadius.circular(16)),
+                decoration: BoxDecoration(color: const Color(0xFF1C1D1F), borderRadius: BorderRadius.circular(16)),
                 child: Row(
                   children: [
-                    const Icon(Icons.receipt_long, size: 15, color: Color(0xFF1C1C18)),
+                    const Icon(Icons.receipt_long, size: 15, color: Colors.white),
                     const SizedBox(width: 6),
-                    Text('E-Receipt', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                    Text('E-Receipt', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                   ],
                 ),
               ),
