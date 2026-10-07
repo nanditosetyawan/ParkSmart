@@ -21,14 +21,12 @@ import 'auth/register_screen.dart';
 
 // Booking
 import 'booking/booking_confirmation_screen.dart';
-import 'booking/reservation_calendar_screen.dart';
 import 'booking/slot_selection_screen.dart';
 
 // Checkout & Session
 import 'checkout/checkout_screen.dart';
 import 'session/active_session_screen.dart';
 import 'session/checkin_screen.dart';
-import 'session/expiring_session_screen.dart';
 import 'session/extend_session_screen.dart';
 import 'session/session_checkout_screen.dart';
 
@@ -63,26 +61,24 @@ class SitemapScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Developer Sitemap')),
       body: ListView(
         children: [
-          _buildCategory('Auth', [
+          _buildCategory('Auth, otp belom aman', [
             _Item('Login', (c) => const LoginScreen()),
             _Item('Register', (c) => const RegisterScreen()),
             _Item('OTP / Reset', (c) => const OtpResetScreen()),
           ]),
-          _buildCategory('Main App', [
+          _buildCategory('Main App, notifikasi belom aman', [
             _Item('Home', (c) => const HomeScreen()),
             _Item('Notifications', (c) => const NotificationScreen()),
             _Item('Parking Detail', (c) => const ParkingDetailScreen()),
           ]),
           _buildCategory('Booking', [
-            _Item('Reservation Calendar', (c) => const ReservationCalendarScreen()),
             _Item('Slot Selection', (c) => const SlotSelectionScreen()),
             _Item('Booking Confirmation', (c) => const BookingConfirmationScreen()),
             _Item('Checkout', (c) => const CheckoutScreen()),
           ]),
-          _buildCategory('Session', [
+          _buildCategory('Session, cek notifikasi sesi berakhir segera', [
             _Item('Check-In', (c) => const CheckinScreen()),
             _Item('Active Session', (c) => const ActiveSessionScreen()),
-            _Item('Sesi Berakhir Segera', (c) => const ExpiringSessionScreen()),
             _Item('Extend Session', (c) => const ExtendSessionScreen()),
             _Item('Selesai Parkir (Checkout)', (c) => const SessionCheckoutScreen()),
           ]),

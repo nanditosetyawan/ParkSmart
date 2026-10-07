@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../auth/login_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../session/extend_session_screen.dart' as extend;
 import '../session/session_checkout_screen.dart' as checkout;
@@ -175,7 +176,13 @@ class ProfileScreen extends StatelessWidget {
                   SizedBox(
                     width: double.infinity, height: 52,
                     child: TextButton(
-                      onPressed: () {},
+                      onPressed: () {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          (Route<dynamic> route) => false,
+                        );
+                      },
                       style: TextButton.styleFrom(
                         backgroundColor: const Color(0xFF8B0000), // Merah darah tua
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),

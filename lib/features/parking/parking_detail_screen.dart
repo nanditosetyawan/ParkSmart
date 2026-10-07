@@ -200,13 +200,13 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                         Container(
                           padding: const EdgeInsets.all(12),
                           decoration: BoxDecoration(
-                            color: AppColors.background,
+                            color: const Color(0xFF1C1C18),
                             borderRadius: AppRadii.lgRadius,
                           ),
                           child: Row(children: [
-                            const Icon(Icons.tips_and_updates_outlined, size: 18, color: AppColors.accentTeal),
+                            const Icon(Icons.tips_and_updates_outlined, size: 18, color: Colors.white),
                             const SizedBox(width: 10),
-                            Expanded(child: Text('Zona A lebih dekat ke Lobby Tribeca & Central Park Lift.', style: AppTypography.bodySm(color: AppColors.textSecondary))),
+                            Expanded(child: Text('Zona A lebih dekat ke Lobby Tribeca & Central Park Lift.', style: AppTypography.bodySm(color: Colors.white))),
                           ]),
                         ),
                       ]),
@@ -409,9 +409,9 @@ class _AmenityChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-    decoration: BoxDecoration(color: AppColors.background, borderRadius: BorderRadius.circular(12)),
+    decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E2DB))),
     child: Row(children: [
-      Icon(icon, size: 18, color: AppColors.textSecondary),
+      Icon(icon, size: 18, color: const Color(0xFF45474A)),
       const SizedBox(width: 8),
       Text(label, style: AppTypography.labelSm()),
     ]),
