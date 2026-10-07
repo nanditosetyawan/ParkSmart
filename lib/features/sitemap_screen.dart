@@ -15,13 +15,17 @@ import 'ai_assistant/ai_assistant_screen.dart';
 import 'ai_assistant/ai_results_screen.dart';
 
 // Auth
-// import 'auth/register_screen.dart';
+import 'auth/login_screen.dart';
+import 'auth/otp_reset_screen.dart';
+import 'auth/register_screen.dart';
 
 // Booking
-// import 'booking/reservation_calendar_screen.dart';
-// import 'booking/slot_selection_screen.dart';
+import 'booking/booking_confirmation_screen.dart';
+import 'booking/reservation_calendar_screen.dart';
+import 'booking/slot_selection_screen.dart';
 
 // Checkout & Session
+import 'checkout/checkout_screen.dart';
 import 'session/active_session_screen.dart';
 import 'session/checkin_screen.dart';
 import 'session/expiring_session_screen.dart';
@@ -40,9 +44,15 @@ import 'profile/settings_screen.dart';
 import 'profile/vehicle_screen.dart';
 import 'vehicle/add_vehicle_screen.dart';
 
+// Home & Notification & Parking
+import 'home/home_screen.dart';
+import 'notification/notification_screen.dart';
+import 'parking/parking_detail_screen.dart';
+
 // Nav & Game
 import 'navigation/ar_navigation_screen.dart';
 import 'game/game_lobby_screen.dart';
+import 'game/mini_game_screen.dart';
 
 class SitemapScreen extends StatelessWidget {
   const SitemapScreen({super.key});
@@ -53,42 +63,58 @@ class SitemapScreen extends StatelessWidget {
       appBar: AppBar(title: const Text('Developer Sitemap')),
       body: ListView(
         children: [
-          _buildCategory('Admin / MCP Screens', [
-            _Item('AD-01 Dashboard', (c) => const DashboardScreen()),
-            _Item('AD-02 Locations', (c) => const LocationsScreen()),
-            _Item('AD-03 Slot Management', (c) => const SlotManagementScreen()),
-            _Item('AD-05 Active Users', (c) => const ActiveUsersScreen()),
-            _Item('AD-06 Arcade & Reward (AD-08)', (c) => const ArcadeAdminScreen()),
-            _Item('AD-07 Feedback', (c) => const FeedbackAdminScreen()),
-            _Item('AD-xx Konfigurasi Tarif', (c) => const PricingScreen()),
+          _buildCategory('Auth', [
+            _Item('Login', (c) => const LoginScreen()),
+            _Item('Register', (c) => const RegisterScreen()),
+            _Item('OTP / Reset', (c) => const OtpResetScreen()),
           ]),
-          _buildCategory('Session & Checkout (Screenshot 1)', [
-            _Item('Sesi Berakhir Segera', (c) => const ExpiringSessionScreen()),
-            _Item('Selesai Parkir (Checkout)', (c) => const SessionCheckoutScreen()),
-            _Item('Active Session', (c) => const ActiveSessionScreen()),
-            _Item('Extend Session', (c) => const ExtendSessionScreen()),
+          _buildCategory('Main App', [
+            _Item('Home', (c) => const HomeScreen()),
+            _Item('Notifications', (c) => const NotificationScreen()),
+            _Item('Parking Detail', (c) => const ParkingDetailScreen()),
+          ]),
+          _buildCategory('Booking', [
+            _Item('Reservation Calendar', (c) => const ReservationCalendarScreen()),
+            _Item('Slot Selection', (c) => const SlotSelectionScreen()),
+            _Item('Booking Confirmation', (c) => const BookingConfirmationScreen()),
+            _Item('Checkout', (c) => const CheckoutScreen()),
+          ]),
+          _buildCategory('Session', [
             _Item('Check-In', (c) => const CheckinScreen()),
-          ]),
-          _buildCategory('AI & Details (Screenshot 2)', [
-            _Item('Asisten ParkSmart AI', (c) => const AiAssistantScreen()),
-            _Item('Hasil Rekomendasi AI', (c) => const AiResultsScreen()),
-          ]),
-          _buildCategory('Profile & Settings (Screenshot 3)', [
-            _Item('Profil Pengguna', (c) => const ProfileScreen()),
-            _Item('Kendaraan Terdaftar', (c) => const VehicleScreen()),
-            _Item('Tambah Kendaraan', (c) => const AddVehicleScreen()),
-            _Item('Preferensi Aplikasi', (c) => const SettingsScreen()),
-            _Item('Bagaimana Pengalaman Parkir', (c) => const FeedbackScreen()),
+            _Item('Active Session', (c) => const ActiveSessionScreen()),
+            _Item('Sesi Berakhir Segera', (c) => const ExpiringSessionScreen()),
+            _Item('Extend Session', (c) => const ExtendSessionScreen()),
+            _Item('Selesai Parkir (Checkout)', (c) => const SessionCheckoutScreen()),
           ]),
           _buildCategory('History', [
             _Item('Riwayat Parkir Utama', (c) => const HistoryScreen()),
             _Item('Detail Riwayat', (c) => const HistoryDetailScreen()),
-            _Item('Sesi Terverifikasi (PS-17b)', (c) => const VerifiedParkingSessionsScreen()),
+            _Item('Sesi Terverifikasi', (c) => const VerifiedParkingSessionsScreen()),
+          ]),
+          _buildCategory('AI Assistant', [
+            _Item('Asisten ParkSmart AI', (c) => const AiAssistantScreen()),
+            _Item('Hasil Rekomendasi AI', (c) => const AiResultsScreen()),
+          ]),
+          _buildCategory('Profile & Settings', [
+            _Item('Profil Pengguna', (c) => const ProfileScreen()),
+            _Item('Preferensi Aplikasi', (c) => const SettingsScreen()),
+            _Item('Kendaraan Terdaftar', (c) => const VehicleScreen()),
+            _Item('Tambah Kendaraan', (c) => const AddVehicleScreen()),
+            _Item('Bagaimana Pengalaman Parkir', (c) => const FeedbackScreen()),
           ]),
           _buildCategory('Games & AR', [
             _Item('AR Navigation', (c) => const ArNavigationScreen()),
             _Item('Game Lobby', (c) => const GameLobbyScreen()),
-            // _Item('PS20 Mini Game', (c) => const Ps20MiniGameScreen()), // Needs implementation maybe
+            _Item('Mini Game', (c) => const MiniGameScreen()),
+          ]),
+          _buildCategory('Admin / MCP Screens', [
+            _Item('Dashboard', (c) => const DashboardScreen()),
+            _Item('Locations', (c) => const LocationsScreen()),
+            _Item('Slot Management', (c) => const SlotManagementScreen()),
+            _Item('Active Users', (c) => const ActiveUsersScreen()),
+            _Item('Arcade & Reward', (c) => const ArcadeAdminScreen()),
+            _Item('Feedback', (c) => const FeedbackAdminScreen()),
+            _Item('Konfigurasi Tarif', (c) => const PricingScreen()),
           ]),
         ],
       ),
