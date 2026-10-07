@@ -27,6 +27,7 @@ import 'booking/slot_selection_screen.dart';
 import 'checkout/checkout_screen.dart';
 import 'session/active_session_screen.dart';
 import 'session/checkin_screen.dart';
+import 'session/expiring_session_screen.dart';
 import 'session/extend_session_screen.dart';
 import 'session/session_checkout_screen.dart';
 
@@ -79,6 +80,7 @@ class SitemapScreen extends StatelessWidget {
           _buildCategory('Session, cek notifikasi sesi berakhir segera', [
             _Item('Check-In', (c) => const CheckinScreen()),
             _Item('Active Session', (c) => const ActiveSessionScreen()),
+            _Item('Sesi Berakhir Segera', (c) => const ExpiringSessionScreen()),
             _Item('Extend Session', (c) => const ExtendSessionScreen()),
             _Item('Selesai Parkir (Checkout)', (c) => const SessionCheckoutScreen()),
           ]),

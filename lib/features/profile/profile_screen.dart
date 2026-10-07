@@ -5,6 +5,7 @@ import '../session/extend_session_screen.dart' as extend;
 import '../session/session_checkout_screen.dart' as checkout;
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../session/expiring_session_screen.dart';
 import '../auth/login_screen.dart' as auth;
 import 'vehicle_screen.dart' as vehicle;
 import 'settings_screen.dart' as settings;
@@ -228,7 +229,7 @@ void _showNotificationTestMenu(BuildContext context) {
             subtitle: Text('Simulate overstay warning', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
             onTap: () {
               Navigator.pop(context);
-              _showSystemUrgentNotification();
+              _showSystemUrgentNotification(context);
             },
           ),
           ListTile(
@@ -237,7 +238,7 @@ void _showNotificationTestMenu(BuildContext context) {
             subtitle: Text('Simulate success message', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
             onTap: () {
               Navigator.pop(context);
-              _showSystemInfoNotification();
+              _showSystemInfoNotification(context);
             },
           ),
         ],
@@ -250,12 +251,19 @@ void _showNotificationTestMenu(BuildContext context) {
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin = FlutterLocalNotificationsPlugin();
 bool _notificationsInitialized = false;
 
-Future<void> _initNotifications() async {
+Future<void> _initNotifications(BuildContext context) async {
   if (_notificationsInitialized) return;
   const AndroidInitializationSettings initializationSettingsAndroid = AndroidInitializationSettings('@mipmap/ic_launcher');
   const InitializationSettings initializationSettings = InitializationSettings(android: initializationSettingsAndroid);
   
-  await flutterLocalNotificationsPlugin.initialize(settings: initializationSettings);
+  await flutterLocalNotificationsPlugin.initialize(
+    settings: initializationSettings,
+    onDidReceiveNotificationResponse: (NotificationResponse response) async {
+      if (response.payload == 'expiring_session') {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpiringSessionScreen()));
+      }
+    },
+  );
   
   // Meminta izin notifikasi secara eksplisit (Wajib untuk Android 13+)
   await flutterLocalNotificationsPlugin
@@ -265,8 +273,8 @@ Future<void> _initNotifications() async {
   _notificationsInitialized = true;
 }
 
-Future<void> _showSystemUrgentNotification() async {
-  await _initNotifications();
+Future<void> _showSystemUrgentNotification(BuildContext context) async {
+  await _initNotifications(context);
   const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
     'urgent_channel_v2', 'Urgent Notifications',
     channelDescription: 'Peringatan waktu parkir',
@@ -283,11 +291,12 @@ Future<void> _showSystemUrgentNotification() async {
     title: 'Sisa Waktu Parkir 10 Menit!',
     body: 'Waktu hampir habis. Segera perpanjang atau checkout.',
     notificationDetails: platformChannelSpecifics,
+    payload: 'expiring_session',
   );
 }
 
-Future<void> _showSystemInfoNotification() async {
-  await _initNotifications();
+Future<void> _showSystemInfoNotification(BuildContext context) async {
+  await _initNotifications(context);
   const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
     'info_channel_v2', 'Info Notifications',
     channelDescription: 'Informasi umum',
