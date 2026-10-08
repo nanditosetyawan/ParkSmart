@@ -17,9 +17,9 @@ class _HistoryScreenState extends State<HistoryScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: const BottomDockNavigation(activeTab: DockTab.history),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
         child: Column(
           children: [
             // Header
@@ -106,6 +106,17 @@ class _HistoryScreenState extends State<HistoryScreen> {
             ),
           ],
         ),
+      ),
+          // ─── Dark floating dock navigation (fixed bottom) ────────
+          Positioned(
+            bottom: 24,
+            left: 20,
+            right: 20,
+            child: Center(
+              child: const BottomDockNavigation(activeTab: DockTab.history),
+            ),
+          ),
+        ],
       ),
     );
   }

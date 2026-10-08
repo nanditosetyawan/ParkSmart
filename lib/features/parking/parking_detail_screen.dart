@@ -32,7 +32,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
             padding: EdgeInsets.zero,
             children: [
               // spacer for fixed header
-              const SizedBox(height: 72),
+              SizedBox(height: MediaQuery.of(context).padding.top + 72),
               Padding(
                 padding: const EdgeInsets.fromLTRB(20, 8, 20, 120),
                 child: Column(
@@ -278,12 +278,12 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
               child: Container(
                 height: 56,
                 padding: const EdgeInsets.symmetric(horizontal: 20),
-                color: AppColors.surface.withOpacity(0.85),
+                color: Colors.transparent,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     _NavBtn(icon: Icons.arrow_back, onTap: () => Navigator.pop(context)),
-                    Text('PARKIR MALL', style: AppTypography.overline(color: AppColors.textMuted)),
+                    const SizedBox(),
                     Row(children: [
                       _NavBtn(icon: _bookmarked ? Icons.bookmark : Icons.bookmark_border,
                         onTap: () => setState(() => _bookmarked = !_bookmarked)),

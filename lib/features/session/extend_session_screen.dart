@@ -141,11 +141,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         Text('Toyota Raize • B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: const Color(0xFFFFDBD2).withValues(alpha: 0.5), borderRadius: BorderRadius.circular(8)),
-                      child: Text('Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF7C2E19))),
-                    ),
+                  
                   ],
                 ),
               ],
@@ -176,7 +172,6 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
               return GestureDetector(
                 onTap: () => setState(() => _selectedIndex = index),
                 child: Container(
-                  padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     color: isSelected ? const Color(0xFF1C1D1F) : Colors.white,
                     borderRadius: BorderRadius.circular(16),
@@ -186,45 +181,56 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                       BoxShadow(color: Color(0x0A000000), offset: Offset(0, 4), blurRadius: 10)
                     ],
                   ),
-                  child: Stack(
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Row(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Stack(
+                      children: [
+                        if (option['popular'])
+                          Positioned(
+                            top: 27, right: -45,
+                            child: Transform.rotate(
+                              angle: 0.785398,
+                              child: Container(
+                                width: 160,
+                                alignment: Alignment.center,
+                                padding: const EdgeInsets.symmetric(vertical: 3),
+                                color: const Color(0xFFFC9174),
+                                child: Text('POPULER', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF742814), letterSpacing: 1.0)),
+                              ),
+                            ),
+                          ),
+                        Padding(
+                          padding: const EdgeInsets.all(12),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(option['title'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF020304))),
-                              Container(
-                                width: 20, height: 20,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  color: isSelected ? const Color(0xFF9A442D) : const Color(0xFFEBE8E1),
-                                ),
-                                child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))) : null,
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(option['title'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF020304))),
+                                  Container(
+                                    width: 20, height: 20,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      color: isSelected ? const Color(0xFF9A442D) : const Color(0xFFEBE8E1),
+                                    ),
+                                    child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))) : null,
+                                  ),
+                                ],
+                              ),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(option['cost'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF020304))),
+                                  Text(option['time'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: isSelected ? const Color(0xFF858587) : const Color(0xFF45474A))),
+                                ],
                               ),
                             ],
                           ),
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(option['cost'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF020304))),
-                              Text(option['time'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: isSelected ? const Color(0xFF858587) : const Color(0xFF45474A))),
-                            ],
-                          ),
-                        ],
-                      ),
-                      if (option['popular'])
-                        Positioned(
-                          top: -4, right: 28,
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                            decoration: BoxDecoration(color: const Color(0xFFFC9174), borderRadius: BorderRadius.circular(8)),
-                            child: Text('Paling Populer', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF742814))),
-                          ),
                         ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
               );

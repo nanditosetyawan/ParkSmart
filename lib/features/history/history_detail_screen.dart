@@ -71,43 +71,48 @@ class HistoryDetailScreen extends StatelessWidget {
                       children: [
                         Padding(
                           padding: const EdgeInsets.all(24),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Column(
+                              Text('NAMA GEDUNG', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF76777B), letterSpacing: 1.0)),
+                              Text('Central Park Mall', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                              const SizedBox(height: 4),
+                              Row(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('NAMA GEDUNG', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF76777B), letterSpacing: 1.0)),
-                                  Text('Central Park Mall', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    children: [
-                                      const Icon(Icons.location_on, size: 16, color: Color(0xFF9A442D)),
-                                      const SizedBox(width: 4),
-                                      Text('South Lobby, Basement B2, Slot A-05', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
-                                    ],
-                                  ),
+                                  const Icon(Icons.location_on, size: 16, color: Color(0xFF9A442D)),
+                                  const SizedBox(width: 4),
+                                  Expanded(child: Text('South Lobby, Basement B2, Slot A-05', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A)))),
                                 ],
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text('TOTAL BIAYA', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF76777B), letterSpacing: 1.5)),
-                                  Text('Rp 9.000', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1C1C18))),
-                                  const SizedBox(height: 4),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
-                                    decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                                    child: Row(
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(color: const Color.fromARGB(255, 255, 255, 255).withValues(alpha: 0.5), borderRadius: BorderRadius.circular(16)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  crossAxisAlignment: CrossAxisAlignment.center,
+                                  children: [
+                                    Text('TOTAL BIAYA', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF76777B), letterSpacing: 1.0)),
+                                    Row(
                                       children: [
-                                        const Icon(Icons.check_circle, size: 13, color: Color(0xFF17A18A)),
-                                        const SizedBox(width: 4),
-                                        Text('Lunas', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF17A18A))),
+                                        Text('Rp 9.000', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.w800, color: const Color(0xFF1C1C18))),
+                                        const SizedBox(width: 8),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                          decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
+                                          child: Row(
+                                            children: [
+                                              const Icon(Icons.check_circle, size: 13, color: Color(0xFF17A18A)),
+                                              const SizedBox(width: 4),
+                                              Text('Lunas', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF17A18A))),
+                                            ],
+                                          ),
+                                        ),
                                       ],
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -117,7 +122,10 @@ class HistoryDetailScreen extends StatelessWidget {
                           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
                           child: Column(
                             children: [
-                              _ReceiptRow(icon: Icons.schedule, label: 'Waktu Parkir', valueWidget: Text('24 Oktober 2026 • 14:02 - 15:50 WIB', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF1C1C18)))),
+                              _ReceiptRow(icon: Icons.schedule, label: 'Waktu Parkir', valueWidget: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+                                Text('24 Oktober 2026', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF1C1C18))),
+                                Text('14:02 - 15:50 WIB', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: const Color(0xFF1C1C18))),
+                              ])),
                               const Divider(color: Color(0xFFF1EEE7), height: 1),
                               _ReceiptRow(icon: Icons.directions_car, label: 'Kendaraan', valueWidget: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
                                 Text('Toyota Raize', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
@@ -151,29 +159,29 @@ class HistoryDetailScreen extends StatelessWidget {
                     child: Column(
                       children: [
                         Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              children: [
-                                Container(width: 36, height: 36, decoration: const BoxDecoration(color: Color(0xFF002216), shape: BoxShape.circle), child: const Icon(Icons.verified_user, size: 20, color: Colors.white)),
-                                const SizedBox(width: 10),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Verifikasi Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                                    Text('Konsorsium Smart Mobility', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                                  ],
-                                ),
-                              ],
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                              decoration: BoxDecoration(color: const Color(0xFF002216), borderRadius: BorderRadius.circular(16)),
-                              child: Row(
+                            Container(width: 36, height: 36, decoration: const BoxDecoration(color: Color(0xFF002216), shape: BoxShape.circle), child: const Icon(Icons.verified_user, size: 20, color: Colors.white)),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-                                  const SizedBox(width: 6),
-                                  Text('Tervalidasi 100% On-Chain', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white)),
+                                  Text('Verifikasi Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    width: double.infinity,
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(color: const Color(0xFF002216), borderRadius: BorderRadius.circular(16)),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
+                                        const SizedBox(width: 6),
+                                        Flexible(child: Text('Tervalidasi 100% On-Chain', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: Colors.white), overflow: TextOverflow.ellipsis)),
+                                      ],
+                                    ),
+                                  ),
                                 ],
                               ),
                             ),

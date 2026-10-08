@@ -67,19 +67,13 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Text('Pindai Plat Otomatis', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF141518))),
-                              const SizedBox(width: 6),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                decoration: BoxDecoration(color: const Color(0xFFD1FAE5), borderRadius: BorderRadius.circular(6)),
-                                child: Text('AI OCR', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF065F46))),
-                              ),
-                            ],
+                          Text('Pindai Plat', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF141518))),
+                          const SizedBox(height: 4),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                            decoration: BoxDecoration(color: const Color(0xFFD1FAE5), borderRadius: BorderRadius.circular(6)),
+                            child: Text('AI OCR', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF065F46))),
                           ),
-                          const SizedBox(height: 2),
-                          Text('Arahkan kamera ke plat kendaraan', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF5E6066))),
                         ],
                       ),
                     ),

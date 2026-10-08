@@ -55,7 +55,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
           ListView(
             padding: EdgeInsets.zero,
             children: [
-              const SizedBox(height: 72), // header spacer
+              SizedBox(height: MediaQuery.of(context).padding.top + 72), // header spacer
 
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
@@ -84,7 +84,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                               color: const Color(0xFF45474A), decoration: null),
                           ),
                         ]),
-                        const SizedBox(width: 130, height: 24),
+                        const SizedBox(),
                       ]),
                       const SizedBox(height: 8),
                       // slot count
@@ -294,26 +294,28 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 8),
-                      child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                        Text('TOTAL PEMBAYARAN AWAL', style: AppTypography.overline(color: const Color(0xFF45474A))),
-                        const SizedBox(height: 2),
-                        Text('Rp 5.000', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
-                        Text('(1 Jam Pertama)', style: AppTypography.caption(color: const Color(0xFF45474A))),
-                      ]),
+                    Expanded(
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 8),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Text('TOTAL PEMBAYARAN AWAL', style: AppTypography.overline(color: const Color(0xFF45474A)), overflow: TextOverflow.ellipsis, maxLines: 1),
+                          const SizedBox(height: 2),
+                          Text('Rp 5.000', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.w800, letterSpacing: -0.3)),
+                          Text('(1 Jam Pertama)', style: AppTypography.caption(color: const Color(0xFF45474A)), overflow: TextOverflow.ellipsis, maxLines: 1),
+                        ]),
+                      ),
                     ),
                     GestureDetector(
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const CheckoutScreen())),
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                         decoration: BoxDecoration(color: _kPrimaryContainer, borderRadius: AppRadii.pillRadius,
                           boxShadow: const [AppShadows.float]),
                         child: Row(children: [
                           Text('Lanjut Bayar', style: GoogleFonts.plusJakartaSans(
                             fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFFFCF9F2),
                           )),
-                          const SizedBox(width: 8),
+                          const SizedBox(width: 6),
                           const Icon(Icons.arrow_forward, size: 16, color: Color(0xFFFCF9F2)),
                         ]),
                       ),

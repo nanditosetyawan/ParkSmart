@@ -154,25 +154,31 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            _ActionPill(
-                              icon: Icons.near_me, 
-                              label: 'Navigasi AR', 
-                              color: const Color(0xFFE07A5F),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArNavigationScreen())),
+                            Expanded(
+                              child: _ActionPill(
+                                icon: Icons.near_me, 
+                                label: 'Navigasi AR', 
+                                color: const Color(0xFFE07A5F),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArNavigationScreen())),
+                              ),
                             ),
-                            const SizedBox(width: 10),
-                            _ActionPill(
-                              icon: Icons.more_time, 
-                              label: 'Perpanjang', 
-                              color: const Color(0xFFE07A5F),
-                              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExtendSessionScreen())),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _ActionPill(
+                                icon: Icons.more_time, 
+                                label: 'Perpanjang', 
+                                color: const Color(0xFFE07A5F),
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExtendSessionScreen())),
+                              ),
                             ),
-                            const SizedBox(width: 10),
-                            _ActionPill(
-                              icon: Icons.headphones, 
-                              label: 'Bantuan', 
-                              color: const Color(0xFF1C1D1F),
-                              onTap: () {},
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: _ActionPill(
+                                icon: Icons.headphones, 
+                                label: 'Bantuan', 
+                                color: const Color(0xFF1C1D1F),
+                                onTap: () {},
+                              ),
                             ),
                           ],
                         ),
@@ -339,14 +345,16 @@ class _ActionPill extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 10),
         decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), border: Border.all(color: const Color(0xFFECE7DE).withValues(alpha: 0.8)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 10, offset: const Offset(0, 2))]),
         child: Row(
-          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(icon, size: 18, color: color),
-            const SizedBox(width: 8),
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1C1D1F))),
+            Icon(icon, size: 16, color: color),
+            const SizedBox(width: 4),
+            Flexible(
+              child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w700, color: const Color(0xFF1C1D1F)), overflow: TextOverflow.ellipsis, maxLines: 1),
+            ),
           ],
         ),
       ),
@@ -364,8 +372,7 @@ class ArcGaugePainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     // Move center even higher and expand radius for a spacious look
-    final center = Offset(size.width / 2, size.height - 60);
-    final radius = 175.0; 
+    final center = Offset(size.width / 2, size.height - 85);
     
     final paint = Paint()
       ..style = PaintingStyle.stroke
@@ -382,7 +389,8 @@ class ArcGaugePainter extends CustomPainter {
     if (activeSegments > totalSegments) activeSegments = totalSegments;
     if (activeSegments < 0) activeSegments = 0;
     
-    final arcRect = Rect.fromCircle(center: center, radius: radius);
+    // Use a smaller circle to bring the legs closer together but keep the top perfectly round
+    final arcRect = Rect.fromCircle(center: center, radius: 140);
 
     for (int i = 0; i < totalSegments; i++) {
       if (i < activeSegments) {

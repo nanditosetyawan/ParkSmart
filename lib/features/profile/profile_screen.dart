@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../main.dart';
 import '../auth/login_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../session/extend_session_screen.dart' as extend;
@@ -19,9 +20,9 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF7F2),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerFloat,
-      floatingActionButton: const BottomDockNavigation(activeTab: DockTab.profile),
-      body: SafeArea(
+      body: Stack(
+        children: [
+          SafeArea(
         child: Column(
           children: [
             // Header
@@ -203,6 +204,17 @@ class ProfileScreen extends StatelessWidget {
             ),
           ],
         ),
+      ),
+          // ─── Dark floating dock navigation (fixed bottom) ────────
+          Positioned(
+            bottom: 24,
+            left: 20,
+            right: 20,
+            child: Center(
+              child: const BottomDockNavigation(activeTab: DockTab.profile),
+            ),
+          ),
+        ],
       ),
     );
   }
