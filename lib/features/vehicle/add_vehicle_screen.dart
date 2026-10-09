@@ -42,7 +42,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             children: [
               Text('Tambah Kendaraan', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF141518))),
               const SizedBox(height: 4),
-              Text('Daftarkan kendaraan untuk akses otomatis gerbang parkir.', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF5E6066))),
+              
               
               const SizedBox(height: 20),
               

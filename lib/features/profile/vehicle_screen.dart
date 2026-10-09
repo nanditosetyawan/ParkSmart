@@ -6,6 +6,66 @@ import '../history/verified_parking_sessions_screen.dart';
 class VehicleScreen extends StatelessWidget {
   const VehicleScreen({super.key});
 
+  void _showDeleteVehiclePopup(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.all(24),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Hapus Kendaraan?', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+            const SizedBox(height: 8),
+            Text('Apakah Anda yakin ingin menghapus kendaraan ini?', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A))),
+            const SizedBox(height: 24),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () => Navigator.pop(context),
+                    child: Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1C1C18),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text('Batal', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      height: 52,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE53935), // Red
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      alignment: Alignment.center,
+                      child: Text('Hapus', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -66,17 +126,7 @@ class VehicleScreen extends StatelessWidget {
                             Text('Kendaraan Terdaftar', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18), letterSpacing: -0.5)),
                           ],
                         ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(color: const Color(0xFF1C1D1F), borderRadius: BorderRadius.circular(20)),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.add, size: 18, color: Colors.white),
-                              const SizedBox(width: 4),
-                              Text('Tambah', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: Colors.white)),
-                            ],
-                          ),
-                        ),
+                        
                       ],
                     ),
                   ),
@@ -107,9 +157,12 @@ class VehicleScreen extends StatelessWidget {
                                   ],
                                 ),
                               ),
-                              Container(
-                                width: 32, height: 32, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
-                                child: const Icon(Icons.more_horiz, size: 18, color: Color(0xFF45474A)),
+                              GestureDetector(
+                                onTap: () => _showDeleteVehiclePopup(context),
+                                child: Container(
+                                  width: 32, height: 32, decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
+                                  child: const Icon(Icons.more_horiz, size: 18, color: Color(0xFF45474A)),
+                                ),
                               ),
                             ],
                           ),
@@ -229,12 +282,7 @@ class VehicleScreen extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 8),
-                              Container(
-                                width: 48, height: 48,
-                                decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
-                                child: const Icon(Icons.tune, size: 20, color: Color(0xFF1C1C18)),
-                              ),
+
                             ],
                           ),
                         ],

@@ -16,6 +16,80 @@ import '../history/history_screen.dart' as history;
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
 
+  Widget _buildMemberBadge(String tier) {
+    if (tier == 'GOLD') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF9E7719), // Dark gold
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text('MEMBER GOLD', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+          ],
+        ),
+      );
+    } else if (tier == 'SILVER') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF9E9E9E), // Solid dull silver, no gradient, looks worse
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.star_border, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text('MEMBER SILVER', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+          ],
+        ),
+      );
+    } else if (tier == 'BRONZE') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF6B4423), // Dark, dull bronze/brown
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text('MEMBER BRONZE', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+      );
+    }
+
+    // Default: PLATINUM
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFA2AAB3), // Platinum darker edge
+            Color(0xFFE0E5E9), // White light effect
+            Color(0xFF8B95A1), // Platinum darker edge
+          ],
+          stops: [0.0, 0.4, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFFE0E5E9).withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 1),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text('MEMBER PLATINUM', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -64,43 +138,20 @@ class ProfileScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        Stack(
-                          children: [
-                            Container(
-                              width: 96, height: 96,
-                              padding: const EdgeInsets.all(4),
-                              decoration: BoxDecoration(color: const Color(0xFFF5F1E8), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.8))),
-                              child: const CircleAvatar(
-                                backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
-                              ),
-                            ),
-                            Positioned(
-                              bottom: 0, right: 0,
-                              child: Container(
-                                width: 32, height: 32,
-                                decoration: BoxDecoration(color: const Color(0xFF1A1A18), shape: BoxShape.circle, border: Border.all(color: Colors.white, width: 2)),
-                                child: const Icon(Icons.edit, size: 16, color: Colors.white),
-                              ),
-                            ),
-                          ],
+                        Container(
+                          width: 96, height: 96,
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(color: const Color(0xFFF5F1E8), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.8))),
+                          child: const CircleAvatar(
+                            backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
+                          ),
                         ),
                         const SizedBox(height: 16),
                         Text('Sarah Pramudita', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                         const SizedBox(height: 4),
                         Text('sarah.pramudita@email.com\n+62 812-3456-7890', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF62615B), height: 1.5)),
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                          decoration: BoxDecoration(color: const Color(0xFF2A2723), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFD4A359).withValues(alpha: 0.2))),
-                          child: Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              const Icon(Icons.workspace_premium, size: 16, color: Color(0xFFD4A359)),
-                              const SizedBox(width: 6),
-                              Text('MEMBER PLATINUM', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFD4A359), letterSpacing: 0.5)),
-                            ],
-                          ),
-                        ),
+                        _buildMemberBadge('PLATINUM'),
                       ],
                     ),
                   ),
@@ -430,6 +481,80 @@ class _MenuItem extends StatelessWidget {
   final VoidCallback onTap;
 
   const _MenuItem({required this.icon, required this.subtitle, required this.title, required this.onTap});
+
+  Widget _buildMemberBadge(String tier) {
+    if (tier == 'GOLD') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF9E7719), // Dark gold
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text('MEMBER GOLD', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+          ],
+        ),
+      );
+    } else if (tier == 'SILVER') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF9E9E9E), // Solid dull silver, no gradient, looks worse
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Icon(Icons.star_border, size: 16, color: Colors.white),
+            const SizedBox(width: 6),
+            Text('MEMBER SILVER', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+          ],
+        ),
+      );
+    } else if (tier == 'BRONZE') {
+      return Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+        decoration: BoxDecoration(
+          color: const Color(0xFF6B4423), // Dark, dull bronze/brown
+          borderRadius: BorderRadius.circular(20),
+        ),
+        child: Text('MEMBER BRONZE', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+      );
+    }
+
+    // Default: PLATINUM
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            Color(0xFFA2AAB3), // Platinum darker edge
+            Color(0xFFE0E5E9), // White light effect
+            Color(0xFF8B95A1), // Platinum darker edge
+          ],
+          stops: [0.0, 0.4, 1.0],
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(color: const Color(0xFFE0E5E9).withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 1),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
+          const SizedBox(width: 6),
+          Text('MEMBER PLATINUM', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
+        ],
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {

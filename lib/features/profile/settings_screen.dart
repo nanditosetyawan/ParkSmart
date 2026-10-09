@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pin_settings_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -9,10 +10,94 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  bool _biometricEnabled = true;
+  bool _faceIdEnabled = false;
+  bool _fingerprintEnabled = true;
   bool _notifEnabled = true;
   String _cacheSize = '128.4 MB tersimpan';
   bool _isCacheCleared = false;
+
+  void _showLanguageSelection(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return Container(
+          padding: const EdgeInsets.all(24),
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Setel Bahasa', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              const SizedBox(height: 24),
+              // Indonesia
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                  // Optionally add setState to change active language state if it existed
+                },
+                child: Container(
+                  height: 64, // "se jempol" height
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF6F3EC),
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFF1A1A18), width: 1.5), // Active style
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network('https://flagcdn.com/w320/id.png', width: 32, height: 24, fit: BoxFit.cover),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text('Bahasa Indonesia', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      ),
+                      const Icon(Icons.check_circle, color: Color(0xFF1A1A18), size: 20),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 12),
+              // English
+              GestureDetector(
+                onTap: () {
+                  Navigator.pop(context);
+                },
+                child: Container(
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE5E2DB)),
+                  ),
+                  child: Row(
+                    children: [
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Image.network('https://flagcdn.com/w320/gb.png', width: 32, height: 24, fit: BoxFit.cover),
+                      ),
+                      const SizedBox(width: 16),
+                      Expanded(
+                        child: Text('English', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18))),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              const SizedBox(height: 24),
+            ],
+          ),
+        );
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,18 +210,27 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       children: [
                         _SettingToggleRow(
-                          icon: Icons.fingerprint, title: 'Biometrik', subtitle: 'Face ID / Fingerprint login',
-                          value: _biometricEnabled,
-                          onChanged: (val) => setState(() => _biometricEnabled = val),
+                          icon: Icons.face, title: 'Face ID', subtitle: 'Login dengan pemindaian wajah',
+                          value: _faceIdEnabled,
+                          onChanged: (val) => setState(() => _faceIdEnabled = val),
+                        ),
+                        const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
+                        _SettingToggleRow(
+                          icon: Icons.fingerprint, title: 'Fingerprint', subtitle: 'Login dengan sidik jari',
+                          value: _fingerprintEnabled,
+                          onChanged: (val) => setState(() => _fingerprintEnabled = val),
                         ),
                         const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                         _SettingActionRow(
-                          icon: Icons.pin, title: 'Kunci Transaksi PIN', subtitle: 'Wajib untuk sesi parkir otomatis',
+                          icon: Icons.pin, title: 'Transaksi PIN', subtitle: '',
                           actionWidget: Container(
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE5E2DB))),
                             child: const Icon(Icons.chevron_right, size: 16, color: Color(0xFF1C1C18)),
                           ),
+                          onTap: () {
+                            Navigator.push(context, MaterialPageRoute(builder: (_) => const PinSettingsScreen()));
+                          }
                         ),
 
                       ],
@@ -154,6 +248,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         _SettingActionRow(
                           icon: Icons.language, title: 'Bahasa', subtitle: 'Bahasa Indonesia', actionWidget: const Icon(Icons.chevron_right, color: Color(0xFF1C1C18)),
+                          onTap: () => _showLanguageSelection(context),
                         ),
                         const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                         _SettingActionRow(
@@ -310,38 +405,43 @@ class _SettingActionRow extends StatelessWidget {
   final String subtitle;
   final String? actionText;
   final Widget? actionWidget;
+  final VoidCallback? onTap;
 
-  const _SettingActionRow({required this.icon, required this.title, required this.subtitle, this.actionText, this.actionWidget});
+  const _SettingActionRow({required this.icon, required this.title, required this.subtitle, this.actionText, this.actionWidget, this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      children: [
-        Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFFF6F3EC), shape: BoxShape.circle), child: Icon(icon, size: 20, color: const Color(0xFF1C1C18))),
-        const SizedBox(width: 12),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
-              if (subtitle.isNotEmpty) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
-            ],
-          ),
-        ),
-        if (actionText != null)
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(16)),
-            child: Row(
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: Row(
+        children: [
+          Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFFF6F3EC), shape: BoxShape.circle), child: Icon(icon, size: 20, color: const Color(0xFF1C1C18))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(actionText!, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                const SizedBox(width: 4),
-                const Icon(Icons.chevron_right, size: 14, color: Color(0xFF1C1C18)),
+                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18))),
+                if (subtitle.isNotEmpty) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A))),
               ],
             ),
-          )
-        else ?actionWidget
-      ],
+          ),
+          if (actionText != null)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(16)),
+              child: Row(
+                children: [
+                  Text(actionText!, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.chevron_right, size: 14, color: Color(0xFF1C1C18)),
+                ],
+              ),
+            )
+          else if (actionWidget != null) actionWidget!
+        ],
+      ),
     );
   }
 }

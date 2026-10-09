@@ -7,11 +7,15 @@ import '../../core/services/notification_service.dart';
 class PinScreen extends StatefulWidget {
   final Widget nextScreen;
   final String transactionType; // 'parkir' atau 'perpanjangan parkir'
+  final String? customTitle;
+  final bool backToHome;
 
   const PinScreen({
     super.key,
     required this.nextScreen,
     required this.transactionType,
+    this.customTitle,
+    this.backToHome = true,
   });
 
   @override
@@ -100,12 +104,15 @@ class _PinScreenState extends State<PinScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C18)),
           onPressed: () {
-            // "balik ke home wajib"
-            Navigator.pushAndRemoveUntil(
-              context,
-              MaterialPageRoute(builder: (_) => const HomeScreen()),
-              (route) => false,
-            );
+            if (widget.backToHome) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            } else {
+              Navigator.pop(context);
+            }
           },
         ),
       ),
@@ -119,7 +126,7 @@ class _PinScreenState extends State<PinScreen> {
               const Icon(Icons.security, size: 64, color: Color(0xFF1C1D1F)),
               const SizedBox(height: 24),
               Text(
-                'Masukkan PIN',
+                widget.customTitle ?? 'Masukkan PIN',
                 style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18)),
               ),
               const SizedBox(height: 8),
