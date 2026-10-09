@@ -2,6 +2,16 @@
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
 <dict>
+
+    <key>NSLocationWhenInUseUsageDescription</key>
+    <string>Aplikasi ini memerlukan akses GPS untuk merekomendasikan tempat parkir terdekat.</string>
+    <key>NSLocationAlwaysUsageDescription</key>
+    <string>Aplikasi ini memerlukan akses GPS untuk memantau durasi parkir Anda.</string>
+    <key>NSCameraUsageDescription</key>
+    <string>Aplikasi ini memerlukan akses kamera untuk memindai plat nomor dan STNK.</string>
+    <key>NSPhotoLibraryUsageDescription</key>
+    <string>Aplikasi ini memerlukan akses galeri untuk mengunggah dokumen kendaraan.</string>
+
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
 	<key>CFBundleDisplayName</key>

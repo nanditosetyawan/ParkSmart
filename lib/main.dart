@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'core/services/notification_service.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -11,6 +12,19 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService().init();
+  
+  // Meminta izin akses utama
+  try {
+    await [
+      Permission.locationWhenInUse,
+      Permission.camera,
+      Permission.photos,
+      Permission.notification,
+    ].request();
+  } catch (e) {
+    debugPrint('Gagal meminta izin: ');
+  }
+
   WidgetsFlutterBinding.ensureInitialized();
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     statusBarColor: Colors.transparent,

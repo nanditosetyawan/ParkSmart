@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'custom_camera_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 class AddVehicleScreen extends StatefulWidget {
@@ -78,7 +79,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       ),
                     ),
                     ElevatedButton(
-                      onPressed: () {},
+                      onPressed: () { Navigator.push(context, MaterialPageRoute(builder: (_) => const CustomCameraScreen())); },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF141518),
                         foregroundColor: Colors.white,
@@ -174,7 +175,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text('B 5678 KLM', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w900, color: Colors.white, letterSpacing: 4)),
-                                Text('KORLANTAS POLRI • ANPR READY', style: GoogleFonts.plusJakartaSans(fontSize: 8, color: const Color(0xFFA3A3A3), letterSpacing: 1.5)),
+                                Text('KORLANTAS POLRI', style: GoogleFonts.plusJakartaSans(fontSize: 8, color: const Color(0xFFA3A3A3), letterSpacing: 1.5)),
                               ],
                             ),
                           ),

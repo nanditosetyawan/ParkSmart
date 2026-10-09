@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'ktp_camera_screen.dart';
 import 'pin_settings_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -15,6 +16,124 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _notifEnabled = true;
   String _cacheSize = '128.4 MB tersimpan';
   bool _isCacheCleared = false;
+  String _selectedParkingPref = 'Mobil SUV';
+
+  void _showParkingPrefSelection(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setModalState) {
+            return Container(
+              padding: const EdgeInsets.all(24),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Preferensi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  const SizedBox(height: 24),
+                  
+                  // SUV
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedParkingPref = 'Mobil SUV');
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      height: 64,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _selectedParkingPref == 'Mobil SUV' ? const Color(0xFFF1EEE7) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _selectedParkingPref == 'Mobil SUV' ? const Color(0xFF1C1C18) : Colors.transparent),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.directions_car, color: const Color(0xFF1C1C18)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text('Golongan Mobil SUV', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                          ),
+                          if (_selectedParkingPref == 'Mobil SUV')
+                            const Icon(Icons.check_circle, color: Color(0xFF1C1C18)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Sedan/City
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedParkingPref = 'Mobil Sedan/City');
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      height: 64,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _selectedParkingPref == 'Mobil Sedan/City' ? const Color(0xFFF1EEE7) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _selectedParkingPref == 'Mobil Sedan/City' ? const Color(0xFF1C1C18) : Colors.transparent),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.directions_car, color: const Color(0xFF1C1C18)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text('Golongan Mobil Sedan/City', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                          ),
+                          if (_selectedParkingPref == 'Mobil Sedan/City')
+                            const Icon(Icons.check_circle, color: Color(0xFF1C1C18)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Motor Roda 2
+                  GestureDetector(
+                    onTap: () {
+                      setState(() => _selectedParkingPref = 'Motor Roda 2');
+                      Navigator.pop(context);
+                    },
+                    child: Container(
+                      height: 64,
+                      padding: const EdgeInsets.symmetric(horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: _selectedParkingPref == 'Motor Roda 2' ? const Color(0xFFF1EEE7) : Colors.transparent,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: _selectedParkingPref == 'Motor Roda 2' ? const Color(0xFF1C1C18) : Colors.transparent),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(Icons.two_wheeler, color: const Color(0xFF1C1C18)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Text('Motor Roda 2', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                          ),
+                          if (_selectedParkingPref == 'Motor Roda 2')
+                            const Icon(Icons.check_circle, color: Color(0xFF1C1C18)),
+                        ],
+                      ),
+                    ),
+                  ),
+                  
+                  const SizedBox(height: 16),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   void _showLanguageSelection(BuildContext context) {
     showModalBottomSheet(
@@ -208,7 +327,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     padding: const EdgeInsets.all(20),
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), boxShadow: [BoxShadow(color: const Color(0xFF1C1D1F).withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))]),
                     child: Column(
-                      children: [
+                      children: [                          _SettingActionRow(
+                            icon: Icons.badge, title: 'Verifikasi KTP', subtitle: 'Belum Terverifikasi', 
+                            actionWidget: const Icon(Icons.chevron_right, color: Color(0xFF1C1C18)),
+                            onTap: () {
+                              Navigator.push(context, MaterialPageRoute(builder: (_) => const KtpCameraScreen()));
+                            },
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
+
                         _SettingToggleRow(
                           icon: Icons.face, title: 'Face ID', subtitle: 'Login dengan pemindaian wajah',
                           value: _faceIdEnabled,
@@ -251,6 +378,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           onTap: () => _showLanguageSelection(context),
                         ),
                         const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
+                          _SettingActionRow(
+                            icon: Icons.local_parking, title: 'Preferensi Parkir', subtitle: _selectedParkingPref, actionWidget: const Icon(Icons.chevron_right, color: Color(0xFF1C1C18)),
+                            onTap: () => _showParkingPrefSelection(context),
+                          ),
+                          const Padding(padding: EdgeInsets.symmetric(vertical: 16), child: Divider(color: Color(0xFFF1EEE7), height: 1)),
                         _SettingActionRow(
                           icon: Icons.payments, title: 'Mata Uang', subtitle: 'IDR (Rupiah)',
                           actionWidget: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(16)), child: Text('IDR', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold))),
