@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import '../pin/pin_screen.dart';
+import '../session/active_session_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'session_checkout_screen.dart';
 
@@ -13,6 +15,8 @@ class ExpiringSessionScreen extends StatefulWidget {
 class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
   late Timer _timer;
   int _remainingSeconds = 9 * 60 + 45; // 00:09:45
+  int _selectedExtIndex = 0;
+  String _selectedPaymentMethod = 'ParkSmart Wallet';
 
   @override
   void initState() {
@@ -71,18 +75,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                     ),
                   ),
                   Text('Sesi Berakhir Segera', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18), letterSpacing: -0.5)),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                    decoration: BoxDecoration(color: const Color(0xFFFFDBD2), borderRadius: BorderRadius.circular(20), border: Border.all(color: const Color(0xFFFFB4A1).withValues(alpha: 0.6))),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFFE07A5F), shape: BoxShape.circle)),
-                        const SizedBox(width: 6),
-                        Text('MENDESAK', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF7C2E19), letterSpacing: 0.5)),
-                      ],
-                    ),
-                  ),
+                  const SizedBox(width: 40),
                 ],
               ),
             ),
@@ -151,11 +144,20 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                         const SizedBox(height: 12),
                         Row(
                           children: [
-                            Expanded(child: _ExtensionButton(time: '+30 Menit', price: 'Rp 2.500', isSelected: true)),
+                            Expanded(child: _ExtensionButton(
+                              time: '+30 Menit', price: 'Rp 2.500', isSelected: _selectedExtIndex == 0,
+                              onTap: () => setState(() => _selectedExtIndex = 0),
+                            )),
                             const SizedBox(width: 8),
-                            Expanded(child: _ExtensionButton(time: '+1 Jam', price: 'Rp 5.000', isSelected: false)),
+                            Expanded(child: _ExtensionButton(
+                              time: '+1 Jam', price: 'Rp 5.000', isSelected: _selectedExtIndex == 1,
+                              onTap: () => setState(() => _selectedExtIndex = 1),
+                            )),
                             const SizedBox(width: 8),
-                            Expanded(child: _ExtensionButton(time: '+2 Jam', price: 'Rp 10.000', isSelected: false)),
+                            Expanded(child: _ExtensionButton(
+                              time: '+2 Jam', price: 'Rp 10.000', isSelected: _selectedExtIndex == 2,
+                              onTap: () => setState(() => _selectedExtIndex = 2),
+                            )),
                           ],
                         ),
                       ],
@@ -212,11 +214,50 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                     ),
                     const SizedBox(height: 24),
                     
+                    Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: const Color(0xFFE5E2DB).withValues(alpha: 0.8)),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Row(
+                            children: [
+                              _buildPaymentLogo(_selectedPaymentMethod, 40),
+                              const SizedBox(width: 12),
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(_selectedPaymentMethod, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                                  if (_selectedPaymentMethod == 'ParkSmart Wallet')
+                                    Text('Saldo Aktif: Rp 45.000', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF1F4F3C))),
+                                ],
+                              ),
+                            ],
+                          ),
+                          GestureDetector(
+                            onTap: _showPaymentMethodDialog,
+                            child: Text('Ubah', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+
                     // Buttons
                     SizedBox(
                       width: double.infinity, height: 56,
                       child: ElevatedButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PinScreen(nextScreen: ActiveSessionScreen(), transactionType: 'perpanjangan parkir')),
+                          );
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: const Color(0xFF1C1D1F), foregroundColor: Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
@@ -269,18 +310,115 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
       ),
     );
   }
+
+  Widget _buildPaymentLogo(String method, double size) {
+    if (method == 'ParkSmart Wallet') {
+      return Container(width: size, height: size, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5));
+    } else if (method == 'ShopeePay') {
+      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Shopee.svg/512px-Shopee.svg.png', width: size, height: size);
+    } else if (method == 'Gopay') {
+      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Gopay_logo.svg/512px-Gopay_logo.svg.png', width: size, height: size);
+    } else if (method == 'OVO') {
+      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/OVO_logo.svg/512px-OVO_logo.svg.png', width: size, height: size);
+    }
+    return Container(width: size, height: size, color: Colors.grey);
+  }
+
+  void _showPaymentMethodDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.black54, size: 24),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    Text('Pilih Metode Pembayaran', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                    const SizedBox(width: 24),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(child: _buildPaymentOption('ShopeePay')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildPaymentOption('ParkSmart Wallet')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildPaymentOption('Gopay')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildPaymentOption('OVO')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentOption(String method) {
+    bool isSelected = _selectedPaymentMethod == method;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMethod = method;
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        height: 80,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF7ED) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFFF97316) : const Color(0xFFE5E2DB),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildPaymentLogo(method, 28),
+            const SizedBox(height: 8),
+            Text(method, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 class _ExtensionButton extends StatelessWidget {
   final String time;
   final String price;
   final bool isSelected;
+  final VoidCallback onTap;
   
-  const _ExtensionButton({required this.time, required this.price, required this.isSelected});
+  const _ExtensionButton({required this.time, required this.price, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
         color: isSelected ? Colors.white : const Color(0xFFF6F3EC),
@@ -294,7 +432,7 @@ class _ExtensionButton extends StatelessWidget {
           Text(price, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: isSelected ? const Color(0xFFE07A5F) : const Color(0xFF76777B))),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -321,4 +459,6 @@ class _DetailRow extends StatelessWidget {
       ],
     );
   }
+
+
 }

@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../pin/pin_screen.dart';
+import '../session/active_session_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../home/home_screen.dart';
 
@@ -11,6 +13,7 @@ class ExtendSessionScreen extends StatefulWidget {
 
 class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
   int _selectedIndex = 1;
+  String _selectedPaymentMethod = 'ParkSmart Wallet';
 
   final List<Map<String, dynamic>> _options = [
     {'title': '+30 Menit', 'cost': 'Rp 3.000', 'time': 'Hingga 16:32 WIB', 'popular': false},
@@ -43,27 +46,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE5E2DB))),
-                child: Row(
-                  children: [
-                    Container(
-                      width: 8, height: 8,
-                      decoration: const BoxDecoration(color: Color(0xFF1F4F3C), shape: BoxShape.circle),
-                    ),
-                    const SizedBox(width: 8),
-                    Text('SESI BERJALAN • CENTRAL PARK', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
-                  ],
-                ),
-              ),
-              
-            ],
-          ),
-          const SizedBox(height: 16),
+
           Container(
             padding: const EdgeInsets.all(20),
             decoration: BoxDecoration(
@@ -279,19 +262,23 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                   children: [
                     Row(
                       children: [
-                        Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: const Icon(Icons.account_balance_wallet, color: Color(0xFF020304))),
+                        _buildPaymentLogo(_selectedPaymentMethod, 40),
                         const SizedBox(width: 12),
                         Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Text('ParkSmart Wallet', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                            Text('Saldo Aktif: Rp 45.000', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF1F4F3C))),
+                            Text(_selectedPaymentMethod, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                            if (_selectedPaymentMethod == 'ParkSmart Wallet')
+                              Text('Saldo Aktif: Rp 45.000', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF1F4F3C))),
                           ],
                         ),
                       ],
                     ),
-                    Text('Ubah >', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
+                    GestureDetector(
+                      onTap: _showPaymentMethodDialog,
+                      child: Text('Ubah', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
+                    ),
                   ],
                 ),
               ],
@@ -311,46 +298,10 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
             height: 56,
             child: ElevatedButton(
               onPressed: () {
-                showDialog(
-                  context: context,
-                  barrierDismissible: false,
-                  builder: (BuildContext context) {
-                    return Dialog(
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      elevation: 0,
-                      backgroundColor: Colors.transparent,
-                      child: Container(
-                        padding: const EdgeInsets.all(24),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF9F9F9),
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: const [
-                            BoxShadow(color: Color(0x1F0F172A), offset: Offset(0, 8), blurRadius: 24),
-                          ],
-                        ),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.check_circle_outline, color: Color(0xFF17A18A), size: 64),
-                            const SizedBox(height: 16),
-                            Text('Perpanjangan Berhasil!', style: GoogleFonts.inter(fontSize: 18, fontWeight: FontWeight.w600, color: const Color(0xFF14202B))),
-                            const SizedBox(height: 8),
-                            Text('Sesi parkir Anda telah diperpanjang.', textAlign: TextAlign.center, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF64748B))),
-                          ],
-                        ),
-                      ),
-                    );
-                  }
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => const PinScreen(nextScreen: ActiveSessionScreen(), transactionType: 'perpanjangan parkir')),
                 );
-
-                Future.delayed(const Duration(seconds: 2), () {
-                  if (context.mounted) {
-                    Navigator.of(context).pushAndRemoveUntil(
-                      MaterialPageRoute(builder: (context) => const HomeScreen()), 
-                      (Route<dynamic> route) => false
-                    );
-                  }
-                });
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF020304),
@@ -369,6 +320,100 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildPaymentLogo(String method, double size) {
+    if (method == 'ParkSmart Wallet') {
+      return Container(width: size, height: size, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5));
+    } else if (method == 'ShopeePay') {
+      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Shopee.svg/512px-Shopee.svg.png', width: size, height: size);
+    } else if (method == 'Gopay') {
+      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Gopay_logo.svg/512px-Gopay_logo.svg.png', width: size, height: size);
+    } else if (method == 'OVO') {
+      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/OVO_logo.svg/512px-OVO_logo.svg.png', width: size, height: size);
+    }
+    return Container(width: size, height: size, color: Colors.grey);
+  }
+
+  void _showPaymentMethodDialog() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return Dialog(
+          backgroundColor: Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.black54, size: 24),
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      constraints: const BoxConstraints(),
+                    ),
+                    Text('Pilih Metode Pembayaran', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                    const SizedBox(width: 24), // balance it out
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Row(
+                  children: [
+                    Expanded(child: _buildPaymentOption('ShopeePay')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildPaymentOption('ParkSmart Wallet')),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Expanded(child: _buildPaymentOption('Gopay')),
+                    const SizedBox(width: 12),
+                    Expanded(child: _buildPaymentOption('OVO')),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildPaymentOption(String method) {
+    bool isSelected = _selectedPaymentMethod == method;
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          _selectedPaymentMethod = method;
+        });
+        Navigator.pop(context);
+      },
+      child: Container(
+        height: 80,
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFFFFF7ED) : Colors.white,
+          border: Border.all(
+            color: isSelected ? const Color(0xFFF97316) : const Color(0xFFE5E2DB),
+            width: isSelected ? 2 : 1,
+          ),
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            _buildPaymentLogo(method, 28),
+            const SizedBox(height: 8),
+            Text(method, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
+          ],
+        ),
       ),
     );
   }

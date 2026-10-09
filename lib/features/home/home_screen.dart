@@ -5,6 +5,9 @@
 // Active booking card: rounded-[32px] bg-white
 
 import 'package:flutter/material.dart';
+import '../notification/notification_screen.dart';
+import '../session/active_session_screen.dart' as active;
+import 'package:google_fonts/google_fonts.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import '../sitemap_screen.dart';
 import '../../theme/app_colors.dart';
@@ -72,7 +75,10 @@ class HomeScreen extends StatelessWidget {
                             ]),
                           ),
                           // Notification button
-                          _NavIconBtn(icon: Icons.notifications_outlined),
+                          _NavIconBtn(
+                            icon: Icons.notifications_outlined,
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 20),
@@ -101,13 +107,33 @@ class HomeScreen extends StatelessWidget {
                         Icon(Icons.search, size: 22, color: AppColors.textMuted),
                         const SizedBox(width: 12),
                         Expanded(
-                          child: Text('Cari gedung atau area parkir...', style: AppTypography.bodyMd(color: AppColors.textMuted)),
+                          child: TextField(
+                            textInputAction: TextInputAction.done,
+                            style: AppTypography.bodyMd(),
+                            decoration: InputDecoration(
+                              hintText: 'Cari gedung atau area parkir...',
+                              hintStyle: AppTypography.bodyMd(color: AppColors.textMuted),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
                         ),
-                        Container(
-                          width: 36, height: 36,
-                          margin: const EdgeInsets.only(right: 8),
-                          decoration: BoxDecoration(color: AppColors.surfaceDim, shape: BoxShape.circle),
-                          child: const Icon(Icons.tune, size: 18, color: AppColors.textPrimary),
+                        GestureDetector(
+                          onTap: () {
+                            showModalBottomSheet(
+                              context: context,
+                              backgroundColor: Colors.transparent,
+                              isScrollControlled: true,
+                              builder: (context) => const _FilterPopup(),
+                            );
+                          },
+                          child: Container(
+                            width: 36, height: 36,
+                            margin: const EdgeInsets.only(right: 8),
+                            decoration: const BoxDecoration(color: AppColors.surfaceDim, shape: BoxShape.circle),
+                            child: const Icon(Icons.tune, size: 18, color: AppColors.textPrimary),
+                          ),
                         ),
                       ],
                     ),
@@ -116,25 +142,7 @@ class HomeScreen extends StatelessWidget {
 
                 // ─── Category Pills ─────────────────────────────
                 const SizedBox(height: 16),
-                SizedBox(
-                  height: 44,
-                  child: ListView(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                    children: [
-                      _CategoryPill(label: 'Terdekat', icon: Icons.near_me, active: true),
-                      _CategoryPill(label: 'Mall', icon: Icons.storefront_outlined),
-                      _CategoryPill(label: 'Parkir EV', icon: Icons.bolt, tealIcon: true),
-                      _CategoryPill(label: 'Valet', icon: Icons.key_outlined),
-                        _CategoryPill(
-                          label: 'Games', 
-                          icon: Icons.sports_esports, 
-                          tealIcon: true,
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const game.GameLobbyScreen())),
-                        ),
-                    ],
-                  ),
-                ),
+                const _CategoryList(),
 
                 // ─── Hero Map Card ──────────────────────────────
                 const SizedBox(height: 16),
@@ -310,15 +318,18 @@ class HomeScreen extends StatelessWidget {
                                 const SizedBox(height: 2),
                                 Text('01:42:18', style: AppTypography.monoLg()),
                               ]),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
-                                  boxShadow: const [AppShadows.float]),
-                                child: Row(children: [
-                                  Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
-                                  const SizedBox(width: 6),
-                                  const Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
-                                ]),
+                              GestureDetector(
+                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const active.ActiveSessionScreen())),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
+                                    boxShadow: const [AppShadows.float]),
+                                  child: Row(children: [
+                                    Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
+                                    const SizedBox(width: 6),
+                                    const Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
+                                  ]),
+                                ),
                               ),
                             ],
                           ),
@@ -329,57 +340,11 @@ class HomeScreen extends StatelessWidget {
                 ),
 
                 // ─── Recommendations Section ────────────────────
-                const SizedBox(height: 28),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Rekomendasi Lainnya', style: AppTypography.headlineMd()),
-                        Text('Lihat Semua', style: AppTypography.buttonSm(color: AppColors.secondary)),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    // Recommendation card
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceCard,
-                        borderRadius: AppRadii.xlRadius,
-                        border: Border.all(color: Colors.black.withOpacity(0.02)),
-                        boxShadow: const [AppShadows.soft],
-                      ),
-                      padding: const EdgeInsets.all(16),
-                      child: Row(children: [
-                        ClipRRect(
-                          borderRadius: AppRadii.mdRadius,
-                          child: Image.network(
-                            'https://lh3.googleusercontent.com/aida-public/AB6AXuARzILaOzCGSu-s8FDqbU48zMmMyWxJJ46At0mzTeYr6z5scsx6OzMD121EdnOyRogr63BsWgwxhBxanCuSHtnkExY_U0KTsvAZ8gpJQgktHWpKt7_v4t1zjonCwif6Q1-wDg4a94G-s2q-vcWbnS-AJAV9wscZ8ki6Sptsgn0gHXsRS_Wb5gVZaFLVT-bTyvo9E7CP2Qcb2K60CaNVaIVK_lQOI8Gsm8l5UjTdixRrSG7F60Vk2YmK',
-                            width: 56, height: 56, fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => Container(width: 56, height: 56, color: AppColors.surfaceDim),
-                          ),
-                        ),
-                        const SizedBox(width: 14),
-                        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Text('Grand Indonesia West Mall', style: AppTypography.titleMd(), overflow: TextOverflow.ellipsis),
-                          const SizedBox(height: 2),
-                          Text('850m • 8 slot kosong', style: AppTypography.caption(color: AppColors.textSecondary)),
-                          const SizedBox(height: 2),
-                          Text('Rp 6.000 / jam', style: AppTypography.caption(color: AppColors.accentTeal).copyWith(fontWeight: FontWeight.w700)),
-                        ])),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                          decoration: BoxDecoration(color: AppColors.surfaceDim, borderRadius: AppRadii.pillRadius),
-                          child: Text('Pilih', style: AppTypography.buttonSm()),
-                        ),
-                      ]),
-                    ),
-                  ]),
-                ),
+                const _RecommendationsList(),
               ],
             ),
           ),
+
 
           // ─── Dark floating dock navigation (fixed bottom) ────────
           Positioned(
@@ -465,9 +430,12 @@ class _StitchMapPainter extends CustomPainter {
 
 class _NavIconBtn extends StatelessWidget {
   final IconData icon;
-  const _NavIconBtn({required this.icon});
+  final VoidCallback? onTap;
+  const _NavIconBtn({required this.icon, this.onTap});
   @override
-  Widget build(BuildContext context) => Container(
+  Widget build(BuildContext context) => GestureDetector(
+    onTap: onTap,
+    child: Container(
     width: 44, height: 44,
     decoration: BoxDecoration(
       color: AppColors.surfaceCard,
@@ -475,7 +443,7 @@ class _NavIconBtn extends StatelessWidget {
       boxShadow: const [AppShadows.soft],
     ),
     child: Icon(icon, size: 20, color: AppColors.textPrimary),
-  );
+  ));
 }
 
 class _CategoryPill extends StatelessWidget {
@@ -494,7 +462,7 @@ class _CategoryPill extends StatelessWidget {
         margin: const EdgeInsets.only(right: 10),
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
         decoration: BoxDecoration(
-          color: active ? AppColors.primary : AppColors.surfaceCard,
+          color: active ? Colors.black : AppColors.surfaceCard,
           borderRadius: AppRadii.pillRadius,
           boxShadow: active ? null : const [AppShadows.soft],
         ),
@@ -520,4 +488,290 @@ class _DockIcon extends StatelessWidget {
       child: Icon(icon, size: 22, color: AppColors.white.withOpacity(0.55)),
     ),
   );
+}
+
+class _FilterPopup extends StatefulWidget {
+  const _FilterPopup();
+  @override
+  State<_FilterPopup> createState() => _FilterPopupState();
+}
+
+class _FilterPopupState extends State<_FilterPopup> {
+  final Set<String> _selectedCriteria = {};
+
+  Widget _buildFilterChip(String label) {
+    final bool isSelected = _selectedCriteria.contains(label);
+    return GestureDetector(
+      onTap: () {
+        setState(() {
+          if (isSelected) {
+            _selectedCriteria.remove(label);
+          } else {
+            _selectedCriteria.add(label);
+          }
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF00E676) : Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(
+            color: isSelected ? const Color(0xFF00E676) : const Color(0xFFE4DFD5),
+            width: 1.5,
+          ),
+          boxShadow: isSelected ? [
+            BoxShadow(color: const Color(0xFF00E676).withValues(alpha: 0.3), blurRadius: 8, offset: const Offset(0, 4))
+          ] : null,
+        ),
+        child: Text(
+          label,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF62615B),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.only(top: 16, bottom: 24),
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      child: SafeArea(
+        top: false,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: GestureDetector(
+                      onTap: () => Navigator.pop(context),
+                      child: Container(
+                        padding: const EdgeInsets.all(8),
+                        child: const Icon(Icons.close, size: 20, color: Color(0xFF1A1A18)),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Kriteria',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A18),
+                      letterSpacing: -0.3,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: Wrap(
+                spacing: 12,
+                runSpacing: 12,
+                children: [
+                  _buildFilterChip('Harga'),
+                  _buildFilterChip('Terdekat'),
+                  _buildFilterChip('Tersedia'),
+                ],
+              ),
+            ),
+            const SizedBox(height: 32),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 24),
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(context),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                ),
+                child: Text(
+                  'Pilih',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CategoryList extends StatefulWidget {
+  const _CategoryList();
+  @override
+  State<_CategoryList> createState() => _CategoryListState();
+}
+
+class _CategoryListState extends State<_CategoryList> {
+  String _selectedCategory = 'Terdekat';
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: ListView(
+        scrollDirection: Axis.horizontal,
+        padding: const EdgeInsets.symmetric(horizontal: 20),
+        children: [
+          _CategoryPill(
+            label: 'Terdekat', 
+            icon: Icons.near_me, 
+            active: _selectedCategory == 'Terdekat',
+            onTap: () => setState(() => _selectedCategory = 'Terdekat'),
+          ),
+          _CategoryPill(
+            label: 'Mall', 
+            icon: Icons.storefront_outlined,
+            active: _selectedCategory == 'Mall',
+            onTap: () => setState(() => _selectedCategory = 'Mall'),
+          ),
+          _CategoryPill(
+            label: 'Parkir EV', 
+            icon: Icons.bolt, 
+            tealIcon: true,
+            active: _selectedCategory == 'Parkir EV',
+            onTap: () => setState(() => _selectedCategory = 'Parkir EV'),
+          ),
+          _CategoryPill(
+            label: 'Games', 
+            icon: Icons.sports_esports, 
+            tealIcon: true,
+            active: _selectedCategory == 'Games',
+            onTap: () {
+              setState(() => _selectedCategory = 'Games');
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const game.GameLobbyScreen()));
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RecommendationsList extends StatefulWidget {
+  const _RecommendationsList();
+  @override
+  State<_RecommendationsList> createState() => _RecommendationsListState();
+}
+
+class _RecommendationsListState extends State<_RecommendationsList> {
+  bool _isLoading = false;
+  int _extraCount = 0;
+
+  Widget _buildCard(String title, String subtitle, String price, String imageUrl) {
+    return Container(
+      margin: const EdgeInsets.only(top: 12),
+      decoration: BoxDecoration(
+        color: AppColors.surfaceCard,
+        borderRadius: AppRadii.xlRadius,
+        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
+        boxShadow: const [AppShadows.soft],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Row(children: [
+        ClipRRect(
+          borderRadius: AppRadii.mdRadius,
+          child: Image.network(
+            imageUrl,
+            width: 56, height: 56, fit: BoxFit.cover,
+            errorBuilder: (_, __, ___) => Container(width: 56, height: 56, color: AppColors.surfaceDim),
+          ),
+        ),
+        const SizedBox(width: 14),
+        Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          Text(title, style: AppTypography.titleMd(), overflow: TextOverflow.ellipsis),
+          const SizedBox(height: 2),
+          Text(subtitle, style: AppTypography.caption(color: AppColors.textSecondary)),
+          const SizedBox(height: 2),
+          Text(price, style: AppTypography.caption(color: AppColors.accentTeal).copyWith(fontWeight: FontWeight.w700)),
+        ])),
+        const SizedBox(width: 8),
+        GestureDetector(
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParkingDetailScreen())),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            decoration: BoxDecoration(color: AppColors.surfaceDim, borderRadius: AppRadii.pillRadius),
+            child: Text('Pilih', style: AppTypography.buttonSm()),
+          ),
+        ),
+      ]),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 28),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Rekomendasi Lainnya', style: AppTypography.headlineMd()),
+              GestureDetector(
+                onTap: () async {
+                  if (_isLoading) return;
+                  setState(() => _isLoading = true);
+                  await Future.delayed(const Duration(seconds: 1));
+                  if (mounted) {
+                    setState(() {
+                      _isLoading = false;
+                      _extraCount++;
+                    });
+                  }
+                },
+                child: _isLoading 
+                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                  : Text('Lihat Semua', style: AppTypography.buttonSm(color: AppColors.secondary)),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 2),
+        Padding(
+          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+          child: _buildCard(
+            'Grand Indonesia West Mall', 
+            '850m • 8 slot kosong', 
+            'Rp 6.000 / jam', 
+            'https://lh3.googleusercontent.com/aida-public/AB6AXuARzILaOzCGSu-s8FDqbU48zMmMyWxJJ46At0mzTeYr6z5scsx6OzMD121EdnOyRogr63BsWgwxhBxanCuSHtnkExY_U0KTsvAZ8gpJQgktHWpKt7_v4t1zjonCwif6Q1-wDg4a94G-s2q-vcWbnS-AJAV9wscZ8ki6Sptsgn0gHXsRS_Wb5gVZaFLVT-bTyvo9E7CP2Qcb2K60CaNVaIVK_lQOI8Gsm8l5UjTdixRrSG7F60Vk2YmK'
+          ),
+        ),
+        for (int i = 0; i < _extraCount; i++)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+            child: _buildCard(
+              'Plaza Indonesia (Lantai 2)', 
+              '1.2km • Tersedia 12 slot', 
+              'Rp 5.000 / jam', 
+              'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=500&auto=format&fit=crop&q=60'
+            ),
+          ),
+      ],
+    );
+  }
 }

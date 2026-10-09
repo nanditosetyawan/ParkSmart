@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../home/home_screen.dart' as home;
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_radii.dart';
@@ -153,7 +154,13 @@ class BookingConfirmationScreen extends StatelessWidget {
               SizedBox(
                 width: double.infinity, height: 52,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (_) => const home.HomeScreen()),
+                      (route) => false,
+                    );
+                  },
                   style: TextButton.styleFrom(
                     backgroundColor: const Color(0xFFF1EEE7), foregroundColor: AppColors.textPrimary,
                     shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),

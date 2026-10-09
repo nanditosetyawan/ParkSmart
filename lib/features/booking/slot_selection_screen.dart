@@ -239,13 +239,14 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
           // ─── Fixed header ─────────────────────────────────────
           Positioned(
             top: 0, left: 0, right: 0,
-            child: SafeArea(
-              bottom: false,
-              child: Container(
-                height: 64,
-                color: const Color(0xFFFCF9F2).withOpacity(0.9),
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                child: Row(
+            child: Container(
+              color: const Color(0xFFFCF9F2),
+              child: SafeArea(
+                bottom: false,
+                child: Container(
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+                  child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Row(children: [
@@ -265,17 +266,12 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                         fontSize: 18, fontWeight: FontWeight.w600, letterSpacing: -0.3,
                       )),
                     ]),
-                    ClipOval(
-                      child: Image.network(
-                        'https://lh3.googleusercontent.com/aida/AEtjO1X6p5Mv8Oi1XLvN093rFeTJnMCOZmqDO2uSQZYGuB-RB6f83CsECwm8-1NdXIz_6VM9C78Bm8crVKK5iRJzBdezhrEKwLMqK3SR6KEjS1zKGR56CnDbuOvOutLyydoSwylEK_bwBZ8X9UCr5IMUydYrY5_7XLRKPSGb0xkkUzMYxEtinxlVuZkHQBbkIvqobf82hAucjcAgO17syoVGIKw-4aXA7298-QPj0g1UsnGqNRW9hU6CaLLbwLA',
-                        width: 32, height: 32, fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(width: 32, height: 32, color: const Color(0xFFEBE8E1)),
-                      ),
-                    ),
+const SizedBox(width: 32)
                   ],
                 ),
               ),
             ),
+          ),
           ),
 
           // ─── Bottom floating summary / CTA ────────────────────

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../pin/pin_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
@@ -25,7 +26,7 @@ class CheckoutScreen extends StatelessWidget {
       backgroundColor: _kSurface,
       body: Stack(children: [
         ListView(
-          padding: const EdgeInsets.fromLTRB(20, 72, 20, 120),
+          padding: EdgeInsets.fromLTRB(20, MediaQuery.of(context).padding.top + 80, 20, 120),
           children: [
             const SizedBox(height: 6),
             Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
@@ -35,7 +36,7 @@ class CheckoutScreen extends StatelessWidget {
                 child: Row(children: [
                   Container(width: 6, height: 6, decoration: const BoxDecoration(color: _kSecondary, shape: BoxShape.circle)),
                   const SizedBox(width: 4),
-                  Text('Slot Ditahan (09:59)', style: AppTypography.overline(color: const Color(0xFF742814))),
+                  Text('Slot Ditahan (02:59)', style: AppTypography.overline(color: const Color(0xFF742814))),
                 ]),
               ),
               Text('Langkah 3 dari 3', style: AppTypography.caption(color: _kOutline)),
@@ -109,29 +110,7 @@ class CheckoutScreen extends StatelessWidget {
                   ]),
                 ),
                 const SizedBox(height: 12),
-                Container(
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kOutline.withOpacity(0.3)), boxShadow: const [AppShadows.soft]),
-                  child: Material(
-                    color: Colors.transparent,
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(12),
-                      onTap: () {},
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Row(children: [
-                          const Icon(Icons.calendar_today_outlined, size: 20, color: _kOnSurfaceVariant),
-                          const SizedBox(width: 12),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('JADWAL KEDATANGAN', style: AppTypography.overline(color: _kOutline)),
-                            Text('Hari ini, 24 Okt  14:00 - 16:00 WIB',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
-                          ])),
-                          const Icon(Icons.chevron_right, size: 20, color: _kOutline),
-                        ]),
-                      ),
-                    ),
-                  ),
-                ),
+                const _JadwalSelector(),
                 const SizedBox(height: 8),
                 Container(
                   decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: _kOutline.withOpacity(0.3)), boxShadow: const [AppShadows.soft]),
@@ -180,11 +159,13 @@ class CheckoutScreen extends StatelessWidget {
           ],
         ),
         Positioned(top: 0, left: 0, right: 0,
-          child: SafeArea(bottom: false,
-            child: Container(
-              height: 64, color: _kSurface.withOpacity(0.9),
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              child: Row(children: [
+          child: Container(
+            color: _kSurface,
+            child: SafeArea(bottom: false,
+              child: Container(
+                height: 64,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(children: [
                 GestureDetector(
                   onTap: () => Navigator.pop(context),
                   child: Container(
@@ -199,6 +180,7 @@ class CheckoutScreen extends StatelessWidget {
             ),
           ),
         ),
+        ),
         Positioned(bottom: 0, left: 0, right: 0,
           child: SafeArea(top: false,
             child: Container(
@@ -207,7 +189,7 @@ class CheckoutScreen extends StatelessWidget {
               child: SizedBox(
                 width: double.infinity, height: 52,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const BookingConfirmationScreen())),
+                  onPressed: () => Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const PinScreen(nextScreen: BookingConfirmationScreen(), transactionType: 'parkir'))),
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _kPrimaryContainer, foregroundColor: Colors.white, elevation: 0,
                     shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),
@@ -234,4 +216,94 @@ class CheckoutScreen extends StatelessWidget {
       Text(val, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1C1D1F))),
     ]),
   );
+}
+
+class _JadwalSelector extends StatefulWidget {
+  const _JadwalSelector();
+  @override
+  State<_JadwalSelector> createState() => _JadwalSelectorState();
+}
+
+class _JadwalSelectorState extends State<_JadwalSelector> {
+  TimeOfDay _arrivalTime = const TimeOfDay(hour: 14, minute: 0);
+  final int _durationHours = 2;
+
+  void _showTimePicker() async {
+    final selectedTime = await showTimePicker(
+      context: context,
+      initialTime: _arrivalTime,
+      helpText: 'PILIH JAM KEDATANGAN',
+      builder: (context, child) {
+        return Theme(
+          data: ThemeData.light().copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _kPrimaryContainer,
+              onPrimary: Colors.white,
+              surface: _kSurface,
+              onSurface: _kOnSurfaceVariant,
+            ),
+            timePickerTheme: TimePickerThemeData(
+              backgroundColor: _kSurface,
+              hourMinuteShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(16),
+              ),
+              dayPeriodBorderSide: const BorderSide(color: _kPrimaryContainer),
+              dayPeriodShape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              dialHandColor: _kPrimaryContainer,
+              dialBackgroundColor: _kCard,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+    if (selectedTime != null) {
+      setState(() {
+        _arrivalTime = selectedTime;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final endTime = TimeOfDay(
+      hour: (_arrivalTime.hour + _durationHours) % 24,
+      minute: _arrivalTime.minute,
+    );
+    final startStr = '${_arrivalTime.hour.toString().padLeft(2, '0')}:${_arrivalTime.minute.toString().padLeft(2, '0')}';
+    final endStr = '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: _kOutline.withValues(alpha: 0.3)),
+        boxShadow: const [AppShadows.soft],
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: _showTimePicker,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(children: [
+              const Icon(Icons.calendar_today_outlined, size: 20, color: _kOnSurfaceVariant),
+              const SizedBox(width: 12),
+              Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                Text('JADWAL KEDATANGAN', style: AppTypography.overline(color: _kOutline)),
+                Text('$startStr - $endStr WIB', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
+              ])),
+              const Icon(Icons.edit_calendar, size: 20, color: _kPrimaryContainer),
+            ]),
+          ),
+        ),
+      ),
+    );
+  }
 }

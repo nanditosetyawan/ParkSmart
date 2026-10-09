@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'history_detail_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-class VerifiedParkingSessionsScreen extends StatelessWidget {
+class VerifiedParkingSessionsScreen extends StatefulWidget {
   const VerifiedParkingSessionsScreen({super.key});
+
+  @override
+  State<VerifiedParkingSessionsScreen> createState() => _VerifiedParkingSessionsScreenState();
+}
+
+class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsScreen> {
+  String _selectedFilter = 'Semua Bulan';
 
   @override
   Widget build(BuildContext context) {
@@ -121,13 +129,29 @@ class VerifiedParkingSessionsScreen extends StatelessWidget {
             scrollDirection: Axis.horizontal,
             child: Row(
               children: [
-                _FilterChip(label: 'Semua Bulan', isSelected: true),
+                _FilterChip(
+                  label: 'Semua Bulan',
+                  isSelected: _selectedFilter == 'Semua Bulan',
+                  onTap: () => setState(() => _selectedFilter = 'Semua Bulan'),
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(label: 'Oktober 2026', icon: Icons.calendar_today, isSelected: false),
+                _FilterChip(
+                  label: 'Oktober 2026', icon: Icons.calendar_today,
+                  isSelected: _selectedFilter == 'Oktober 2026',
+                  onTap: () => setState(() => _selectedFilter = 'Oktober 2026'),
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(label: 'September 2026', isSelected: false),
+                _FilterChip(
+                  label: 'September 2026',
+                  isSelected: _selectedFilter == 'September 2026',
+                  onTap: () => setState(() => _selectedFilter = 'September 2026'),
+                ),
                 const SizedBox(width: 8),
-                _FilterChip(label: 'Mall & Komersil', icon: Icons.local_mall, isSelected: false),
+                _FilterChip(
+                  label: 'Mall & Komersil', icon: Icons.local_mall,
+                  isSelected: _selectedFilter == 'Mall & Komersil',
+                  onTap: () => setState(() => _selectedFilter = 'Mall & Komersil'),
+                ),
               ],
             ),
           ),
@@ -212,12 +236,15 @@ class _FilterChip extends StatelessWidget {
   final String label;
   final IconData? icon;
   final bool isSelected;
+  final VoidCallback onTap;
 
-  const _FilterChip({required this.label, this.icon, required this.isSelected});
+  const _FilterChip({required this.label, this.icon, required this.isSelected, required this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
         color: isSelected ? const Color(0xFF020304) : Colors.white,
@@ -233,7 +260,7 @@ class _FilterChip extends StatelessWidget {
           Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF45474A))),
         ],
       ),
-    );
+    ));
   }
 }
 
@@ -346,15 +373,20 @@ class _HistoryItem extends StatelessWidget {
                   ],
                 ),
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                decoration: BoxDecoration(color: const Color(0xFF1C1D1F), borderRadius: BorderRadius.circular(16)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.receipt_long, size: 15, color: Colors.white),
-                    const SizedBox(width: 6),
-                    Text('E-Receipt', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ],
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryDetailScreen()));
+                },
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(color: const Color(0xFF1C1D1F), borderRadius: BorderRadius.circular(16)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.receipt_long, size: 15, color: Colors.white),
+                      const SizedBox(width: 6),
+                      Text('E-Receipt', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                    ],
+                  ),
                 ),
               ),
             ],
