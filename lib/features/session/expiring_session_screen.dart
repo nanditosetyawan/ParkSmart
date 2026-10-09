@@ -315,11 +315,11 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
     if (method == 'ParkSmart Wallet') {
       return Container(width: size, height: size, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5));
     } else if (method == 'ShopeePay') {
-      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/f/fe/Shopee.svg/512px-Shopee.svg.png', width: size, height: size);
+      return Image.asset('assets/images/shopee-pay-seeklogo.png', width: size, height: size, fit: BoxFit.contain);
     } else if (method == 'Gopay') {
-      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/8/86/Gopay_logo.svg/512px-Gopay_logo.svg.png', width: size, height: size);
+      return Image.asset('assets/images/gopay-seeklogo.png', width: size, height: size, fit: BoxFit.contain);
     } else if (method == 'OVO') {
-      return Image.network('https://upload.wikimedia.org/wikipedia/commons/thumb/e/e1/OVO_logo.svg/512px-OVO_logo.svg.png', width: size, height: size);
+      return Image.asset('assets/images/ovo-seeklogo.png', width: size, height: size, fit: BoxFit.contain);
     }
     return Container(width: size, height: size, color: Colors.grey);
   }
@@ -337,16 +337,23 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
               mainAxisSize: MainAxisSize.min,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
                       icon: const Icon(Icons.close, color: Colors.black54, size: 24),
                       onPressed: () => Navigator.pop(context),
                       padding: EdgeInsets.zero,
-                      constraints: const BoxConstraints(),
+                      constraints: const BoxConstraints(minWidth: 32, minHeight: 32),
                     ),
-                    Text('Pilih Metode Pembayaran', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                    const SizedBox(width: 24),
+                    const SizedBox(width: 4),
+                    Expanded(
+                      child: Text('Pilih Metode Pembayaran', 
+                        style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18)),
+                        textAlign: TextAlign.center,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    const SizedBox(width: 36),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -383,8 +390,8 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
         Navigator.pop(context);
       },
       child: Container(
-        height: 80,
-        padding: const EdgeInsets.all(12),
+        height: 90, // Equal height for all (60 + 50%)
+        padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFFFFF7ED) : Colors.white,
           border: Border.all(
@@ -393,14 +400,16 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            _buildPaymentLogo(method, 28),
-            const SizedBox(height: 8),
-            Text(method, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ],
-        ),
+        child: method == 'ParkSmart Wallet' 
+          ? Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildPaymentLogo(method, 20),
+                const SizedBox(height: 4),
+                Expanded(child: Text(method, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis)),
+              ],
+            )
+          : Center(child: _buildPaymentLogo(method, 32)),
       ),
     );
   }
