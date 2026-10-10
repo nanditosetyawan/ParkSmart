@@ -5,6 +5,7 @@
 
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../favorite/favorite_screen.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -287,7 +288,13 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                     const SizedBox(),
                     Row(children: [
                       _NavBtn(icon: _bookmarked ? Icons.bookmark : Icons.bookmark_border,
-                        onTap: () => setState(() => _bookmarked = !_bookmarked)),
+                          onTap: () {
+                            setState(() => _bookmarked = !_bookmarked);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const FavoriteScreen()),
+                            );
+                          }),
                       const SizedBox(width: 8),
                       _NavBtn(icon: Icons.share_outlined, onTap: () {}),
                     ]),

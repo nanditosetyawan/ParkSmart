@@ -15,6 +15,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import '../notification/notification_screen.dart';
 import '../session/active_session_screen.dart' as active;
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geocoding/geocoding.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import '../sitemap_screen.dart';
 import '../../theme/app_colors.dart';
@@ -36,6 +37,28 @@ class _HomeScreenState extends State<HomeScreen> {
   LatLng? _currentPosition;
   double _heading = 0.0; // Derajat arah hadap kompas & GPS (0 - 360)
   bool _isGpsActive = false;
+  String _locationName = 'GPS tidak aktif';
+
+  Future<void> _fetchLocationName(Position pos) async {
+    try {
+      List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(pos.latitude, pos.longitude);
+      if (placemarks.isNotEmpty) {
+        final p = placemarks.first;
+        String locality = p.subLocality ?? p.locality ?? '';
+        String adminArea = p.administrativeArea ?? '';
+        String combined = [locality, adminArea].where((e) => e.isNotEmpty).join(', ');
+        if (combined.isEmpty) combined = 'Lokasi Anda (GPS)';
+        
+        if (mounted) {
+          setState(() {
+            _locationName = combined;
+          });
+        }
+      }
+    } catch (_) {
+      if (mounted) setState(() => _locationName = 'Lokasi Anda (GPS)');
+    }
+  }
 
   StreamSubscription<Position>? _positionSub;
   StreamSubscription<MagnetometerEvent>? _magSub;
@@ -131,6 +154,7 @@ class _HomeScreenState extends State<HomeScreen> {
       _positionSub?.cancel();
       _positionSub = Geolocator.getPositionStream(locationSettings: locationSettings).listen((pos) {
         if (!mounted) return;
+        bool wasNull = _currentPosition == null;
         setState(() {
           _isGpsActive = true;
           _currentPosition = LatLng(pos.latitude, pos.longitude);
@@ -138,6 +162,7 @@ class _HomeScreenState extends State<HomeScreen> {
             _heading = pos.heading;
           }
         });
+        if (wasNull) _fetchLocationName(pos);
       });
 
       // 5. Sensor Magnetometer Kompas (Berotasi sesuai arah fisik hp)
@@ -208,7 +233,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               Container(width: 8, height: 8,
                                 decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle)),
                               const SizedBox(width: 6),
-                              Text(_isGpsActive && _currentPosition != null ? 'Lokasi Anda (GPS)' : 'SCBD, Jakarta', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700)),
+                              Text(_isGpsActive && _currentPosition != null ? _locationName : 'GPS tidak aktif', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700)),
                             ]),
                           ),
                           // Notification button

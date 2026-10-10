@@ -3,6 +3,7 @@ import '../features/home/home_screen.dart';
 import '../features/history/history_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/ai_assistant/ai_assistant_screen.dart';
+import '../features/camera/smart_scanner.dart';
 
 enum DockTab { home, history, ai, profile }
 
@@ -42,13 +43,16 @@ class BottomDockNavigation extends StatelessWidget {
             }
           }),
           // Center: Scan/focus rounded-2xl
-          Container(
-            width: 48, height: 48,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.1),
-              borderRadius: BorderRadius.circular(14),
+          GestureDetector(
+            onTap: () => SmartScanner.openCameraAndProcess(context),
+            child: Container(
+              width: 48, height: 48,
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: const Icon(Icons.filter_center_focus, size: 24, color: Colors.white),
             ),
-            child: const Icon(Icons.filter_center_focus, size: 24, color: Colors.white),
           ),
           _buildIcon(context, Icons.auto_awesome_outlined, DockTab.ai, () {
             if (activeTab != DockTab.ai) {

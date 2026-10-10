@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
 import 'package:flutter/foundation.dart';
+import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart' hide Path;
@@ -13,6 +15,7 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 import '../parking/parking_detail_screen.dart';
 import 'speech_helper.dart';
 import '../home/home_screen.dart';
+import '../favorite/favorite_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
 
 class ExploreMapScreen extends StatefulWidget {
@@ -179,6 +182,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   // GPS & Pelacakan Lokasi
   bool _isGpsActive = false;
+    String _weatherTemp = '--°C';
+  String _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/116.png';
   LatLng? _currentPosition;
   double _heading = 0.0; // Sudut orientasi kompas dalam radian
 
@@ -434,10 +439,43 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         setState(() {
           _isGpsActive = true;
           _currentPosition = _currentPosition ?? const LatLng(-6.1774, 106.7907);
+          _fetchWeather(_currentPosition!);
         });
         _mapController.move(_currentPosition!, 16.5);
       }
     }
+  }
+
+  Future<void> _fetchWeather(LatLng pos) async {
+    try {
+      final url = Uri.parse('https://api.open-meteo.com/v1/forecast?latitude=${pos.latitude}&longitude=${pos.longitude}&current_weather=true');
+      final response = await http.get(url);
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        final temp = data['current_weather']['temperature'];
+        final code = data['current_weather']['weathercode'];
+        if (mounted) {
+          setState(() {
+            _weatherTemp = '${temp.round()}°C';
+            if (code == 0) {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/113.png';
+            } else if (code >= 1 && code <= 3) {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/116.png';
+            } else if (code >= 45 && code <= 48) {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/143.png';
+            } else if (code >= 51 && code <= 67) {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/296.png';
+            } else if (code >= 71 && code <= 77) {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/320.png';
+            } else if (code >= 95) {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/386.png';
+            } else {
+               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/116.png';
+            }
+          });
+        }
+      }
+    } catch (_) {}
   }
 
   void _unselectParking() {
@@ -1775,11 +1813,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                   Expanded(
                     child: InkWell(
                       onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('Halaman Favorite'),
-                            duration: Duration(seconds: 1),
-                          ),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(builder: (_) => const FavoriteScreen()),
                         );
                       },
                       child: Column(
