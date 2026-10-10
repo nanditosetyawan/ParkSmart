@@ -5,6 +5,8 @@
 // Active booking card: rounded-[32px] bg-white
 
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import '../notification/notification_screen.dart';
 import '../session/active_session_screen.dart' as active;
 import 'package:google_fonts/google_fonts.dart';
@@ -154,7 +156,7 @@ class HomeScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceCard,
                         borderRadius: AppRadii.xl2Radius,
-                        border: Border.all(color: Colors.black.withOpacity(0.02)),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
                         boxShadow: const [AppShadows.soft],
                       ),
                       padding: const EdgeInsets.all(20),
@@ -164,59 +166,75 @@ class HomeScreen extends StatelessWidget {
                           borderRadius: AppRadii.lgRadius,
                           child: SizedBox(
                             width: double.infinity, height: 210,
-                            child: CustomPaint(
-                              painter: _StitchMapPainter(),
-                              child: Stack(children: [
-                                // Distance badge top-right
-                                Positioned(
-                                  top: 16, right: 16,
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: AppColors.surfaceCard.withOpacity(0.95),
-                                      borderRadius: AppRadii.pillRadius,
-                                      boxShadow: const [AppShadows.soft],
-                                    ),
-                                    child: Row(children: [
-                                      Container(width: 8, height: 8,
-                                        decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle)),
-                                      const SizedBox(width: 6),
-                                      Text('350m', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700, fontFamily: 'monospace')),
-                                    ]),
-                                  ),
+                            child: Stack(children: [
+                              FlutterMap(
+                                options: const MapOptions(
+                                  initialCenter: LatLng(-6.1774, 106.7907), // Sekitar Central Park Jakarta
+                                  initialZoom: 16.0,
                                 ),
-                                // Center parking pin
-                                Center(
-                                  child: Column(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          borderRadius: AppRadii.pillRadius,
-                                          boxShadow: const [AppShadows.float],
+                                children: [
+                                  TileLayer(
+                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                    userAgentPackageName: 'com.example.smart_parking',
+                                  ),
+                                  MarkerLayer(
+                                    markers: [
+                                      Marker(
+                                        point: const LatLng(-6.1774, 106.7907),
+                                        width: 200,
+                                        height: 60,
+                                        alignment: Alignment.topCenter,
+                                        child: Column(
+                                          mainAxisSize: MainAxisSize.min,
+                                          children: [
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                borderRadius: AppRadii.pillRadius,
+                                                boxShadow: const [AppShadows.float],
+                                              ),
+                                              child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                                const Icon(Icons.local_parking, size: 16, color: AppColors.secondary),
+                                                const SizedBox(width: 6),
+                                                Text('Central Park • 24 slot', style: AppTypography.buttonSm(color: AppColors.white)),
+                                              ]),
+                                            ),
+                                            Container(
+                                              width: 10, height: 10,
+                                              decoration: BoxDecoration(
+                                                color: AppColors.primary,
+                                                borderRadius: BorderRadius.circular(1),
+                                              ),
+                                              transform: Matrix4.rotationZ(0.785),
+                                              transformAlignment: Alignment.topCenter,
+                                            ),
+                                          ],
                                         ),
-                                        child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                          Icon(Icons.local_parking, size: 16, color: AppColors.secondary),
-                                          const SizedBox(width: 6),
-                                          Text('Central Park • 24 slot', style: AppTypography.buttonSm(color: AppColors.white)),
-                                        ]),
-                                      ),
-                                      Container(
-                                        width: 10, height: 10,
-                                        decoration: BoxDecoration(
-                                          color: AppColors.primary,
-                                          borderRadius: BorderRadius.circular(1),
-                                        ),
-                                        transform: Matrix4.rotationZ(0.785),
-                                        transformAlignment: Alignment.topCenter,
                                       ),
                                     ],
                                   ),
+                                ],
+                              ),
+                              // Distance badge top-right
+                              Positioned(
+                                top: 16, right: 16,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceCard.withValues(alpha: 0.95),
+                                    borderRadius: AppRadii.pillRadius,
+                                    boxShadow: const [AppShadows.soft],
+                                  ),
+                                  child: Row(children: [
+                                    Container(width: 8, height: 8,
+                                      decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle)),
+                                    const SizedBox(width: 6),
+                                    Text('350m', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700, fontFamily: 'monospace')),
+                                  ]),
                                 ),
-                              ]),
-                            ),
+                              ),
+                            ]),
                           ),
                         ),
                         // Metrics row
@@ -274,7 +292,7 @@ class HomeScreen extends StatelessWidget {
                       decoration: BoxDecoration(
                         color: AppColors.surfaceCard,
                         borderRadius: AppRadii.xl2Radius,
-                        border: Border.all(color: Colors.black.withOpacity(0.02)),
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
                         boxShadow: const [AppShadows.soft],
                       ),
                       padding: const EdgeInsets.all(20),
@@ -362,71 +380,7 @@ class HomeScreen extends StatelessWidget {
 }
 
 // ── Map Painter — reproduces the Stitch SVG vector road system ──────────────
-class _StitchMapPainter extends CustomPainter {
-  @override
-  void paint(Canvas canvas, Size size) {
-    // bg
-    canvas.drawRect(Offset.zero & size, Paint()..color = const Color(0xFFECE8E0));
 
-    // green patches
-    final patch = Paint()..color = const Color(0xFFDEE8DF).withOpacity(0.9);
-    final path1 = Path()
-      ..moveTo(-20, 160)..quadraticBezierTo(60, 110, 120, 190)..lineTo(-20, 220)..close();
-    canvas.drawPath(path1, patch);
-    final path2 = Path()
-      ..moveTo(size.width * (240/350), 20)
-      ..quadraticBezierTo(size.width * (300/350), 0, size.width * (360/350), 40)
-      ..lineTo(size.width * (370/350), 120)..lineTo(size.width * (260/350), 90)..close();
-    canvas.drawPath(path2, patch);
-
-    // roads
-    final road = Paint()
-      ..color = const Color(0xFFFAF7F2)
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-
-    road.strokeWidth = 26 * size.width / 350;
-    canvas.drawLine(Offset(0, size.height * (100/210)), Offset(size.width, size.height * (120/210)), road);
-    road.strokeWidth = 24 * size.width / 350;
-    canvas.drawLine(Offset(size.width * (175/350), -10), Offset(size.width * (175/350), size.height + 10), road);
-    road.strokeWidth = 12 * size.width / 350;
-    canvas.drawLine(Offset(size.width * (60/350), 0), Offset(size.width * (60/350), size.height), road);
-    road.strokeWidth = 14 * size.width / 350;
-    canvas.drawLine(Offset(size.width * (290/350), 0), Offset(size.width * (290/350), size.height), road);
-
-    // route dashes
-    final dash = Paint()
-      ..color = const Color(0xFFE07A5F)
-      ..strokeWidth = 4 * size.width / 350
-      ..strokeCap = StrokeCap.round
-      ..style = PaintingStyle.stroke;
-    final dashPath = Path()
-      ..moveTo(size.width * (60/350), size.height * (100/210))
-      ..quadraticBezierTo(size.width * (120/350), size.height * (95/210), size.width * (175/350), size.height * (105/210));
-    _drawDashedPath(canvas, dashPath, dash, 4, 6, size.width / 350);
-
-    // user dot
-    final cx = size.width * (60/350);
-    final cy = size.height * (100/210);
-    canvas.drawCircle(Offset(cx, cy), 14 * size.width / 350, Paint()..color = const Color(0x261C1D1F));
-    canvas.drawCircle(Offset(cx, cy), 7 * size.width / 350, Paint()..color = const Color(0xFF1C1D1F));
-  }
-
-  void _drawDashedPath(Canvas canvas, Path path, Paint paint, double dashLen, double gapLen, double scale) {
-    final metrics = path.computeMetrics();
-    for (final m in metrics) {
-      double dist = 0;
-      while (dist < m.length) {
-        final end = (dist + dashLen * scale).clamp(0.0, m.length);
-        canvas.drawPath(m.extractPath(dist, end), paint);
-        dist += (dashLen + gapLen) * scale;
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter old) => false;
-}
 
 class _NavIconBtn extends StatelessWidget {
   final IconData icon;
@@ -476,19 +430,7 @@ class _CategoryPill extends StatelessWidget {
   }
 }
 
-class _DockIcon extends StatelessWidget {
-  final IconData icon;
-  final VoidCallback? onTap;
-  const _DockIcon({required this.icon, this.onTap});
-  @override
-  Widget build(BuildContext context) => GestureDetector(
-    onTap: onTap,
-    child: SizedBox(
-      width: 44, height: 44,
-      child: Icon(icon, size: 22, color: AppColors.white.withOpacity(0.55)),
-    ),
-  );
-}
+
 
 class _FilterPopup extends StatefulWidget {
   const _FilterPopup();
