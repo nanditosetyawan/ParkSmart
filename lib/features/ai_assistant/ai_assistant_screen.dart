@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
 import '../home/home_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 
@@ -17,13 +18,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   final ScrollController _scrollController = ScrollController();
   
   // Format pesan untuk Groq (OpenAI format)
-  final List<Map<String, String>> _messages = [
-    {'role': 'assistant', 'content': 'Halo! Saya AI ParkSmart yang ditenagai oleh Groq Llama 3. Lokasi mana yang ingin Anda tuju hari ini?'}
-  ];
+  List<Map<String, String>> _messages = [];
   
   bool _isLoading = false;
   
   final String _apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
+  final String _modelName = 'qwen/qwen3.8-27b';
 
   final String systemPrompt = """
 Anda adalah asisten AI dari aplikasi Smart Parking (ParkSmart).
@@ -38,6 +38,59 @@ Saat ini, Anda tidak punya akses internet, tapi aplikasi telah memberikan data t
 Jawab pertanyaan user HANYA berdasarkan data di atas dengan gaya bahasa ramah, singkat, dan natural. 
 Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. Bersikaplah seolah Anda mengecek database.
 """;
+
+  
+  @override
+  void initState() {
+    super.initState();
+    _loadChatHistory();
+  }
+
+  Future<void> _loadChatHistory() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final String? messagesJson = prefs.getString('ai_chat_history');
+      
+      if (messagesJson != null && messagesJson.isNotEmpty) {
+        final decoded = jsonDecode(messagesJson);
+        if (decoded is List && decoded.isNotEmpty) {
+          setState(() {
+            _messages = decoded.map((e) => Map<String, String>.from(e as Map)).toList();
+          });
+          _scrollToBottom();
+          return;
+        }
+      }
+    } catch (e) {
+      print("Error loading chat history: $e");
+    }
+    
+    // Fallback jika belum ada riwayat atau terjadi error
+    if (mounted) {
+      setState(() {
+        _messages = [
+          {'role': 'assistant', 'content': '''Halo! Saya AI ParkSmart yang ditenagai oleh Groq ($_modelName).\n\nAda yang bisa saya bantu hari ini?'''}
+        ];
+      });
+      _scrollToBottom();
+    }
+  }
+
+  Future<void> _saveChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    final String messagesJson = jsonEncode(_messages);
+    await prefs.setString('ai_chat_history', messagesJson);
+  }
+
+  Future<void> _clearChatHistory() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('ai_chat_history');
+    setState(() {
+      _messages = [
+        {'role': 'assistant', 'content': '''Riwayat chat telah dihapus.\n\nHalo! Saya AI ParkSmart yang ditenagai oleh Groq ($_modelName).\n\nAda yang bisa saya bantu hari ini?'''}
+      ];
+    });
+  }
 
   Future<void> _sendMessage() async {
     final text = _textController.text.trim();
@@ -72,7 +125,7 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'qwen/qwen3.8-27b', // Model Meta Llama 3.1 yang terbaru
+          'model': _modelName, // Model Meta Llama 3.1 yang terbaru
           'messages': chatHistory,
           'temperature': 0.7,
         }),
@@ -84,15 +137,18 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
         setState(() {
           _messages.add({'role': 'assistant', 'content': reply});
         });
+        _saveChatHistory();
       } else {
         setState(() {
           _messages.add({'role': 'assistant', 'content': 'Error dari server: ${response.statusCode}\nDetail: ${response.body}'});
         });
+        _saveChatHistory();
       }
     } catch (e) {
       setState(() {
         _messages.add({'role': 'assistant', 'content': 'Error: Tidak dapat terhubung ke server AI.\nDetail: $e'});
       });
+      _saveChatHistory();
     } finally {
       setState(() {
         _isLoading = false;
@@ -125,6 +181,14 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
           onPressed: () => Navigator.pushAndRemoveUntil(
               context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false),
         ),
+        
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_outline, color: Color(0xFF14202B)),
+            onPressed: _clearChatHistory,
+            tooltip: 'Hapus Riwayat',
+          ),
+        ],
         title: Row(
           children: [
             const Icon(Icons.smart_toy, color: Color(0xFF17A18A)),

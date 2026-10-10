@@ -28,6 +28,7 @@ dependencies:
   google_mlkit_image_labeling: ^0.15.0
   google_generative_ai: ^0.4.7
   flutter_dotenv: ^6.0.1
+  shared_preferences: ^2.5.5
 
 dev_dependencies:
   flutter_test:
