@@ -72,7 +72,7 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': 'gemma2-9b-it', // Model Meta Llama 3.1 yang terbaru
+          'model': 'qwen/qwen3.8-27b', // Model Meta Llama 3.1 yang terbaru
           'messages': chatHistory,
           'temperature': 0.7,
         }),
