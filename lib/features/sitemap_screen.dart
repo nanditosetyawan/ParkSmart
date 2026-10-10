@@ -75,6 +75,7 @@ class SitemapScreen extends StatelessWidget {
             _Item('Parking Detail', (c) => const ParkingDetailScreen()),
           ]),
           _buildCategory('Booking', [
+            _Item('AR Navigation', (c) => const ArNavigationScreen()),
             _Item('Slot Selection', (c) => const SlotSelectionScreen()),
             _Item('Booking Confirmation', (c) => const BookingConfirmationScreen()),
             _Item('Checkout', (c) => const CheckoutScreen()),
@@ -103,7 +104,7 @@ class SitemapScreen extends StatelessWidget {
             _Item('Bagaimana Pengalaman Parkir', (c) => const FeedbackScreen()),
           ]),
           _buildCategory('Games & AR, mini game belom', [
-            _Item('AR Navigation', (c) => const ArNavigationScreen()),
+            
             _Item('Game Lobby', (c) => const GameLobbyScreen()),
             _Item('Mini Game', (c) => const MiniGameScreen()),
           ]),

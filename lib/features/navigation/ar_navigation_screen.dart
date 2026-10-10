@@ -56,36 +56,60 @@ class ArNavigationScreen extends StatelessWidget {
                     decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24), boxShadow: const [BoxShadow(color: Colors.black12, blurRadius: 10, offset: Offset(0, 4))]),
                     child: Row(
                       children: [
-                        Container(
-                          width: 48, height: 48,
-                          decoration: const BoxDecoration(color: Color(0xFF1C1D1F), shape: BoxShape.circle),
-                          child: const Icon(Icons.turn_left, color: Colors.white),
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 48,
+                            height: 48,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFF1C1D1F),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.turn_left, color: Colors.white),
+                          ),
                         ),
                         const SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Row(
-                                children: [
-                                  Text('50m Belok Kiri', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                                  const SizedBox(width: 8),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                    decoration: BoxDecoration(color: const Color(0xFFFFDBD2), borderRadius: BorderRadius.circular(8)),
-                                    child: Text('West Gate', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF3C0800))),
-                                  ),
-                                ],
+                              Text(
+                                '50m Belok Kiri',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF1C1C18),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
                               ),
-                              Text('Pintu Masuk Barat Basement', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF45474A))),
+                              const SizedBox(height: 2),
+                              Text(
+                                'Pintu Masuk Barat Basement',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  color: const Color(0xFF45474A),
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
                             ],
                           ),
                         ),
-                        Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: const Icon(Icons.volume_up, size: 20, color: Color(0xFF45474A))),
-                        const SizedBox(width: 8),
-                        GestureDetector(
-                          onTap: () => Navigator.pop(context),
-                          child: Container(width: 40, height: 40, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: const Icon(Icons.close, size: 20, color: Color(0xFF45474A))),
+                        const SizedBox(width: 12),
+                        // Tombol Suara di sisi paling kanan tanpa tombol silang & tanpa overflow
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFF1EEE7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.volume_up,
+                            size: 20,
+                            color: Color(0xFF45474A),
+                          ),
                         ),
                       ],
                     ),
@@ -234,7 +258,7 @@ class ArNavigationScreen extends StatelessWidget {
                               child: SizedBox(
                                 height: 48,
                                 child: ElevatedButton(
-                                  onPressed: () {},
+                                  onPressed: () => Navigator.pop(context),
                                   style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1C1D1F), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24))),
                                   child: Row(
                                     mainAxisAlignment: MainAxisAlignment.center,

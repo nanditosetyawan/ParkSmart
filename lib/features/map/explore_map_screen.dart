@@ -12,9 +12,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../parking/parking_detail_screen.dart';
 import 'speech_helper.dart';
 import '../home/home_screen.dart';
+import '../navigation/ar_navigation_screen.dart';
 
 class ExploreMapScreen extends StatefulWidget {
-  const ExploreMapScreen({super.key});
+  final Map<String, dynamic>? initialSelectedParking;
+  const ExploreMapScreen({super.key, this.initialSelectedParking});
 
   @override
   State<ExploreMapScreen> createState() => _ExploreMapScreenState();
@@ -196,6 +198,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       'point': const LatLng(-6.1788, 106.7916),
       'slots': 42,
       'isEv': true,
+      'distance': '350m',
       'price': 'Rp 5.000 / jam',
       'rating': 4.7,
       'reviews': '1.420',
@@ -213,6 +216,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       'point': const LatLng(-6.1755, 106.7895),
       'slots': 18,
       'isEv': true,
+      'distance': '500m',
       'price': 'Rp 5.000 / jam',
       'rating': 4.6,
       'reviews': '850',
@@ -229,6 +233,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       'point': const LatLng(-6.1790, 106.7925),
       'slots': 85,
       'isEv': false,
+      'distance': '750m',
       'price': 'Rp 4.000 / jam',
       'rating': 4.5,
       'reviews': '2.100',
@@ -244,12 +249,45 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       'point': const LatLng(-6.1740, 106.7940),
       'slots': 6,
       'isEv': true,
+      'distance': '1.1km',
       'price': 'Rp 8.000 / jam',
       'rating': 4.8,
       'reviews': '340',
       'hours': 'Buka 24 Jam',
       'photos': [
         'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+      ],
+    },
+    {
+      'name': 'Grand Indonesia West Mall',
+      'type': 'Parkiran Mall',
+      'point': const LatLng(-6.1953, 106.8208),
+      'slots': 8,
+      'isEv': false,
+      'distance': '850m',
+      'price': 'Rp 6.000 / jam',
+      'rating': 4.8,
+      'reviews': '1.820',
+      'hours': 'Buka • Tutup pukul 22.00 WIB',
+      'photos': [
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+      ],
+    },
+    {
+      'name': 'Plaza Indonesia (Lantai 2)',
+      'type': 'Parkiran Mall',
+      'point': const LatLng(-6.1928, 106.8228),
+      'slots': 12,
+      'isEv': false,
+      'distance': '1.2km',
+      'price': 'Rp 5.000 / jam',
+      'rating': 4.6,
+      'reviews': '1.150',
+      'hours': 'Buka • Tutup pukul 22.00 WIB',
+      'photos': [
+        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
         'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
       ],
     },
@@ -260,6 +298,17 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     super.initState();
     // Titik awal peta: Sekitar Central Park Jakarta
     _currentPosition = const LatLng(-6.1774, 106.7907);
+
+    if (widget.initialSelectedParking != null) {
+      final loc = widget.initialSelectedParking!;
+      if (!_parkingLocations.any((p) => p['name'] == loc['name'])) {
+        _parkingLocations.add(loc);
+      }
+      _selectedParking = loc;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _onParkingMarkerTapped(loc);
+      });
+    }
   }
 
   @override
@@ -402,6 +451,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   void _onParkingMarkerTapped(Map<String, dynamic> loc) {
     setState(() {
       _selectedParking = loc;
+      _selectedDetailTab = 0; // Otomatis tab Ringkasan
     });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_placeDetailsController.isAttached) {
@@ -1365,36 +1415,77 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                       ),
                                       const SizedBox(height: 12),
 
-                                      // Tombol Pesan Slot Parkir
-                                      SizedBox(
-                                        width: double.infinity,
-                                        height: 46,
-                                        child: ElevatedButton.icon(
-                                          style: ElevatedButton.styleFrom(
-                                            backgroundColor: const Color(0xFF1A73E8),
-                                            foregroundColor: Colors.white,
-                                            elevation: 0,
-                                            shape: RoundedRectangleBorder(
-                                              borderRadius: BorderRadius.circular(23),
-                                            ),
-                                          ),
-                                          icon: const Icon(Icons.local_parking, size: 18),
-                                          label: Text(
-                                            'Pesan Slot Parkir Sekarang',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 13.5,
-                                              fontWeight: FontWeight.w600,
-                                            ),
-                                          ),
-                                          onPressed: () {
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => const ParkingDetailScreen(),
+                                      // Baris Tombol Navigasi & Pesan Slot (1 Line Berbagi Sisi)
+                                      Row(
+                                        children: [
+                                          // 1. Tombol Navigasi (ke ArNavigationScreen)
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 46,
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF1C1D1F),
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 0,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(23),
+                                                  ),
+                                                ),
+                                                icon: const Icon(Icons.navigation_rounded, size: 18),
+                                                label: Text(
+                                                  'Navigasi',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => const ArNavigationScreen(),
+                                                    ),
+                                                  );
+                                                },
                                               ),
-                                            );
-                                          },
-                                        ),
+                                            ),
+                                          ),
+                                          const SizedBox(width: 10),
+                                          // 2. Tombol Pesan Slot Parkir
+                                          Expanded(
+                                            child: SizedBox(
+                                              height: 46,
+                                              child: ElevatedButton.icon(
+                                                style: ElevatedButton.styleFrom(
+                                                  backgroundColor: const Color(0xFF1A73E8),
+                                                  foregroundColor: Colors.white,
+                                                  elevation: 0,
+                                                  padding: const EdgeInsets.symmetric(horizontal: 10),
+                                                  shape: RoundedRectangleBorder(
+                                                    borderRadius: BorderRadius.circular(23),
+                                                  ),
+                                                ),
+                                                icon: const Icon(Icons.local_parking, size: 18),
+                                                label: Text(
+                                                  'Pesan Slot',
+                                                  style: GoogleFonts.inter(
+                                                    fontSize: 13.5,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                                onPressed: () {
+                                                  Navigator.push(
+                                                    context,
+                                                    MaterialPageRoute(
+                                                      builder: (_) => const ParkingDetailScreen(),
+                                                    ),
+                                                  );
+                                                },
+                                              ),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
@@ -1562,58 +1653,65 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           ),
                         ),
 
-                        // Isi saat diseret kosong dulu (ruang bersih)
+                        // Rekomendasi Area Parkir Terdekat Berbasis Gambar Full + Gradien Putih
                         const SizedBox(height: 24),
                         Padding(
                           padding: const EdgeInsets.symmetric(horizontal: 20),
-                          child: Text(
-                            'Area Parkir Terdekat di Sekitar Anda',
-                            style: GoogleFonts.inter(
-                              fontSize: 14,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF70757A),
-                            ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Text(
+                                'Rekomendasi Parkir Terdekat',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF1F1F1F),
+                                ),
+                              ),
+                              _SpinningLoadButton(
+                                onRefresh: () async {
+                                  await Future.delayed(const Duration(milliseconds: 900));
+                                  if (mounted) {
+                                    setState(() {
+                                      // Simulasi pembaruan ketersediaan slot terkini
+                                    });
+                                  }
+                                },
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 12),
-                        ..._parkingLocations.map((loc) {
-                          return ListTile(
-                            leading: Container(
-                              padding: const EdgeInsets.all(8),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFE8F0FE),
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: const Icon(
-                                Icons.local_parking,
-                                color: Color(0xFF1A73E8),
-                              ),
-                            ),
-                            title: Text(
-                              loc['name'] as String,
-                              style: GoogleFonts.inter(
-                                fontWeight: FontWeight.w600,
-                                fontSize: 14,
-                              ),
-                            ),
-                            subtitle: Text(
-                              '${loc['slots']} slot tersedia • ${loc['price']}',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                color: const Color(0xFF5F6368),
-                              ),
-                            ),
-                            trailing: const Icon(Icons.chevron_right, color: Color(0xFF70757A)),
-                            onTap: () {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => const ParkingDetailScreen(),
-                                ),
+                        const SizedBox(height: 14),
+                        Padding(
+                          padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
+                          child: Column(
+                            children: _parkingLocations.map((loc) {
+                              final List<String> photos = (loc['photos'] as List<dynamic>?)?.cast<String>() ?? [
+                                'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                              ];
+                              final String img = photos.first;
+                              final String name = loc['name'] as String;
+                              final String dist = (loc['distance'] as String?) ?? '350m';
+                              final int slots = (loc['slots'] as int?) ?? 20;
+                              final String subtitleText = '$dist • $slots slot tersedia';
+                              final String price = loc['price'] as String;
+                              final bool isEv = (loc['isEv'] as bool?) ?? false;
+                              final String rating = (loc['rating'] ?? 4.7).toString();
+
+                              return _buildParkingRecommendationCard(
+                                title: name,
+                                subtitle: subtitleText,
+                                price: price,
+                                imageUrl: img,
+                                rating: rating,
+                                isEv: isEv,
+                                onExplore: () {
+                                  _onParkingMarkerTapped(loc);
+                                },
                               );
-                            },
-                          );
-                        }),
+                            }).toList(),
+                          ),
+                        ),
                         const SizedBox(height: 800),
                       ],
                     ),
@@ -2516,6 +2614,227 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     );
   }
 
+  Widget _buildParkingRecommendationCard({
+    required String title,
+    required String subtitle,
+    required String price,
+    required String imageUrl,
+    String? rating = '4.8',
+    bool isEv = false,
+    VoidCallback? onExplore,
+  }) {
+    return GestureDetector(
+      onTap: onExplore,
+      child: Container(
+        height: 360,
+        margin: const EdgeInsets.only(bottom: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 18,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: Stack(
+            children: [
+              // 1. FULL BACKGROUND IMAGE (Menampilkan mobil & area parkir dengan jelas)
+              Positioned.fill(
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.cover,
+                  errorBuilder: (_, __, ___) => Container(
+                    color: const Color(0xFFE5E7EB),
+                    child: const Center(
+                      child: Icon(Icons.local_parking, size: 52, color: Color(0xFF9CA3AF)),
+                    ),
+                  ),
+                ),
+              ),
+
+              // 2. BADGE KATEGORI DI POJOK KANAN ATAS
+              Positioned(
+                top: 14,
+                right: 14,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isEv ? const Color(0xFF0F766E).withValues(alpha: 0.94) : Colors.black.withValues(alpha: 0.72),
+                    borderRadius: BorderRadius.circular(16),
+                    boxShadow: [
+                      BoxShadow(color: Colors.black.withValues(alpha: 0.25), blurRadius: 6, offset: const Offset(0, 2)),
+                    ],
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(isEv ? Icons.electric_car : Icons.local_parking, size: 13, color: Colors.white),
+                      const SizedBox(width: 4),
+                      Text(
+                        isEv ? 'Khusus EV' : 'Mobil & Motor',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+              // 3. GRADIEN PUTIH LUNTUR PUDAR (Hanya di ~38% sisi bawah, menyisakan >62% foto mobil jernih tanpa blur)
+              Positioned.fill(
+                child: Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.bottomCenter,
+                      end: Alignment.topCenter,
+                      colors: [
+                        Colors.white,
+                        Colors.white.withValues(alpha: 0.98),
+                        Colors.white.withValues(alpha: 0.75),
+                        Colors.white.withValues(alpha: 0.15),
+                        Colors.transparent,
+                      ],
+                      stops: const [0.0, 0.16, 0.26, 0.34, 0.40],
+                    ),
+                  ),
+                ),
+              ),
+
+              // 4. KONTEN INFORMASI & TOMBOL EXPLORE DI SISI BAWAH PUTIH
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: 0,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Baris Nama Parkiran & Rating
+                      Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              title,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16.5,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF1C1D1F),
+                                letterSpacing: -0.2,
+                              ),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          if (rating != null) ...[
+                            const SizedBox(width: 6),
+                            Row(
+                              children: [
+                                const Icon(Icons.star, color: Color(0xFFF4B400), size: 15),
+                                const SizedBox(width: 2),
+                                Text(
+                                  rating,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12.5,
+                                    fontWeight: FontWeight.w700,
+                                    color: const Color(0xFF1F1F1F),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+
+                      // Keterangan Jarak & Slot
+                      Row(
+                        children: [
+                          const Icon(Icons.near_me_outlined, size: 13, color: Color(0xFF5F6368)),
+                          const SizedBox(width: 4),
+                          Text(
+                            subtitle,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF5F6368),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 10),
+
+                      // Baris Tarif Parkir & Tombol Explore
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          // Keterangan Harga
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'TARIF PARKIR',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9.5,
+                                  fontWeight: FontWeight.w700,
+                                  color: const Color(0xFF76777B),
+                                  letterSpacing: 0.3,
+                                ),
+                              ),
+                              Text(
+                                price,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF0F766E),
+                                ),
+                              ),
+                            ],
+                          ),
+                          // Tombol Explore
+                          ElevatedButton.icon(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1C1D1F),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                              elevation: 0,
+                            ),
+                            icon: const Icon(Icons.explore_rounded, size: 16),
+                            label: Text(
+                              'Explore',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                            onPressed: onExplore,
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildReviewCard({
     required String name,
     required int rating,
@@ -3076,4 +3395,77 @@ class _SliverTabBarDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(covariant _SliverTabBarDelegate oldDelegate) => true;
+}
+
+
+/// Tombol refresh / load dengan ikon yang berputar halus saat diklik
+class _SpinningLoadButton extends StatefulWidget {
+  final Future<void> Function()? onRefresh;
+  const _SpinningLoadButton({this.onRefresh});
+
+  @override
+  State<_SpinningLoadButton> createState() => _SpinningLoadButtonState();
+}
+
+class _SpinningLoadButtonState extends State<_SpinningLoadButton>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _rotationController;
+  bool _isRotating = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _rotationController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    );
+  }
+
+  @override
+  void dispose() {
+    _rotationController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _handleTap() async {
+    if (_isRotating) return;
+    setState(() => _isRotating = true);
+    _rotationController.repeat();
+
+    try {
+      if (widget.onRefresh != null) {
+        await widget.onRefresh!();
+      } else {
+        await Future.delayed(const Duration(milliseconds: 900));
+      }
+    } finally {
+      if (mounted) {
+        _rotationController.stop();
+        _rotationController.reset();
+        setState(() => _isRotating = false);
+      }
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(20),
+        onTap: _handleTap,
+        child: Padding(
+          padding: const EdgeInsets.all(6),
+          child: RotationTransition(
+            turns: _rotationController,
+            child: const Icon(
+              Icons.refresh_rounded,
+              size: 22,
+              color: Color(0xFF5F6368),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
