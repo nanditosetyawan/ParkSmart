@@ -339,10 +339,12 @@ Future<void> _initNotifications(BuildContext context) async {
 Future<void> _showSystemUrgentNotification(BuildContext context) async {
   await _initNotifications(context);
   const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'urgent_channel_v2', 'Urgent Notifications',
-    channelDescription: 'Peringatan waktu parkir',
+    'urgent_channel_v3', 'Urgent Notifications',
+    channelDescription: 'Peringatan waktu parkir dengan suara darurat',
     importance: Importance.max,
     priority: Priority.high,
+    playSound: true,
+    sound: RawResourceAndroidNotificationSound('sound_darurat'),
     actions: <AndroidNotificationAction>[
       AndroidNotificationAction('perpanjang_id', 'Perpanjang'),
       AndroidNotificationAction('checkout_id', 'Checkout'),
