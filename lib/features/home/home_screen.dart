@@ -18,6 +18,7 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../parking/parking_detail_screen.dart';
+import '../map/explore_map_screen.dart';
 import '../history/history_screen.dart' as history;
 import '../profile/profile_screen.dart' as profile;
 import '../game/game_lobby_screen.dart' as game;
@@ -151,7 +152,7 @@ class HomeScreen extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
                   child: GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ParkingDetailScreen())),
+                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreMapScreen())),
                     child: Container(
                       decoration: BoxDecoration(
                         color: AppColors.surfaceCard,

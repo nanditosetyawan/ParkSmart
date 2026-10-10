@@ -34,5 +34,36 @@
 </head>
 <body>
   <script src="flutter_bootstrap.js" async></script>
+  <script>
+    window.startSpeechRecognition = function() {
+      return new Promise((resolve, reject) => {
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+          reject('Browser tidak mendukung Speech Recognition');
+          return;
+        }
+        const recognition = new SpeechRecognition();
+        recognition.lang = 'id-ID';
+        recognition.continuous = false;
+        recognition.interimResults = false;
+        recognition.maxAlternatives = 1;
+        
+        recognition.onresult = (event) => {
+          if (event.results && event.results.length > 0) {
+            resolve(event.results[0][0].transcript);
+          } else {
+            resolve('');
+          }
+        };
+        recognition.onerror = (event) => {
+          reject(event.error);
+        };
+        recognition.onnomatch = () => {
+          resolve('');
+        };
+        recognition.start();
+      });
+    };
+  </script>
 </body>
 </html>

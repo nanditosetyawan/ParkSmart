@@ -47,6 +47,7 @@ import 'vehicle/add_vehicle_screen.dart';
 import 'home/home_screen.dart';
 import 'notification/notification_screen.dart';
 import 'parking/parking_detail_screen.dart';
+import 'map/explore_map_screen.dart';
 
 // Nav & Game
 import 'navigation/ar_navigation_screen.dart';
@@ -70,6 +71,7 @@ class SitemapScreen extends StatelessWidget {
           _buildCategory('Main App, notifikasi belom aman', [
             _Item('Home', (c) => const HomeScreen()),
             _Item('Notifications', (c) => const NotificationScreen()),
+            _Item('Peta Jelajah (Google Maps)', (c) => const ExploreMapScreen()),
             _Item('Parking Detail', (c) => const ParkingDetailScreen()),
           ]),
           _buildCategory('Booking', [
