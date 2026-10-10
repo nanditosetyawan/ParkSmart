@@ -8,6 +8,7 @@ import 'package:latlong2/latlong.dart' hide Path;
 import 'package:geolocator/geolocator.dart';
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../parking/parking_detail_screen.dart';
 import 'speech_helper.dart';
@@ -3127,6 +3128,8 @@ class _VoiceSearchBottomSheetState extends State<VoiceSearchBottomSheet>
   String _recognizedText = '';
   bool _isProcessing = false;
 
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
+
   final List<String> _quickSuggestions = [
     'Surabaya',
     'Grand Indonesia',
@@ -3153,32 +3156,68 @@ class _VoiceSearchBottomSheetState extends State<VoiceSearchBottomSheet>
 
   Future<void> _startListening() async {
     try {
-      final text = await recordSpeech();
-      if (!mounted) return;
-      if (text != null && text.trim().isNotEmpty) {
-        setState(() {
-          _recognizedText = text.trim();
-          _statusText = 'Terdengar: "$_recognizedText"';
-          _isProcessing = true;
-        });
-        await Future.delayed(const Duration(milliseconds: 600));
+      bool available = await _speechToText.initialize(
+        onStatus: (status) {
+          if ((status == 'done' || status == 'notListening') && mounted && !_isProcessing && _recognizedText.trim().isNotEmpty) {
+            _finishAndSearch(_recognizedText);
+          }
+        },
+        onError: (error) {
+          if (mounted) {
+            setState(() {
+              _statusText = 'Gagal mendengar, coba lagi.';
+            });
+          }
+        },
+      );
+
+      if (available) {
+        _speechToText.listen(
+          onResult: (result) {
+            if (mounted) {
+              setState(() {
+                _recognizedText = result.recognizedWords;
+                _statusText = 'Terdengar: "' + _recognizedText + '"';
+              });
+              if (result.finalResult) {
+                _finishAndSearch(_recognizedText);
+              }
+            }
+          },
+          localeId: 'id_ID',
+        );
+      } else {
         if (mounted) {
-          Navigator.pop(context);
-          widget.onQuerySelected(_recognizedText);
+          setState(() {
+            _statusText = 'Izin mikrofon ditolak / tidak tersedia.';
+          });
         }
       }
     } catch (_) {}
+  }
+
+  void _finishAndSearch(String text) {
+    if (_isProcessing) return;
+    setState(() => _isProcessing = true);
+    Future.delayed(const Duration(milliseconds: 600), () {
+      if (mounted) {
+        _speechToText.stop();
+        Navigator.pop(context);
+        widget.onQuerySelected(text);
+      }
+    });
   }
 
   void _selectSuggestion(String suggestion) {
     if (_isProcessing) return;
     setState(() {
       _recognizedText = suggestion;
-      _statusText = 'Dipilih: "$suggestion"';
+      _statusText = 'Dipilih: "' + suggestion + '"';
       _isProcessing = true;
     });
     Future.delayed(const Duration(milliseconds: 300), () {
       if (mounted) {
+        _speechToText.stop();
         Navigator.pop(context);
         widget.onQuerySelected(suggestion);
       }
@@ -3188,6 +3227,7 @@ class _VoiceSearchBottomSheetState extends State<VoiceSearchBottomSheet>
   @override
   void dispose() {
     _animController.dispose();
+    _speechToText.stop();
     super.dispose();
   }
 
