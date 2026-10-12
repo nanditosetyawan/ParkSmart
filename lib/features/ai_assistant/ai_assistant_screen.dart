@@ -69,7 +69,7 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
     if (mounted) {
       setState(() {
         _messages = [
-          {'role': 'assistant', 'content': '''Halo! Saya AI ParkSmart yang ditenagai oleh Groq ($_modelName).\n\nAda yang bisa saya bantu hari ini?'''}
+          {'role': 'assistant', 'content': '''Halo! Saya Jarvis, AI ParkSmart yang ditenagai oleh Groq ($_modelName).\n\nAda yang bisa saya bantu hari ini?'''}
         ];
       });
       _scrollToBottom();
