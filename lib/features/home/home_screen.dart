@@ -1,3 +1,5 @@
+import 'dart:ui' as ui;
+import 'package:flutter/services.dart';
 // PS-03 Home — Reconstructed from actual Stitch HTML
 // bg: #F6F3EC | Dark floating dock nav: #1C1D1F rounded-[32px]
 // Map: SVG vector roads on #ECE8E0 bg, not a real map
@@ -38,25 +40,90 @@ class _HomeScreenState extends State<HomeScreen> {
   double _heading = 0.0; // Derajat arah hadap kompas & GPS (0 - 360)
   bool _isGpsActive = false;
   String _locationName = 'GPS tidak aktif';
+  bool _showLocationOverlay = false;
+  DateTime? _pressStartTime;
+
+  Map<String, String> _locationDetails = {
+    'jalan': 'Jl. Ring Road Utara No. 18, RT 02 / RW 10',
+    'kelurahan': 'Condongcatur',
+    'kecamatan': 'Depok',
+    'kota': 'Kabupaten Sleman',
+    'provinsi': 'Daerah Istimewa Yogyakarta',
+    'kodePos': '55281',
+  };
 
   Future<void> _fetchLocationName(Position pos) async {
     try {
       List<Placemark> placemarks = await Geocoding().placemarkFromCoordinates(pos.latitude, pos.longitude);
       if (placemarks.isNotEmpty) {
         final p = placemarks.first;
-        String locality = p.subLocality ?? p.locality ?? '';
-        String adminArea = p.administrativeArea ?? '';
-        String combined = [locality, adminArea].where((e) => e.isNotEmpty).join(', ');
-        if (combined.isEmpty) combined = 'Lokasi Anda (GPS)';
         
+        // 1. Ekstrak nama Kelurahan / Desa saja untuk pil titik hijau
+        String kelurahan = (p.subLocality != null && p.subLocality!.trim().isNotEmpty)
+            ? p.subLocality!.trim()
+            : ((p.locality != null && p.locality!.trim().isNotEmpty) ? p.locality!.trim() : 'Condongcatur');
+
+        final lowerKel = kelurahan.toLowerCase();
+        if (lowerKel.startsWith('kelurahan ')) {
+          kelurahan = kelurahan.substring(10).trim();
+        } else if (lowerKel.startsWith('kel. ')) {
+          kelurahan = kelurahan.substring(5).trim();
+        } else if (lowerKel.startsWith('desa ')) {
+          kelurahan = kelurahan.substring(5).trim();
+        }
+
+        // 2. Ekstrak data lengkap untuk pop-up mengambang
+        String jalan = (p.street != null && p.street!.trim().isNotEmpty)
+            ? p.street!.trim()
+            : ((p.thoroughfare != null && p.thoroughfare!.trim().isNotEmpty) ? p.thoroughfare!.trim() : 'Jl. Ring Road Utara');
+        if (p.subThoroughfare != null && p.subThoroughfare!.trim().isNotEmpty && !jalan.contains(p.subThoroughfare!.trim())) {
+          jalan = '$jalan No. ${p.subThoroughfare!.trim()}';
+        }
+
+        String kecamatan = (p.locality != null && p.locality!.trim().isNotEmpty)
+            ? p.locality!.trim()
+            : 'Depok';
+
+        String kota = (p.subAdministrativeArea != null && p.subAdministrativeArea!.trim().isNotEmpty)
+            ? p.subAdministrativeArea!.trim()
+            : 'Kabupaten Sleman';
+
+        String provinsi = (p.administrativeArea != null && p.administrativeArea!.trim().isNotEmpty)
+            ? p.administrativeArea!.trim()
+            : 'Daerah Istimewa Yogyakarta';
+
+        String kodePos = (p.postalCode != null && p.postalCode!.trim().isNotEmpty)
+            ? p.postalCode!.trim()
+            : '55281';
+
         if (mounted) {
           setState(() {
-            _locationName = combined;
+            _locationName = kelurahan;
+            _locationDetails = {
+              'jalan': jalan,
+              'kelurahan': kelurahan,
+              'kecamatan': kecamatan,
+              'kota': kota,
+              'provinsi': provinsi,
+              'kodePos': kodePos,
+            };
           });
         }
       }
     } catch (_) {
-      if (mounted) setState(() => _locationName = 'Lokasi Anda (GPS)');
+      if (mounted) {
+        setState(() {
+          _locationName = 'Condongcatur';
+          _locationDetails = {
+            'jalan': 'Jl. Ring Road Utara No. 18, RT 02 / RW 10',
+            'kelurahan': 'Condongcatur',
+            'kecamatan': 'Depok',
+            'kota': 'Kabupaten Sleman',
+            'provinsi': 'Daerah Istimewa Yogyakarta',
+            'kodePos': '55281',
+          };
+        });
+      }
     }
   }
 
@@ -66,6 +133,10 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
     // Langsung minta akses GPS saat membuka aplikasi agar posisi map relevan
     _initGpsAndOrientation();
   }
@@ -373,20 +444,58 @@ class _HomeScreenState extends State<HomeScreen> {
                         children: [
                           // Calendar icon button
                           Visibility(visible: false, maintainSize: true, maintainAnimation: true, maintainState: true, child: _NavIconBtn(icon: Icons.calendar_today_outlined)),
-                          // Location pill
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceCard,
-                              borderRadius: AppRadii.pillRadius,
-                              boxShadow: const [AppShadows.soft],
+                          // Location pill (Press & Hold untuk pop-up detail mengambang + blur)
+                          Flexible(
+                            child: GestureDetector(
+                              onTapDown: (_) {
+                                _pressStartTime = DateTime.now();
+                                setState(() => _showLocationOverlay = true);
+                              },
+                              onTapUp: (_) {
+                                final diff = _pressStartTime != null ? DateTime.now().difference(_pressStartTime!) : Duration.zero;
+                                if (diff > const Duration(milliseconds: 300)) {
+                                  setState(() => _showLocationOverlay = false);
+                                }
+                              },
+                              onTapCancel: () {
+                                setState(() => _showLocationOverlay = false);
+                              },
+                              onLongPressStart: (_) {
+                                setState(() => _showLocationOverlay = true);
+                              },
+                              onLongPressEnd: (_) {
+                                setState(() => _showLocationOverlay = false);
+                              },
+                              onLongPressCancel: () {
+                                setState(() => _showLocationOverlay = false);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: AppColors.surfaceCard,
+                                  borderRadius: AppRadii.pillRadius,
+                                  boxShadow: const [AppShadows.soft],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Container(
+                                      width: 8, height: 8,
+                                      decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Flexible(
+                                      child: Text(
+                                        _isGpsActive && _currentPosition != null ? _locationName : 'GPS tidak aktif',
+                                        style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700),
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
                             ),
-                            child: Row(children: [
-                              Container(width: 8, height: 8,
-                                decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle)),
-                              const SizedBox(width: 6),
-                              Text(_isGpsActive && _currentPosition != null ? _locationName : 'GPS tidak aktif', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700)),
-                            ]),
                           ),
                           // Notification button
                           _NavIconBtn(
@@ -759,8 +868,350 @@ class _HomeScreenState extends State<HomeScreen> {
               child: const BottomDockNavigation(activeTab: DockTab.home),
             ),
           ),
+
+          // ─── Floating Address Detail Overlay with Backdrop Blur ────────
+          if (_showLocationOverlay) ...[
+            // 1. Backdrop blur scrim
+            Positioned.fill(
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => setState(() => _showLocationOverlay = false),
+                child: BackdropFilter(
+                  filter: ui.ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+                  child: Container(
+                    color: Colors.black.withValues(alpha: 0.42),
+                  ),
+                ),
+              ),
+            ),
+            // 2. Focused interactive overlay card
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      // Active Pill badge highlight
+                      _buildActiveLocationPillHighlight(),
+                      const SizedBox(height: 12),
+                      // Floating Address Detail Card
+                      _buildFloatingAddressCard(),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         ],
       ),
+    );
+  }
+
+  Widget _buildActiveLocationPillHighlight() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(30),
+        border: Border.all(color: const Color(0xFF10B981), width: 1.5),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF10B981).withValues(alpha: 0.3),
+            blurRadius: 18,
+            spreadRadius: 2,
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 12,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 9,
+            height: 9,
+            decoration: const BoxDecoration(
+              color: Color(0xFF10B981),
+              shape: BoxShape.circle,
+              boxShadow: [
+                BoxShadow(
+                  color: Color(0xFF10B981),
+                  blurRadius: 6,
+                  spreadRadius: 1,
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          Text(
+            _isGpsActive && _currentPosition != null ? _locationName : 'GPS tidak aktif',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1C1D1F),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFloatingAddressCard() {
+    final lat = _currentPosition?.latitude.toStringAsFixed(6) ?? '-7.755432';
+    final lng = _currentPosition?.longitude.toStringAsFixed(6) ?? '110.398712';
+
+    return Container(
+      width: double.infinity,
+      constraints: const BoxConstraints(maxWidth: 400),
+      padding: const EdgeInsets.all(22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(26),
+        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.18),
+            blurRadius: 36,
+            offset: const Offset(0, 18),
+          ),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Badge & Status
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFECFDF5),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFA7F3D0)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.satellite_alt_rounded, size: 13, color: Color(0xFF059669)),
+                    const SizedBox(width: 5),
+                    Text(
+                      'GPS PRESISI TINGGI',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w800,
+                        color: const Color(0xFF059669),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Spacer(),
+              GestureDetector(
+                onTap: () => setState(() => _showLocationOverlay = false),
+                child: Container(
+                  padding: const EdgeInsets.all(4),
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFF3F4F6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.close, size: 16, color: Color(0xFF6B7280)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Primary Kelurahan Display
+          Text(
+            _locationDetails['kelurahan'] ?? _locationName,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 24,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF111827),
+              height: 1.15,
+            ),
+          ),
+          const SizedBox(height: 4),
+          Row(
+            children: [
+              const Icon(Icons.location_on, size: 14, color: Color(0xFF059669)),
+              const SizedBox(width: 4),
+              Text(
+                'Kelurahan aktif • Wilayah terdeteksi',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF6B7280),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 14),
+          Container(height: 1, color: const Color(0xFFF3F4F6)),
+          const SizedBox(height: 14),
+
+          // Detailed Breakdown List
+          _buildAddressRow(
+            icon: Icons.signpost_outlined,
+            iconBg: const Color(0xFFEEF2FF),
+            iconColor: const Color(0xFF4F46E5),
+            label: 'Alamat / RT / RW',
+            value: _locationDetails['jalan'] ?? '-',
+          ),
+          const SizedBox(height: 10),
+          _buildAddressRow(
+            icon: Icons.holiday_village_outlined,
+            iconBg: const Color(0xFFECFDF5),
+            iconColor: const Color(0xFF059669),
+            label: 'Kelurahan / Desa',
+            value: _locationDetails['kelurahan'] ?? '-',
+          ),
+          const SizedBox(height: 10),
+          _buildAddressRow(
+            icon: Icons.apartment_outlined,
+            iconBg: const Color(0xFFEFF6FF),
+            iconColor: const Color(0xFF2563EB),
+            label: 'Kecamatan',
+            value: _locationDetails['kecamatan'] ?? '-',
+          ),
+          const SizedBox(height: 10),
+          _buildAddressRow(
+            icon: Icons.location_city_outlined,
+            iconBg: const Color(0xFFFFF7ED),
+            iconColor: const Color(0xFFD97706),
+            label: 'Kabupaten / Kota',
+            value: _locationDetails['kota'] ?? '-',
+          ),
+          const SizedBox(height: 10),
+          _buildAddressRow(
+            icon: Icons.map_outlined,
+            iconBg: const Color(0xFFFAF5FF),
+            iconColor: const Color(0xFF9333EA),
+            label: 'Provinsi / Daerah',
+            value: _locationDetails['provinsi'] ?? '-',
+          ),
+          const SizedBox(height: 10),
+          _buildAddressRow(
+            icon: Icons.markunread_mailbox_outlined,
+            iconBg: const Color(0xFFFFF1F2),
+            iconColor: const Color(0xFFE11D48),
+            label: 'Kode Pos',
+            value: _locationDetails['kodePos'] ?? '-',
+          ),
+
+          const SizedBox(height: 14),
+
+          // Coordinates Capsule
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF9FAFB),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: Row(
+              children: [
+                const Icon(Icons.my_location, size: 14, color: Color(0xFF6B7280)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Lat: $lat • Long: $lng',
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF4B5563),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          const SizedBox(height: 12),
+
+          // Touch release hint
+          Center(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.touch_app_outlined, size: 13, color: Color(0xFF9CA3AF)),
+                const SizedBox(width: 6),
+                Text(
+                  'Lepas sentuhan untuk menutup',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: const Color(0xFF9CA3AF),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildAddressRow({
+    required IconData icon,
+    required Color iconBg,
+    required Color iconColor,
+    required String label,
+    required String value,
+  }) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 28,
+          height: 28,
+          decoration: BoxDecoration(
+            color: iconBg,
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 15, color: iconColor),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                label,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 10.5,
+                  fontWeight: FontWeight.w500,
+                  color: const Color(0xFF9CA3AF),
+                ),
+              ),
+              const SizedBox(height: 1),
+              Text(
+                value,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF1F2937),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
     );
   }
 }

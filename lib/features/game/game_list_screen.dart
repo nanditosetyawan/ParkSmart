@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'mini_game_screen.dart';
@@ -106,8 +107,13 @@ class GameListScreen extends StatelessWidget {
     required Color color2,
   }) {
     return GestureDetector(
-      onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (context) => const MiniGameScreen()));
+      onTap: () async {
+        await Navigator.push(context, MaterialPageRoute(builder: (context) => const MiniGameScreen()));
+        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+        SystemChrome.setEnabledSystemUIMode(
+          SystemUiMode.manual,
+          overlays: SystemUiOverlay.values,
+        );
       },
       child: Container(
         decoration: BoxDecoration(
