@@ -11,8 +11,12 @@ import 'features/auth/login_screen.dart';
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
-  await dotenv.load(fileName: ".env");
   WidgetsFlutterBinding.ensureInitialized();
+  try {
+    await dotenv.load(fileName: ".env");
+  } catch (e) {
+    debugPrint('Gagal load .env: $e');
+  }
   await NotificationService().init();
   
   // Meminta izin akses utama

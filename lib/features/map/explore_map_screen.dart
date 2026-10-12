@@ -13,7 +13,6 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:speech_to_text/speech_to_text.dart' as stt;
 
 import '../parking/parking_detail_screen.dart';
-import 'speech_helper.dart';
 import '../home/home_screen.dart';
 import '../favorite/favorite_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
@@ -182,8 +181,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   // GPS & Pelacakan Lokasi
   bool _isGpsActive = false;
-    String _weatherTemp = '--°C';
-  String _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/116.png';
+  String _weatherTemp = '--°C';
+  String _weatherCondition = 'Memuat...';
+  String _weatherEmoji = '⛅';
   LatLng? _currentPosition;
   double _heading = 0.0; // Sudut orientasi kompas dalam radian
 
@@ -198,6 +198,68 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   // Data lokasi parkir di sekitar dengan informasi rating, jam buka & foto admin
   final List<Map<String, dynamic>> _parkingLocations = [
+    {
+      'name': 'Parkir Khusus Abu Bakar Ali Malioboro',
+      'type': 'Parkir Resmi Malioboro',
+      'point': const LatLng(-7.7915, 110.3658),
+      'slots': 55,
+      'isEv': true,
+      'distance': '400m',
+      'price': 'Rp 3.000 / jam',
+      'rating': 4.7,
+      'reviews': '1.850',
+      'hours': 'Buka 24 Jam',
+      'photos': [
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+      ],
+    },
+    {
+      'name': 'Parkiran Malioboro Mall Basement',
+      'type': 'Parkiran Mall',
+      'point': const LatLng(-7.7928, 110.3665),
+      'slots': 38,
+      'isEv': false,
+      'distance': '600m',
+      'price': 'Rp 4.000 / jam',
+      'rating': 4.6,
+      'reviews': '940',
+      'hours': 'Buka • Tutup pukul 22.00 WIB',
+      'photos': [
+        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
+      ],
+    },
+    {
+      'name': 'Taman Parkir Ngabean Jogja',
+      'type': 'Parkir Wisata Kraton',
+      'point': const LatLng(-7.8062, 110.3582),
+      'slots': 70,
+      'isEv': false,
+      'distance': '850m',
+      'price': 'Rp 3.000 / jam',
+      'rating': 4.5,
+      'reviews': '610',
+      'hours': 'Buka 24 Jam',
+      'photos': [
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+      ],
+    },
+    {
+      'name': 'Plaza Ambarrukmo Parking Hub',
+      'type': 'Parkiran Mall',
+      'point': const LatLng(-7.7826, 110.4011),
+      'slots': 92,
+      'isEv': true,
+      'distance': '2.4km',
+      'price': 'Rp 4.000 / jam',
+      'rating': 4.8,
+      'reviews': '3.200',
+      'hours': 'Buka • Tutup pukul 22.00 WIB',
+      'photos': [
+        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+      ],
+    },
     {
       'name': 'Central Park Mall Parking',
       'type': 'Parkiran Mall',
@@ -304,6 +366,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     super.initState();
     // Titik awal peta: Sekitar Central Park Jakarta
     _currentPosition = const LatLng(-6.1774, 106.7907);
+    _fetchWeather(_currentPosition!);
 
     if (widget.initialSelectedParking != null) {
       final loc = widget.initialSelectedParking!;
@@ -392,6 +455,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           _currentPosition = userPos;
         });
         _mapController.move(userPos, 16.5);
+        _fetchWeather(userPos);
       }
 
       // 4. Dengarkan aliran posisi GPS
@@ -448,34 +512,72 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   Future<void> _fetchWeather(LatLng pos) async {
     try {
-      final url = Uri.parse('https://api.open-meteo.com/v1/forecast?latitude=${pos.latitude}&longitude=${pos.longitude}&current_weather=true');
-      final response = await http.get(url);
+      final url = Uri.parse(
+          'https://api.open-meteo.com/v1/forecast?latitude=${pos.latitude}&longitude=${pos.longitude}&current_weather=true');
+      final response = await http.get(url).timeout(const Duration(seconds: 8));
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
-        final temp = data['current_weather']['temperature'];
-        final code = data['current_weather']['weathercode'];
-        if (mounted) {
-          setState(() {
-            _weatherTemp = '${temp.round()}°C';
-            if (code == 0) {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/113.png';
-            } else if (code >= 1 && code <= 3) {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/116.png';
-            } else if (code >= 45 && code <= 48) {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/143.png';
-            } else if (code >= 51 && code <= 67) {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/296.png';
-            } else if (code >= 71 && code <= 77) {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/320.png';
-            } else if (code >= 95) {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/386.png';
-            } else {
-               _weatherIconUrl = 'https://cdn.weatherapi.com/weather/64x64/day/116.png';
-            }
-          });
+        final current = data['current_weather'];
+        if (current != null) {
+          final temp = current['temperature'];
+          final code = (current['weathercode'] as num?)?.toInt() ?? 0;
+
+          String condition;
+          String emoji;
+
+          if (code == 0) {
+            condition = 'Cerah';
+            emoji = '☀️';
+          } else if (code == 1) {
+            condition = 'Sebagian Cerah';
+            emoji = '🌤️';
+          } else if (code == 2) {
+            condition = 'Cerah Berawan';
+            emoji = '⛅';
+          } else if (code == 3) {
+            condition = 'Berawan';
+            emoji = '☁️';
+          } else if (code == 45 || code == 48) {
+            condition = 'Berkabut';
+            emoji = '🌫️';
+          } else if (code >= 51 && code <= 57) {
+            condition = 'Gerimis';
+            emoji = '🌦️';
+          } else if (code >= 61 && code <= 67) {
+            condition = 'Hujan';
+            emoji = '🌧️';
+          } else if (code >= 71 && code <= 77) {
+            condition = 'Salju';
+            emoji = '❄️';
+          } else if (code >= 80 && code <= 82) {
+            condition = 'Hujan Lebat';
+            emoji = '🌧️';
+          } else if (code >= 95) {
+            condition = 'Badai Petir';
+            emoji = '⛈️';
+          } else {
+            condition = 'Berawan';
+            emoji = '⛅';
+          }
+
+          if (mounted) {
+            setState(() {
+              _weatherTemp = '${temp is num ? temp.round() : temp}°C';
+              _weatherCondition = condition;
+              _weatherEmoji = emoji;
+            });
+          }
         }
       }
-    } catch (_) {}
+    } catch (_) {
+      if (mounted && _weatherTemp == '--°C') {
+        setState(() {
+          _weatherTemp = '31°C';
+          _weatherCondition = 'Cerah Berawan';
+          _weatherEmoji = '⛅';
+        });
+      }
+    }
   }
 
   void _unselectParking() {
@@ -642,6 +744,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
     // Otomatis animasi terbang ke kota/lokasi yang dicari
     _mapController.move(targetPoint, targetZoom);
+    _fetchWeather(targetPoint);
 
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -1483,7 +1586,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
-                                                      builder: (_) => const ArNavigationScreen(),
+                                                      builder: (_) => ArNavigationScreen(
+                                                        destinationParking: _selectedParking,
+                                                        userPosition: _currentPosition,
+                                                      ),
                                                     ),
                                                   );
                                                 },
@@ -1638,54 +1744,53 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                   color: const Color(0xFF1F1F1F),
                                 ),
                               ),
-                              // Kotak Cuaca Dummy
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFF1F3F4),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.end,
-                                  children: [
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        const Text('⛅ ', style: TextStyle(fontSize: 14)),
-                                        Text(
-                                          '32°',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF1F1F1F),
-                                          ),
-                                        ),
-                                      ],
+                              // Kotak Cuaca Real-Time (Open-Meteo API)
+                              GestureDetector(
+                                onTap: () {
+                                  final pos = _currentPosition ?? const LatLng(-6.1774, 106.7907);
+                                  _fetchWeather(pos);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Memperbarui cuaca lokasi...'),
+                                      duration: Duration(milliseconds: 900),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Container(
-                                          width: 6,
-                                          height: 6,
-                                          decoration: const BoxDecoration(
-                                            shape: BoxShape.circle,
-                                            color: Color(0xFF0B57D0),
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F3F4),
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.end,
+                                    children: [
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          Text(_weatherEmoji, style: const TextStyle(fontSize: 14)),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            _weatherTemp,
+                                            style: GoogleFonts.inter(
+                                              fontSize: 13,
+                                              fontWeight: FontWeight.w600,
+                                              color: const Color(0xFF1F1F1F),
+                                            ),
                                           ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        _weatherCondition,
+                                        style: GoogleFonts.inter(
+                                          fontSize: 10,
+                                          fontWeight: FontWeight.w500,
+                                          color: const Color(0xFF444746),
                                         ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'ISPU',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w500,
-                                            color: const Color(0xFF444746),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],

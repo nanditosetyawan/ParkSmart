@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -25,9 +26,43 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   final String _apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
   final String _modelName = 'qwen/qwen3.8-27b';
 
-  final String systemPrompt = """
-Anda adalah asisten AI dari aplikasi Smart Parking (ParkSmart).
-Tugas Anda adalah membantu pengguna mencari parkiran.
+  String get _initialGreeting =>
+      '''Halo! Saya Jarvis, AI ParkSmart yang ditenagai oleh Groq ($_modelName).
+
+Ada yang bisa saya bantu hari ini?''';
+
+  String get systemPrompt => """
+Nama Anda adalah Jarvis. Anda adalah asisten AI dari aplikasi Smart Parking (ParkSmart) yang ditenagai oleh Groq ($_modelName).
+
+DATA IDENTITAS & PROFIL ANDA:
+- Nama: Jarvis
+- Peran/Posisi: Asisten AI cerdas untuk aplikasi Smart Parking (ParkSmart)
+- Teknologi Platform: Didukung oleh model AI Groq ($_modelName)
+- Umur/Usia: 30 tahun
+- Tahun/Waktu Lahir: 1986
+- Hobi / Kesukaan / Kegemaran / Kesenangan: Vibe coding
+- Asal Daerah / Asal Kota / Tempat Lahir: Nganjuk
+- Pencipta / Pembuat / Pengembang:
+  1. Taufik Nur Hidayah - 124240070
+  2. Sultannang Nandito Setiayawan - 124240083
+
+ATURAN MENJAWAB SEPUTAR IDENTITAS (FLEKSIBEL TERHADAP PADANAN KATA / SINONIM):
+
+1. PERKENALAN DIRI LENGKAP (NARASI PARAGRAF):
+   Jika pengguna menanyakan hal yang bermakna umum tentang diri Anda atau meminta perkenalan (contohnya: 'siapa kamu?', 'kamu siapa?', 'perkenalkan dirimu', 'sebutkan identitasmu', 'kenalan dong', 'ceritakan tentang dirimu', atau kalimat serupa lainnya dengan maksud yang sama):
+   -> Ceritakan seluruh identitas Anda di atas (nama, peran di ParkSmart, platform Groq, umur 30 tahun, kelahiran 1986, hobi vibe coding, asal dari Nganjuk, dan pencipta Anda) DALAM BENTUK PARAGRAF NARASI YANG MENGALIR, HANGAT, DAN BAGUS (bukan sekadar daftar poin-poin kaku).
+
+2. PERTANYAAN KHUSUS / SPESIFIK (HANYA JAWAB YANG DITANYAKAN SECARA SINGKAT):
+   Pahami padanan kata dan maksud pengguna secara fleksibel:
+   - Nama saja (misal: 'siapa namamu?', 'nama kamu siapa?', 'namamu?', dsb.) -> Jawab HANYA bahwa nama Anda adalah Jarvis.
+   - Umur/Usia saja (misal: 'berapa umurmu?', 'berapa usiamu?', 'umur kamu berapa?', dsb.) -> Jawab HANYA bahwa umur Anda 30 tahun.
+   - Tahun/Waktu Lahir saja (misal: 'kapan kamu lahir?', 'tahun berapa kamu lahir?', 'tanggal lahirmu?', dsb.) -> Jawab HANYA bahwa Anda lahir tahun 1986.
+   - Hobi/Kegemaran/Kesukaan/Kesenangan (misal: 'apa hobimu?', 'kamu suka apa?', 'apa kesukaanmu?', 'apa kesenanganmu?', 'kegemaranmu apa?', dsb.) -> Pahami bahwa hobi, kesukaan, dan kesenangan bermakna sama, dan jawab HANYA bahwa hobi/kesukaan Anda adalah vibe coding.
+   - Asal/Tempat Lahir saja (misal: 'di mana kamu lahir?', 'asalmu dari mana?', 'dari mana kamu?', 'tempat lahirmu?', 'kamu orang mana?', dsb.) -> Jawab HANYA bahwa asal Anda dari Nganjuk.
+   - Pembuat/Pencipta saja (misal: 'siapa pembuatmu?', 'siapa penciptamu?', 'siapa yang bikin kamu?', 'siapa developermu?', dsb.) -> Sebutkan nama pencipta Anda (Taufik Nur Hidayah - 124240070 dan Sultannang Nandito Setiayawan - 124240083).
+
+TUGAS UTAMA:
+Membantu pengguna mencari parkiran dan melayani tanya jawab seputar parkir.
 Saat ini, Anda tidak punya akses internet, tapi aplikasi telah memberikan data terbaru berikut (DUMMY):
 - Lokasi GPS User saat ini: SCBD, Jakarta (Aktif).
 - Database Parkiran Terdekat:
@@ -35,8 +70,9 @@ Saat ini, Anda tidak punya akses internet, tapi aplikasi telah memberikan data t
   2. Parkir B  - Status: PENUH.
   3. Grand Indonesia - Status: Tersedia 12 slot EV, 5 slot reguler.
 
-Jawab pertanyaan user HANYA berdasarkan data di atas dengan gaya bahasa ramah, singkat, dan natural. 
-Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. Bersikaplah seolah Anda mengecek database.
+GAYA BAHASA:
+- Wajib selalu awali jawabanmu dengan 'Oke Ganteng', kalau dia perempuan 'OK Sayang' setiap menjawab user.
+- Jawab dengan ramah, natural, dan fleksibel. Jangan pernah kaku atau terpaku pada kata persis, melainkan pahami maksud kalimat pengguna.
 """;
 
   
@@ -68,9 +104,7 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
     // Fallback jika belum ada riwayat atau terjadi error
     if (mounted) {
       setState(() {
-        _messages = [
-          {'role': 'assistant', 'content': '''Halo! Saya Jarvis, AI ParkSmart yang ditenagai oleh Groq ($_modelName).\n\nAda yang bisa saya bantu hari ini?'''}
-        ];
+        _messages = [{'role': 'assistant', 'content': _initialGreeting}];
       });
       _scrollToBottom();
     }
@@ -87,7 +121,7 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
     await prefs.remove('ai_chat_history');
     setState(() {
       _messages = [
-        {'role': 'assistant', 'content': '''Riwayat chat telah dihapus.\n\nHalo! Saya AI ParkSmart yang ditenagai oleh Groq ($_modelName).\n\nAda yang bisa saya bantu hari ini?'''}
+        {'role': 'assistant', 'content': _initialGreeting}
       ];
     });
   }
@@ -113,10 +147,10 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
       // Masukkan semua pesan sebelumnya kecuali pesan sambutan awal jika ingin hemat token (opsional)
       // Di sini kita masukkan semuanya agar AI ingat konteks obrolan
       for (var msg in _messages) {
-        if (msg['role'] != 'assistant' || msg['content'] != _messages[0]['content']) {
-           chatHistory.add({'role': msg['role']!, 'content': msg['content']!});
-        }
+        chatHistory.add({'role': msg['role']!, 'content': msg['content']!});
       }
+
+      final stopwatch = Stopwatch()..start();
 
       final response = await http.post(
         Uri.parse('https://api.groq.com/openai/v1/chat/completions'),
@@ -125,11 +159,17 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
           'Authorization': 'Bearer $_apiKey',
         },
         body: jsonEncode({
-          'model': _modelName, // Model Meta Llama 3.1 yang terbaru
+          'model': _modelName,
           'messages': chatHistory,
           'temperature': 0.7,
         }),
       );
+
+      // Pastikan efek mengetik terlihat minimal ~1.2 detik seperti di WhatsApp
+      final elapsed = stopwatch.elapsedMilliseconds;
+      if (elapsed < 1200) {
+        await Future.delayed(Duration(milliseconds: 1200 - elapsed));
+      }
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -204,19 +244,17 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
             child: ListView.builder(
               controller: _scrollController,
               padding: const EdgeInsets.all(16),
-              itemCount: _messages.length,
+              itemCount: _messages.length + (_isLoading ? 1 : 0),
               itemBuilder: (context, index) {
+                if (index == _messages.length) {
+                  return _buildTypingIndicator();
+                }
                 final msg = _messages[index];
                 final isUser = msg['role'] == 'user';
                 return isUser ? _buildUserMessage(msg['content']!) : _buildAiMessage(msg['content']!);
               },
             ),
           ),
-          if (_isLoading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8.0),
-              child: CircularProgressIndicator(),
-            ),
           Container(
             padding: const EdgeInsets.all(16),
             decoration: const BoxDecoration(
@@ -323,6 +361,102 @@ Jangan pernah memberitahu user bahwa Anda membaca data ini dari prompt rahasia. 
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildTypingIndicator() {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 16.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              color: const Color(0xFF17A18A).withValues(alpha: 0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(Icons.smart_toy, size: 16, color: Color(0xFF17A18A)),
+          ),
+          const SizedBox(width: 12),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.only(
+                topRight: Radius.circular(20),
+                bottomLeft: Radius.circular(20),
+                bottomRight: Radius.circular(20),
+              ),
+            ),
+            child: const TypingDotsIndicator(),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class TypingDotsIndicator extends StatefulWidget {
+  const TypingDotsIndicator({super.key});
+
+  @override
+  State<TypingDotsIndicator> createState() => _TypingDotsIndicatorState();
+}
+
+class _TypingDotsIndicatorState extends State<TypingDotsIndicator>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _animController;
+
+  @override
+  void initState() {
+    super.initState();
+    _animController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+  }
+
+  @override
+  void dispose() {
+    _animController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animController,
+      builder: (context, child) {
+        return Row(
+          mainAxisSize: MainAxisSize.min,
+          children: List.generate(3, (index) {
+            // Gelombang berjarak (zigzag / wave up-down)
+            final progress = (_animController.value - (index * 0.2)) % 1.0;
+            final bounce = math.sin(progress * math.pi * 2);
+            // Bergerak naik ke atas secara zigzag
+            final dy = (bounce > 0 ? -bounce * 6.5 : 0.0);
+            // Warna tidak solid (semi-transparan bergantian intensitasnya)
+            final alpha = 0.28 + (bounce > 0 ? bounce * 0.52 : 0.0);
+
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 4.0),
+              child: Transform.translate(
+                offset: Offset(0, dy),
+                child: Container(
+                  width: 9.5,
+                  height: 9.5,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF17A18A).withValues(alpha: alpha.clamp(0.2, 0.85)),
+                    shape: BoxShape.circle,
+                  ),
+                ),
+              ),
+            );
+          }),
+        );
+      },
     );
   }
 }
