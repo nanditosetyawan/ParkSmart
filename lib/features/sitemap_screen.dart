@@ -56,7 +56,7 @@ import 'map/explore_map_screen.dart';
 // Nav & Game
 import 'navigation/ar_navigation_screen.dart';
 import 'game/game_lobby_screen.dart';
-import 'game/mini_game_screen.dart';
+import 'game/car_game_screen.dart';
 
 class SitemapScreen extends StatelessWidget {
   const SitemapScreen({super.key});
@@ -110,7 +110,7 @@ class SitemapScreen extends StatelessWidget {
           _buildCategory('Games & AR, mini game belom', [
             
             _Item('Game Lobby', (c) => const GameLobbyScreen()),
-            _Item('Mini Game', (c) => const MiniGameScreen()),
+            _Item('Car Game', (c) => const CarGameScreen()),
           ]),
           _buildCategory('Admin / MCP Screens', [
             _Item('Dashboard', (c) => const DashboardScreen()),

@@ -1,7 +1,7 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'mini_game_screen.dart';
+import 'car_game_screen.dart';
 
 class GameListScreen extends StatelessWidget {
   const GameListScreen({super.key});
@@ -108,7 +108,7 @@ class GameListScreen extends StatelessWidget {
   }) {
     return GestureDetector(
       onTap: () async {
-        await Navigator.push(context, MaterialPageRoute(builder: (context) => const MiniGameScreen()));
+        await Navigator.push(context, MaterialPageRoute(builder: (context) => const CarGameScreen()));
         SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
         SystemChrome.setEnabledSystemUIMode(
           SystemUiMode.manual,
