@@ -479,10 +479,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                 child: Row(
                                   mainAxisSize: MainAxisSize.min,
                                   children: [
-                                    Container(
-                                      width: 8, height: 8,
-                                      decoration: const BoxDecoration(color: AppColors.accentTeal, shape: BoxShape.circle),
-                                    ),
+                                    const _BlinkingGpsDot(size: 8),
                                     const SizedBox(width: 6),
                                     Flexible(
                                       child: Text(
@@ -934,21 +931,7 @@ class _HomeScreenState extends State<HomeScreen> {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Container(
-            width: 9,
-            height: 9,
-            decoration: const BoxDecoration(
-              color: Color(0xFF10B981),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: Color(0xFF10B981),
-                  blurRadius: 6,
-                  spreadRadius: 1,
-                ),
-              ],
-            ),
-          ),
+          const _BlinkingGpsDot(size: 9),
           const SizedBox(width: 8),
           Text(
             _isGpsActive && _currentPosition != null ? _locationName : 'GPS tidak aktif',
@@ -1235,6 +1218,88 @@ class _NavIconBtn extends StatelessWidget {
     ),
     child: Icon(icon, size: 20, color: AppColors.textPrimary),
   ));
+}
+
+class _BlinkingGpsDot extends StatefulWidget {
+  final double size;
+  const _BlinkingGpsDot({this.size = 8.0});
+
+  @override
+  State<_BlinkingGpsDot> createState() => _BlinkingGpsDotState();
+}
+
+class _BlinkingGpsDotState extends State<_BlinkingGpsDot>
+    with SingleTickerProviderStateMixin {
+  late final AnimationController _controller;
+  late final Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 750),
+    )..repeat(reverse: true);
+
+    _animation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AnimatedBuilder(
+      animation: _animation,
+      builder: (context, child) {
+        final val = _animation.value;
+        return SizedBox(
+          width: widget.size + 6,
+          height: widget.size + 6,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              // Outer pulse glow (efek radar sinyal GPS aktif)
+              Container(
+                width: widget.size + (6 * val),
+                height: widget.size + (6 * val),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: const Color(0xFF10B981).withValues(alpha: 0.35 * (1.0 - val * 0.3)),
+                ),
+              ),
+              // Core dot utama (berkedip terang-redup stabil)
+              Container(
+                width: widget.size,
+                height: widget.size,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: Color.lerp(
+                    const Color(0xFF059669),
+                    const Color(0xFF34D399),
+                    val,
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.3 + 0.6 * val),
+                      blurRadius: 4 + 4 * val,
+                      spreadRadius: 1 * val,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _CategoryPill extends StatelessWidget {

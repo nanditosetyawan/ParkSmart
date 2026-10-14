@@ -31,6 +31,8 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   bool _obscure = true;
   bool _remember = false;
+  bool _fingerprintEnabled = true;
+  bool _faceIdEnabled = false;
 
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
@@ -91,16 +93,56 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
     final bool remember = prefs.getBool('remember_me') ?? false;
-    if (remember) {
-      final String? savedEmail = prefs.getString('saved_email');
-      final String? savedPassword = prefs.getString('saved_password');
-      if (mounted) {
-        setState(() {
+    final bool fp = prefs.getBool('fingerprint_enabled') ?? true;
+    final bool face = prefs.getBool('face_id_enabled') ?? false;
+
+    if (mounted) {
+      setState(() {
+        _fingerprintEnabled = fp;
+        _faceIdEnabled = face;
+        if (remember) {
           _remember = true;
+          final String? savedEmail = prefs.getString('saved_email');
+          final String? savedPassword = prefs.getString('saved_password');
           if (savedEmail != null) _emailController.text = savedEmail;
           if (savedPassword != null) _passwordController.text = savedPassword;
+        }
+      });
+
+      // Jika Face ID aktif, beneran memakai sistem Android untuk membuka layar
+      if (_faceIdEnabled) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _authenticateWithFaceId();
         });
       }
+    }
+  }
+
+  Future<void> _authenticateWithFaceId() async {
+    if (!_faceIdEnabled) return;
+    final LocalAuthentication auth = LocalAuthentication();
+    try {
+      final List<BiometricType> available = await auth.getAvailableBiometrics();
+      if (!available.contains(BiometricType.face)) {
+        return;
+      }
+      final bool didAuth = await auth.authenticate(
+        localizedReason: 'Pindai wajah untuk membuka layar',
+        biometricOnly: true,
+      );
+      if (didAuth && mounted) {
+        if (_remember) {
+          await _saveCredentials();
+        }
+        if (mounted) {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const HomeScreen()),
+          );
+        }
+      }
+    } catch (e) {
+      debugPrint('Face ID unlock error: $e');
     }
   }
 
@@ -491,35 +533,37 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             // Secondary auth buttons (Biometrik & Google)
                             Row(
                               children: [
-                                Expanded(
-                                  child: _SecondaryButton(
-                                    label: 'Biometrik',
-                                    icon: Icons.fingerprint,
-                                    onTap: () async {
-                                      final LocalAuthentication auth = LocalAuthentication();
-                                      try {
-                                        final bool didAuthenticate = await auth.authenticate(
-                                          localizedReason: 'Gunakan sidik jari untuk masuk',
-                                          biometricOnly: true,
-                                        );
-                                        if (didAuthenticate && context.mounted) {
-                                          if (_remember) {
-                                            await _saveCredentials();
+                                if (_fingerprintEnabled) ...[
+                                  Expanded(
+                                    child: _SecondaryButton(
+                                      label: 'Biometrik',
+                                      icon: Icons.fingerprint,
+                                      onTap: () async {
+                                        final LocalAuthentication auth = LocalAuthentication();
+                                        try {
+                                          final bool didAuthenticate = await auth.authenticate(
+                                            localizedReason: 'Gunakan sidik jari untuk masuk',
+                                            biometricOnly: true,
+                                          );
+                                          if (didAuthenticate && context.mounted) {
+                                            if (_remember) {
+                                              await _saveCredentials();
+                                            }
+                                            if (context.mounted) {
+                                              Navigator.pushReplacement(
+                                                context,
+                                                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                              );
+                                            }
                                           }
-                                          if (context.mounted) {
-                                            Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(builder: (_) => const HomeScreen()),
-                                            );
-                                          }
+                                        } catch (e) {
+                                          debugPrint(e.toString());
                                         }
-                                      } catch (e) {
-                                        debugPrint(e.toString());
-                                      }
-                                    },
+                                      },
+                                    ),
                                   ),
-                                ),
-                                const SizedBox(width: 12),
+                                  const SizedBox(width: 12),
+                                ],
                                 Expanded(
                                   child: _SecondaryButton(
                                     label: 'Google',
@@ -904,14 +948,7 @@ class _StitchButton extends StatelessWidget {
         ).copyWith(
           overlayColor: WidgetStateProperty.all(AppColors.white.withValues(alpha: 0.08)),
         ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(label, style: AppTypography.buttonLg(color: AppColors.white)),
-            const SizedBox(width: 10),
-            const Icon(Icons.arrow_forward, size: 19),
-          ],
-        ),
+        child: Text(label, style: AppTypography.buttonLg(color: AppColors.white)),
       ),
     );
   }

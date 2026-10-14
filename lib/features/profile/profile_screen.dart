@@ -1,17 +1,17 @@
 import 'package:flutter/material.dart';
-import '../../main.dart';
-import '../auth/login_screen.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../session/extend_session_screen.dart' as extend;
 import '../session/session_checkout_screen.dart' as checkout;
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/currency_service.dart';
+import '../../core/services/theme_service.dart';
 import '../session/expiring_session_screen.dart';
 import '../auth/login_screen.dart' as auth;
 import 'vehicle_screen.dart' as vehicle;
+import 'payment_methods_screen.dart';
 import 'settings_screen.dart' as settings;
 import 'feedback_screen.dart' as feedback;
-import '../history/history_screen.dart' as history;
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -92,8 +92,12 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFAF7F2),
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        return Scaffold(
+          backgroundColor: theme.bg,
       body: Stack(
         children: [
           SafeArea(
@@ -104,20 +108,20 @@ class ProfileScreen extends StatelessWidget {
               height: 64,
               padding: const EdgeInsets.symmetric(horizontal: 24),
               decoration: BoxDecoration(
-                border: Border(bottom: BorderSide(color: const Color(0xFFE4DFD5).withValues(alpha: 0.3))),
+                border: Border(bottom: BorderSide(color: ThemeService.instance.border.withValues(alpha: 0.3))),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Profil Pengguna', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18), letterSpacing: -0.5)),
+                  Text('Profil Pengguna', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary, letterSpacing: -0.5)),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const settings.SettingsScreen()));
                     },
                     child: Container(
                       width: 40, height: 40,
-                      decoration: BoxDecoration(color: Colors.white, shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.7)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
-                      child: const Icon(Icons.settings, size: 20, color: Color(0xFF1A1A18)),
+                      decoration: BoxDecoration(color: ThemeService.instance.card, shape: BoxShape.circle, border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.7)), boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 8, offset: const Offset(0, 2))]),
+                      child: Icon(Icons.settings, size: 20, color: ThemeService.instance.iconColor),
                     ),
                   ),
                 ],
@@ -132,24 +136,24 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.all(24),
                     decoration: BoxDecoration(
-                      color: Colors.white, borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.6)),
-                      boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4))],
+                      color: ThemeService.instance.card, borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.6)),
+                      boxShadow: [BoxShadow(color: ThemeService.instance.isDarkMode ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4))],
                     ),
                     child: Column(
                       children: [
                         Container(
                           width: 96, height: 96,
                           padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(color: const Color(0xFFF5F1E8), shape: BoxShape.circle, border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.8))),
+                          decoration: BoxDecoration(color: ThemeService.instance.chipBg, shape: BoxShape.circle, border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.8))),
                           child: const CircleAvatar(
                             backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text('Sarah Pramudita', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        Text('Sarah Pramudita', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
                         const SizedBox(height: 4),
-                        Text('sarah.pramudita@email.com\n+62 812-3456-7890', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: const Color(0xFF62615B), height: 1.5)),
+                        Text('sarah.pramudita@email.com\n+62 812-3456-7890', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, height: 1.5)),
                         const SizedBox(height: 16),
                         _buildMemberBadge('PLATINUM'),
                       ],
@@ -161,38 +165,38 @@ class ProfileScreen extends StatelessWidget {
                   Container(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: ThemeService.instance.card,
                       borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.7)),
+                      border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.7)),
                     ),
                     child: Row(
                       children: [
                         Expanded(
                           child: Column(
                             children: [
-                              Text('TOTAL PARKIR', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF62615B), letterSpacing: 0.5)),
+                              Text('TOTAL PARKIR', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
-                              Text('48 Kali', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                              Text('48 Kali', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
                             ],
                           ),
                         ),
-                        Container(width: 1, height: 40, color: const Color(0xFFE4DFD5).withValues(alpha: 0.6)),
+                        Container(width: 1, height: 40, color: ThemeService.instance.divider),
                         Expanded(
                           child: Column(
                             children: [
-                              Text('PENGHEMATAN', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF62615B), letterSpacing: 0.5)),
+                              Text('PENGHEMATAN', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
-                              Text('Rp 124.000', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF9A442D))),
+                              Text('Rp 124.000', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFFC05621))),
                             ],
                           ),
                         ),
-                        Container(width: 1, height: 40, color: const Color(0xFFE4DFD5).withValues(alpha: 0.6)),
+                        Container(width: 1, height: 40, color: ThemeService.instance.divider),
                         Expanded(
                           child: Column(
                             children: [
-                              Text('PARKSMART PTS', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF62615B), letterSpacing: 0.5)),
+                              Text('PARKSMART PTS', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
-                              Text('1.450 Poin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                              Text('1.450 Poin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
                             ],
                           ),
                         ),
@@ -207,7 +211,15 @@ class ProfileScreen extends StatelessWidget {
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const vehicle.VehicleScreen())),
                   ),
                   const SizedBox(height: 12),
-                  _MenuItem(icon: Icons.account_balance_wallet, subtitle: 'METODE PEMBAYARAN & DOMPET', title: 'ParkSmart Pay (Rp 145.000)', onTap: () {}),
+                  ListenableBuilder(
+                    listenable: CurrencyService.instance,
+                    builder: (context, _) => _MenuItem(
+                      icon: Icons.account_balance_wallet,
+                      subtitle: 'METODE PEMBAYARAN',
+                      title: 'ParkSmart Pay (${CurrencyService.instance.format(145000)})',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
+                    ),
+                  ),
                   const SizedBox(height: 12),
 
                   _MenuItem(
@@ -232,7 +244,7 @@ class ProfileScreen extends StatelessWidget {
                       onPressed: () {
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (context) => const LoginScreen()),
+                          MaterialPageRoute(builder: (context) => const auth.LoginScreen()),
                           (Route<dynamic> route) => false,
                         );
                       },
@@ -267,6 +279,8 @@ class ProfileScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+      },
     );
   }
 }
@@ -485,113 +499,47 @@ class _MenuItem extends StatelessWidget {
 
   const _MenuItem({required this.icon, required this.subtitle, required this.title, required this.onTap});
 
-  Widget _buildMemberBadge(String tier) {
-    if (tier == 'GOLD') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF9E7719), // Dark gold
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
-            Text('MEMBER GOLD', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-          ],
-        ),
-      );
-    } else if (tier == 'SILVER') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF9E9E9E), // Solid dull silver, no gradient, looks worse
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.star_border, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
-            Text('MEMBER SILVER', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-          ],
-        ),
-      );
-    } else if (tier == 'BRONZE') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF6B4423), // Dark, dull bronze/brown
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text('MEMBER BRONZE', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-      );
-    }
-
-    // Default: PLATINUM
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFA2AAB3), // Platinum darker edge
-            Color(0xFFE0E5E9), // White light effect
-            Color(0xFF8B95A1), // Platinum darker edge
-          ],
-          stops: [0.0, 0.4, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFFE0E5E9).withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 1),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
-          const SizedBox(width: 6),
-          Text('MEMBER PLATINUM', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-        ],
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeService.instance;
     return GestureDetector(
       onTap: onTap,
       child: Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(24),
-        border: Border.all(color: const Color(0xFFE4DFD5).withValues(alpha: 0.6)),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 12, offset: const Offset(0, 2))],
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44, height: 44,
-            decoration: BoxDecoration(color: const Color(0xFFF5F1E8), borderRadius: BorderRadius.circular(16)),
-            child: Icon(icon, size: 22, color: const Color(0xFF1A1A18)),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF62615B), letterSpacing: 0.5)),
-                const SizedBox(height: 2),
-                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-              ],
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: theme.card, 
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: theme.border.withValues(alpha: 0.6)),
+          boxShadow: [
+            BoxShadow(
+              color: theme.isDarkMode ? Colors.black.withValues(alpha: 0.2) : Colors.black.withValues(alpha: 0.02), 
+              blurRadius: 12, 
+              offset: const Offset(0, 2)
             ),
-          ),
-          const Icon(Icons.chevron_right, size: 20, color: Color(0xFF62615B)),
-        ],
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 44, height: 44,
+              decoration: BoxDecoration(color: theme.chipBg, borderRadius: BorderRadius.circular(16)),
+              child: Icon(icon, size: 22, color: theme.iconColor),
+            ),
+            const SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: theme.textSecondary, letterSpacing: 0.5)),
+                  const SizedBox(height: 2),
+                  Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: theme.textPrimary)),
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right, size: 20, color: theme.textSecondary),
+          ],
+        ),
       ),
-    ),
     );
   }
 }
