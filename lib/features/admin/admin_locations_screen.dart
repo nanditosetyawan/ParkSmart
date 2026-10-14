@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'admin_slot_management_screen.dart';
+import 'admin_pricing_screen.dart';
 
 class LocationsScreen extends StatefulWidget {
   const LocationsScreen({super.key});
@@ -9,171 +11,412 @@ class LocationsScreen extends StatefulWidget {
 }
 
 class _LocationsScreenState extends State<LocationsScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedCity = 'Semua';
+
+  final List<String> _cities = ['Semua', 'Jakarta Barat', 'Jakarta Pusat', 'Jakarta Selatan', 'Yogyakarta', 'Surabaya', 'Bandung'];
+
+  final List<Map<String, dynamic>> _locations = [
+    {
+      'id': 'LOC-001',
+      'name': 'Central Park Mall',
+      'city': 'Jakarta Barat',
+      'address': 'Jl. Letjen S. Parman No. 28, Tanjung Duren',
+      'floors': 'Basement (B1 - B3)',
+      'capacity': 300,
+      'occupied': 240,
+      'carSlots': 220,
+      'motorSlots': 60,
+      'evSlots': 20,
+      'hourlyRate': 5000,
+      'status': 'Aktif Normal',
+      'statusColor': const Color(0xFF17A18A),
+    },
+    {
+      'id': 'LOC-002',
+      'name': 'Grand Indonesia',
+      'city': 'Jakarta Pusat',
+      'address': 'Jl. M.H. Thamrin No. 1, Menteng',
+      'floors': 'East & West Mall (B1 - B2)',
+      'capacity': 450,
+      'occupied': 415,
+      'carSlots': 350,
+      'motorSlots': 80,
+      'evSlots': 20,
+      'hourlyRate': 6000,
+      'status': 'Padat',
+      'statusColor': const Color(0xFFE07A5F),
+    },
+    {
+      'id': 'LOC-003',
+      'name': 'Pacific Place SCBD',
+      'city': 'Jakarta Selatan',
+      'address': 'Jl. Jend. Sudirman Kav. 52-53, SCBD',
+      'floors': 'Basement P1 - P3',
+      'capacity': 200,
+      'occupied': 200,
+      'carSlots': 160,
+      'motorSlots': 25,
+      'evSlots': 15,
+      'hourlyRate': 8000,
+      'status': 'Penuh',
+      'statusColor': const Color(0xFFD94B4B),
+    },
+    {
+      'id': 'LOC-004',
+      'name': 'Malioboro Mall',
+      'city': 'Yogyakarta',
+      'address': 'Jl. Malioboro No. 52-58, Danurejan',
+      'floors': 'Outdoor & Basement',
+      'capacity': 200,
+      'occupied': 102,
+      'carSlots': 120,
+      'motorSlots': 70,
+      'evSlots': 10,
+      'hourlyRate': 4000,
+      'status': 'Aktif Normal',
+      'statusColor': const Color(0xFF17A18A),
+    },
+    {
+      'id': 'LOC-005',
+      'name': 'Tunjungan Plaza 6',
+      'city': 'Surabaya',
+      'address': 'Jl. Embong Malang No. 21-31, Tegalsari',
+      'floors': 'Multi-storey P1 - P5',
+      'capacity': 350,
+      'occupied': 180,
+      'carSlots': 250,
+      'motorSlots': 80,
+      'evSlots': 20,
+      'hourlyRate': 5000,
+      'status': 'Aktif Normal',
+      'statusColor': const Color(0xFF17A18A),
+    },
+  ];
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<Map<String, dynamic>> get _filteredLocations {
+    return _locations.where((loc) {
+      final matchesSearch = loc['name'].toString().toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          loc['address'].toString().toLowerCase().contains(_searchController.text.toLowerCase()) ||
+          loc['city'].toString().toLowerCase().contains(_searchController.text.toLowerCase());
+      final matchesCity = _selectedCity == 'Semua' || loc['city'] == _selectedCity;
+      return matchesSearch && matchesCity;
+    }).toList();
+  }
+
+  void _showAddLocationDialog() {
+    final nameCtrl = TextEditingController();
+    final addressCtrl = TextEditingController();
+    final capacityCtrl = TextEditingController();
+    final rateCtrl = TextEditingController(text: '5000');
+    String cityVal = 'Jakarta Barat';
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(left: 20, right: 20, top: 20, bottom: MediaQuery.of(ctx).viewInsets.bottom + 20),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tambah Lokasi Baru', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close, color: Color(0xFF76777B))),
+                ],
+              ),
+              const Divider(color: Color(0xFFF1EEE7)),
+              const SizedBox(height: 10),
+              TextField(
+                controller: nameCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Nama Gedung / Lokasi',
+                  labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: cityVal,
+                decoration: InputDecoration(
+                  labelText: 'Kota Operasional',
+                  labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                items: _cities.where((c) => c != 'Semua').map((c) => DropdownMenuItem(value: c, child: Text(c, style: GoogleFonts.plusJakartaSans(fontSize: 13)))).toList(),
+                onChanged: (v) {
+                  if (v != null) cityVal = v;
+                },
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: addressCtrl,
+                decoration: InputDecoration(
+                  labelText: 'Alamat Lengkap',
+                  labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextField(
+                      controller: capacityCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Total Kapasitas (Slot)',
+                        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: TextField(
+                      controller: rateCtrl,
+                      keyboardType: TextInputType.number,
+                      decoration: InputDecoration(
+                        labelText: 'Tarif Dasar / Jam',
+                        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    if (nameCtrl.text.isNotEmpty && capacityCtrl.text.isNotEmpty) {
+                      setState(() {
+                        _locations.insert(0, {
+                          'id': 'LOC-00${_locations.length + 1}',
+                          'name': nameCtrl.text,
+                          'city': cityVal,
+                          'address': addressCtrl.text.isEmpty ? 'Alamat belum diatur' : addressCtrl.text,
+                          'floors': 'Lantai Utama',
+                          'capacity': int.tryParse(capacityCtrl.text) ?? 100,
+                          'occupied': 0,
+                          'carSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.7).round(),
+                          'motorSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.2).round(),
+                          'evSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.1).round(),
+                          'hourlyRate': int.tryParse(rateCtrl.text) ?? 5000,
+                          'status': 'Aktif Normal',
+                          'statusColor': const Color(0xFF17A18A),
+                        });
+                      });
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Lokasi ${nameCtrl.text} berhasil ditambahkan!'),
+                          backgroundColor: const Color(0xFF17A18A),
+                        ),
+                      );
+                    }
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF114177),
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text('Simpan Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final totalCap = _locations.fold<int>(0, (sum, l) => sum + (l['capacity'] as int));
+    final totalOcc = _locations.fold<int>(0, (sum, l) => sum + (l['occupied'] as int));
+    final occPercent = (totalOcc / (totalCap == 0 ? 1 : totalCap) * 100).toStringAsFixed(1);
+
     return Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        centerTitle: false,
-        title: Row(
+        leading: GestureDetector(
+          onTap: () => Navigator.pop(context),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)),
+            child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+          ),
+        ),
+        title: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              width: 32,
-              height: 32,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF1EEE7),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Icon(Icons.business, size: 16, color: Color(0xFF114177)),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                Text('Akun / Admin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-              ],
-            ),
+            Text('Kelola Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+            Text('Manajemen Fasilitas & Gedung Mitra', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
           ],
         ),
         actions: [
-          const Icon(Icons.notifications_none, color: Color(0xFF45474A)),
-          const SizedBox(width: 12),
-          const CircleAvatar(
-            radius: 16,
-            backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
+          IconButton(
+            icon: const Icon(Icons.add_business_outlined, color: Color(0xFF114177)),
+            onPressed: _showAddLocationDialog,
+            tooltip: 'Tambah Lokasi',
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 8),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+      body: Column(
         children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('MANAJEMEN GEDUNG & PARKIR', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177), letterSpacing: 0.5)),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('Lokasi Operasional', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-          const SizedBox(height: 16),
-
-          // Top Info Card
+          // Stat overview
           Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE4DFD5)),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            color: Colors.white,
+            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
+            child: Column(
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                Row(
                   children: [
-                    Text('Estimasi Pendapatan Bulan Ini', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                    const SizedBox(height: 4),
-                    Text('Rp 412,5 Jt', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                    const SizedBox(height: 4),
-                    Row(
-                      children: [
-                        const Icon(Icons.trending_up, size: 14, color: Color(0xFF17A18A)),
-                        const SizedBox(width: 4),
-                        Text('+14.2% MoM', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF17A18A))),
-                      ],
-                    ),
+                    _buildStatCard('Total Fasilitas', '${_locations.length}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
+                    const SizedBox(width: 10),
+                    _buildStatCard('Total Slot', '$totalCap', const Color(0xFF45474A), const Color(0xFFF1EEE7)),
+                    const SizedBox(width: 10),
+                    _buildStatCard('Okupansi Rata2', '$occPercent%', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
                   ],
                 ),
+                const SizedBox(height: 14),
+
+                // Search Box
                 Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: const Icon(Icons.payments, color: Color(0xFF114177)),
+                  height: 44,
+                  padding: const EdgeInsets.symmetric(horizontal: 14),
+                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (_) => setState(() {}),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
+                          decoration: InputDecoration(
+                            hintText: 'Cari gedung atau alamat...',
+                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                            border: InputBorder.none,
+                            isDense: true,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 24),
 
-          // Table Header
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Row(
-                children: [
-                  Text('Daftar Fasilitas Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  const SizedBox(width: 8),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                    decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
-                    child: Text('6 Ditampilkan', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+          // City Chips
+          Container(
+            height: 48,
+            color: Colors.white,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              itemCount: _cities.length,
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
+              itemBuilder: (context, index) {
+                final c = _cities[index];
+                final isSelected = _selectedCity == c;
+                return GestureDetector(
+                  onTap: () => setState(() => _selectedCity = c),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: isSelected ? const Color(0xFF114177) : const Color(0xFFF1EEE7),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: Text(
+                        c,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color(0xFF45474A),
+                        ),
+                      ),
+                    ),
                   ),
-                ],
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.format_list_bulleted, size: 20, color: Color(0xFF1A1A18)),
-                  const SizedBox(width: 12),
-                  const Icon(Icons.grid_view, size: 20, color: Color(0xFF76777B)),
-                ],
-              ),
-            ],
+                );
+              },
+            ),
           ),
-          const SizedBox(height: 16),
+          const Divider(height: 1, color: Color(0xFFE4DFD5)),
 
-          // Table Rows (Cards in Mobile)
-          _buildLocationCard(
-            id: 'LOC-001',
-            name: 'Central Park Mall',
-            address: 'Jl. Letjen S. Parman • Jakarta Barat',
-            type: 'Basement (B1-B3)',
-            capacity: '80 Bay',
-            ev: '4 EV Fast',
-            gate: '4 Gate ANPR',
-            status: 'Aktif Normal',
-            statusColor: const Color(0xFF17A18A),
-          ),
-          const SizedBox(height: 12),
-          _buildLocationCard(
-            id: 'LOC-002',
-            name: 'Grand Indonesia',
-            address: 'Jl. M.H. Thamrin • Jakarta Pusat',
-            type: 'Indoor & Outdoor',
-            capacity: '120 Bay',
-            ev: '8 EV Fast',
-            gate: '6 Gate ANPR',
-            status: 'Padat (Surge)',
-            statusColor: const Color(0xFFE5A33D),
-          ),
-          const SizedBox(height: 12),
-          _buildLocationCard(
-            id: 'LOC-003',
-            name: 'Pacific Place SCBD',
-            address: 'SCBD District • Jakarta Selatan',
-            type: 'Basement Premium',
-            capacity: '45 Bay',
-            ev: '12 EV Fast',
-            gate: '2 Gate VIP ANPR',
-            status: 'Penuh (Full)',
-            statusColor: const Color(0xFFD94B4B),
+          // Locations List
+          Expanded(
+            child: _filteredLocations.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.location_off_outlined, size: 48, color: Color(0xFF76777B)),
+                        const SizedBox(height: 12),
+                        Text('Tidak ada lokasi yang cocok', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF76777B))),
+                      ],
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(20),
+                    itemCount: _filteredLocations.length,
+                    separatorBuilder: (context, index) => const SizedBox(height: 14),
+                    itemBuilder: (context, index) {
+                      final loc = _filteredLocations[index];
+                      return _buildLocationCard(loc);
+                    },
+                  ),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildLocationCard({
-    required String id, required String name, required String address,
-    required String type, required String capacity, required String ev,
-    required String gate, required String status, required Color statusColor,
-  }) {
+  Widget _buildStatCard(String label, String value, Color color, Color bg) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 10),
+        decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)),
+        child: Column(
+          children: [
+            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: color)),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: color)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationCard(Map<String, dynamic> loc) {
+    final statusColor = loc['statusColor'] as Color;
+    final int cap = loc['capacity'] as int;
+    final int occ = loc['occupied'] as int;
+    final double pct = cap > 0 ? (occ / cap) : 0.0;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(color: const Color(0xFFE4DFD5)),
       ),
       child: Column(
@@ -181,62 +424,120 @@ class _LocationsScreenState extends State<LocationsScreen> {
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
-            child: Row(
+            child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 24, height: 24,
-                  decoration: BoxDecoration(border: Border.all(color: const Color(0xFFE4DFD5)), borderRadius: BorderRadius.circular(6)),
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF1EEE7),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.local_parking, color: Color(0xFF114177), size: 24),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)),
+                                child: Text(loc['status'], style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 2),
+                          Text('${loc['city']} · ${loc['floors']}', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+                          const SizedBox(height: 4),
+                          Text(loc['address'], maxLines: 1, overflow: TextOverflow.ellipsis, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(name, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      Text(id, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                      const SizedBox(height: 4),
-                      Text(address, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                    ],
-                  ),
+                const SizedBox(height: 14),
+
+                // Occupancy progress bar
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Okupansi Saat Ini', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                    Text('$occ / $cap Terisi (${(pct * 100).toStringAsFixed(0)}%)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  ],
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                  decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(12)),
-                  child: Row(
-                    children: [
-                      Icon(Icons.circle, size: 8, color: statusColor),
-                      const SizedBox(width: 4),
-                      Text(status, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
-                    ],
+                const SizedBox(height: 6),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: LinearProgressIndicator(
+                    value: pct,
+                    minHeight: 6,
+                    backgroundColor: const Color(0xFFF1EEE7),
+                    valueColor: AlwaysStoppedAnimation<Color>(
+                      pct > 0.9 ? const Color(0xFFD94B4B) : pct > 0.7 ? const Color(0xFFE07A5F) : const Color(0xFF17A18A),
+                    ),
                   ),
                 ),
               ],
             ),
           ),
           const Divider(height: 1, color: Color(0xFFF1EEE7)),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                _buildStatItem('Kapasitas', capacity),
-                _buildStatItem('Slot EV', ev, icon: Icons.bolt, iconColor: const Color(0xFF006A9A)),
-                _buildStatItem('Sensor Gate', gate),
-              ],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFF1EEE7)),
+
+          // Slot Categories pills
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                const Icon(Icons.grid_view, size: 20, color: Color(0xFF76777B)),
-                const SizedBox(width: 16),
-                const Icon(Icons.payments, size: 20, color: Color(0xFF76777B)),
-                const SizedBox(width: 16),
-                const Icon(Icons.edit, size: 20, color: Color(0xFF76777B)),
+                _buildSlotPill(Icons.directions_car, 'Mobil', '${loc['carSlots']}'),
+                _buildSlotPill(Icons.two_wheeler, 'Motor', '${loc['motorSlots']}'),
+                _buildSlotPill(Icons.electric_car, 'EV Charging', '${loc['evSlots']}'),
+                _buildSlotPill(Icons.payments_outlined, 'Tarif', 'Rp ${loc['hourlyRate']}/j'),
+              ],
+            ),
+          ),
+          const Divider(height: 1, color: Color(0xFFF1EEE7)),
+
+          // Actions
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            child: Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PricingScreen())),
+                    icon: const Icon(Icons.price_change_outlined, size: 16, color: Color(0xFF114177)),
+                    label: Text('Atur Tarif', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE4DFD5)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
+                    icon: const Icon(Icons.grid_view, size: 16, color: Colors.white),
+                    label: Text('Kelola Denah', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF114177),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -245,21 +546,18 @@ class _LocationsScreenState extends State<LocationsScreen> {
     );
   }
 
-  Widget _buildStatItem(String label, String value, {IconData? icon, Color? iconColor}) {
+  Widget _buildSlotPill(IconData icon, String label, String value) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-        const SizedBox(height: 4),
         Row(
           children: [
-            if (icon != null) ...[
-              Icon(icon, size: 14, color: iconColor),
-              const SizedBox(width: 2),
-            ],
-            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+            Icon(icon, size: 13, color: const Color(0xFF76777B)),
+            const SizedBox(width: 4),
+            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
           ],
         ),
+        const SizedBox(height: 2),
+        Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
       ],
     );
   }

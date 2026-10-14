@@ -9,6 +9,10 @@ import 'admin/admin_active_users_screen.dart';
 import 'admin/admin_feedback_screen.dart';
 import 'admin/admin_arcade_screen.dart';
 import 'admin/admin_pricing_screen.dart';
+import 'admin/admin_notifications_screen.dart';
+import 'admin/admin_kyc_screen.dart';
+import 'admin/admin_wallet_screen.dart';
+import 'admin/admin_cities_screen.dart';
 
 // AI Assistant
 import 'ai_assistant/ai_assistant_screen.dart';
@@ -116,6 +120,10 @@ class SitemapScreen extends StatelessWidget {
             _Item('Arcade & Reward', (c) => const ArcadeAdminScreen()),
             _Item('Feedback', (c) => const FeedbackAdminScreen()),
             _Item('Konfigurasi Tarif', (c) => const PricingScreen()),
+            _Item('Verifikasi KTP (KYC)', (c) => const AdminKycScreen()),
+            _Item('Injeksi Saldo Dompet', (c) => const AdminWalletScreen()),
+            _Item('Master Kota & Wilayah', (c) => const AdminCitiesScreen()),
+            _Item('Notifikasi Admin', (c) => const AdminNotificationsScreen()),
           ]),
         ],
       ),

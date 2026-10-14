@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'admin_notifications_screen.dart';
+import 'admin_locations_screen.dart';
+import 'admin_slot_management_screen.dart';
+import 'admin_pricing_screen.dart';
+import 'admin_active_users_screen.dart';
+import 'admin_feedback_screen.dart';
+import 'admin_arcade_screen.dart';
+import 'admin_kyc_screen.dart';
+import 'admin_wallet_screen.dart';
+import 'admin_cities_screen.dart';
 
-class DashboardScreen extends StatefulWidget {
-  const DashboardScreen({super.key});
+typedef DashboardScreen = AdminDashboardScreen;
 
-  @override
-  State<DashboardScreen> createState() => _DashboardScreenState();
-}
+class AdminDashboardScreen extends StatelessWidget {
+  const AdminDashboardScreen({super.key});
 
-class _DashboardScreenState extends State<DashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -17,214 +24,421 @@ class _DashboardScreenState extends State<DashboardScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
         centerTitle: false,
+        leading: Navigator.canPop(context)
+            ? GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+                ),
+              )
+            : null,
         title: Row(
           children: [
             Container(
-              width: 32,
-              height: 32,
+              width: 36,
+              height: 36,
               decoration: BoxDecoration(
-                color: const Color(0xFFF1EEE7),
-                borderRadius: BorderRadius.circular(8),
+                color: const Color(0xFF1C1D1F),
+                borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.business, size: 16, color: Color(0xFF114177)),
+              child: const Icon(Icons.local_parking, size: 18, color: Colors.white),
             ),
             const SizedBox(width: 12),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                Text('Akun / Admin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                Text('ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                Text('Panel Admin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
               ],
             ),
           ],
         ),
         actions: [
-          const Icon(Icons.notifications_none, color: Color(0xFF45474A)),
-          const SizedBox(width: 12),
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen())),
+            child: Container(
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1EEE7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  const Icon(Icons.notifications_none, size: 20, color: Color(0xFF1A1A18)),
+                  Positioned(
+                    top: 8,
+                    right: 8,
+                    child: Container(
+                      width: 8,
+                      height: 8,
+                      decoration: const BoxDecoration(color: Color(0xFFD94B4B), shape: BoxShape.circle),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
           const CircleAvatar(
-            radius: 16,
-            backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
+            radius: 18,
+            backgroundColor: Color(0xFF1C1D1F),
+            child: Icon(Icons.person, size: 18, color: Colors.white),
           ),
           const SizedBox(width: 16),
         ],
       ),
       body: ListView(
-        padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 100),
+        padding: const EdgeInsets.all(20),
         children: [
+          Text('Selamat Datang, Admin', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          const SizedBox(height: 4),
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('MANAJEMEN GEDUNG & PARKIR', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177), letterSpacing: 0.5)),
-              Row(
-                children: [
-                  const Icon(Icons.cloud_done, size: 14, color: Color(0xFF17A18A)),
-                  const SizedBox(width: 4),
-                  Text('Sync Cloud Sejauh', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF17A18A))),
-                ],
-              ),
+              const Icon(Icons.calendar_today, size: 14, color: Color(0xFF76777B)),
+              const SizedBox(width: 6),
+              Text('Operasional Real-Time ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
             ],
           ),
-          const SizedBox(height: 8),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Daftar Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                decoration: BoxDecoration(color: const Color(0xFF1A1A18), borderRadius: BorderRadius.circular(20)),
-                child: Row(
-                  children: [
-                    const Icon(Icons.add, color: Colors.white, size: 16),
-                    const SizedBox(width: 4),
-                    Text('Tambah', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Text('6 Gedung Rekanan Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
           const SizedBox(height: 20),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            height: 48,
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4DFD5))),
-            child: Row(
-              children: [
-                const Icon(Icons.search, color: Color(0xFF76777B), size: 20),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: TextField(
-                    decoration: InputDecoration(
-                      hintText: 'Cari nama mal, gedung, atau area...',
-                      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
-                      border: InputBorder.none,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+
+          // KPI Cards
+          Row(
+            children: [
+              _buildKpiCard('Total Omzet', 'Rp 4.2 Jt', Icons.trending_up, const Color(0xFF17A18A), 'Hari ini (+12%)'),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
+                child: _buildKpiCardDirect('Kendaraan Aktif', '382', Icons.directions_car, const Color(0xFF114177), 'Sedang Parkir'),
+              ),
+            ],
           ),
-          const SizedBox(height: 16),
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                _buildFilterChip('Semua (8)', true),
-                const SizedBox(width: 8),
-                _buildFilterChip('Mall', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Perkantoran', false),
-                const SizedBox(width: 8),
-                _buildFilterChip('Transit Hub', false),
-              ],
-            ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
+                child: _buildKpiCardDirect('Slot Tersedia', '218/600', Icons.local_parking, const Color(0xFF45474A), 'Semua Lokasi'),
+              ),
+              const SizedBox(width: 12),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
+                child: _buildKpiCardDirect('Overstay Alert', '3', Icons.warning_amber, const Color(0xFFD94B4B), 'Perlu Aksi'),
+              ),
+            ],
           ),
           const SizedBox(height: 24),
+
+          // Aksi Utama
+          Text('Aksi Cepat & Layanan', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              _buildQuickAction(
+                context,
+                icon: Icons.add_business_outlined,
+                label: 'Kelola\nLokasi',
+                color: const Color(0xFF114177),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildQuickAction(
+                context,
+                icon: Icons.account_balance_wallet,
+                label: 'Injeksi\nSaldo',
+                color: const Color(0xFF17A18A),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildQuickAction(
+                context,
+                icon: Icons.verified_user_outlined,
+                label: 'Verifikasi\nKTP',
+                color: const Color(0xFFE07A5F),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildQuickAction(
+                context,
+                icon: Icons.location_city,
+                label: 'Master\nKota',
+                color: const Color(0xFF45474A),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCitiesScreen())),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Baris Menu Sekunder
+          Row(
+            children: [
+              _buildSecondaryAction(
+                context,
+                icon: Icons.grid_view,
+                label: 'Denah & Slot',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.price_change_outlined,
+                label: 'Atur Tarif',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PricingScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.rate_review_outlined,
+                label: 'Feedback',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackAdminScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.videogame_asset_outlined,
+                label: 'Arcade Poin',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen())),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Peringatan Terbaru
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Peringatan & Aktivitas Terkini', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen())),
+                child: Text('Lihat Semua', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          _buildAlertCard(
+            icon: Icons.warning_amber,
+            color: const Color(0xFFD94B4B),
+            bgColor: const Color(0xFFFDE8E4),
+            title: '3 Kendaraan Overstay',
+            desc: 'Central Park Mall · Melebihi batas toleransi tiket',
+            time: '2 mnt lalu',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
+          ),
+          const SizedBox(height: 10),
+          _buildAlertCard(
+            icon: Icons.person_add_alt_1,
+            color: const Color(0xFFE07A5F),
+            bgColor: const Color(0xFFFDECE7),
+            title: '5 KTP Menunggu Verifikasi',
+            desc: 'User baru mengunggah dokumen KYC identitas',
+            time: '15 mnt lalu',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen())),
+          ),
+          const SizedBox(height: 10),
+          _buildAlertCard(
+            icon: Icons.account_balance_wallet,
+            color: const Color(0xFF17A18A),
+            bgColor: const Color(0xFFD1F2EB),
+            title: 'Top-up Saldo Injeksi Sukses',
+            desc: 'Admin menginjeksi Rp 500.000 ke akun Nanda S.',
+            time: '1 jam lalu',
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
+          ),
+          const SizedBox(height: 24),
+
+          // Performa Lokasi
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text('Performa Lokasi Utama', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              GestureDetector(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen())),
+                child: Text('Semua Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           _buildLocationCard(
+            context,
             title: 'Central Park Mall',
-            subtitle: 'Jakarta Barat • 3 Sektor (B1, B2, B3)',
-            status: 'Zaman Online (98%)',
+            subtitle: 'Jakarta Barat · Basement B1-B3',
+            status: 'Aktif Normal',
             statusColor: const Color(0xFF17A18A),
-            capacity: '650 / 820 Slot (84%)',
-            revenue: 'Rp 18.450.000',
-            gates: '2 Masuk, 3 Keluar Normal',
-            hasAutoBilling: true,
-          ),
-          const SizedBox(height: 16),
-          _buildLocationCard(
-            title: 'Grand Indonesia',
-            subtitle: 'Jakarta Pusat • East & West Mall',
-            status: 'Normal (72%)',
-            statusColor: const Color(0xFF114177),
-            capacity: '412 / 680 Slot (72%)',
-            revenue: 'Rp 24.200.000',
-            gates: '4 Masuk, 4 Keluar Normal',
-            hasAutoBilling: false,
-          ),
-          const SizedBox(height: 16),
-          _buildLocationCard(
-            title: 'Pacific Place SCBD',
-            subtitle: 'Jakarta Selatan • SCBD District',
-            status: 'Padat (96%)',
-            statusColor: const Color(0xFFD94B4B),
-            capacity: '310 / 330 Slot (94%)',
-            revenue: 'Rp 14.800.000',
-            gates: 'Gate Cadangan',
-            hasAutoBilling: false,
+            capacity: '240 / 300 terisi',
+            revenue: 'Rp 1.8 Jt',
             isWarning: true,
           ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(16)),
-            child: Row(
-              children: [
-                Container(
-                  width: 40, height: 40, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle),
-                  child: const Icon(Icons.settings_input_antenna, color: Color(0xFF17A18A)),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Status Infrastruktur IoT', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      Text('42 Sensor ANPR aktif beroperasi. 4 Gate Barrier terhubung cloud dengan latensi 15ms.', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                    ],
-                  ),
-                ),
-              ],
-            ),
+          const SizedBox(height: 12),
+          _buildLocationCard(
+            context,
+            title: 'Malioboro Mall',
+            subtitle: 'Yogyakarta · Area Outdoor & B1',
+            status: 'Aktif Normal',
+            statusColor: const Color(0xFF17A18A),
+            capacity: '102 / 200 terisi',
+            revenue: 'Rp 960 Rb',
           ),
+          const SizedBox(height: 12),
+          _buildLocationCard(
+            context,
+            title: 'Grand Indonesia',
+            subtitle: 'Jakarta Pusat · East & West Mall',
+            status: 'Padat',
+            statusColor: const Color(0xFFE07A5F),
+            capacity: '415 / 450 terisi',
+            revenue: 'Rp 2.1 Jt',
+          ),
+          const SizedBox(height: 20),
         ],
       ),
     );
   }
 
-  Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? const Color(0xFFD94B4B) : Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: isSelected ? const Color(0xFFD94B4B) : const Color(0xFFE4DFD5)),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 13,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          color: isSelected ? Colors.white : const Color(0xFF45474A),
+  Widget _buildKpiCard(String title, String value, IconData icon, Color color, String sub) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4DFD5))),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(child: Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF76777B)))),
+                Container(width: 32, height: 32, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 16, color: color)),
+              ],
+            ),
+            const SizedBox(height: 8),
+            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+            const SizedBox(height: 4),
+            Text(sub, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildLocationCard({
-    required String title, required String subtitle, required String status,
-    required Color statusColor, required String capacity, required String revenue,
-    required String gates, required bool hasAutoBilling, bool isWarning = false,
+  Widget _buildKpiCardDirect(String title, String value, IconData icon, Color color, String sub) {
+    return Container(
+      width: 160,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4DFD5))),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(child: Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF76777B)))),
+              Container(width: 32, height: 32, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 16, color: color)),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          const SizedBox(height: 4),
+          Text(sub, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildQuickAction(BuildContext context, {required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE4DFD5))),
+          child: Column(
+            children: [
+              Container(width: 38, height: 38, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: Icon(icon, size: 20, color: color)),
+              const SizedBox(height: 8),
+              Text(label, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryAction(BuildContext context, {required IconData icon, required String label, required VoidCallback onTap}) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 10),
+          decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
+          child: Column(
+            children: [
+              Icon(icon, size: 18, color: const Color(0xFF114177)),
+              const SizedBox(height: 4),
+              Text(label, textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAlertCard({required IconData icon, required Color color, required Color bgColor, required String title, required String desc, required String time, required VoidCallback onTap}) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(14), border: Border.all(color: const Color(0xFFE4DFD5))),
+        child: Row(
+          children: [
+            Container(width: 40, height: 40, decoration: BoxDecoration(color: bgColor, borderRadius: BorderRadius.circular(12)), child: Icon(icon, size: 20, color: color)),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  const SizedBox(height: 2),
+                  Text(desc, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            Text(time, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildLocationCard(
+    BuildContext context, {
+    required String title,
+    required String subtitle,
+    required String status,
+    required Color statusColor,
+    required String capacity,
+    required String revenue,
+    bool isWarning = false,
   }) {
     return Container(
       decoration: BoxDecoration(
-        color: Colors.white, borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
-        boxShadow: [BoxShadow(color: const Color(0xFF1A1A18).withValues(alpha: 0.03), blurRadius: 12, offset: const Offset(0, 4))],
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: isWarning ? const Color(0xFFFDE8E4) : const Color(0xFFE4DFD5)),
       ),
       child: Column(
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Container(
-                  width: 48, height: 48,
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(12),
-                    image: const DecorationImage(image: NetworkImage('https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?auto=format&fit=crop&q=80&w=100'), fit: BoxFit.cover),
-                  ),
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
+                  child: const Icon(Icons.local_parking, color: Color(0xFF114177)),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -244,62 +458,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                               ],
                             ),
                           ),
+                          if (isWarning) ...[
+                            const SizedBox(width: 6),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(color: const Color(0xFFFDE8E4), borderRadius: BorderRadius.circular(4)),
+                              child: Text('Hampir Penuh', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                      Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
                     ],
                   ),
-                ),
-                const Icon(Icons.more_vert, color: Color(0xFF76777B)),
-              ],
-            ),
-          ),
-          const Divider(color: Color(0xFFF1EEE7), height: 1),
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text('Kapasitas Real-Time', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                    Text(capacity, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  ],
-                ),
-                if (isWarning) ...[
-                  const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      const Icon(Icons.warning_amber, size: 14, color: Color(0xFFD94B4B)),
-                      const SizedBox(width: 4),
-                      Text('Sisa 20 Slot Kosong', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
-                    ],
-                  ),
-                ],
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Pendapatan Hari Ini', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                          Text(revenue, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                        ],
-                      ),
-                    ),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('ANPR Barrier', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                          Text(gates, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                        ],
-                      ),
-                    ),
-                  ],
                 ),
               ],
             ),
@@ -308,33 +481,31 @@ class _DashboardScreenState extends State<DashboardScreen> {
           Padding(
             padding: const EdgeInsets.all(16),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                if (hasAutoBilling)
-                  Row(
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const Icon(Icons.check_circle, size: 16, color: Color(0xFF17A18A)),
-                      const SizedBox(width: 4),
-                      Text('Auto Billing Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF17A18A))),
-                    ],
-                  )
-                else
-                  Row(
-                    children: [
-                      const Icon(Icons.sensors, size: 16, color: Color(0xFF76777B)),
-                      const SizedBox(width: 4),
-                      Text('120 Sensor Kamera aktif', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+                      Text('Kapasitas Slot', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                      Text(capacity, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                     ],
                   ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                  decoration: BoxDecoration(color: const Color(0xFF1A1A18), borderRadius: BorderRadius.circular(16)),
-                  child: Row(
+                ),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(hasAutoBilling ? 'Kelola Sektor & Slot' : (isWarning ? 'Detail' : 'Kelola Sektor & Slot'), style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                      const SizedBox(width: 4),
-                      const Icon(Icons.arrow_forward, color: Colors.white, size: 14),
+                      Text('Pendapatan', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                      Text(revenue, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
                     ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(color: const Color(0xFF1A1A18), borderRadius: BorderRadius.circular(12)),
+                    child: Text('Kelola', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
                   ),
                 ),
               ],
