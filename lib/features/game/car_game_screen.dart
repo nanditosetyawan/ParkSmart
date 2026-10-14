@@ -5,6 +5,7 @@ import 'dart:math' as math;
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/sound_service.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 // ============================================================
 // MODEL PARKIRAN & RINTANGAN RANJAU
@@ -93,7 +94,6 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
 
   Timer? _gameLoopTimer;
   Timer? _clockTimer;
-  Timer? _toastTimer;
 
   bool _sensorsConnected = false;
   StreamSubscription? _accelSub;
@@ -125,7 +125,6 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
   // Efek Ledakan & Notifikasi Toast
   bool _isExploding = false;
   Offset? _explosionPos;
-  String? _toastMessage;
 
   // Slot Aktif yang sedang dimasuki mobil
   ParkingSlotModel? _activeSlot;
@@ -133,6 +132,10 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
   // Daftar Slot Baris Atas & Baris Bawah
   List<ParkingSlotModel> _topSlots = [];
   List<ParkingSlotModel> _bottomSlots = [];
+
+  // Ranjau & Target Slot Dinamis Teracak per Sesi/Ronde (Tingkat Kesulitan Tetap Terjaga)
+  List<MineObstacle> _activeMines = [];
+  Set<String> _activeTargetSlotIds = {};
 
   // Palet Warna Mobil Pemain untuk Setiap Mobil yang Diparkir
   final List<Color> _carPalette = const [
@@ -387,7 +390,6 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
           setState(() {
             _isShowingBonusIntro = false;
           });
-          _showFloatingToast(_currentRoundDef.hint);
         }
       }
     });
@@ -448,13 +450,25 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
     });
   }
 
+
+  Future<void> _saveHighScoreIfBest() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final currentBest = prefs.getInt('parking_high_score') ?? 0;
+      if (_score > currentBest) {
+        await prefs.setInt('parking_high_score', _score);
+      }
+    } catch (e) {
+      debugPrint('[CarGame] Error saving high score: $e');
+    }
+  }
+
   void _startTheGame() {
     if (!mounted) return;
     setState(() => _sensorsConnected = true);
     if (!_startSoundPlayed) {
       _startSoundPlayed = true;
       SoundService.playStartSound();
-      _showFloatingToast(_currentRoundDef.hint);
     }
   }
 
@@ -464,36 +478,53 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
     });
     _bonusIntroController.reset();
     _bonusIntroController.forward();
-    SoundService.playStartSound();
+    SoundService.playStartSound(isBonus: true);
     HapticFeedback.heavyImpact();
   }
 
   void _initRound() {
     final def = _currentRoundDef;
+    final random = math.Random();
+
+    // 1. RANDOMISASI TARGET SLOTS (JUMLAH TARGET TETAP KONSISTEN SESUAI LEVEL KESULITAN)
+    final List<String> allSlotIds = [
+      ...List.generate(11, (i) => 'A-${(i + 1).toString().padLeft(2, '0')}'),
+      ...List.generate(11, (i) => 'B-${(i + 1).toString().padLeft(2, '0')}'),
+    ]..shuffle(random);
+
+    if (def.targetCars == 1) {
+      final middleSlots = allSlotIds.where((id) {
+        final idx = int.tryParse(id.substring(2)) ?? 1;
+        return idx >= 2 && idx <= 10;
+      }).toList();
+      _activeTargetSlotIds = {
+        middleSlots.isNotEmpty ? middleSlots[random.nextInt(middleSlots.length)] : allSlotIds.first
+      };
+    } else {
+      _activeTargetSlotIds = allSlotIds.take(def.targetCars).toSet();
+    }
 
     final plates = [
       'B 2341 S', 'B 9871 Z', 'B 4410 TX', 'D 1902 AB', 'B 7721 KK',
       'L 1234 XY', 'AB 8899 CD', 'B 5500 ZZ', 'D 1102 AB', 'B 8832 KLP',
       'AB 4921 YY', 'B 1945 ID', 'AD 3341 GH', 'B 9012 QQ', 'N 6677 KL',
       'B 4422 WE', 'DK 8181 JK', 'B 3030 TY', 'H 9988 AA', 'BK 5432 ZY'
-    ];
+    ]..shuffle(random);
 
     final colors = [
       const Color(0xFFE2E8F0), const Color(0xFF1D4ED8), const Color(0xFF065F46),
       const Color(0xFFDC2626), const Color(0xFF6366F1), const Color(0xFF0284C7),
       const Color(0xFFD97706), const Color(0xFF475569), const Color(0xFFF59E0B),
       const Color(0xFF9333EA), const Color(0xFFE11D48), const Color(0xFF0D9488)
-    ];
-
-    final int seed = _isBonusRound ? (50 + _bonusRoundIndex * 7) : _currentRound;
+    ]..shuffle(random);
 
     _topSlots = List.generate(11, (i) {
       final id = 'A-${(i + 1).toString().padLeft(2, '0')}';
-      final isTarget = def.targetSlotIds.contains(id);
+      final isTarget = _activeTargetSlotIds.contains(id);
       SlotStatus status;
       if (isTarget) {
         status = SlotStatus.target;
-      } else if ((i + seed) % 4 == 0) {
+      } else if (random.nextInt(3) == 0) {
         status = SlotStatus.reserved;
       } else {
         status = SlotStatus.occupied;
@@ -504,19 +535,19 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
         isTop: true,
         index: i,
         status: status,
-        plate: plates[(i * 3 + seed) % plates.length],
-        carColor: colors[(i * 2 + seed) % colors.length],
+        plate: plates[i % plates.length],
+        carColor: colors[i % colors.length],
         windowColor: const Color(0xFF0F172A),
       );
     });
 
     _bottomSlots = List.generate(11, (i) {
       final id = 'B-${(i + 1).toString().padLeft(2, '0')}';
-      final isTarget = def.targetSlotIds.contains(id);
+      final isTarget = _activeTargetSlotIds.contains(id);
       SlotStatus status;
       if (isTarget) {
         status = SlotStatus.target;
-      } else if ((i + seed + 2) % 5 == 0) {
+      } else if (random.nextInt(3) == 0) {
         status = SlotStatus.reserved;
       } else {
         status = SlotStatus.occupied;
@@ -527,11 +558,62 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
         isTop: false,
         index: i,
         status: status,
-        plate: plates[(i * 5 + seed + 3) % plates.length],
-        carColor: colors[(i * 3 + seed + 1) % colors.length],
+        plate: plates[(i + 11) % plates.length],
+        carColor: colors[(i + 6) % colors.length],
         windowColor: const Color(0xFF0F172A),
       );
     });
+
+    // 2. RANDOMISASI POSISI RANJAU (JUMLAH RANJAU PERSIS SESUAI TINGKAT KESULITAN LEVEL)
+    final int requiredMines = def.mines.length;
+    _activeMines = [];
+
+    if (requiredMines > 0) {
+      final targetCentersTop = _topSlots.where((s) => s.status == SlotStatus.target).map((s) => s.centerX).toList();
+      final targetCentersBottom = _bottomSlots.where((s) => s.status == SlotStatus.target).map((s) => s.centerX).toList();
+
+      int attempts = 0;
+      while (_activeMines.length < requiredMines && attempts < 1500) {
+        attempts++;
+        // Area jalur jalan (X: 130 s/d 680, Y: 122 s/d 252)
+        final double mx = 130.0 + random.nextDouble() * 550.0;
+        final double my = 122.0 + random.nextDouble() * 130.0;
+
+        // Jauhkan dari titik spawn pemain di X=36, Y=160
+        final double dSpawn = math.sqrt((mx - 36.0) * (mx - 36.0) + (my - 160.0) * (my - 160.0));
+        if (dSpawn < 95.0) continue;
+
+        // Jauhkan dari mulut slot target baris atas agar mobil bisa masuk
+        if (my < 135.0 && targetCentersTop.any((cx) => (mx - cx).abs() < 28.0)) continue;
+
+        // Jauhkan dari mulut slot target baris bawah agar mobil bisa masuk
+        if (my > 240.0 && targetCentersBottom.any((cx) => (mx - cx).abs() < 28.0)) continue;
+
+        // Jaga jarak antar ranjau minimal 52px agar selalu ada celah slalom
+        bool tooClose = false;
+        for (final m in _activeMines) {
+          final double d = math.sqrt((mx - m.x) * (mx - m.x) + (my - m.y) * (my - m.y));
+          if (d < 52.0) {
+            tooClose = true;
+            break;
+          }
+        }
+        if (tooClose) continue;
+
+        _activeMines.add(MineObstacle(
+          x: double.parse(mx.toStringAsFixed(1)),
+          y: double.parse(my.toStringAsFixed(1)),
+        ));
+      }
+
+      // Cadangan fallback jika batas jarak sangat padat
+      if (_activeMines.length < requiredMines) {
+        for (final fallbackMine in def.mines) {
+          if (_activeMines.length >= requiredMines) break;
+          _activeMines.add(fallbackMine);
+        }
+      }
+    }
 
     _carsParkedInRound = 0;
     _secondsRemaining = def.initialSeconds; // 40 detik normal, 10 detik khusus bonus ronde
@@ -547,20 +629,12 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
     _carAngle = 0.0;
   }
 
-  void _showFloatingToast(String message) {
-    _toastTimer?.cancel();
-    setState(() => _toastMessage = message);
-    _toastTimer = Timer(const Duration(milliseconds: 3200), () {
-      if (mounted) setState(() => _toastMessage = null);
-    });
-  }
-
   @override
   void dispose() {
+    _saveHighScoreIfBest();
     SoundService.stopAllSounds();
     _gameLoopTimer?.cancel();
     _clockTimer?.cancel();
-    _toastTimer?.cancel();
     _accelSub?.cancel();
     _gyroSub?.cancel();
     _pulseController.dispose();
@@ -625,7 +699,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
     final double nextCenterY = nextY + 14.0;
 
     // 1. DETEKSI TABRAKAN DENGAN RANJAU (MINE COLLISION)
-    for (final mine in _currentRoundDef.mines) {
+    for (final mine in _activeMines) {
       final double dx = nextCenterX - mine.x;
       final double dy = nextCenterY - mine.y;
       final double dist = math.sqrt(dx * dx + dy * dy);
@@ -759,17 +833,9 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
 
     HapticFeedback.heavyImpact();
 
-    if (_carsParkedInRound < _currentRoundDef.targetCars) {
-      if (_isBonusRound) {
-        _showFloatingToast(
-          '⚡ BONUS 3X! +$scoreEarned Poin! Mobil $_carsParkedInRound/${_currentRoundDef.targetCars} Selesai!',
-        );
-      } else {
-        _showFloatingToast(
-          '+10s & +$scoreEarned Poin! Mobil $_carsParkedInRound/${_currentRoundDef.targetCars} Selesai! Mengambil Mobil Berikutnya...',
-        );
-      }
+    _saveHighScoreIfBest();
 
+    if (_carsParkedInRound < _currentRoundDef.targetCars) {
       setState(() {
         _playerX = 36.0;
         _playerY = 160.0;
@@ -797,15 +863,189 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
   // ============================================================
   void _handleGameOver({required bool isMine}) {
     if (_isGameOver || _isRoundComplete) return;
+
+    // Jika kalah di Ronde Bonus (gagal masukin mobil/waktu habis/kena ranjau),
+    // jangan kalah (game over), tapi kembali ke ronde normal lanjutan sebelum masuk bonus!
+    if (_isBonusRound) {
+      _handleBonusFailed(isMine: isMine);
+      return;
+    }
+
     _isGameOver = true;
     _vx = 0;
     _vy = 0;
 
     SoundService.playGameOverSound();
+    _saveHighScoreIfBest();
     _showGameOverDialog(isMine: isMine);
   }
 
+  void _handleBonusFailed({required bool isMine}) {
+    _isGameOver = true;
+    _vx = 0;
+    _vy = 0;
+
+    SoundService.stopInGameSound();
+    SoundService.playGameOverSound();
+    _saveHighScoreIfBest();
+
+    final int targetRound = _bonusRoundIndex == 1 ? 5 : 9;
+    _showBonusFailedDialog(isMine: isMine, targetRound: targetRound);
+  }
+
+  void _continueFromBonusToNormal(int targetRound) {
+    setState(() {
+      _isGameOver = false;
+      _isBonusRound = false;
+      _bonusRoundIndex = 0;
+      _isShowingBonusIntro = false;
+      _currentRound = targetRound;
+      _initRound();
+    });
+    SoundService.playStartSound(isBonus: false);
+  }
+
+  void _showBonusFailedDialog({required bool isMine, required int targetRound}) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+          side: const BorderSide(color: Color(0xFFF59E0B), width: 2),
+        ),
+        contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 340,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.88,
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFFCD34D), width: 2),
+                  ),
+                  child: isMine
+                      ? Padding(
+                          padding: const EdgeInsets.all(6.0),
+                          child: Image.asset('assets/images/bomb.png', fit: BoxFit.contain),
+                        )
+                      : const Icon(Icons.timer_off_rounded, color: Color(0xFFFCD34D), size: 26),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isMine ? 'MOBIL MELEDAK!' : 'WAKTU BONUS HABIS!',
+                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Tantangan bonus berakhir. Skor Anda tetap tersimpan (+${_carsParkedInRound * 4500} pts)! Melanjutkan ke Ronde $targetRound normal.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11.5, height: 1.3),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text('RONDE', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('BONUS $_bonusRoundIndex',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                        ],
+                      ),
+                      Container(width: 1, height: 22, color: const Color(0xFF334155)),
+                      Column(
+                        children: [
+                          Text('MOBIL SELESAI', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('$_carsParkedInRound / ${_currentRoundDef.targetCars}',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
+                        ],
+                      ),
+                      Container(width: 1, height: 22, color: const Color(0xFF334155)),
+                      Column(
+                        children: [
+                          Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('$_score pts',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _continueFromBonusToNormal(targetRound);
+                    },
+                    child: Text(
+                      'Lanjut ke Ronde $targetRound',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: const BorderSide(color: Colors.white, width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Kembali ke Menu',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   void _showGameOverDialog({required bool isMine}) {
+    _saveHighScoreIfBest();
     final String currentRoundText = _isBonusRound
         ? 'BONUS $_bonusRoundIndex'
         : '$_currentRound / 10';
@@ -815,104 +1055,135 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF0F172A),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           side: const BorderSide(color: Color(0xFFEF4444), width: 2),
         ),
-        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-        content: SizedBox(
-          width: 340,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFF87171), width: 2),
-                ),
-                child: isMine
-                    ? Padding(
-                        padding: const EdgeInsets.all(8.0),
-                        child: Image.asset('assets/images/bomb.png', fit: BoxFit.contain),
-                      )
-                    : const Icon(Icons.timer_off_rounded, color: Color(0xFFF87171), size: 34),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                isMine ? 'MOBIL MELEDAK!' : 'WAKTU HABIS!',
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                isMine
-                    ? 'Mobil Anda menginjak ranjau darat di jalanan! Permainan berakhir.'
-                    : 'Waktu parkir Anda telah habis sebelum seluruh target mobil terparkir.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF334155)),
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        Text('RONDE', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                        Text(currentRoundText,
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                      ],
-                    ),
-                    Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                    Column(
-                      children: [
-                        Text('MOBIL SELESAI', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                        Text('$_carsParkedInRound / ${_currentRoundDef.targetCars}',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
-                      ],
-                    ),
-                    Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                    Column(
-                      children: [
-                        Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                        Text('$_score pts',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFEF4444),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
+        contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 340,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.88,
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(color: const Color(0xFFF87171), width: 2),
                   ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    _restartFromRound1();
-                  },
-                  child: Text(
-                    'Coba Lagi',
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                  child: isMine
+                      ? Padding(
+                          padding: const EdgeInsets.all(6.0),
+                          child: Image.asset('assets/images/bomb.png', fit: BoxFit.contain),
+                        )
+                      : const Icon(Icons.timer_off_rounded, color: Color(0xFFF87171), size: 26),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  isMine ? 'MOBIL MELEDAK!' : 'WAKTU HABIS!',
+                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  isMine
+                      ? 'Mobil Anda menginjak ranjau darat di jalanan! Permainan berakhir.'
+                      : 'Waktu parkir Anda telah habis sebelum seluruh target mobil terparkir.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11.5, height: 1.3),
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text('RONDE', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text(currentRoundText,
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ],
+                      ),
+                      Container(width: 1, height: 22, color: const Color(0xFF334155)),
+                      Column(
+                        children: [
+                          Text('MOBIL SELESAI', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('$_carsParkedInRound / ${_currentRoundDef.targetCars}',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
+                        ],
+                      ),
+                      Container(width: 1, height: 22, color: const Color(0xFF334155)),
+                      Column(
+                        children: [
+                          Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('$_score pts',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                        ],
+                      ),
+                    ],
                   ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFEF4444),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      _restartFromRound1();
+                    },
+                    child: Text(
+                      'Coba Lagi',
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: const BorderSide(color: Colors.white, width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Kembali ke Menu',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -930,9 +1201,9 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
     if (isGrandFinale) {
       nextButtonText = 'Main Ulang dari Ronde 1';
     } else if (!_isBonusRound && _currentRound == 4) {
-      nextButtonText = 'Lanjut ke Bonus Ronde 1';
+      nextButtonText = 'Lanjut ke Bonus';
     } else if (!_isBonusRound && _currentRound == 8) {
-      nextButtonText = 'Lanjut ke Bonus Ronde 2';
+      nextButtonText = 'Lanjut ke Bonus';
     } else if (_isBonusRound) {
       nextButtonText = 'Lanjut ke Ronde ${_bonusRoundIndex == 1 ? 5 : 9}';
     } else {
@@ -952,127 +1223,140 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
       clearDesc = 'Semua ${_currentRoundDef.targetCars} mobil pada Ronde $_currentRound sukses terparkir!';
     }
 
+    _saveHighScoreIfBest();
     showDialog(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF0F172A),
+        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
           side: BorderSide(
             color: isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
             width: 2,
           ),
         ),
-        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
-        content: SizedBox(
-          width: 340,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                width: 58,
-                height: 58,
-                decoration: BoxDecoration(
-                  color: (isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981)).withValues(alpha: 0.2),
-                  shape: BoxShape.circle,
-                  border: Border.all(
+        contentPadding: const EdgeInsets.fromLTRB(16, 12, 16, 12),
+        content: ConstrainedBox(
+          constraints: BoxConstraints(
+            maxWidth: 340,
+            maxHeight: MediaQuery.of(ctx).size.height * 0.88,
+          ),
+          child: SingleChildScrollView(
+            physics: const BouncingScrollPhysics(),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: (isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981)).withValues(alpha: 0.2),
+                    shape: BoxShape.circle,
+                    border: Border.all(
+                      color: isGrandFinale ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
+                      width: 2,
+                    ),
+                  ),
+                  child: Icon(
+                    isGrandFinale ? Icons.emoji_events_rounded : Icons.check_circle_rounded,
                     color: isGrandFinale ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
-                    width: 2,
+                    size: 26,
                   ),
                 ),
-                child: Icon(
-                  isGrandFinale ? Icons.emoji_events_rounded : Icons.check_circle_rounded,
-                  color: isGrandFinale ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
-                  size: 36,
+                const SizedBox(height: 6),
+                Text(
+                  clearTitle,
+                  style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 16),
                 ),
-              ),
-              const SizedBox(height: 10),
-              Text(
-                clearTitle,
-                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                clearDesc,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13, height: 1.4),
-              ),
-              const SizedBox(height: 14),
-              Container(
-                width: double.infinity,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1E293B),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF334155)),
+                const SizedBox(height: 4),
+                Text(
+                  clearDesc,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 11.5, height: 1.3),
                 ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceAround,
-                  children: [
-                    Column(
-                      children: [
-                        Text('SISA WAKTU', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                        Text('$_secondsRemaining dtk',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF6EE7B7))),
-                      ],
+                const SizedBox(height: 8),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text('SISA WAKTU', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('$_secondsRemaining dtk',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF6EE7B7))),
+                        ],
+                      ),
+                      Container(width: 1, height: 22, color: const Color(0xFF334155)),
+                      Column(
+                        children: [
+                          Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                          Text('$_score pts',
+                              style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
-                    Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                    Column(
-                      children: [
-                        Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                        Text('$_score pts',
-                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
-                      ],
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      if (isGrandFinale) {
+                        _restartFromRound1();
+                      } else {
+                        _advanceToNextRound();
+                      }
+                    },
+                    child: Text(
+                      nextButtonText,
+                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
-                    foregroundColor: Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    if (isGrandFinale) {
-                      _restartFromRound1();
-                    } else {
-                      _advanceToNextRound();
-                    }
-                  },
-                  child: Text(
-                    nextButtonText,
-                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
                   ),
                 ),
-              ),
-              const SizedBox(height: 8),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF475569), width: 1.2),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    padding: const EdgeInsets.symmetric(vertical: 11),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.pop(context);
-                  },
-                  child: Text(
-                    'Kembali ke Menu',
-                    style: GoogleFonts.inter(color: const Color(0xFFCBD5E1), fontWeight: FontWeight.bold, fontSize: 13),
+                const SizedBox(height: 6),
+                SizedBox(
+                  width: double.infinity,
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: Colors.transparent,
+                      side: const BorderSide(color: Colors.white, width: 1.2),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      Navigator.pop(context);
+                    },
+                    child: Text(
+                      'Kembali ke Menu',
+                      style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold,
+                        fontSize: 13,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -1110,7 +1394,6 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
       _playBonusIntro();
     } else {
       SoundService.playStartSound();
-      _showFloatingToast(_currentRoundDef.hint);
     }
   }
 
@@ -1310,7 +1593,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
                 ),
 
                 // 4. RINTANGAN RANJAU DARAT (MINES)
-                for (final mine in _currentRoundDef.mines)
+                for (final mine in _activeMines)
                   Positioned(
                     left: mine.x - 14,
                     top: mine.y - 14,
@@ -1363,12 +1646,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
                   child: _buildHudTower(),
                 ),
 
-                // 9. BANNER TOAST PETUNJUK RONDE
-                if (_toastMessage != null)
-                  Positioned(
-                    top: 102,
-                    child: _buildToastBanner(),
-                  ),
+                // 9. BANNER TOAST PETUNJUK RONDE (DINONAKTIFKAN SESUAI INSTRUKSI)
 
                 // 10. EFEK TRANSISI MASUK BONUS RONDE (LAYAR HITAM + TEKS ROCK BONUS 3X MEMUDAR)
                 if (_isShowingBonusIntro)
@@ -1585,44 +1863,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
     );
   }
 
-  Widget _buildToastBanner() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-      decoration: BoxDecoration(
-        color: const Color(0xFF0F172A).withValues(alpha: 0.95),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(
-          color: _isBonusRound ? const Color(0xFFEF4444) : const Color(0xFF38BDF8),
-          width: 1.5,
-        ),
-        boxShadow: [
-          BoxShadow(
-            color: (_isBonusRound ? const Color(0xFFEF4444) : const Color(0xFF0284C7)).withValues(alpha: 0.4),
-            blurRadius: 10,
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(
-            _isBonusRound ? Icons.local_fire_department_rounded : Icons.info_outline,
-            color: _isBonusRound ? const Color(0xFFF87171) : const Color(0xFF38BDF8),
-            size: 14,
-          ),
-          const SizedBox(width: 6),
-          Text(
-            _toastMessage!,
-            style: GoogleFonts.inter(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 10.5,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   Widget _buildHudTower() {
     final String roundBadgeText = _isBonusRound ? 'BONUS $_bonusRoundIndex' : 'R$_currentRound/10';

@@ -1,10 +1,65 @@
 import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'car_game_screen.dart';
+import 'claws_car_screen.dart';
 
-class GameListScreen extends StatelessWidget {
+class GameListScreen extends StatefulWidget {
   const GameListScreen({super.key});
+
+  @override
+  State<GameListScreen> createState() => _GameListScreenState();
+}
+
+class _GameListScreenState extends State<GameListScreen> {
+  int _parkingHighScore = 0;
+  int _clawsHighScore = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadScores();
+  }
+
+  Future<void> _loadScores() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _parkingHighScore = prefs.getInt('parking_high_score') ?? 0;
+        _clawsHighScore = prefs.getInt('claws_car_high_score') ?? 0;
+      });
+    }
+  }
+
+  String _formatScore(int score) {
+    if (score == 0) return '0';
+    return score.toString().replaceAllMapped(
+      RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
+      (Match m) => '${m[1]},',
+    );
+  }
+
+  Future<void> _openParkingGame() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CarGameScreen()),
+    );
+    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.manual,
+      overlays: SystemUiOverlay.values,
+    );
+    _loadScores();
+  }
+
+  Future<void> _openClawsGame() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ClawsCarScreen()),
+    );
+    _loadScores();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -64,28 +119,42 @@ class GameListScreen extends StatelessWidget {
                       _buildGameCard(
                         context: context,
                         icon: Icons.directions_car_rounded,
-                        name: 'Parking Jam 3D',
-                        lastScore: '14,500',
+                        name: 'Parking Challenge',
+                        lastScore: _formatScore(_parkingHighScore),
                         color1: const Color(0xFF114177),
                         color2: const Color(0xFF17A18A),
+                        onTap: _openParkingGame,
                       ),
                       const SizedBox(height: 20),
                       _buildGameCard(
                         context: context,
-                        icon: Icons.speed_rounded,
-                        name: 'Drift & Park',
-                        lastScore: '8,250',
+                        icon: Icons.precision_manufacturing_rounded,
+                        name: 'Claws Car',
+                        lastScore: _formatScore(_clawsHighScore),
                         color1: const Color(0xFF7E22CE),
                         color2: const Color(0xFFEC4899),
+                        onTap: _openClawsGame,
                       ),
                       const SizedBox(height: 20),
                       _buildGameCard(
                         context: context,
                         icon: Icons.view_comfy_rounded,
                         name: 'Puzzle Valet',
-                        lastScore: 'Belum ada skor',
+                        lastScore: 'Segera Hadir',
                         color1: const Color(0xFFC2410C),
                         color2: const Color(0xFFEAB308),
+                        onTap: () {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Game Puzzle Valet segera hadir di ParkSmart Arcade!',
+                                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+                              ),
+                              backgroundColor: const Color(0xFF1E293B),
+                              duration: const Duration(seconds: 2),
+                            ),
+                          );
+                        },
                       ),
                     ],
                   ),
@@ -105,16 +174,10 @@ class GameListScreen extends StatelessWidget {
     required String lastScore,
     required Color color1,
     required Color color2,
+    required VoidCallback onTap,
   }) {
     return GestureDetector(
-      onTap: () async {
-        await Navigator.push(context, MaterialPageRoute(builder: (context) => const CarGameScreen()));
-        SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
-        SystemChrome.setEnabledSystemUIMode(
-          SystemUiMode.manual,
-          overlays: SystemUiOverlay.values,
-        );
-      },
+      onTap: onTap,
       child: Container(
         decoration: BoxDecoration(
           color: const Color(0xFF1E293B),
@@ -167,7 +230,7 @@ class GameListScreen extends StatelessWidget {
                           const Icon(Icons.history, color: Color(0xFF94A3B8), size: 14),
                           const SizedBox(width: 4),
                           Text(
-                            'Last Score: ' + lastScore,
+                            'Last Score: $lastScore',
                             style: GoogleFonts.inter(
                               fontSize: 13,
                               fontWeight: FontWeight.w500,

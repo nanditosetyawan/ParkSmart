@@ -131,11 +131,12 @@ Seluruh 20 folder non-admin (48 file Dart) telah dibedah baris demi baris:
 - **Tabel Target**: `bookings`, `parking_sessions`, `payments`, `feedbacks`.
 
 ### 11. Gamifikasi & Arcade (`lib/features/game/`)
-- **File**: [`game_lobby_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_lobby_screen.dart), [`game_list_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_list_screen.dart), [`mini_game_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/mini_game_screen.dart).
+- **File**: [`game_lobby_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_lobby_screen.dart), [`game_list_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_list_screen.dart), [`car_game_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/car_game_screen.dart), [`claws_car_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/claws_car_screen.dart).
 - **Atribut**:
-  - Game: `Parking Jam 3D` (Skor: 14.500), `Drift & Park` (Skor: 8.250), `Puzzle Valet`.
-  - Poin reward SmartPoints yang didapatkan dari bermain mini-game langsung bertambah ke saldo dompet akun.
-- **Tabel Target**: `arcade_games`, `arcade_scores`.
+  - Game: `Parking Challenge` (Skor: Rekor Dinamis Lokal), `Claws Car` (Skor: Rekor Cakar Lokal), `Puzzle Valet`.
+  - **Penyimpanan Skor (High Score)**: Disimpan **HANYA SECARA LOKAL DI PERANGKAT (Offline-first via `SharedPreferences`)**, tidak disimpan ke database Supabase sesuai instruksi.
+  - Poin reward SmartPoints yang didapatkan dari bermain mini-game langsung bertambah ke saldo dompet akun pengguna.
+- **Tabel Target**: `arcade_games` (Master Katalog Game di Supabase DB). Catatan: Skor permainan disimpan eksklusif secara **Lokal Perangkat** (`parking_high_score`, `claws_car_high_score`).
 
 ### 12. Asisten Cerdas Jarvis AI (`lib/features/ai_assistant/`)
 - **File**: [`ai_assistant_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/ai_assistant/ai_assistant_screen.dart), [`ai_results_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/ai_assistant/ai_results_screen.dart).
@@ -164,7 +165,7 @@ Berikut adalah tabel rekapitulasi konten mock yang telah dipetakan:
 | 10 | Reservasi Aktif, Tiket Pass #PS-88210-CP, Sesi Aktif | **Supabase DB (`bookings, passes, sessions`)** | Siklus hidup parkir dan countdown |
 | 11 | Riwayat Transaksi & Bukti Pembayaran | **Supabase DB (`payments`, `parking_sessions`)** | Arsip audit transaksi berstatus lunas |
 | 12 | Topik & Apresiasi Masukan Pengguna | **Supabase DB (`feedbacks`)** | Tiket komplain dan ulasan gedung |
-| 13 | Mini Game Arcade (Parking Jam 3D, Drift & Park) | **Supabase DB (`arcade_games`, `arcade_scores`)** | Rekor skor & perolehan poin reward |
+| 13 | Mini Game Arcade (Parking Challenge, Claws Car) | **Lokal Perangkat (Offline `SharedPreferences`)** untuk Skor & **Supabase DB (`arcade_games`)** untuk Katalog | Hanya skor/high score yang disimpan lokal di perangkat pengguna (tidak di database), master katalog game di Supabase |
 | 14 | **Identitas & Persona Jarvis AI (Umur, Nganjuk, Pembuat)** | **Supabase DB (`ai_system_configs`)** | Sesuai keputusan: dapat diedit via admin |
 | 15 | **Daftar 38 Kota Besar Indonesia** | **Supabase DB (`cities`)** | Master wilayah kota operasional parkir, berelasi FK ke `parking_locations` (3NF) |
 | 16 | **Riwayat Pesan Chat Jarvis AI** | **Lokal HP (Offline Storage)** | Sesuai keputusan: privasi & hemat DB |
@@ -439,7 +440,7 @@ erDiagram
 
     ARCADE_GAMES {
         varchar id PK "parking-jam-3d"
-        varchar title "Parking Jam 3D"
+        varchar title "Parking Challenge"
         varchar icon_name "directions_car"
         boolean is_active "true"
     }
@@ -764,7 +765,7 @@ Format terstruktur ini dirancang khusus agar **tidak patah (no line-wrapping)** 
                   │                                                        
             ▼ (1:N logs)                                                   
 ┌──────────────────────────────────┐   ┌──────────────────────────────────┐
-│ ARCADE_SCORES (Skor Leaderboard) │   │         AI_PERSONA_NOTES         │
+│ ARCADE_SCORES (Skor Offline Lokal)│   │         AI_PERSONA_NOTES         │
 ├──────────────────────────────────┤   ├──────────────────────────────────┤
 │ [PK] id             : UUID       │   │ Persona : Jarvis Senior Engineer │
 │ [FK] game_id        : VARCHAR(30 │   │ Origin  : Nganjuk, Jawa Timur    │
@@ -1235,6 +1236,10 @@ CREATE TABLE public.arcade_games (
     is_active BOOLEAN DEFAULT TRUE
 );
 
+-- CATATAN ARSITEKTUR TERKINI:
+-- Sesuai kebutuhan aplikasi, skor/high score mini game kini disimpan secara LOKAL di perangkat
+-- (offline-first via SharedPreferences: parking_high_score & claws_car_high_score),
+-- BUKAN di database Supabase. Skema tabel ini dicadangkan hanya jika fitur Global Leaderboard cloud diaktifkan.
 CREATE TABLE public.arcade_scores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_id VARCHAR(50) NOT NULL REFERENCES public.arcade_games(id) ON DELETE CASCADE,
