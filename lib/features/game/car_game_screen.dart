@@ -35,7 +35,6 @@ class ParkingSlotModel {
     this.windowColor = const Color(0xFF0F172A),
   });
 
-  // Koordinat horizontal tiap slot (lebar 54, jarak antar slot 8)
   double get left => 14.0 + index * 62.0;
   double get right => left + 54.0;
   double get centerX => left + 27.0;
@@ -55,16 +54,22 @@ class MineObstacle {
 
 class RoundDefinition {
   final int roundNumber;
+  final bool isBonus;
+  final int bonusIndex; // 1 atau 2
   final String title;
   final int targetCars; // Jumlah mobil yang harus diparkir di ronde ini
+  final int initialSeconds; // Waktu awal ronde (40 dtk atau khusus 10 dtk di bonus ronde)
   final List<String> targetSlotIds;
   final List<MineObstacle> mines;
   final String hint;
 
   const RoundDefinition({
     required this.roundNumber,
+    this.isBonus = false,
+    this.bonusIndex = 0,
     required this.title,
     required this.targetCars,
+    this.initialSeconds = 40,
     required this.targetSlotIds,
     required this.mines,
     required this.hint,
@@ -72,7 +77,7 @@ class RoundDefinition {
 }
 
 // ============================================================
-// LAYAR UTAMA SIMULASI PARKIR DINAMIS 10 RONDE
+// LAYAR UTAMA SIMULASI PARKIR DINAMIS DENGAN BONUS RONDE & SKOR 3X
 // ============================================================
 class CarGameScreen extends StatefulWidget {
   const CarGameScreen({super.key});
@@ -81,8 +86,11 @@ class CarGameScreen extends StatefulWidget {
   State<CarGameScreen> createState() => _CarGameScreenState();
 }
 
-class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProviderStateMixin {
+class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateMixin {
   late AnimationController _pulseController;
+  late AnimationController _bonusIntroController;
+  late Animation<double> _bonusIntroFadeAnimation;
+
   Timer? _gameLoopTimer;
   Timer? _clockTimer;
   Timer? _toastTimer;
@@ -96,17 +104,20 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
   double _playerY = 160.0;
   double _vx = 0.0;
   double _vy = 0.0;
-  double _carAngle = 0.0; // 0 = Horizontal (ke kanan), -pi/2 = Atas, pi/2 = Bawah
+  double _carAngle = 0.0;
 
   // Nilai Sensor Kemiringan
   double _accelTiltX = 0.0;
   double _accelTiltY = 0.0;
 
-  // Status Permainan & Progres Ronde
+  // Status Permainan, Ronde & Skor
   int _currentRound = 1;
+  bool _isBonusRound = false;
+  int _bonusRoundIndex = 0; // 1 = Bonus Ronde 1, 2 = Bonus Ronde 2
+  bool _isShowingBonusIntro = false;
   int _carsParkedInRound = 0;
-  int _secondsRemaining = 40; // Awal mulai 40 detik sesuai instruksi
-  int _score = 1450;
+  int _secondsRemaining = 40;
+  int _score = 0; // Selalu reset mulai dari 0 sesuai instruksi
   bool _isGameOver = false;
   bool _isRoundComplete = false;
   bool _startSoundPlayed = false;
@@ -135,34 +146,34 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
   ];
 
   // ============================================================
-  // DEFINISI 10 RONDE DENGAN TINGKAT KESULITAN BERTINGKAT
+  // DEFINISI 10 RONDE UTAMA
   // ============================================================
-  final List<RoundDefinition> _rounds = const [
-    // Ronde 1: 1 Mobil, tanpa ranjau, slot A-05 di tengah
+  final List<RoundDefinition> _mainRounds = const [
     RoundDefinition(
       roundNumber: 1,
       title: 'Pemanasan Parkir',
       targetCars: 1,
+      initialSeconds: 40,
       targetSlotIds: ['A-05'],
       mines: [],
       hint: 'Ronde 1: Parkirkan 1 mobil ke slot A-05. Jalanan bebas ranjau!',
     ),
-    // Ronde 2: 4 Mobil, 1 ranjau di tengah jalan raya
     RoundDefinition(
       roundNumber: 2,
       title: 'Manuver 4 Mobil',
       targetCars: 4,
+      initialSeconds: 40,
       targetSlotIds: ['A-03', 'A-08', 'B-04', 'B-07'],
       mines: [
         MineObstacle(x: 390, y: 160),
       ],
       hint: 'Ronde 2: Parkirkan 4 mobil ke slot hijau! Awas ada 1 ranjau di tengah jalan!',
     ),
-    // Ronde 3: 3 Mobil berjauhan di ujung kiri dan kanan
     RoundDefinition(
       roundNumber: 3,
       title: 'Target Saling Berjauhan',
       targetCars: 3,
+      initialSeconds: 40,
       targetSlotIds: ['A-01', 'B-10', 'A-10'],
       mines: [
         MineObstacle(x: 230, y: 140),
@@ -170,11 +181,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 3: Posisi 3 slot berjauhan di ujung kiri & kanan! Waspadai 2 ranjau!',
     ),
-    // Ronde 4: 4 Mobil, 3 ranjau slalom
     RoundDefinition(
       roundNumber: 4,
       title: 'Jalur Berkelok Zig-Zag',
       targetCars: 4,
+      initialSeconds: 40,
       targetSlotIds: ['A-04', 'A-07', 'B-03', 'B-08'],
       mines: [
         MineObstacle(x: 200, y: 180),
@@ -183,11 +194,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 4: 3 ranjau membentuk rintangan slalom! Parkirkan 4 mobil.',
     ),
-    // Ronde 5: 4 Mobil, ranjau mulai mendekati pembatas slot
     RoundDefinition(
       roundNumber: 5,
       title: 'Pendekatan Sempit',
       targetCars: 4,
+      initialSeconds: 40,
       targetSlotIds: ['A-02', 'A-09', 'B-05', 'B-09'],
       mines: [
         MineObstacle(x: 180, y: 130),
@@ -197,11 +208,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 5: 4 ranjau mulai mendekati bibir slot parkir! Atur kecepatan.',
     ),
-    // Ronde 6: 5 Mobil, 5 ranjau menjaga jalan utama
     RoundDefinition(
       roundNumber: 6,
       title: 'Zona Ranjau Beruntun',
       targetCars: 5,
+      initialSeconds: 40,
       targetSlotIds: ['A-03', 'A-06', 'A-10', 'B-02', 'B-07'],
       mines: [
         MineObstacle(x: 170, y: 145),
@@ -212,11 +223,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 6: 5 ranjau menjaga koridor jalan. Parkirkan 5 armada mobil!',
     ),
-    // Ronde 7: 5 Mobil, ranjau di depan pendekatan pintu masuk slot
     RoundDefinition(
       roundNumber: 7,
       title: 'Manuver Sempit Masuk Slot',
       targetCars: 5,
+      initialSeconds: 40,
       targetSlotIds: ['A-01', 'A-05', 'A-08', 'B-04', 'B-09'],
       mines: [
         MineObstacle(x: 160, y: 122),
@@ -228,11 +239,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 7: 6 ranjau dekat pintu masuk! Belok tegak lurus saat masuk slot.',
     ),
-    // Ronde 8: 5 Mobil, 7 ranjau presisi tinggi
     RoundDefinition(
       roundNumber: 8,
       title: 'Taktik Presisi Ekstrem',
       targetCars: 5,
+      initialSeconds: 40,
       targetSlotIds: ['A-02', 'A-07', 'A-11', 'B-03', 'B-06'],
       mines: [
         MineObstacle(x: 160, y: 200),
@@ -245,11 +256,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 8: 7 ranjau menjebak area parkir! Dapatkan bonus +10 detik per mobil.',
     ),
-    // Ronde 9: 6 Mobil, 8 ranjau aktif
     RoundDefinition(
       roundNumber: 9,
       title: 'Ladang Ranjau Ahli',
       targetCars: 6,
+      initialSeconds: 40,
       targetSlotIds: ['A-03', 'A-05', 'A-09', 'B-02', 'B-05', 'B-08'],
       mines: [
         MineObstacle(x: 155, y: 122),
@@ -263,11 +274,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       ],
       hint: 'Ronde 9: 8 ranjau aktif! Butuh ketenangan mengemudi tingkat tinggi.',
     ),
-    // Ronde 10: 6 Mobil, 9 ranjau babak pamungkas
     RoundDefinition(
       roundNumber: 10,
       title: 'Master Parkir - Grand Finale',
       targetCars: 6,
+      initialSeconds: 40,
       targetSlotIds: ['A-01', 'A-04', 'A-07', 'A-10', 'B-04', 'B-07'],
       mines: [
         MineObstacle(x: 150, y: 122),
@@ -284,12 +295,68 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     ),
   ];
 
-  RoundDefinition get _currentRoundDef => _rounds[(_currentRound - 1).clamp(0, _rounds.length - 1)];
+  // ============================================================
+  // DEFINISI BONUS RONDE (DI ANTARA RONDE 4 & 9, TIDAK MASUK 10 ASLI)
+  // Waktu khusus 10 detik, 6 mobil, bom lebih banyak, skor 3x lipat (4500)
+  // ============================================================
+  final RoundDefinition _bonusRound1Def = const RoundDefinition(
+    roundNumber: 4,
+    isBonus: true,
+    bonusIndex: 1,
+    title: 'Bonus Ronde 1: Rush Hour 10 Detik',
+    targetCars: 6,
+    initialSeconds: 10, // Khusus 10 detik saja
+    targetSlotIds: ['A-02', 'A-05', 'A-09', 'B-03', 'B-06', 'B-10'],
+    mines: [
+      MineObstacle(x: 160, y: 130),
+      MineObstacle(x: 210, y: 190),
+      MineObstacle(x: 270, y: 130),
+      MineObstacle(x: 325, y: 190),
+      MineObstacle(x: 385, y: 130),
+      MineObstacle(x: 440, y: 190),
+      MineObstacle(x: 495, y: 130),
+      MineObstacle(x: 550, y: 190),
+      MineObstacle(x: 605, y: 130),
+      MineObstacle(x: 655, y: 180),
+    ],
+    hint: '⚡ BONUS 3X RONDE 1: Waktu 10 detik! 6 mobil! Skor 4500 pts per mobil! ⚡',
+  );
+
+  final RoundDefinition _bonusRound2Def = const RoundDefinition(
+    roundNumber: 8,
+    isBonus: true,
+    bonusIndex: 2,
+    title: 'Bonus Ronde 2: Inferno Slalom 10 Detik',
+    targetCars: 6,
+    initialSeconds: 10, // Khusus 10 detik saja
+    targetSlotIds: ['A-01', 'A-04', 'A-08', 'B-02', 'B-07', 'B-11'],
+    mines: [
+      MineObstacle(x: 155, y: 185),
+      MineObstacle(x: 205, y: 125),
+      MineObstacle(x: 255, y: 160),
+      MineObstacle(x: 305, y: 195),
+      MineObstacle(x: 355, y: 125),
+      MineObstacle(x: 405, y: 165),
+      MineObstacle(x: 455, y: 195),
+      MineObstacle(x: 505, y: 125),
+      MineObstacle(x: 555, y: 165),
+      MineObstacle(x: 605, y: 195),
+      MineObstacle(x: 645, y: 130),
+      MineObstacle(x: 685, y: 165),
+    ],
+    hint: '🔥 BONUS 3X RONDE 2: Waktu 10 detik! 12 ranjau padat! Skor 4500 pts! 🔥',
+  );
+
+  RoundDefinition get _currentRoundDef {
+    if (_isBonusRound) {
+      return _bonusRoundIndex == 1 ? _bonusRound1Def : _bonusRound2Def;
+    }
+    return _mainRounds[(_currentRound - 1).clamp(0, _mainRounds.length - 1)];
+  }
 
   @override
   void initState() {
     super.initState();
-    // Kunci orientasi landscape & layar penuh immersive
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeRight,
       DeviceOrientation.landscapeLeft,
@@ -298,15 +365,38 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
 
     _pulseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1400),
+      duration: const Duration(milliseconds: 1000),
     )..repeat(reverse: true);
 
-    _initRound(_currentRound);
+    // Controller untuk Transisi Masuk Ronde Bonus (Layar hitam & teks Bonus 3x memudar)
+    _bonusIntroController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    );
+
+    _bonusIntroFadeAnimation = Tween<double>(begin: 1.0, end: 0.0).animate(
+      CurvedAnimation(
+        parent: _bonusIntroController,
+        curve: const Interval(0.60, 1.0, curve: Curves.easeOut),
+      ),
+    );
+
+    _bonusIntroController.addStatusListener((status) {
+      if (status == AnimationStatus.completed) {
+        if (mounted) {
+          setState(() {
+            _isShowingBonusIntro = false;
+          });
+          _showFloatingToast(_currentRoundDef.hint);
+        }
+      }
+    });
+
+    _initRound();
 
     bool accelReady = false;
     bool gyroReady = false;
 
-    // Sensor Akselerometer (Kemiringan Perangkat)
     _accelSub = accelerometerEventStream().listen((event) {
       if (!accelReady) {
         accelReady = true;
@@ -315,10 +405,9 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         }
       }
       _accelTiltX = event.y * 0.9;
-      _accelTiltY = event.x * 0.9; // Inverted Y-axis sesuai preferensi kendali
+      _accelTiltY = event.x * 0.9;
     });
 
-    // Sensor Giroskop
     _gyroSub = gyroscopeEventStream().listen((event) {
       if (!gyroReady) {
         gyroReady = true;
@@ -330,23 +419,25 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       _accelTiltY -= event.x * 0.35;
     });
 
-    // Fallback otomatis jika sensor idle (misal di simulator/PC)
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && !_sensorsConnected) {
         _startTheGame();
       }
     });
 
-    // Game Physics Loop (~60 FPS)
     _gameLoopTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
       if (mounted && _sensorsConnected) {
         _updatePhysics();
       }
     });
 
-    // Countdown Timer Permainan (1 Detik)
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && _secondsRemaining > 0 && !_isRoundComplete && !_isGameOver) {
+      // Countdown hanya berjalan saat permainan aktif dan tidak sedang menampilkan intro transisi
+      if (mounted &&
+          _secondsRemaining > 0 &&
+          !_isRoundComplete &&
+          !_isGameOver &&
+          !_isShowingBonusIntro) {
         setState(() {
           _secondsRemaining--;
         });
@@ -367,9 +458,18 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     }
   }
 
-  // Menginisialisasi tata letak slot & ranjau untuk ronde tertentu
-  void _initRound(int roundNum) {
-    final def = _rounds[(roundNum - 1).clamp(0, _rounds.length - 1)];
+  void _playBonusIntro() {
+    setState(() {
+      _isShowingBonusIntro = true;
+    });
+    _bonusIntroController.reset();
+    _bonusIntroController.forward();
+    SoundService.playStartSound();
+    HapticFeedback.heavyImpact();
+  }
+
+  void _initRound() {
+    final def = _currentRoundDef;
 
     final plates = [
       'B 2341 S', 'B 9871 Z', 'B 4410 TX', 'D 1902 AB', 'B 7721 KK',
@@ -385,14 +485,15 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       const Color(0xFF9333EA), const Color(0xFFE11D48), const Color(0xFF0D9488)
     ];
 
-    // Inisialisasi 11 Slot Atas (A-01 s/d A-11)
+    final int seed = _isBonusRound ? (50 + _bonusRoundIndex * 7) : _currentRound;
+
     _topSlots = List.generate(11, (i) {
       final id = 'A-${(i + 1).toString().padLeft(2, '0')}';
       final isTarget = def.targetSlotIds.contains(id);
       SlotStatus status;
       if (isTarget) {
         status = SlotStatus.target;
-      } else if ((i + roundNum) % 4 == 0) {
+      } else if ((i + seed) % 4 == 0) {
         status = SlotStatus.reserved;
       } else {
         status = SlotStatus.occupied;
@@ -403,20 +504,19 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         isTop: true,
         index: i,
         status: status,
-        plate: plates[(i * 3 + roundNum) % plates.length],
-        carColor: colors[(i * 2 + roundNum) % colors.length],
+        plate: plates[(i * 3 + seed) % plates.length],
+        carColor: colors[(i * 2 + seed) % colors.length],
         windowColor: const Color(0xFF0F172A),
       );
     });
 
-    // Inisialisasi 11 Slot Bawah (B-01 s/d B-11)
     _bottomSlots = List.generate(11, (i) {
       final id = 'B-${(i + 1).toString().padLeft(2, '0')}';
       final isTarget = def.targetSlotIds.contains(id);
       SlotStatus status;
       if (isTarget) {
         status = SlotStatus.target;
-      } else if ((i + roundNum + 2) % 5 == 0) {
+      } else if ((i + seed + 2) % 5 == 0) {
         status = SlotStatus.reserved;
       } else {
         status = SlotStatus.occupied;
@@ -427,20 +527,19 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         isTop: false,
         index: i,
         status: status,
-        plate: plates[(i * 5 + roundNum + 3) % plates.length],
-        carColor: colors[(i * 3 + roundNum + 1) % colors.length],
+        plate: plates[(i * 5 + seed + 3) % plates.length],
+        carColor: colors[(i * 3 + seed + 1) % colors.length],
         windowColor: const Color(0xFF0F172A),
       );
     });
 
     _carsParkedInRound = 0;
-    _secondsRemaining = 40; // 40 Detik awal tiap ronde sesuai instruksi
+    _secondsRemaining = def.initialSeconds; // 40 detik normal, 10 detik khusus bonus ronde
     _activeSlot = null;
     _isGameOver = false;
     _isRoundComplete = false;
     _isExploding = false;
 
-    // Reset posisi mobil pemain ke area aman spawn kiri
     _playerX = 36.0;
     _playerY = 160.0;
     _vx = 0.0;
@@ -465,6 +564,7 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     _accelSub?.cancel();
     _gyroSub?.cancel();
     _pulseController.dispose();
+    _bonusIntroController.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
@@ -484,21 +584,18 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
   // LOGIKA FISIKA, COLLISION DETECTION & PARKIR
   // ============================================================
   void _updatePhysics() {
-    if (_isRoundComplete || _isGameOver || _isExploding) return;
+    // Fisika dijeda jika sedang menampilkan intro transisi ronde bonus
+    if (_isRoundComplete || _isGameOver || _isExploding || _isShowingBonusIntro) return;
 
-    // Akselerasi dari sensor kemiringan
     _vx += _accelTiltX * 0.28;
     _vy += _accelTiltY * 0.28;
 
-    // Gesekan aspal
     _vx *= 0.88;
     _vy *= 0.88;
 
-    // Batasi kecepatan maksimal
     _vx = _vx.clamp(-4.0, 4.0);
     _vy = _vy.clamp(-4.0, 4.0);
 
-    // Hitung orientasi sudut mobil mengikuti arah gerak
     final double speed = math.sqrt(_vx * _vx + _vy * _vy);
     if (speed > 0.20) {
       final double targetAngle = math.atan2(_vy, _vx);
@@ -533,7 +630,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       final double dy = nextCenterY - mine.y;
       final double dist = math.sqrt(dx * dx + dy * dy);
       if (dist < 20.0) {
-        // Tabrakan ranjau! Mobil meledak seketika
         _triggerExplosion(mine.x, mine.y);
         _handleGameOver(isMine: true);
         return;
@@ -542,12 +638,10 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
 
     // 2. DETEKSI & MASUK KE SLOT BARIS ATAS (A)
     if (_activeSlot != null && _activeSlot!.isTop) {
-      // Mobil sedang bermanuver di dalam slot atas
       final double clampedCenterX = nextCenterX.clamp(_activeSlot!.left + 12.0, _activeSlot!.right - 12.0);
       nextX = clampedCenterX - 23.0;
       nextY = nextY.clamp(topSlotTopY, topSlotBottomY + 25.0);
 
-      // Luruskan mobil menghadap ke atas (-pi/2)
       double alignDiff = (-math.pi / 2) - _carAngle;
       while (alignDiff > math.pi) {
         alignDiff -= 2 * math.pi;
@@ -557,18 +651,15 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       }
       _carAngle += alignDiff * 0.16;
 
-      // Mundur kembali ke jalan raya
       if (nextY >= topSlotBottomY + 8.0) {
         _activeSlot = null;
       }
 
-      // Deteksi berhasil parkir rapi di slot atas
       if (nextY <= 36.0) {
         _onCarParkedSuccess(_activeSlot!);
         return;
       }
     } else if (nextY < topSlotBottomY) {
-      // Pemain mencoba masuk ke baris parkir atas dari jalan raya
       ParkingSlotModel? targetCandidate;
       for (final s in _topSlots) {
         if (s.status == SlotStatus.target &&
@@ -580,12 +671,10 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       }
 
       if (targetCandidate != null) {
-        // Posisi pas di depan mulut slot target: MASUK MULUS!
         _activeSlot = targetCandidate;
         final double clampedCenterX = nextCenterX.clamp(targetCandidate.left + 12.0, targetCandidate.right - 12.0);
         nextX = clampedCenterX - 23.0;
       } else {
-        // Menabrak pembatas slot lain: tertahan di luar
         nextY = topSlotBottomY;
         _vy = 0;
       }
@@ -593,12 +682,10 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
 
     // 3. DETEKSI & MASUK KE SLOT BARIS BAWAH (B)
     if (_activeSlot != null && !_activeSlot!.isTop) {
-      // Mobil sedang bermanuver di dalam slot bawah
       final double clampedCenterX = nextCenterX.clamp(_activeSlot!.left + 12.0, _activeSlot!.right - 12.0);
       nextX = clampedCenterX - 23.0;
       nextY = nextY.clamp(bottomSlotTopY - 25.0, bottomSlotBottomY - 28.0);
 
-      // Luruskan mobil menghadap ke bawah (pi/2)
       double alignDiff = (math.pi / 2) - _carAngle;
       while (alignDiff > math.pi) {
         alignDiff -= 2 * math.pi;
@@ -608,18 +695,15 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       }
       _carAngle += alignDiff * 0.16;
 
-      // Mundur kembali ke jalan raya
       if (nextY + 28.0 <= bottomSlotTopY - 8.0) {
         _activeSlot = null;
       }
 
-      // Deteksi berhasil parkir rapi di slot bawah
       if (nextY + 28.0 >= bottomSlotBottomY - 14.0) {
         _onCarParkedSuccess(_activeSlot!);
         return;
       }
     } else if (nextY + 28.0 > bottomSlotTopY) {
-      // Pemain mencoba masuk ke baris parkir bawah dari jalan raya
       ParkingSlotModel? targetCandidate;
       for (final s in _bottomSlots) {
         if (s.status == SlotStatus.target &&
@@ -631,18 +715,15 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       }
 
       if (targetCandidate != null) {
-        // Posisi pas di depan mulut slot target: MASUK MULUS!
         _activeSlot = targetCandidate;
         final double clampedCenterX = nextCenterX.clamp(targetCandidate.left + 12.0, targetCandidate.right - 12.0);
         nextX = clampedCenterX - 23.0;
       } else {
-        // Menabrak pembatas slot bawah: tertahan di luar
         nextY = bottomSlotTopY - 28.0;
         _vy = 0;
       }
     }
 
-    // 4. BATAS LUAR LAYAR KIRI & KANAN
     nextX = nextX.clamp(8.0, screenW - 46.0 - 8.0);
     nextY = nextY.clamp(topSlotTopY, screenH - 28.0 - 8.0);
 
@@ -653,28 +734,41 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
   }
 
   // ============================================================
-  // LOGIKA BERHASIL PARKIR 1 MOBIL & PENAMBAHAN WAKTU +10 DETIK
+  // LOGIKA BERHASIL PARKIR 1 MOBIL
+  // Di Ronde Bonus: Skor naik 3x lipat (4500 poin) & TIDAK ADA PENAMBAHAN WAKTU
   // ============================================================
   void _onCarParkedSuccess(ParkingSlotModel slot) {
     if (_isRoundComplete || _isGameOver) return;
+
+    final int scoreEarned = _isBonusRound ? (1500 * 3) : 1500; // 3x lipat di bonus ronde
 
     setState(() {
       slot.status = SlotStatus.parked;
       slot.carColor = _carPalette[_carsParkedInRound % _carPalette.length];
       _carsParkedInRound++;
-      // Setiap kali 1 mobil masuk bertambah 10 detik sesuai instruksi
-      _secondsRemaining += 10;
-      _score += 500;
+      _score += scoreEarned;
+
+      // HANYA ronde biasa yang menambah waktu +10 detik.
+      // Sesuai instruksi: "tidak ada penambahan waktu per mobil disini" pada ronde bonus!
+      if (!_isBonusRound) {
+        _secondsRemaining += 10;
+      }
+
       _activeSlot = null;
     });
 
     HapticFeedback.heavyImpact();
 
     if (_carsParkedInRound < _currentRoundDef.targetCars) {
-      // Masih ada mobil berikutnya di ronde ini: munculkan mobil baru di spawn
-      _showFloatingToast(
-        '+10 DETIK! Mobil $_carsParkedInRound/${_currentRoundDef.targetCars} Selesai! Mengambil Mobil Berikutnya...',
-      );
+      if (_isBonusRound) {
+        _showFloatingToast(
+          '⚡ BONUS 3X! +$scoreEarned Poin! Mobil $_carsParkedInRound/${_currentRoundDef.targetCars} Selesai!',
+        );
+      } else {
+        _showFloatingToast(
+          '+10s & +$scoreEarned Poin! Mobil $_carsParkedInRound/${_currentRoundDef.targetCars} Selesai! Mengambil Mobil Berikutnya...',
+        );
+      }
 
       setState(() {
         _playerX = 36.0;
@@ -684,14 +778,12 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         _carAngle = 0.0;
       });
     } else {
-      // Seluruh target mobil di ronde ini telah selesai diparkir!
       _isRoundComplete = true;
       SoundService.stopInGameSound();
       _showRoundClearDialog();
     }
   }
 
-  // Efek Animasi Ledakan Ranjau
   void _triggerExplosion(double x, double y) {
     setState(() {
       _isExploding = true;
@@ -701,7 +793,7 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
   }
 
   // ============================================================
-  // PENANGANAN GAME OVER (MENABRAK RANJAU ATAU WAKTU HABIS)
+  // PENANGANAN GAME OVER (SISA TOMBOL MERAH SAJA, FULL WIDTH, RESET KE RONDE 1)
   // ============================================================
   void _handleGameOver({required bool isMine}) {
     if (_isGameOver || _isRoundComplete) return;
@@ -709,13 +801,15 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     _vx = 0;
     _vy = 0;
 
-    // Putar sound die.mp3 (mematikan inGameCar.mp3 otomatis)
     SoundService.playGameOverSound();
-
     _showGameOverDialog(isMine: isMine);
   }
 
   void _showGameOverDialog({required bool isMine}) {
+    final String currentRoundText = _isBonusRound
+        ? 'BONUS $_bonusRoundIndex'
+        : '$_currentRound / 10';
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -725,123 +819,138 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
           borderRadius: BorderRadius.circular(20),
           side: const BorderSide(color: Color(0xFFEF4444), width: 2),
         ),
-        title: Column(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFFF87171), width: 2),
+        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+        content: SizedBox(
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFFF87171), width: 2),
+                ),
+                child: isMine
+                    ? Padding(
+                        padding: const EdgeInsets.all(8.0),
+                        child: Image.asset('assets/images/bomb.png', fit: BoxFit.contain),
+                      )
+                    : const Icon(Icons.timer_off_rounded, color: Color(0xFFF87171), size: 34),
               ),
-              child: isMine
-                  ? Padding(
-                      padding: const EdgeInsets.all(8.0),
-                      child: Image.asset('assets/images/bomb.png', fit: BoxFit.contain),
-                    )
-                  : const Icon(Icons.timer_off_rounded, color: Color(0xFFF87171), size: 34),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              isMine ? 'MOBIL MELEDAK!' : 'WAKTU HABIS!',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-          ],
+              const SizedBox(height: 10),
+              Text(
+                isMine ? 'MOBIL MELEDAK!' : 'WAKTU HABIS!',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                isMine
+                    ? 'Mobil Anda menginjak ranjau darat di jalanan! Permainan berakhir.'
+                    : 'Waktu parkir Anda telah habis sebelum seluruh target mobil terparkir.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13, height: 1.4),
+              ),
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        Text('RONDE', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                        Text(currentRoundText,
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                      ],
+                    ),
+                    Container(width: 1, height: 26, color: const Color(0xFF334155)),
+                    Column(
+                      children: [
+                        Text('MOBIL SELESAI', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                        Text('$_carsParkedInRound / ${_currentRoundDef.targetCars}',
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
+                      ],
+                    ),
+                    Container(width: 1, height: 26, color: const Color(0xFF334155)),
+                    Column(
+                      children: [
+                        Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                        Text('$_score pts',
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFEF4444),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    _restartFromRound1();
+                  },
+                  child: Text(
+                    'Coba Lagi',
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isMine
-                  ? 'Mobil Anda menginjak ranjau darat di jalanan! Ronde $_currentRound gagal diselesaikan.'
-                  : 'Waktu parkir 40 detik Anda telah habis sebelum seluruh target mobil di Ronde $_currentRound terparkir.',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13, height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF334155)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      Text('RONDE', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                      Text('$_currentRound / 10',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                    ],
-                  ),
-                  Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                  Column(
-                    children: [
-                      Text('MOBIL SELESAI', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                      Text('$_carsParkedInRound / ${_currentRoundDef.targetCars}',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
-                    ],
-                  ),
-                  Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                  Column(
-                    children: [
-                      Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                      Text('$_score pts',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFFEF4444),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 9),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _retryCurrentRound();
-            },
-            child: Text('Coba Lagi Ronde $_currentRound',
-                style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13)),
-          ),
-          OutlinedButton(
-            style: OutlinedButton.styleFrom(
-              side: const BorderSide(color: Color(0xFF475569)),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              _restartFromRound1();
-            },
-            child: Text('Mulai Ronde 1',
-                style: GoogleFonts.inter(color: const Color(0xFFCBD5E1), fontSize: 12)),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: Text('Keluar ke Menu', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12)),
-          ),
-        ],
       ),
     );
   }
 
   // ============================================================
   // DIALOG SELESAI RONDE (ROUND CLEAR)
+  // Tombol hijau tanpa panah, tombol lanjut dan kembali selebar container atas
   // ============================================================
   void _showRoundClearDialog() {
-    final bool isLastRound = (_currentRound >= 10);
+    final bool isGrandFinale = (!_isBonusRound && _currentRound >= 10);
+
+    String nextButtonText;
+    if (isGrandFinale) {
+      nextButtonText = 'Main Ulang dari Ronde 1';
+    } else if (!_isBonusRound && _currentRound == 4) {
+      nextButtonText = 'Lanjut ke Bonus Ronde 1';
+    } else if (!_isBonusRound && _currentRound == 8) {
+      nextButtonText = 'Lanjut ke Bonus Ronde 2';
+    } else if (_isBonusRound) {
+      nextButtonText = 'Lanjut ke Ronde ${_bonusRoundIndex == 1 ? 5 : 9}';
+    } else {
+      nextButtonText = 'Lanjut ke Ronde ${_currentRound + 1}';
+    }
+
+    String clearTitle;
+    String clearDesc;
+    if (isGrandFinale) {
+      clearTitle = 'SELAMAT! MASTER PARKIR!';
+      clearDesc = 'Luar biasa! Anda berhasil menaklukkan seluruh 10 Ronde dan 2 Bonus Ronde!';
+    } else if (_isBonusRound) {
+      clearTitle = 'BONUS RONDE $_bonusRoundIndex SELESAI!';
+      clearDesc = 'Hebat sekali! 6 mobil dalam waktu cepat berhasil diparkir dengan skor 3x lipat!';
+    } else {
+      clearTitle = 'RONDE $_currentRound SELESAI!';
+      clearDesc = 'Semua ${_currentRoundDef.targetCars} mobil pada Ronde $_currentRound sukses terparkir!';
+    }
 
     showDialog(
       context: context,
@@ -851,130 +960,168 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(20),
           side: BorderSide(
-            color: isLastRound ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+            color: isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
             width: 2,
           ),
         ),
-        title: Column(
-          children: [
-            Container(
-              width: 58,
-              height: 58,
-              decoration: BoxDecoration(
-                color: (isLastRound ? const Color(0xFFF59E0B) : const Color(0xFF10B981)).withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: isLastRound ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
-                  width: 2,
+        contentPadding: const EdgeInsets.fromLTRB(20, 20, 20, 18),
+        content: SizedBox(
+          width: 340,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: (isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981)).withValues(alpha: 0.2),
+                  shape: BoxShape.circle,
+                  border: Border.all(
+                    color: isGrandFinale ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
+                    width: 2,
+                  ),
+                ),
+                child: Icon(
+                  isGrandFinale ? Icons.emoji_events_rounded : Icons.check_circle_rounded,
+                  color: isGrandFinale ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
+                  size: 36,
                 ),
               ),
-              child: Icon(
-                isLastRound ? Icons.emoji_events_rounded : Icons.check_circle_rounded,
-                color: isLastRound ? const Color(0xFFFCD34D) : const Color(0xFF34D399),
-                size: 36,
+              const SizedBox(height: 10),
+              Text(
+                clearTitle,
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
               ),
-            ),
-            const SizedBox(height: 10),
-            Text(
-              isLastRound ? 'SELAMAT! MASTER PARKIR!' : 'RONDE $_currentRound SELESAI!',
-              style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18),
-            ),
-          ],
-        ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              isLastRound
-                  ? 'Luar biasa! Anda berhasil menaklukkan seluruh 10 Ronde dan menghindari semua ranjau!'
-                  : 'Semua ${_currentRoundDef.targetCars} mobil pada Ronde $_currentRound sukses terparkir dengan aman!',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13, height: 1.4),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: const Color(0xFF334155)),
+              const SizedBox(height: 8),
+              Text(
+                clearDesc,
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13, height: 1.4),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  Column(
-                    children: [
-                      Text('SISA WAKTU', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                      Text('$_secondsRemaining dtk',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF6EE7B7))),
-                    ],
+              const SizedBox(height: 14),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1E293B),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF334155)),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceAround,
+                  children: [
+                    Column(
+                      children: [
+                        Text('SISA WAKTU', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                        Text('$_secondsRemaining dtk',
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF6EE7B7))),
+                      ],
+                    ),
+                    Container(width: 1, height: 26, color: const Color(0xFF334155)),
+                    Column(
+                      children: [
+                        Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
+                        Text('$_score pts',
+                            style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isGrandFinale ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                  Column(
-                    children: [
-                      Text('TOTAL SKOR', style: GoogleFonts.inter(fontSize: 9, color: const Color(0xFF64748B))),
-                      Text('$_score pts',
-                          style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
-                    ],
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    if (isGrandFinale) {
+                      _restartFromRound1();
+                    } else {
+                      _advanceToNextRound();
+                    }
+                  },
+                  child: Text(
+                    nextButtonText,
+                    style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
                   ),
-                ],
+                ),
               ),
-            ),
-          ],
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF475569), width: 1.2),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 11),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(ctx);
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Kembali ke Menu',
+                    style: GoogleFonts.inter(color: const Color(0xFFCBD5E1), fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
-        actions: [
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(
-              backgroundColor: isLastRound ? const Color(0xFFF59E0B) : const Color(0xFF10B981),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
-            ),
-            onPressed: () {
-              Navigator.pop(ctx);
-              if (isLastRound) {
-                _restartFromRound1();
-              } else {
-                _advanceToNextRound();
-              }
-            },
-            child: Text(
-              isLastRound ? 'Main Ulang dari Ronde 1' : 'Lanjut ke Ronde ${_currentRound + 1} ➔',
-              style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 13),
-            ),
-          ),
-          TextButton(
-            onPressed: () {
-              Navigator.pop(ctx);
-              Navigator.pop(context);
-            },
-            child: Text('Kembali ke Menu', style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12)),
-          ),
-        ],
       ),
     );
   }
 
   void _advanceToNextRound() {
     setState(() {
-      _currentRound++;
-      _initRound(_currentRound);
+      if (!_isBonusRound) {
+        if (_currentRound == 4) {
+          _isBonusRound = true;
+          _bonusRoundIndex = 1;
+        } else if (_currentRound == 8) {
+          _isBonusRound = true;
+          _bonusRoundIndex = 2;
+        } else {
+          _currentRound++;
+        }
+      } else {
+        if (_bonusRoundIndex == 1) {
+          _isBonusRound = false;
+          _bonusRoundIndex = 0;
+          _currentRound = 5;
+        } else if (_bonusRoundIndex == 2) {
+          _isBonusRound = false;
+          _bonusRoundIndex = 0;
+          _currentRound = 9;
+        }
+      }
+      _initRound();
     });
-    SoundService.playStartSound();
-    _showFloatingToast(_currentRoundDef.hint);
-  }
 
-  void _retryCurrentRound() {
-    setState(() {
-      _initRound(_currentRound);
-    });
-    SoundService.playStartSound();
+    // Jika masuk ronde bonus, tampilkan efek layar hitam + teks Rock Bonus 3x yang memudar
+    if (_isBonusRound) {
+      _playBonusIntro();
+    } else {
+      SoundService.playStartSound();
+      _showFloatingToast(_currentRoundDef.hint);
+    }
   }
 
   void _restartFromRound1() {
     setState(() {
       _currentRound = 1;
-      _score = 1450;
-      _initRound(1);
+      _isBonusRound = false;
+      _bonusRoundIndex = 0;
+      _isShowingBonusIntro = false;
+      _score = 0; // Reset ke 0 saat coba lagi mulai dari ronde 1
+      _initRound();
     });
     SoundService.playStartSound();
   }
@@ -1074,8 +1221,8 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       child: Scaffold(
         backgroundColor: const Color(0xFF131922),
         body: GestureDetector(
-          // Kendali sentuhan geser opsional jika sensor kemiringan flat
           onPanUpdate: (details) {
+            if (_isShowingBonusIntro) return;
             setState(() {
               _playerX += details.delta.dx;
               _playerY += details.delta.dy;
@@ -1186,18 +1333,125 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
                     child: _buildExplosionEffect(),
                   ),
 
-                // 7. KAPSUL HUD DI POJOK KANAN ATAS
+                // 7. OVERLAY BERKEDIP MERAH TRANSPARAN KHUSUS BONUS RONDE
+                if (_isBonusRound)
+                  Positioned.fill(
+                    child: IgnorePointer(
+                      child: AnimatedBuilder(
+                        animation: _pulseController,
+                        builder: (context, child) {
+                          final double alpha = 0.08 + (0.07 * _pulseController.value);
+                          final double borderAlpha = 0.35 + (0.35 * _pulseController.value);
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFEF4444).withValues(alpha: alpha),
+                              border: Border.all(
+                                color: const Color(0xFFEF4444).withValues(alpha: borderAlpha),
+                                width: 3.5,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ),
+
+                // 8. KAPSUL HUD DI POJOK KANAN ATAS
                 Positioned(
                   top: 8,
                   right: 10,
                   child: _buildHudTower(),
                 ),
 
-                // 8. BANNER TOAST PETUNJUK RONDE
+                // 9. BANNER TOAST PETUNJUK RONDE
                 if (_toastMessage != null)
                   Positioned(
                     top: 102,
                     child: _buildToastBanner(),
+                  ),
+
+                // 10. EFEK TRANSISI MASUK BONUS RONDE (LAYAR HITAM + TEKS ROCK BONUS 3X MEMUDAR)
+                if (_isShowingBonusIntro)
+                  Positioned.fill(
+                    child: FadeTransition(
+                      opacity: _bonusIntroFadeAnimation,
+                      child: Container(
+                        color: Colors.black,
+                        child: Center(
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEF4444).withValues(alpha: 0.25),
+                                  borderRadius: BorderRadius.circular(20),
+                                  border: Border.all(color: const Color(0xFFEF4444), width: 1.5),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.local_fire_department, color: Color(0xFFF87171), size: 14),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      'SPECIAL BONUS STAGE',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w900,
+                                        color: const Color(0xFFFCA5A5),
+                                        letterSpacing: 2.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              // Tulisan BONUS 3X dengan GoogleFonts.rockSalt bergaya Rock & Api
+                              Text(
+                                'Bonus 3x',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.rockSalt(
+                                  fontSize: 48,
+                                  fontWeight: FontWeight.w900,
+                                  color: const Color(0xFFFBBF24),
+                                  letterSpacing: 2.0,
+                                  shadows: const [
+                                    Shadow(color: Color(0xFFEF4444), blurRadius: 28, offset: Offset(0, 0)),
+                                    Shadow(color: Color(0xFFDC2626), blurRadius: 14, offset: Offset(2, 3)),
+                                    Shadow(color: Colors.black, blurRadius: 4, offset: Offset(2, 2)),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1E293B),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFF475569)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.flash_on, color: Color(0xFFFBBF24), size: 14),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      '+4500 PTS PER MOBIL  •  WAKTU HANYA 10 DETIK (NO +TIME)',
+                                      style: GoogleFonts.inter(
+                                        fontSize: 9.5,
+                                        fontWeight: FontWeight.w800,
+                                        color: Colors.white,
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
                   ),
               ],
             ),
@@ -1207,7 +1461,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Widget Bodi Mobil Pemain
   Widget _buildPlayerCar() {
     final Color currentCarColor = _carPalette[_carsParkedInRound % _carPalette.length];
 
@@ -1231,7 +1484,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            // Lampu Belakang Merah
             Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1239,7 +1491,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
                 Container(width: 2, height: 4, color: const Color(0xFFEF4444)),
               ],
             ),
-            // Kaca Belakang
             Container(
               width: 6,
               height: 20,
@@ -1248,10 +1499,8 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(1.5),
               ),
             ),
-            // Label YOU
             Text('YOU',
                 style: GoogleFonts.inter(fontSize: 5.0, fontWeight: FontWeight.w900, color: Colors.white)),
-            // Kaca Depan
             Container(
               width: 8,
               height: 20,
@@ -1260,7 +1509,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
                 borderRadius: BorderRadius.circular(2),
               ),
             ),
-            // Lampu Depan Menyala
             Column(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
@@ -1274,7 +1522,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Widget Rintangan Ranjau Darat
   Widget _buildMineWidget(MineObstacle mine) {
     return AnimatedBuilder(
       animation: _pulseController,
@@ -1282,7 +1529,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
         return Stack(
           alignment: Alignment.center,
           children: [
-            // Lingkaran Peringatan Berdenyut Merah
             Container(
               width: 32 + (4 * _pulseController.value),
               height: 32 + (4 * _pulseController.value),
@@ -1295,14 +1541,12 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
                 ),
               ),
             ),
-            // Gambar Ikon Ranjau PNG Transparan
             Image.asset(
               'assets/images/bomb.png',
               width: 26,
               height: 26,
               fit: BoxFit.contain,
             ),
-            // Indikator Titik Merah Aktif di Pucuk Bom
             Positioned(
               top: 4,
               child: Container(
@@ -1323,7 +1567,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Efek Animasi Ledakan
   Widget _buildExplosionEffect() {
     return Container(
       width: 64,
@@ -1342,17 +1585,19 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Banner Petunjuk Terapung di Tengah
   Widget _buildToastBanner() {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0xFF0F172A).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFF38BDF8), width: 1.5),
+        border: Border.all(
+          color: _isBonusRound ? const Color(0xFFEF4444) : const Color(0xFF38BDF8),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF0284C7).withValues(alpha: 0.4),
+            color: (_isBonusRound ? const Color(0xFFEF4444) : const Color(0xFF0284C7)).withValues(alpha: 0.4),
             blurRadius: 10,
           ),
         ],
@@ -1360,7 +1605,11 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.info_outline, color: Color(0xFF38BDF8), size: 14),
+          Icon(
+            _isBonusRound ? Icons.local_fire_department_rounded : Icons.info_outline,
+            color: _isBonusRound ? const Color(0xFFF87171) : const Color(0xFF38BDF8),
+            size: 14,
+          ),
           const SizedBox(width: 6),
           Text(
             _toastMessage!,
@@ -1375,16 +1624,20 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Menara HUD (Ronde, Mobil, Waktu, Skor)
   Widget _buildHudTower() {
+    final String roundBadgeText = _isBonusRound ? 'BONUS $_bonusRoundIndex' : 'R$_currentRound/10';
+
     return Container(
-      width: 80,
+      width: 82,
       height: 86,
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 4),
       decoration: BoxDecoration(
         color: const Color(0xFF1E293B).withValues(alpha: 0.95),
         borderRadius: BorderRadius.circular(8),
-        border: Border.all(color: const Color(0xFF334155), width: 1.5),
+        border: Border.all(
+          color: _isBonusRound ? const Color(0xFFEF4444) : const Color(0xFF334155),
+          width: 1.5,
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.3),
@@ -1396,13 +1649,17 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
       child: Column(
         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          // Ronde & Mobil
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text('R$_currentRound/10',
-                  style: GoogleFonts.inter(
-                      fontSize: 8.0, fontWeight: FontWeight.bold, color: const Color(0xFF38BDF8))),
+              Text(
+                roundBadgeText,
+                style: GoogleFonts.inter(
+                  fontSize: _isBonusRound ? 7.0 : 8.0,
+                  fontWeight: FontWeight.bold,
+                  color: _isBonusRound ? const Color(0xFFF87171) : const Color(0xFF38BDF8),
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 1),
                 decoration: BoxDecoration(
@@ -1415,8 +1672,7 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
               ),
             ],
           ),
-          Container(width: 66, height: 1, color: const Color(0xFF334155)),
-          // Waktu
+          Container(width: 68, height: 1, color: const Color(0xFF334155)),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1425,14 +1681,16 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
               Text('00:${_secondsRemaining.toString().padLeft(2, '0')}',
                   style: GoogleFonts.inter(
                       fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
-              const SizedBox(width: 2),
-              Text('+10s',
-                  style: GoogleFonts.inter(
-                      fontSize: 6.5, fontWeight: FontWeight.w900, color: const Color(0xFF34D399))),
+              // HANYA tampilkan tag +10s jika BUKAN ronde bonus!
+              if (!_isBonusRound) ...[
+                const SizedBox(width: 2),
+                Text('+10s',
+                    style: GoogleFonts.inter(
+                        fontSize: 6.5, fontWeight: FontWeight.w900, color: const Color(0xFF34D399))),
+              ],
             ],
           ),
-          Container(width: 66, height: 1, color: const Color(0xFF334155)),
-          // Skor
+          Container(width: 68, height: 1, color: const Color(0xFF334155)),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -1448,7 +1706,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Builder Slot Berdasarkan Status
   Widget _buildSlotWidget(ParkingSlotModel slot) {
     switch (slot.status) {
       case SlotStatus.target:
@@ -1462,7 +1719,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     }
   }
 
-  // Slot Target Hijau Menyala (READY PARK)
   Widget _buildTargetSlot(ParkingSlotModel slot) {
     return AnimatedBuilder(
       animation: _pulseController,
@@ -1555,8 +1811,9 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Slot yang Telah Sukses Diparkir Pemain dalam Ronde Ini
   Widget _buildParkedSlot(ParkingSlotModel slot) {
+    final String ptsText = _isBonusRound ? '+4500 Pts' : '+1500 Pts';
+
     return Container(
       width: 54,
       height: 86,
@@ -1588,7 +1845,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
               ),
             ],
           ),
-          // Bodi Mobil Pemain yang Sudah Terparkir
           Container(
             width: 30,
             height: 48,
@@ -1628,15 +1884,16 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
               ],
             ),
           ),
-          Text('+10 Detik',
+          Text(ptsText,
               style: GoogleFonts.inter(
-                  fontSize: 5.0, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
+                  fontSize: 5.0,
+                  fontWeight: FontWeight.bold,
+                  color: _isBonusRound ? const Color(0xFFFCD34D) : const Color(0xFF34D399))),
         ],
       ),
     );
   }
 
-  // Slot Terisi Mobil Lain
   Widget _buildOccupiedSlot(String id, String plate, Color carColor, Color windowColor) {
     return Container(
       width: 54,
@@ -1699,7 +1956,6 @@ class _CarGameScreenState extends State<CarGameScreen> with SingleTickerProvider
     );
   }
 
-  // Slot Reservasi / Ditutup
   Widget _buildReservedSlot(String id) {
     return Container(
       width: 54,
