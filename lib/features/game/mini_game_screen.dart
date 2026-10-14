@@ -4,6 +4,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/sound_service.dart';
 
 class MiniGameScreen extends StatefulWidget {
   const MiniGameScreen({super.key});
@@ -32,9 +33,21 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
   double _accelTiltX = 0.0;
   double _accelTiltY = 0.0;
 
+
+  void _startTheGame() {
+    if (!mounted) return;
+    setState(() => _sensorsConnected = true);
+    if (!_startSoundPlayed) {
+      _startSoundPlayed = true;
+      SoundService.playStartSound();
+    }
+  }
+
   // Status Game & Parkir
   bool _isInSlotA05 = false;
   bool _isParked = false;
+  bool _isGameOver = false;
+  bool _startSoundPlayed = false;
   int _secondsRemaining = 45;
   int _score = 1450;
 
@@ -61,7 +74,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
       if (!accelReady) {
         accelReady = true;
         if (gyroReady && mounted) {
-          setState(() => _sensorsConnected = true);
+          _startTheGame();
         }
       }
       // Di landscape:
@@ -77,7 +90,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
       if (!gyroReady) {
         gyroReady = true;
         if (accelReady && mounted) {
-          setState(() => _sensorsConnected = true);
+          _startTheGame();
         }
       }
       _accelTiltX += event.y * 0.35;
@@ -87,7 +100,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
     // Fallback otomatis jika sensor stream idle (misal di emulator/PC)
     Future.delayed(const Duration(milliseconds: 1500), () {
       if (mounted && !_sensorsConnected) {
-        setState(() => _sensorsConnected = true);
+        _startTheGame();
       }
     });
 
@@ -100,16 +113,21 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
 
     // Countdown Timer Permainan
     _clockTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (mounted && _secondsRemaining > 0 && !_isParked) {
+      if (mounted && _secondsRemaining > 0 && !_isParked && !_isGameOver) {
         setState(() {
           _secondsRemaining--;
         });
+        if (_secondsRemaining <= 0) {
+          _handleGameOver();
+        }
       }
     });
   }
 
   @override
   void dispose() {
+    // Pastikan seluruh audio permainan berhenti saat keluar dari layar
+    SoundService.stopAllSounds();
     _gameLoopTimer?.cancel();
     _clockTimer?.cancel();
     _accelSub?.cancel();
@@ -134,7 +152,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
   // LOGIKA BENDA FISIK, KEMUDI & COLLISION DETECTION
   // ==========================================
   void _updatePhysics() {
-    if (_isParked) return;
+    if (_isParked || _isGameOver) return;
 
     // Akselerasi dari kemiringan perangkat (sensor giroskop & akselerometer)
     _vx += _accelTiltX * 0.28;
@@ -210,6 +228,8 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
       if (nextY <= 38.0 && !_isParked) {
         _isParked = true;
         _score += 500;
+        // Hentikan suara mobil inGameCar saat berhasil parkir rapi
+        SoundService.stopInGameSound();
         _showSuccessDialog();
       }
     } else {
@@ -368,15 +388,7 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
             ),
             onPressed: () {
               Navigator.pop(ctx);
-              setState(() {
-                _playerX = 36.0;
-                _playerY = 160.0;
-                _vx = 0;
-                _vy = 0;
-                _carAngle = 0.0;
-                _isInSlotA05 = false;
-                _isParked = false;
-              });
+              _resetGame();
             },
             child: Text('Main Lagi', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
           ),
@@ -391,6 +403,128 @@ class _MiniGameScreenState extends State<MiniGameScreen> with SingleTickerProvid
       ),
     );
   }
+
+  // ==========================================
+  // GAME OVER: WAKTU HABIS & SOUND DIE.MP3
+  // ==========================================
+  void _handleGameOver() {
+    if (_isGameOver || _isParked) return;
+    _isGameOver = true;
+    _vx = 0;
+    _vy = 0;
+
+    // Memutar sound die.mp3 dari android/app/src/main/res/raw/die.mp3
+    SoundService.playGameOverSound();
+
+    _showGameOverDialog();
+  }
+
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFEF4444), width: 2),
+        ),
+        title: Column(
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFFEF4444).withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFF87171), width: 2),
+              ),
+              child: const Icon(Icons.timer_off_rounded, color: Color(0xFFF87171), size: 36),
+            ),
+            const SizedBox(height: 12),
+            Text('WAKTU HABIS!',
+                style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.w900, fontSize: 18)),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Waktu parkir 45 detik Anda telah habis sebelum mobil berhasil masuk ke slot A-05.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13)),
+            const SizedBox(height: 16),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  Column(
+                    children: [
+                      Text('STATUS', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF64748B))),
+                      Text('TIME OUT',
+                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFFF87171))),
+                    ],
+                  ),
+                  Container(width: 1, height: 28, color: const Color(0xFF334155)),
+                  Column(
+                    children: [
+                      Text('SKOR AKHIR', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF64748B))),
+                      Text('$_score pts',
+                          style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFFEF4444),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            ),
+            onPressed: () {
+              Navigator.pop(ctx);
+              _resetGame();
+            },
+            child: Text('Coba Lagi', style: GoogleFonts.inter(fontWeight: FontWeight.bold, color: Colors.white)),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              Navigator.pop(context);
+            },
+            child: Text('Kembali ke Menu', style: GoogleFonts.inter(color: const Color(0xFF94A3B8))),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _resetGame() {
+    setState(() {
+      _playerX = 36.0;
+      _playerY = 160.0;
+      _vx = 0;
+      _vy = 0;
+      _carAngle = 0.0;
+      _isInSlotA05 = false;
+      _isParked = false;
+      _isGameOver = false;
+      _secondsRemaining = 45;
+      _score = 1450;
+    });
+    // Putar sound start.mp3 saat game diulang
+    SoundService.playStartSound();
+  }
+
 
   @override
   Widget build(BuildContext context) {

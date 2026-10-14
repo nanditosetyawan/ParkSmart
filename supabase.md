@@ -512,122 +512,267 @@ erDiagram
 
 ---
 
-### B. Visualisasi Kotak Berbingkai Nyata (Box-Drawing Art)
+### B. Visualisasi Kotak Berbingkai Nyata (Box-Drawing Architecture)
 
+Visualisasi arsitektur fisik basis data Supabase berikut disusun menggunakan seni kotak berbingkai (*Unicode Box-Drawing Art*) dengan perataan karakter monospaced yang presisi (lebar konsisten 75 karakter per baris).
+
+Format terstruktur ini dirancang khusus agar **tidak patah (no line-wrapping)** saat dilihat pada GitHub, GitLab, terminal, maupun *markdown viewer* setelah proses commit. Seluruh informasi entitas, relasi kunci asing `[FK]`, kunci primer `[PK]`, konstrain unik `(UQ)`, dan aturan integritas tersampaikan secara tuntas ke dalam **5 Klaster Domain Utama**:
+
+---
+
+#### 1. Klaster Pengguna, Keamanan, Dompet Digital & Verifikasi KYC
+*Diagram aliran akun induk, saldo Rupiah & SmartPoints, transaksi buku besar, verifikasi KTP 2-tahap, dan konfigurasi keamanan akun:*
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                       USERS (Akun Utama Pengguna)                       │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [PK] id          : UUID                                                 │
+│      name        : VARCHAR(100)                                         │
+│      email       : VARCHAR(150) (UNIQUE)                                │
+│      phone       : VARCHAR(25)                                          │
+│      member_tier : VARCHAR(20) ('basic', 'bronze', 'silver', 'gold')    │
+│      avatar_url  : TEXT                                                 │
+│      created_at  : TIMESTAMPTZ                                          │
+└─────────────────────────────────────────────────────────────────────────┘
+                  │                                      │                 
+            ▼ (1:1 has)                          ▼ (1:1 submits)           
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│           USER_WALLETS           │   │      USER_KYC_VERIFICATIONS      │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id         : UUID           │   │ [PK] id         : UUID           │
+│ [FK] user_id    : UUID (UQ)      │   │ [FK] user_id    : UUID (UQ)      │
+│      balance    : DECIMAL(12,2)  │   │      nik        : VARCHAR(16)    │
+│      points     : INTEGER        │   │      full_name  : VARCHAR(100)   │
+│      updated_at : TIMESTAMPTZ    │   │      ktp_photo  : TEXT (Step 1)  │
+└──────────────────────────────────┘   │      selfie_ktp : TEXT (Step 2)  │
+                                       │      status     : VARCHAR(20)    │
+                                       │      reason     : TEXT           │
+                                       │ [FK] verified_by: UUID           │
+                                       │      verified_at: TIMESTAMPTZ    │
+                                       └──────────────────────────────────┘
+                  │                                      │                 
+           ▼ (1:N ledger)                        ▼ (1:1 protects)          
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│       WALLET_TRANSACTIONS        │   │      USER_SECURITY_SETTINGS      │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id            : UUID        │   │ [PK] id          : UUID          │
+│ [FK] wallet_id     : UUID        │   │ [FK] user_id     : UUID (UQ)     │
+│      tx_type       : VARCHAR(20) │   │      pin_hash    : VARCHAR(255)  │
+│      amount        : DECIMAL(12, │   │      biometric   : BOOLEAN       │
+│      points_change : INTEGER     │   │      updated_at  : TIMESTAMPTZ   │
+│      balance_after : DECIMAL(12, │   └──────────────────────────────────┘
+│      description   : TEXT        │                                       
+│      created_at    : TIMESTAMPTZ │                                       
+└──────────────────────────────────┘                                       
 ```
-┌─────────────────────────────────────────┐                 ┌─────────────────────────────────────────┐
-│                  USERS                  │1               1│              USER_WALLETS               │
-├─────────────────────────────────────────┼─────────────────┼─────────────────────────────────────────┤
-│ [PK] id : UUID                          │                 │ [PK] id : UUID                          │
-│      name : VARCHAR(100)                │                 │ [FK] user_id : UUID (UNIQUE)            │
-│      email : VARCHAR(150)               │                 │      balance : DECIMAL(12,2)            │
-│      phone : VARCHAR(25)                │                 │      points : INTEGER                   │
-│      member_tier : VARCHAR(20)          │                 │      updated_at : TIMESTAMPTZ           │
-│      created_at : TIMESTAMPTZ           │1                └────────────────────┬────────────────────┘
-└──────────────────┬──────────────────────┘                                      │1
-                   │1                                                            │N
-                   │                                                ┌────────────▼────────────────────────────┐
-                   │                                                │           WALLET_TRANSACTIONS           │
-                   │                                                ├─────────────────────────────────────────┤
-                   │                                                │ [PK] id : UUID                          │
-                   │                                                │ [FK] wallet_id : UUID                   │
-                   │                                                │      transaction_type : VARCHAR(20)     │
-                   │                                                │      amount : DECIMAL(12,2)             │
-                   │                                                │      points_change : INTEGER            │
-                   │                                                │      balance_after : DECIMAL(12,2)      │
-                   │                                                │      points_after : INTEGER             │
-                   │                                                │      description : TEXT                 │
-                   │                                                │      created_at : TIMESTAMPTZ           │
-                   │                                                └─────────────────────────────────────────┘
-                   │1
-                   │                                                ┌─────────────────────────────────────────┐
-                   │                                               1│         USER_KYC_VERIFICATIONS          │
-                   │                                                ├─────────────────────────────────────────┤
-                   │                                                │ [PK] id : UUID                          │
-                   │                                                │ [FK] user_id : UUID (UNIQUE)            │
-                   │                                                │      nik : VARCHAR(16)                  │
-                   │                                                │      ktp_photo_url : TEXT (Step 1)      │
-                   │                                                │      selfie_with_ktp_url : TEXT (Step 2)│
-                   │                                                │      status : VARCHAR(20) ('pending')   │
-                   │                                                │      verified_at : TIMESTAMPTZ          │
-                   │                                                └─────────────────────────────────────────┘
-                   │1
-                   │                                                ┌─────────────────────────────────────────┐
-                   │                                               1│           AI_SYSTEM_CONFIGS             │
-                   │                                                ├─────────────────────────────────────────┤
-                   │                                                │ [PK] id : VARCHAR(50)                   │
-                   │                                                │      ai_name : VARCHAR(50)              │
-                   │                                                │      model_name : VARCHAR(50)           │
-                   │                                                │      age : INTEGER (30)                 │
-                   │                                                │      hometown : VARCHAR(100) (Nganjuk)  │
-                   │                                                │      hobby : VARCHAR(100) (Vibe coding) │
-                   │                                                │      creators : JSONB (Taufik & Dito)   │
-                   │                                                │      system_prompt_template : TEXT      │
-                   │                                                │      is_active : BOOLEAN                │
-                   │                                                └─────────────────────────────────────────┘
-                   │
-                   │1                                               ┌─────────────────────────────────────────┐
-                   │                                               1│           VEHICLE_CATEGORIES            │
-                   │                                                ├─────────────────────────────────────────┤
-                   │                                                │ [PK] id : VARCHAR(20)                   │
-                   │                                                │      name : VARCHAR(50)                 │
-                   │                                                │      tariff_group : VARCHAR(20)         │
-                   │                                                └────────────────────┬────────────────────┘
-                   │                                                                     │1
-                   │N                                                                    │N
-┌──────────────────▼──────────────────────┐                         ┌─────────────────────────────────────────┐                 ┌─────────────────────────────────────────┐
-│                 CITIES                  │1               N│            PARKING_LOCATIONS            │
-├─────────────────────────────────────────┼─────────────────┼─────────────────────────────────────────┤
-│ [PK] id : UUID                          │                 │ [PK] id : UUID                          │
-│      name : VARCHAR(100) (UNIQUE)       │                 │      location_code : VARCHAR(20) (UQ)   │
-│      province : VARCHAR(100)            │                 │ [FK] city_id : UUID ────────────────────┘
-│      latitude : DECIMAL(10,8)           │                 │      name : VARCHAR(150)                │
-│      longitude : DECIMAL(11,8)          │                 │      type_label : VARCHAR(50)           │
-│      default_zoom : DECIMAL(3,1)        │                 │      total_slots : INTEGER              │
-│      search_aliases : TEXT              │                 │      available_slots : INTEGER          │
-│      is_active : BOOLEAN                │                 │      is_ev_ready : BOOLEAN              │
-└─────────────────────────────────────────┘                 └────────────────────┬────────────────────┘
-                                                                                 │1
-                                                                                 │N
-┌────────────────────▼────────────────────┐
-│                VEHICLES                 │                         │             PARKING_TARIFFS             │
-├─────────────────────────────────────────┤                         ├─────────────────────────────────────────┤
-│ [PK] id : UUID                          │                         │ [PK] id : UUID                          │
-│ [FK] user_id : UUID                     │                         │ [FK] location_id : UUID                 │
-│      license_plate : VARCHAR(20)        │                         │ [FK] category_id : VARCHAR(20)          │
-│      model_name : VARCHAR(100)          │                         │      first_hour_price : DECIMAL(10,2)   │
-│ [FK] category_id : VARCHAR(20)          │                         │      next_hour_price : DECIMAL(10,2)    │
-│      color_name : VARCHAR(50)           │                         │      overnight_price : DECIMAL(10,2)    │
-│      is_primary : BOOLEAN               │                         └─────────────────────────────────────────┘
-└──────────────────┬──────────────────────┘
-                   │1
-                   │N
-┌──────────────────▼────────────────────────────────────────────────┐
-│                             BOOKINGS                              │
-├───────────────────────────────────────────────────────────────────┤
-│ [PK] id : UUID                                                    │
-│      booking_code : VARCHAR(30) (UNIQUE)                          │
-│ [FK] user_id : UUID ─────────────────────────> users(id)          │
-│ [FK] location_id : UUID ─────────────────────> parking_locations(id)│
-│ [FK] slot_id : UUID ─────────────────────────> parking_slots(id)   │
-│ [FK] vehicle_id : UUID ──────────────────────> vehicles(id)        │
-│      scheduled_arrival : TIMESTAMPTZ (Misal 14:00 WIB)            │
-│      check_in_deadline : TIMESTAMPTZ (Maks 17:00 WIB -> Hangus)   │
-│      duration_hours : INTEGER                                     │
-│      total_price : DECIMAL(10,2)                                  │
-│      status : VARCHAR(20)                                         │
-└───────┬─────────────────────────────┬─────────────────────────────┘
-        │1                            │1
-┌───────▼─────────────────────┐┌──────▼─────────────────────────────┐
-│       PARKING_PASSES        ││              PAYMENTS              │
-├─────────────────────────────┤├────────────────────────────────────┤
-│ [PK] id : UUID              ││ [PK] id : UUID                     │
-│ [FK] booking_id : UUID (UQ) ││ [FK] booking_id : UUID             │
-│      pass_number : VARCHAR  ││      invoice_number : VARCHAR      │
-│      qr_payload : TEXT      ││      payment_method : VARCHAR      │
-│      status : VARCHAR(20)   ││      amount : DECIMAL(10,2)        │
-│      created_at : TIMESTAMPT││      settled_at : TIMESTAMPTZ      │
-└─────────────────────────────┘└────────────────────────────────────┘
+
+---
+
+#### 2. Klaster Master Wilayah & Hierarki Fasilitas Parkir (Hierarki 3NF Fisik)
+*Diagram hierarki fisik lokasi: Master 38 Kota -> Gedung Parkir -> Lantai (Floors) -> Zona -> Slot Fisik (Slots), serta relasi fasilitas dan galeri foto:*
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│              CITIES (Master 38 Kota Operasional Indonesia)              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [PK] id             : UUID                                              │
+│      name           : VARCHAR(100) (UNIQUE - contoh: 'Jakarta Barat')   │
+│      province       : VARCHAR(100) (contoh: 'DKI Jakarta')              │
+│      latitude       : DECIMAL(10,8)                                     │
+│      longitude      : DECIMAL(11,8)                                     │
+│      default_zoom   : DECIMAL(3,1)                                      │
+│      is_active      : BOOLEAN                                           │
+└─────────────────────────────────────────────────────────────────────────┘
+                                     │                                     
+                            ▼ (1:N operates_in)                            
+┌─────────────────────────────────────────────────────────────────────────┐
+│               PARKING_LOCATIONS (Gedung / Area Fasilitas)               │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [PK] id              : UUID                                             │
+│      location_code   : VARCHAR(20) (UNIQUE - contoh: 'LOC-CP01')        │
+│ [FK] city_id         : UUID (Relasi Master Wilayah 3NF)                 │
+│      name            : VARCHAR(150) (contoh: 'Central Park Mall')       │
+│      address         : TEXT                                             │
+│      total_slots     : INTEGER                                          │
+│      available_slots : INTEGER                                          │
+│      is_ev_ready     : BOOLEAN                                          │
+│      status          : VARCHAR(20) ('active', 'full', 'maintenance')    │
+└─────────────────────────────────────────────────────────────────────────┘
+                  │                                      │                 
+           ▼ (1:N floors)                         ▼ (1:N photos)           
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│     PARKING_FLOORS (Lantai)      │   │     PARKING_PHOTOS (Galeri)      │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id          : UUID          │   │ [PK] id          : UUID          │
+│ [FK] location_id : UUID          │   │ [FK] location_id : UUID          │
+│      floor_name  : VARCHAR(50)   │   │      photo_url   : TEXT          │
+│      floor_order : INTEGER       │   │      caption     : VARCHAR(100)  │
+│      total_slots : INTEGER       │   │      is_primary  : BOOLEAN       │
+└──────────────────────────────────┘   └──────────────────────────────────┘
+                  │                                      │                 
+           ▼ (1:N zones)                         ▼ (1:N provides)          
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│    PARKING_ZONES (Area/Zona)     │   │    PARKING_LOCATION_AMENITIES    │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id         : UUID           │   │ [PK] id          : UUID          │
+│ [FK] floor_id   : UUID           │   │ [FK] location_id : UUID          │
+│      zone_code  : VARCHAR(10)    │   │ [FK] amenity_id  : UUID          │
+│      zone_name  : VARCHAR(50)    │   └──────────────────────────────────┘
+└──────────────────────────────────┘                                       
+                  │                                      │                 
+           ▼ (1:N slots)                       ▼ (1:N amenity_ref)         
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│    PARKING_SLOTS (Slot Fisik)    │   │         AMENITIES_MASTER         │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id          : UUID          │   │ [PK] id        : UUID            │
+│ [FK] zone_id     : UUID          │   │      name      : VARCHAR(50)     │
+│      slot_number : VARCHAR(20)   │   │      icon_name : VARCHAR(50)     │
+│      slot_type   : VARCHAR(20)   │   └──────────────────────────────────┘
+│      is_occupied : BOOLEAN       │                                       
+│      is_reserved : BOOLEAN       │                                       
+│      status      : VARCHAR(20)   │                                       
+└──────────────────────────────────┘                                       
+```
+
+---
+
+#### 3. Klaster Garasi Kendaraan Pengguna, Tarif & Utilitas
+*Diagram master golongan kendaraan, garasi kendaraan pengguna, penetapan tarif per jam per gedung, serta fitur bookmark favorit & notifikasi:*
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│              VEHICLE_CATEGORIES (Master Kategori Kendaraan)             │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [PK] id           : VARCHAR(20) ('mobil_compact', 'mobil_suv', 'motor', │
+│      name         : VARCHAR(50)                                         │
+│      tariff_group : VARCHAR(20)                                         │
+└─────────────────────────────────────────────────────────────────────────┘
+                  │                                      │                 
+         ▼ (1:N classifies)                    ▼ (1:N tariff_rule)         
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│    VEHICLES (Garasi Pengguna)    │   │ PARKING_TARIFFS (Struktur Biaya) │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id            : UUID        │   │ [PK] id               : UUID     │
+│ [FK] user_id       : UUID        │   │ [FK] location_id      : UUID     │
+│ [FK] category_id   : VARCHAR(20) │   │ [FK] category_id      : VARCHAR( │
+│      license_plate : VARCHAR(20) │   │      first_hour_price : DEC(10,2 │
+│      model_name    : VARCHAR(100 │   │      next_hour_price  : DEC(10,2 │
+│      color_name    : VARCHAR(50) │   │      overnight_price  : DEC(10,2 │
+│      is_primary    : BOOLEAN     │   └──────────────────────────────────┘
+└──────────────────────────────────┘                                       
+                  │                                      │                 
+         ▼ (1:N favorites)                       ▼ (1:N receives)          
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│    USER_FAVORITES (Bookmark)     │   │    NOTIFICATIONS (Push Alert)    │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id          : UUID          │   │ [PK] id         : UUID           │
+│ [FK] user_id     : UUID          │   │ [FK] user_id    : UUID           │
+│ [FK] location_id : UUID          │   │      title      : VARCHAR(150)   │
+│      created_at  : TIMESTAMPTZ   │   │      body       : TEXT           │
+└──────────────────────────────────┘   │      is_read    : BOOLEAN        │
+                                       │      created_at : TIMESTAMPTZ    │
+                                       └──────────────────────────────────┘
+```
+
+---
+
+#### 4. Klaster Siklus Transaksi, Tiket Pass QR, Sesi Gerbang & Pembayaran
+*Diagram *core transaction* end-to-end: Reservasi tiket (dengan batas check-in hangus) -> Tiket Pass QR ANPR & Pembayaran -> Sesi Masuk Gerbang -> Perpanjangan Timer & Ulasan Rating:*
+
+```text
+┌─────────────────────────────────────────────────────────────────────────┐
+│                 BOOKINGS (Hub Reservasi & Tiket Parkir)                 │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [PK] id                : UUID                                           │
+│      booking_code      : VARCHAR(30) (UNIQUE - contoh: 'BK-20261014-001 │
+│ [FK] user_id          : UUID                                            │
+│ [FK] location_id      : UUID                                            │
+│ [FK] slot_id          : UUID                                            │
+│ [FK] vehicle_id       : UUID                                            │
+│      scheduled_arrival : TIMESTAMPTZ (Waktu estimasi tiba)              │
+│      check_in_deadline : TIMESTAMPTZ (Maksimal check-in -> lewat HANGUS │
+│      duration_hours    : INTEGER                                        │
+│      total_price       : DECIMAL(10,2)                                  │
+│      status            : VARCHAR(20) ('pending','paid','active','comple │
+└─────────────────────────────────────────────────────────────────────────┘
+                  │                                      │                 
+         ▼ (1:1 generates)                       ▼ (1:1 paid_by)           
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│    PARKING_PASSES (Tiket QR)     │   │  PAYMENTS (Transaksi Finansial)  │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id          : UUID          │   │ [PK] id             : UUID       │
+│ [FK] booking_id  : UUID (UQ)     │   │ [FK] booking_id     : UUID (UQ)  │
+│      pass_number : VARCHAR(30) U │   │      invoice_number : VARCHAR(50 │
+│      qr_payload  : TEXT (ANPR)   │   │      payment_method : VARCHAR(30 │
+│      valid_until : TIMESTAMPTZ   │   │      amount         : DEC(10,2)  │
+│      status      : VARCHAR(20)   │   │      status         : VARCHAR(20 │
+└──────────────────────────────────┘   │      settled_at     : TIMESTAMPT │
+                                       └──────────────────────────────────┘
+                                     │                                     
+                             ▼ (1:1 initiates)                             
+┌─────────────────────────────────────────────────────────────────────────┐
+│               PARKING_SESSIONS (Sesi Parkir Aktif Gerbang)              │
+├─────────────────────────────────────────────────────────────────────────┤
+│ [PK] id                        : UUID                                   │
+│ [FK] booking_id                : UUID (UNIQUE)                          │
+│ [FK] user_id                   : UUID                                   │
+│ [FK] slot_id                   : UUID                                   │
+│ [FK] vehicle_id                : UUID                                   │
+│      entry_time                : TIMESTAMPTZ                            │
+│      exit_time                 : TIMESTAMPTZ (NULL = masih terparkir)   │
+│      grace_period_minutes      : INTEGER (15 menit toleransi awal)      │
+│      overstay_duration_minutes : INTEGER (Waktu keterlambatan)          │
+│      penalty_fee               : DECIMAL(10,2) (Denda overstay)         │
+│      total_fee                 : DECIMAL(10,2)                          │
+│      status                    : VARCHAR(20) ('active', 'completed', 'o │
+└─────────────────────────────────────────────────────────────────────────┘
+                  │                                      │                 
+          ▼ (1:N extends)                        ▼ (1:1 reviews)           
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│        SESSION_EXTENSIONS        │   │   FEEDBACKS (Ulasan Pengguna)    │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id             : UUID       │   │ [PK] id             : UUID       │
+│ [FK] session_id     : UUID       │   │ [FK] session_id     : UUID (UQ)  │
+│      extended_hours : INTEGER    │   │ [FK] user_id        : UUID       │
+│      additional_fee : DEC(10,2)  │   │ [FK] location_id    : UUID       │
+│      new_end_time   : TIMESTAMPT │   │      rating         : INTEGER (1 │
+│      created_at     : TIMESTAMPT │   │      comment        : TEXT       │
+└──────────────────────────────────┘   │      admin_response : TEXT       │
+                                       └──────────────────────────────────┘
+```
+
+---
+
+#### 5. Klaster Gamifikasi Arcade & Master Konfigurasi AI Jarvis
+*Diagram game mini reward poin parkir dan konfigurasi kepribadian Asisten AI Jarvis:*
+
+```text
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│    ARCADE_GAMES (Mini Games)     │   │    AI_SYSTEM_CONFIGS (Jarvis)    │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id         : VARCHAR(30)    │   │ [PK] id             : VARCHAR(50 │
+│      title      : VARCHAR(100)   │   │      ai_name        : VARCHAR(50 │
+│      multiplier : DECIMAL(4,2)   │   │      model_name     : VARCHAR(50 │
+│      is_active  : BOOLEAN        │   │      age            : INTEGER (3 │
+└──────────────────────────────────┘   │      hometown       : VARCHAR(10 │
+                                       │      hobby          : VARCHAR(10 │
+                                       │      creators       : JSONB (Dit │
+                                       │      system_prompt  : TEXT       │
+                                       │      is_active      : BOOLEAN    │
+                                       └──────────────────────────────────┘
+                  │                                                        
+            ▼ (1:N logs)                                                   
+┌──────────────────────────────────┐   ┌──────────────────────────────────┐
+│ ARCADE_SCORES (Skor Leaderboard) │   │         AI_PERSONA_NOTES         │
+├──────────────────────────────────┤   ├──────────────────────────────────┤
+│ [PK] id             : UUID       │   │ Persona : Jarvis Senior Engineer │
+│ [FK] game_id        : VARCHAR(30 │   │ Origin  : Nganjuk, Jawa Timur    │
+│ [FK] user_id        : UUID       │   │ Stack   : Flutter + Supabase 3NF │
+│      score          : INTEGER    │   │ Creator : Sultannang & Taufik    │
+│      points_awarded : INTEGER    │   │ Status  : Enterprise Grade Solid │
+│      created_at     : TIMESTAMPT │   └──────────────────────────────────┘
+└──────────────────────────────────┘                                       
 ```
 
 ---
