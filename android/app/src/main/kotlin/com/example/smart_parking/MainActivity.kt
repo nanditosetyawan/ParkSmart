@@ -20,20 +20,23 @@ class MainActivity : FlutterFragmentActivity() {
                         sfxPlayer?.release()
                         sfxPlayer = null
 
+                        val isBonus = call.argument<Boolean>("isBonus") ?: false
+
                         val startResId = resources.getIdentifier("start", "raw", packageName)
                         if (startResId != 0) {
                             sfxPlayer = MediaPlayer.create(this, startResId)
                             sfxPlayer?.setOnCompletionListener { mp ->
                                 mp.release()
                                 sfxPlayer = null
-                                // Otomatis mulai memutar inGameCar.mp3 (loop) sesudah start.mp3 selesai
-                                startInGameSound(loop = true)
+                                // Otomatis mulai memutar musik in-game sesudah start.mp3 selesai:
+                                // Mode bonus -> car_bonusmode.mp3
+                                // Mode biasa -> ingamecar.mp3
+                                startInGameSound(loop = true, isBonus = isBonus)
                             }
                             sfxPlayer?.start()
                             result.success(true)
                         } else {
-                            // Fallback jika start.mp3 tidak ditemukan, langsung mainkan inGameCar.mp3
-                            startInGameSound(loop = true)
+                            startInGameSound(loop = true, isBonus = isBonus)
                             result.success(true)
                         }
                     } catch (e: Exception) {
@@ -42,7 +45,8 @@ class MainActivity : FlutterFragmentActivity() {
                 }
                 "startInGameSound" -> {
                     try {
-                        startInGameSound(loop = true)
+                        val isBonus = call.argument<Boolean>("isBonus") ?: false
+                        startInGameSound(loop = true, isBonus = isBonus)
                         result.success(true)
                     } catch (e: Exception) {
                         result.error("ERROR", e.message, null)
@@ -54,7 +58,7 @@ class MainActivity : FlutterFragmentActivity() {
                 }
                 "playGameOverSound" -> {
                     try {
-                        // Pastikan inGameCar.mp3 berhenti SEBELUM die.mp3 berbunyi
+                        // Pastikan musik in-game berhenti SEBELUM die.mp3 berbunyi
                         stopInGameSound()
                         sfxPlayer?.release()
                         sfxPlayer = null
@@ -97,15 +101,20 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
-    private fun startInGameSound(loop: Boolean = true) {
+    private fun startInGameSound(loop: Boolean = true, isBonus: Boolean = false) {
         try {
             inGamePlayer?.release()
             inGamePlayer = null
 
-            // Mendukung nama resource ingamecar di res/raw
-            var resId = resources.getIdentifier("ingamecar", "raw", packageName)
+            // Jika mode bonus, gunakan car_bonusmode.mp3
+            // Jika mode biasa, gunakan ingamecar.mp3
+            val targetSound = if (isBonus) "car_bonusmode" else "ingamecar"
+            var resId = resources.getIdentifier(targetSound, "raw", packageName)
+            if (resId == 0 && isBonus) {
+                resId = resources.getIdentifier("car_bonus_mode", "raw", packageName)
+            }
             if (resId == 0) {
-                resId = resources.getIdentifier("ingame_car", "raw", packageName)
+                resId = resources.getIdentifier("ingamecar", "raw", packageName)
             }
             if (resId != 0) {
                 inGamePlayer = MediaPlayer.create(this, resId)

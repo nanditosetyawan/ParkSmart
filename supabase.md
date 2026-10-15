@@ -38,6 +38,8 @@ Berdasarkan konfirmasi langsung dari Anda, berikut adalah 4 keputusan arsitektur
 | **2** | **Karakter & Persona Jarvis AI** | **Disimpan di Database Supabase** | Dibuatkan tabel khusus **`ai_system_configs`** di Supabase untuk menampung identitas Jarvis (Nama, Umur 30, Asal Nganjuk, Hobi Vibe Coding, Pembuat: Taufik & Sultannang, Model Groq, dan System Prompt template). Admin dapat mengedit persona Jarvis secara *real-time* tanpa merilis APK baru. |
 | **3** | **Riwayat Obrolan AI Jarvis** | **Cukup Offline / Lokal di HP** | Tidak dibuatkan tabel `ai_chat_sessions` atau `ai_chat_messages` di Supabase. Riwayat percakapan disimpan secara lokal di perangkat pengguna (menggunakan `SharedPreferences` / local cache) agar hemat storage cloud dan menjaga privasi pengguna. |
 | **4** | **Skema Saldo Dompet & Mutasi** | **Wajib Dibuatkan Tabel Mutasi Transaksi (`wallet_transactions`)** | Disiapkan tabel **`user_wallets`** (saldo & poin) dan tabel mutasi **`wallet_transactions`** (mencatat riwayat *top-up*, pembayaran parkir, perpanjangan, dan reward game). Ditambahkan *highlight reminder* untuk pembuatan UI layarnya. |
+| **5** | **Metode Pembayaran Tersimpan & E-Wallet** | **Tabel Database Supabase (`user_payment_methods`)** | Pengguna dapat menautkan akun dompet digital (GoPay, OVO, ShopeePay, ParkSmart Pay, QRIS), menentukan metode utama (`is_primary`), dan mengaktifkan fitur Auto-Debet otomatis (`is_auto_debet`) saat durasi parkir tersisa 5 menit. Dibuatkan tabel relasional `user_payment_methods` dengan *constraint* unik per user dan provider. |
+| **6** | **Preferensi Aplikasi (Mata Uang & Tema Gelap/Terang)** | **Kolom di `user_security_settings` & Local Cache** | Pilihan konversi mata uang (*real-time multi-currency* IDR, USD, EUR, SGD, JPY, MYR via `CurrencyService`) dan tema tampilan (*Dark / Light Mode* via `ThemeService`) disimpan pada `user_security_settings` (`preferred_currency`, `theme_mode`) serta di-cache via SharedPreferences agar saat aplikasi dibuka langsung menggunakan preferensi visual dan valuta pengguna. |
 
 ---
 
@@ -50,10 +52,12 @@ Seluruh 20 folder non-admin (48 file Dart) telah dibedah baris demi baris:
 - **Atribut**: Nama Lengkap (`Sarah Pramudita`), Email (`sarah.pramudita@email.com`), No. Handphone (`+62 812-3456-7890`), Password Hashed, Kode OTP 4-digit, Status Verifikasi Akun.
 - **Tabel Target**: `users`, terhubung langsung dengan Supabase `auth.users`.
 
-### 2. Profil, Dompet & Keamanan Akun (`lib/features/profile/`, `lib/features/pin/`)
-- **File**: [`profile_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/profile_screen.dart), [`settings_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/settings_screen.dart), [`pin_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/pin/pin_screen.dart), [`pin_settings_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/pin_settings_screen.dart), [`ktp_camera_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/ktp_camera_screen.dart).
-- **Atribut**: Foto Avatar, Membership Tier (`PLATINUM`, opsi: `BRONZE`, `SILVER`, `GOLD`), Saldo Dompet (`Rp 145.000` / `Rp 45.000`), Poin SmartPoints (`1.450 Poin`), PIN Transaksi 4-digit terenkripsi, Toggle Biometric Face ID (`false`) & Fingerprint (`true`), Push Notification (`true`), Preferensi Parkir Default (`Mobil SUV`, `Mobil Sedan/City`, `Motor Roda 2`), Status KYC KTP.
-- **Tabel Target**: `users`, `user_wallets`, `wallet_transactions`, `user_security_settings`, `user_kyc_verifications`.
+### 2. Profil, Dompet, Metode Pembayaran & Keamanan Akun (`lib/features/profile/`, `lib/features/pin/`, `lib/core/services/`)
+- **File**: [`profile_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/profile_screen.dart), [`edit_profile_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/edit_profile_screen.dart), [`payment_methods_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/payment_methods_screen.dart), [`settings_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/settings_screen.dart), [`pin_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/pin/pin_screen.dart), [`pin_settings_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/pin_settings_screen.dart), [`ktp_camera_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/ktp_camera_screen.dart), [`currency_service.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/core/services/currency_service.dart), [`theme_service.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/core/services/theme_service.dart).
+- **Atribut Profil & Keamanan**: Foto Avatar, Nama Lengkap, Nomor Telepon, Email, Membership Tier (`BRONZE`, `SILVER`, `GOLD`, `PLATINUM`), Saldo Dompet (`Rp 145.000` / `Rp 45.000`), Poin SmartPoints (`1.450 Poin`), PIN Transaksi 4-digit terenkripsi, Toggle Biometric Face ID (`is_face_id_enabled`) & Fingerprint (`is_fingerprint_enabled`) terintegrasi autentikasi hardware sistem via `local_auth` (dengan validasi ketersediaan sensor sistem perangkat), Push Notification (`is_notification_enabled`), Master Auto-Debet Parkir (`is_auto_debet_enabled`), Preferensi Parkir Default (`Mobil SUV`, `Mobil Sedan/City`, `Motor Roda 2`), Status KYC KTP.
+- **Metode Pembayaran Tersimpan & E-Wallet**: Daftar e-wallet terhubung (`parksmart_pay`, `gopay`, `ovo`, `shopeepay`, `qris`), status metode utama (`is_primary`), switch auto-debet individual per e-wallet (`is_auto_debet`), nomor akun e-wallet, dan nama pemilik.
+- **Mata Uang & Tema Aplikasi**: Valuta aktif (`IDR`, `USD`, `EUR`, `SGD`, `JPY`, `MYR`) dengan nilai tukar *real-time* API dan fallback, serta preferensi mode visual (`dark`, `light`).
+- **Tabel Target**: `users`, `user_wallets`, `wallet_transactions`, `user_payment_methods`, `user_security_settings`, `user_kyc_verifications`.
 
 ### 3. Garasi Digital Kendaraan (`lib/features/profile/vehicle_screen.dart`, `lib/features/vehicle/`)
 - **File**: [`vehicle_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/profile/vehicle_screen.dart), [`add_vehicle_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/vehicle/add_vehicle_screen.dart), [`custom_camera_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/vehicle/custom_camera_screen.dart).
@@ -131,11 +135,12 @@ Seluruh 20 folder non-admin (48 file Dart) telah dibedah baris demi baris:
 - **Tabel Target**: `bookings`, `parking_sessions`, `payments`, `feedbacks`.
 
 ### 11. Gamifikasi & Arcade (`lib/features/game/`)
-- **File**: [`game_lobby_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_lobby_screen.dart), [`game_list_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_list_screen.dart), [`mini_game_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/mini_game_screen.dart).
+- **File**: [`game_lobby_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_lobby_screen.dart), [`game_list_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/game_list_screen.dart), [`car_game_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/car_game_screen.dart), [`claws_car_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/game/claws_car_screen.dart).
 - **Atribut**:
-  - Game: `Parking Jam 3D` (Skor: 14.500), `Drift & Park` (Skor: 8.250), `Puzzle Valet`.
-  - Poin reward SmartPoints yang didapatkan dari bermain mini-game langsung bertambah ke saldo dompet akun.
-- **Tabel Target**: `arcade_games`, `arcade_scores`.
+  - Game: `Parking Challenge` (Skor: Rekor Dinamis Lokal), `Claws Car` (Skor: Rekor Cakar Lokal), `Puzzle Valet`.
+  - **Penyimpanan Skor (High Score)**: Disimpan **HANYA SECARA LOKAL DI PERANGKAT (Offline-first via `SharedPreferences`)**, tidak disimpan ke database Supabase sesuai instruksi.
+  - Poin reward SmartPoints yang didapatkan dari bermain mini-game langsung bertambah ke saldo dompet akun pengguna.
+- **Tabel Target**: `arcade_games` (Master Katalog Game di Supabase DB). Catatan: Skor permainan disimpan eksklusif secara **Lokal Perangkat** (`parking_high_score`, `claws_car_high_score`).
 
 ### 12. Asisten Cerdas Jarvis AI (`lib/features/ai_assistant/`)
 - **File**: [`ai_assistant_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/ai_assistant/ai_assistant_screen.dart), [`ai_results_screen.dart`](file:///d:/DITO/kuliah/Semester%205/teori%20mobile/project_akhir/smart_parking/lib/features/ai_assistant/ai_results_screen.dart).
@@ -164,10 +169,12 @@ Berikut adalah tabel rekapitulasi konten mock yang telah dipetakan:
 | 10 | Reservasi Aktif, Tiket Pass #PS-88210-CP, Sesi Aktif | **Supabase DB (`bookings, passes, sessions`)** | Siklus hidup parkir dan countdown |
 | 11 | Riwayat Transaksi & Bukti Pembayaran | **Supabase DB (`payments`, `parking_sessions`)** | Arsip audit transaksi berstatus lunas |
 | 12 | Topik & Apresiasi Masukan Pengguna | **Supabase DB (`feedbacks`)** | Tiket komplain dan ulasan gedung |
-| 13 | Mini Game Arcade (Parking Jam 3D, Drift & Park) | **Supabase DB (`arcade_games`, `arcade_scores`)** | Rekor skor & perolehan poin reward |
+| 13 | Mini Game Arcade (Parking Challenge, Claws Car) | **Lokal Perangkat (Offline `SharedPreferences`)** untuk Skor & **Supabase DB (`arcade_games`)** untuk Katalog | Hanya skor/high score yang disimpan lokal di perangkat pengguna (tidak di database), master katalog game di Supabase |
 | 14 | **Identitas & Persona Jarvis AI (Umur, Nganjuk, Pembuat)** | **Supabase DB (`ai_system_configs`)** | Sesuai keputusan: dapat diedit via admin |
 | 15 | **Daftar 38 Kota Besar Indonesia** | **Supabase DB (`cities`)** | Master wilayah kota operasional parkir, berelasi FK ke `parking_locations` (3NF) |
 | 16 | **Riwayat Pesan Chat Jarvis AI** | **Lokal HP (Offline Storage)** | Sesuai keputusan: privasi & hemat DB |
+| 17 | **Metode Pembayaran Tersimpan (GoPay, OVO, ShopeePay, ParkSmart Pay, Status Utama & Auto-Debet)** | **Supabase DB (`user_payment_methods`)** | Pengguna dapat menghubungkan beberapa dompet digital dan mengatur auto-debet saat durasi parkir sisa 5 menit |
+| 18 | **Pengaturan Biometrik (Fingerprint, Face ID), Valuta Pilihan & Tema Gelap/Terang** | **Supabase DB (`user_security_settings`) & Lokal Cache** | Pengaturan keamanan hardware lokal dan preferensi visual aplikasi |
 
 ---
 
@@ -244,9 +251,26 @@ erDiagram
         uuid user_id FK "users.id (1:1)"
         varchar pin_hash "Hash 4-Digit PIN"
         boolean is_biometric_enabled "true"
+        boolean is_fingerprint_enabled "true"
         boolean is_face_id_enabled "false"
         boolean is_notification_enabled "true"
+        boolean is_auto_debet_enabled "true"
+        varchar preferred_currency "IDR / USD / EUR / SGD / JPY / MYR"
+        varchar theme_mode "dark / light"
         varchar default_parking_preference "Mobil SUV"
+        timestamptz updated_at
+    }
+
+    USER_PAYMENT_METHODS {
+        uuid id PK
+        uuid user_id FK "users.id (1:N)"
+        varchar provider "parksmart_pay / gopay / ovo / shopeepay / qris"
+        varchar account_number "081234567890"
+        varchar account_name "Nama Akun"
+        boolean is_primary "true / false"
+        boolean is_auto_debet "true / false"
+        timestamptz created_at
+        timestamptz updated_at
     }
 
     VEHICLE_CATEGORIES {
@@ -379,7 +403,7 @@ erDiagram
         uuid id PK
         uuid booking_id FK "bookings.id (1:1)"
         varchar invoice_number "INV-88210"
-        varchar payment_method "wallet"
+        varchar payment_method "parksmart_pay / gopay / ovo / shopeepay / qris / wallet"
         decimal amount "Rp 12.000"
         varchar payment_status "settled"
         timestamptz settled_at
@@ -439,7 +463,7 @@ erDiagram
 
     ARCADE_GAMES {
         varchar id PK "parking-jam-3d"
-        varchar title "Parking Jam 3D"
+        varchar title "Parking Challenge"
         varchar icon_name "directions_car"
         boolean is_active "true"
     }
@@ -471,6 +495,7 @@ erDiagram
     USER_WALLETS ||--o{ WALLET_TRANSACTIONS : "ledger_records (1:N)"
     USERS ||--|| USER_SECURITY_SETTINGS : "manages (1:1)"
     USERS ||--o| USER_KYC_VERIFICATIONS : "submits_kyc (1:1)"
+    USERS ||--o{ USER_PAYMENT_METHODS : "saves_payment_methods (1:N)"
 
     USERS ||--o{ VEHICLES : "owns (1:N)"
     USERS ||--o{ BOOKINGS : "places (1:N)"
@@ -552,6 +577,7 @@ Format terstruktur ini dirancang khusus agar **tidak patah (no line-wrapping)** 
                                        │      verified_at: TIMESTAMPTZ    │
                                        └──────────────────────────────────┘
                   │                                      │                 
+                  │                                      │                 
            ▼ (1:N ledger)                        ▼ (1:1 protects)          
 ┌──────────────────────────────────┐   ┌──────────────────────────────────┐
 │       WALLET_TRANSACTIONS        │   │      USER_SECURITY_SETTINGS      │
@@ -560,11 +586,27 @@ Format terstruktur ini dirancang khusus agar **tidak patah (no line-wrapping)** 
 │ [FK] wallet_id     : UUID        │   │ [FK] user_id     : UUID (UQ)     │
 │      tx_type       : VARCHAR(20) │   │      pin_hash    : VARCHAR(255)  │
 │      amount        : DECIMAL(12, │   │      biometric   : BOOLEAN       │
-│      points_change : INTEGER     │   │      updated_at  : TIMESTAMPTZ   │
-│      balance_after : DECIMAL(12, │   └──────────────────────────────────┘
-│      description   : TEXT        │                                       
-│      created_at    : TIMESTAMPTZ │                                       
-└──────────────────────────────────┘                                       
+│      points_change : INTEGER     │   │      fingerprint : BOOLEAN       │
+│      balance_after : DECIMAL(12, │   │      face_id     : BOOLEAN       │
+│      description   : TEXT        │   │      auto_debet  : BOOLEAN       │
+│      created_at    : TIMESTAMPTZ │   │      currency    : VARCHAR(5)    │
+└──────────────────────────────────┘   │      theme_mode  : VARCHAR(10)   │
+                                       │      updated_at  : TIMESTAMPTZ   │
+                                       └──────────────────────────────────┘
+                                                          │                 
+                                                  ▼ (1:N links)             
+                                       ┌──────────────────────────────────┐
+                                       │       USER_PAYMENT_METHODS       │
+                                       ├──────────────────────────────────┤
+                                       │ [PK] id          : UUID          │
+                                       │ [FK] user_id     : UUID          │
+                                       │      provider    : VARCHAR(30)   │
+                                       │      account_no  : VARCHAR(50)   │
+                                       │      account_name: VARCHAR(100)  │
+                                       │      is_primary  : BOOLEAN       │
+                                       │      is_auto_deb : BOOLEAN       │
+                                       │      created_at  : TIMESTAMPTZ   │
+                                       └──────────────────────────────────┘
 ```
 
 ---
@@ -764,7 +806,7 @@ Format terstruktur ini dirancang khusus agar **tidak patah (no line-wrapping)** 
                   │                                                        
             ▼ (1:N logs)                                                   
 ┌──────────────────────────────────┐   ┌──────────────────────────────────┐
-│ ARCADE_SCORES (Skor Leaderboard) │   │         AI_PERSONA_NOTES         │
+│ ARCADE_SCORES (Skor Offline Lokal)│   │         AI_PERSONA_NOTES         │
 ├──────────────────────────────────┤   ├──────────────────────────────────┤
 │ [PK] id             : UUID       │   │ Persona : Jarvis Senior Engineer │
 │ [FK] game_id        : VARCHAR(30 │   │ Origin  : Nganjuk, Jawa Timur    │
@@ -815,6 +857,7 @@ Tabel berikut merangkum seluruh relasi kunci asing (*Foreign Keys*), kardinalita
 | 30 | `notifications` | `user_id` | `users` | `id` | **N : 1** | `CASCADE` | Notifikasi push per akun pengguna |
 | 31 | `arcade_scores` | `user_id` | `users` | `id` | **N : 1** | `CASCADE` | Skor game arcade per pengguna |
 | 32 | `arcade_scores` | `game_id` | `arcade_games` | `id` | **N : 1** | `CASCADE` | Jenis game yang dimainkan |
+| 33 | `user_payment_methods` | `user_id` | `users` | `id` | **N : 1** | `CASCADE` | Metode pembayaran tersimpan / e-wallet tertaut (GoPay, OVO, ShopeePay, ParkSmart Pay, QRIS) milik pengguna |
 
 ---
 
@@ -917,6 +960,35 @@ Sistem menerapkan **dua jenis timer terpisah** untuk menjamin akurasi dan menceg
   - `is_active` (`BOOLEAN`): Penanda apakah kota tersebut aktif beroperasi (Default: `true`).
   - `created_at` (`TIMESTAMPTZ`): Timestamp pencatatan awal wilayah.
 
+
+### 6. Modul Metode Pembayaran Tersimpan & E-Wallet (`user_payment_methods`)
+- **`user_payment_methods`**:
+  - `id` (`UUID`, PK): Identitas unik baris metode pembayaran tersimpan (Default: `uuid_generate_v4()`).
+  - `user_id` (`UUID`, FK): Merujuk ke `users(id)` dengan relasi N:1 dan aksi `ON DELETE CASCADE`.
+  - `provider` (`VARCHAR(30)`): Jenis provider pembayaran e-wallet. Nilai dibatasi oleh CHECK constraint: `'parksmart_pay'`, `'gopay'`, `'ovo'`, `'shopeepay'`, `'qris'`.
+  - `account_number` (`VARCHAR(50)`): Nomor ponsel / nomor akun e-wallet yang terhubung (contoh: `'081234567890'`).
+  - `account_name` (`VARCHAR(100)`): Nama pemilik akun e-wallet yang terdaftar.
+  - `is_primary` (`BOOLEAN`): Penanda apakah metode pembayaran ini dijadikan pilihan utama saat checkout (Default: `false`).
+  - `is_auto_debet` (`BOOLEAN`): Penanda apakah saldo dari provider ini dapat didebet otomatis saat durasi parkir tersisa 5 menit (Default: `false`).
+  - `created_at` (`TIMESTAMPTZ`): Timestamp penautan metode pembayaran pertama kali.
+  - `updated_at` (`TIMESTAMPTZ`): Timestamp pembaruan pengaturan metode pembayaran.
+  - *Constraint*: `UNIQUE(user_id, provider)` untuk mencegah duplikasi penautan provider yang sama pada satu akun.
+
+### 7. Modul Pengaturan Keamanan, Biometrik & Preferensi Aplikasi (`user_security_settings`)
+- **`user_security_settings`**:
+  - `id` (`UUID`, PK): Identitas unik pengaturan keamanan (Default: `uuid_generate_v4()`).
+  - `user_id` (`UUID`, FK, UNIQUE): Merujuk ke `users(id)` dengan relasi 1:1 dan aksi `ON DELETE CASCADE`.
+  - `pin_hash` (`VARCHAR(255)`): Nilai hash aman PIN transaksi pengguna.
+  - `is_biometric_enabled` (`BOOLEAN`): Master switch fitur biometrik umum (Default: `true`).
+  - `is_fingerprint_enabled` (`BOOLEAN`): Switch otentikasi sensor sidik jari perangkat (Default: `true`).
+  - `is_face_id_enabled` (`BOOLEAN`): Switch otentikasi pengenalan wajah / Face ID perangkat (Default: `false`).
+  - `is_notification_enabled` (`BOOLEAN`): Switch penerimaan notifikasi push (Default: `true`).
+  - `is_auto_debet_enabled` (`BOOLEAN`): Master switch pemotongan saldo otomatis jika parkir mendekati batas waktu sisa 5 menit (Default: `true`).
+  - `preferred_currency` (`VARCHAR(5)`): Mata uang pilihan tampilan harga parkir: `'IDR'`, `'USD'`, `'EUR'`, `'SGD'`, `'JPY'`, `'MYR'` (Default: `'IDR'`).
+  - `theme_mode` (`VARCHAR(10)`): Mode tema visual aplikasi: `'dark'` atau `'light'` (Default: `'dark'`).
+  - `default_parking_preference` (`VARCHAR(30)`): Kategori default kendaraan yang dicari: `'Mobil SUV'`, `'Mobil Sedan/City'`, atau `'Motor Roda 2'`.
+  - `updated_at` (`TIMESTAMPTZ`): Timestamp terakhir perubahan preferensi/keamanan.
+
 ---
 
 ## 7. SKEMA DDL SQL SUPABASE (POSTGRESQL PRODUCTION READY)
@@ -1004,10 +1076,28 @@ CREATE TABLE public.user_security_settings (
     user_id UUID UNIQUE NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     pin_hash VARCHAR(255),
     is_biometric_enabled BOOLEAN DEFAULT TRUE,
+    is_fingerprint_enabled BOOLEAN DEFAULT TRUE,
     is_face_id_enabled BOOLEAN DEFAULT FALSE,
     is_notification_enabled BOOLEAN DEFAULT TRUE,
+    is_auto_debet_enabled BOOLEAN DEFAULT TRUE,
+    preferred_currency VARCHAR(5) DEFAULT 'IDR' CHECK (preferred_currency IN ('IDR', 'USD', 'EUR', 'SGD', 'JPY', 'MYR')),
+    theme_mode VARCHAR(10) DEFAULT 'dark' CHECK (theme_mode IN ('dark', 'light')),
     default_parking_preference VARCHAR(30) DEFAULT 'Mobil SUV',
     updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
+);
+
+-- 5b. METODE PEMBAYARAN TERSIMPAN & E-WALLET LINKING (USER PAYMENT METHODS)
+CREATE TABLE public.user_payment_methods (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    provider VARCHAR(30) NOT NULL CHECK (provider IN ('parksmart_pay', 'gopay', 'ovo', 'shopeepay', 'qris')),
+    account_number VARCHAR(50),
+    account_name VARCHAR(100),
+    is_primary BOOLEAN DEFAULT FALSE,
+    is_auto_debet BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    updated_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL,
+    CONSTRAINT unique_user_payment_provider UNIQUE (user_id, provider)
 );
 
 -- 6. KATEGORI KENDARAAN (VEHICLE CATEGORIES)
@@ -1163,7 +1253,7 @@ CREATE TABLE public.payments (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     booking_id UUID NOT NULL REFERENCES public.bookings(id) ON DELETE RESTRICT,
     invoice_number VARCHAR(50) UNIQUE NOT NULL,
-    payment_method VARCHAR(30) NOT NULL CHECK (payment_method IN ('wallet', 'qris', 'virtual_account', 'credit_card')),
+    payment_method VARCHAR(30) NOT NULL CHECK (payment_method IN ('parksmart_pay', 'gopay', 'ovo', 'shopeepay', 'qris', 'wallet', 'virtual_account', 'credit_card')),
     amount DECIMAL(10, 2) NOT NULL,
     payment_status VARCHAR(20) DEFAULT 'settled' CHECK (payment_status IN ('pending', 'settled', 'failed', 'refunded')),
     settled_at TIMESTAMPTZ DEFAULT TIMEZONE('utc'::text, NOW()) NOT NULL
@@ -1235,6 +1325,10 @@ CREATE TABLE public.arcade_games (
     is_active BOOLEAN DEFAULT TRUE
 );
 
+-- CATATAN ARSITEKTUR TERKINI:
+-- Sesuai kebutuhan aplikasi, skor/high score mini game kini disimpan secara LOKAL di perangkat
+-- (offline-first via SharedPreferences: parking_high_score & claws_car_high_score),
+-- BUKAN di database Supabase. Skema tabel ini dicadangkan hanya jika fitur Global Leaderboard cloud diaktifkan.
 CREATE TABLE public.arcade_scores (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     game_id VARCHAR(50) NOT NULL REFERENCES public.arcade_games(id) ON DELETE CASCADE,
@@ -1300,6 +1394,13 @@ CREATE INDEX idx_bookings_status ON public.bookings(status);
 CREATE INDEX idx_sessions_user ON public.parking_sessions(user_id);
 CREATE INDEX idx_vehicles_user ON public.vehicles(user_id);
 CREATE INDEX idx_wallet_tx_wallet ON public.wallet_transactions(wallet_id);
+CREATE INDEX idx_user_payment_methods_user ON public.user_payment_methods(user_id);
+
+-- SEED DATA AWAL MASTER KATALOG MINI GAME ARCADE
+INSERT INTO public.arcade_games (id, title, icon_name, is_active) VALUES
+('car_parking', 'Parkir Presisi (Car Parking Challenge)', 'local_parking_rounded', TRUE),
+('claws_car', 'Capit Mobil (ParkSmart Claw Crane)', 'precision_manufacturing_rounded', TRUE)
+ON CONFLICT (id) DO NOTHING;
 
 -- 24. FUNGSI OTOMATIS: AUTO-HANGUS / EXPIRED RESERVASI KEDATANGAN
 -- Contoh: Booking jam 14:00, batas check-in maks jam 17:00.
@@ -1487,6 +1588,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_wallets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_kyc_verifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_security_settings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.user_payment_methods ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.wallet_transactions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.vehicles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.bookings ENABLE ROW LEVEL SECURITY;
@@ -1496,6 +1598,11 @@ ALTER TABLE public.notifications ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.ai_system_configs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.cities ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.parking_locations ENABLE ROW LEVEL SECURITY;
+
+-- Pengguna hanya dapat membaca dan mengelola metode pembayaran miliknya sendiri
+CREATE POLICY "Users manage own payment methods" ON public.user_payment_methods
+    FOR ALL USING (auth.uid() = user_id)
+    WITH CHECK (auth.uid() = user_id);
 
 -- Pengguna hanya dapat melihat dan mengajukan berkas KYC KTP sendiri
 CREATE POLICY "Users can view own kyc" ON public.user_kyc_verifications FOR SELECT USING (auth.uid() = user_id);
@@ -1560,7 +1667,7 @@ Berikut adalah hasil audit komparasi antara seluruh folder pengguna non-admin (2
 | 13 | **Gedung Parkir Favorit (Bookmark)** | **[TIDAK]** | `user_favorites` | **Admin**: Tidak mengurusi preferensi personal.<br>**User**: Menandai gedung favorit sesuai preferensi pribadi pengguna. |
 | 14 | **Riwayat Chat Privat Jarvis AI** | **[TIDAK]** | *Lokal HP (Offline Storage)* | **Admin**: Tidak memiliki akses ke log percakapan privat user dengan AI.<br>**User**: Percakapan tersimpan aman secara offline di perangkat pengguna. |
 
-| 16 | **Pilihan Metode Pembayaran** | **[TIDAK]** | `payments` | **Admin**: Menerima laporan agregat pendapatan.<br>**User**: Memilih bebas antara ParkSmart Wallet, QRIS, Virtual Account, atau Kartu Kredit. |
+| 16 | **Pilihan Metode Pembayaran & E-Wallet Pribadi** | **[TIDAK]** | `payments`, `user_payment_methods` | **Admin**: Menerima laporan agregat pendapatan.<br>**User**: Menautkan akun e-wallet (GoPay, OVO, ShopeePay, ParkSmart Pay, QRIS), memilih metode utama, dan mengaktifkan Auto-Debet parkir. |
 | 17 | **Navigasi Kamera AR Petunjuk Slot** | **[TIDAK]** | *Frontend UI / AR Camera* | **Admin**: Hanya menyediakan koordinat fisik slot parkir.<br>**User**: Mengarahkan kamera HP untuk memandu langkah kaki menuju slot mobil. |
 
 ---

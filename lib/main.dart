@@ -2,10 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/currency_service.dart';
+import 'core/services/theme_service.dart';
+import 'theme/app_theme.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
-import 'package:google_fonts/google_fonts.dart';
-import 'theme/app_colors.dart';
 import 'features/auth/login_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -18,6 +19,8 @@ void main() async {
     debugPrint('Gagal load .env: $e');
   }
   await NotificationService().init();
+  await CurrencyService.instance.init();
+  await ThemeService.instance.init();
   
   // Meminta izin akses utama
   try {
@@ -50,44 +53,27 @@ class ParkSmartApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      navigatorKey: navigatorKey,
-      title: 'ParkSmart',
-      debugShowCheckedModeBanner: false,
-      scrollBehavior: const MaterialScrollBehavior().copyWith(
-        dragDevices: {PointerDeviceKind.mouse, PointerDeviceKind.touch, PointerDeviceKind.stylus, PointerDeviceKind.unknown},
-      ),
-      theme: ThemeData(
-        useMaterial3: true,
-        scaffoldBackgroundColor: AppColors.surface,
-        colorScheme: const ColorScheme.light(
-          primary: AppColors.primary,
-          secondary: AppColors.secondary,
-          surface: AppColors.surfaceCard,
-          onPrimary: AppColors.white,
-          onSecondary: AppColors.white,
-          onSurface: AppColors.textPrimary,
-        ),
-        fontFamily: GoogleFonts.plusJakartaSans().fontFamily,
-        appBarTheme: const AppBarTheme(
-          backgroundColor: Colors.transparent,
-          foregroundColor: AppColors.textPrimary,
-          elevation: 0,
-          systemOverlayStyle: SystemUiOverlayStyle(
-            statusBarColor: Colors.transparent,
-            statusBarIconBrightness: Brightness.dark,
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        return MaterialApp(
+          navigatorKey: navigatorKey,
+          title: 'SmartPark',
+          debugShowCheckedModeBanner: false,
+          themeMode: ThemeService.instance.themeMode,
+          theme: AppTheme.light,
+          darkTheme: AppTheme.dark,
+          scrollBehavior: const MaterialScrollBehavior().copyWith(
+            dragDevices: {
+              PointerDeviceKind.mouse,
+              PointerDeviceKind.touch,
+              PointerDeviceKind.stylus,
+              PointerDeviceKind.unknown
+            },
           ),
-        ),
-        inputDecorationTheme: const InputDecorationTheme(border: InputBorder.none),
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primary,
-            foregroundColor: AppColors.white,
-            elevation: 0,
-          ),
-        ),
-      ),
-      home: const LoginScreen(),
+          home: const LoginScreen(),
+        );
+      },
     );
   }
 }
