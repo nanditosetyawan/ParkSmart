@@ -16,6 +16,9 @@ import 'admin_bookings_screen.dart';
 import 'admin_transactions_screen.dart';
 import 'admin_ai_config_screen.dart';
 import 'admin_app_settings_screen.dart';
+import 'manage_parking_screen.dart';
+import 'manage_users_screen.dart';
+import 'revenue_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
 
@@ -263,10 +266,37 @@ class AdminDashboardScreen extends StatelessWidget {
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAppSettingsScreen())),
               ),
             ],
-          ),
-          const SizedBox(height: 24),
+                      ),
+                      const SizedBox(height: 24),
 
-          // Peringatan Terbaru
+                      // Baris Menu P3 (Consolidated Management)
+                      Row(
+                        children: [
+                          _buildSecondaryAction(
+                            context,
+                            icon: Icons.local_parking_outlined,
+                            label: 'Kelola Parkir',
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageParkingScreen())),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildSecondaryAction(
+                            context,
+                            icon: Icons.group_outlined,
+                            label: 'Kelola User',
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageUsersScreen())),
+                          ),
+                          const SizedBox(width: 10),
+                          _buildSecondaryAction(
+                            context,
+                            icon: Icons.analytics_outlined,
+                            label: 'Pendapatan',
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueScreen())),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 24),
+
+                      // Peringatan Terbaru
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [

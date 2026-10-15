@@ -19,6 +19,9 @@ import 'admin/admin_bookings_screen.dart';
 import 'admin/admin_transactions_screen.dart';
 import 'admin/admin_ai_config_screen.dart';
 import 'admin/admin_app_settings_screen.dart';
+import 'admin/manage_parking_screen.dart';
+import 'admin/manage_users_screen.dart';
+import 'admin/revenue_screen.dart';
 
 // AI Assistant
 import 'ai_assistant/ai_assistant_screen.dart';
@@ -119,24 +122,27 @@ class SitemapScreen extends StatelessWidget {
             _Item('Car Game', (c) => const CarGameScreen()),
           ]),
           _buildCategory('Admin / MCP Screens', [
-            _Item('Dashboard', (c) => const DashboardScreen()),
-            _Item('Locations', (c) => const LocationsScreen()),
-            _Item('Slot Management', (c) => const SlotManagementScreen()),
-            _Item('Active Users', (c) => const ActiveUsersScreen()),
-            _Item('Arcade & Reward', (c) => const ArcadeAdminScreen()),
-            _Item('Feedback', (c) => const FeedbackAdminScreen()),
-            _Item('Konfigurasi Tarif', (c) => const PricingScreen()),
-            _Item('Verifikasi KTP (KYC)', (c) => const AdminKycScreen()),
-            _Item('Injeksi Saldo Dompet', (c) => const AdminWalletScreen()),
-            _Item('Master Kota & Wilayah', (c) => const AdminCitiesScreen()),
-            _Item('Notifikasi Admin', (c) => const AdminNotificationsScreen()),
-            _Item('Kelola Admin (P1)', (c) => const AdminUserManagementScreen()),
-            _Item('Profil Customer (P1)', (c) => const AdminCustomerProfilesScreen()),
-            _Item('Manajemen Booking (P1)', (c) => const AdminBookingsScreen()),
-            _Item('Manajemen Transaksi (P1)', (c) => const AdminTransactionsScreen()),
-            _Item('Konfigurasi AI (P2)', (c) => const AdminAiConfigScreen()),
-            _Item('Pengaturan App (P2)', (c) => const AdminAppSettingsScreen()),
-          ]),
+                      _Item('Dashboard', (c) => const DashboardScreen()),
+                      _Item('Locations', (c) => const LocationsScreen()),
+                      _Item('Slot Management', (c) => const SlotManagementScreen()),
+                      _Item('Active Users', (c) => const ActiveUsersScreen()),
+                      _Item('Arcade & Reward', (c) => const ArcadeAdminScreen()),
+                      _Item('Feedback', (c) => const FeedbackAdminScreen()),
+                      _Item('Konfigurasi Tarif', (c) => const PricingScreen()),
+                      _Item('Verifikasi KTP (KYC)', (c) => const AdminKycScreen()),
+                      _Item('Injeksi Saldo Dompet', (c) => const AdminWalletScreen()),
+                      _Item('Master Kota & Wilayah', (c) => const AdminCitiesScreen()),
+                      _Item('Notifikasi Admin', (c) => const AdminNotificationsScreen()),
+                      _Item('Kelola Admin (P1)', (c) => const AdminUserManagementScreen()),
+                      _Item('Profil Customer (P1)', (c) => const AdminCustomerProfilesScreen()),
+                      _Item('Manajemen Booking (P1)', (c) => const AdminBookingsScreen()),
+                      _Item('Manajemen Transaksi (P1)', (c) => const AdminTransactionsScreen()),
+                      _Item('Konfigurasi AI (P2)', (c) => const AdminAiConfigScreen()),
+                      _Item('Pengaturan App (P2)', (c) => const AdminAppSettingsScreen()),
+                      _Item('Kelola Parkir (P3)', (c) => const ManageParkingScreen()),
+                      _Item('Kelola User (P3)', (c) => const ManageUsersScreen()),
+                      _Item('Pendapatan & Analytics (P3)', (c) => const RevenueScreen()),
+                    ]),
         ],
       ),
     );
