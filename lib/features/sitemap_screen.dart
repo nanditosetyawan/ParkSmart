@@ -17,6 +17,8 @@ import 'admin/admin_user_management_screen.dart';
 import 'admin/admin_customer_profiles_screen.dart';
 import 'admin/admin_bookings_screen.dart';
 import 'admin/admin_transactions_screen.dart';
+import 'admin/admin_ai_config_screen.dart';
+import 'admin/admin_app_settings_screen.dart';
 
 // AI Assistant
 import 'ai_assistant/ai_assistant_screen.dart';
@@ -132,6 +134,8 @@ class SitemapScreen extends StatelessWidget {
             _Item('Profil Customer (P1)', (c) => const AdminCustomerProfilesScreen()),
             _Item('Manajemen Booking (P1)', (c) => const AdminBookingsScreen()),
             _Item('Manajemen Transaksi (P1)', (c) => const AdminTransactionsScreen()),
+            _Item('Konfigurasi AI (P2)', (c) => const AdminAiConfigScreen()),
+            _Item('Pengaturan App (P2)', (c) => const AdminAppSettingsScreen()),
           ]),
         ],
       ),

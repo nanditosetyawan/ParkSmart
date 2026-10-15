@@ -14,6 +14,8 @@ import 'admin_user_management_screen.dart';
 import 'admin_customer_profiles_screen.dart';
 import 'admin_bookings_screen.dart';
 import 'admin_transactions_screen.dart';
+import 'admin_ai_config_screen.dart';
+import 'admin_app_settings_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
 
@@ -239,6 +241,26 @@ class AdminDashboardScreen extends StatelessWidget {
                 icon: Icons.receipt_long,
                 label: 'Transaksi',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
+              ),
+            ],
+          ),
+          const SizedBox(height: 24),
+
+          // Baris Menu P2 (AI Config & App Settings)
+          Row(
+            children: [
+              _buildSecondaryAction(
+                context,
+                icon: Icons.smart_toy_outlined,
+                label: 'Konfigurasi AI',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAiConfigScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.settings_outlined,
+                label: 'Pengaturan App',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAppSettingsScreen())),
               ),
             ],
           ),
