@@ -31,7 +31,22 @@ class AppTheme {
           statusBarBrightness: Brightness.light,
         ),
       ),
-      elevatedButtonTheme: ElevatedButtonThemeData(
+            timePickerTheme: TimePickerThemeData(
+        backgroundColor: const Color(0xFF1E232B),
+        dialBackgroundColor: const Color(0xFF262C36),
+        dialHandColor: const Color(0xFF2DD4BF),
+        dialTextColor: Colors.white,
+        hourMinuteColor: const Color(0xFF262C36),
+        hourMinuteTextColor: Colors.white,
+        dayPeriodColor: const Color(0xFF262C36),
+        dayPeriodTextColor: Colors.white,
+        entryModeIconColor: Colors.white70,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      ),
+      dialogTheme: const DialogThemeData(
+        backgroundColor: Color(0xFF1E232B),
+      ),
+elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF1C1C18),
           foregroundColor: Colors.white,

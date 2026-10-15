@@ -12,6 +12,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/services/theme_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -239,7 +240,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   @override
   Widget build(BuildContext context) {
-    final mediaQuery = MediaQuery.of(context);
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
+        final mediaQuery = MediaQuery.of(context);
     final double screenH = mediaQuery.size.height;
     final double bottomInset = mediaQuery.padding.bottom;
 
@@ -321,8 +327,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             height: sheetHeight + 150.0,
             child: Container(
               decoration: BoxDecoration(
-                color: const Color(0xFFFAF7F2), // Warna putih hangat sesuai tema
+                color: isDark ? Colors.black : const Color(0xFFFAF7F2), // Background yang dapat diseret jadi hitam saat darkmode
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(38)),
+                border: isDark ? Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 1)) : null,
                 boxShadow: [
                   BoxShadow(
                     color: Colors.black.withValues(alpha: 0.16),
@@ -412,20 +419,21 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             // Heading Selamat Datang
                             Text(
                               'Selamat Datang',
-                              style: AppTypography.displayHero(),
+                              style: AppTypography.displayHero(color: isDark ? Colors.white : null),
                             ),
 
                             // Formulir Input
                             const SizedBox(height: 24),
                             Padding(
                               padding: const EdgeInsets.only(left: 4, bottom: 8),
-                              child: Text('Email / No. Handphone', style: AppTypography.labelMd()),
+                              child: Text('Email / No. Handphone', style: AppTypography.labelMd(color: isDark ? Colors.white : null)),
                             ),
                             _PillInput(
                               controller: _emailController,
                               hintText: 'nama@email.com',
                               prefixIcon: Icons.alternate_email,
                               keyboardType: TextInputType.emailAddress,
+                              isDark: isDark,
                               onChanged: (_) {
                                 if (_remember) _saveCredentials();
                               },
@@ -437,12 +445,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               child: Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text('Kata Sandi', style: AppTypography.labelMd()),
+                                  Text('Kata Sandi', style: AppTypography.labelMd(color: isDark ? Colors.white : null)),
                                   GestureDetector(
                                     onTap: () {},
                                     child: Text(
                                       'Lupa Sandi?',
-                                      style: AppTypography.labelSm(color: AppColors.warmTerracotta),
+                                      style: AppTypography.labelSm(
+                                        color: isDark ? const Color(0xFFFB923C) : AppColors.warmTerracotta,
+                                      ),
                                     ),
                                   ),
                                 ],
@@ -455,6 +465,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               obscureText: _obscure,
                               suffixIcon: _obscure ? Icons.visibility_outlined : Icons.visibility_off_outlined,
                               onSuffixTap: () => setState(() => _obscure = !_obscure),
+                              isDark: isDark,
                               onChanged: (_) {
                                 if (_remember) _saveCredentials();
                               },
@@ -481,19 +492,29 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     height: 20,
                                     decoration: BoxDecoration(
                                       shape: BoxShape.circle,
-                                      color: _remember ? AppColors.primary : AppColors.surfaceCard,
+                                      color: _remember
+                                          ? (isDark ? Colors.white : AppColors.primary)
+                                          : (isDark ? const Color(0xFF1E232B) : AppColors.surfaceCard),
                                       border: Border.all(
-                                        color: _remember ? AppColors.primary : AppColors.warmBorder,
+                                        color: _remember
+                                            ? (isDark ? Colors.white : AppColors.primary)
+                                            : (isDark ? Colors.white54 : AppColors.warmBorder),
                                       ),
                                     ),
                                     child: _remember
-                                        ? Icon(Icons.check, size: 13, color: AppColors.white)
+                                        ? Icon(
+                                            Icons.check,
+                                            size: 13,
+                                            color: isDark ? Colors.black : AppColors.white,
+                                          )
                                         : null,
                                   ),
                                   const SizedBox(width: 7),
                                   Text(
                                     'Ingat saya di perangkat ini',
-                                    style: AppTypography.labelSm(color: AppColors.textSecondary),
+                                    style: AppTypography.labelSm(
+                                      color: isDark ? Colors.white : AppColors.textSecondary,
+                                    ),
                                   ),
                                 ],
                               ),
@@ -503,6 +524,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             const SizedBox(height: 20),
                             _StitchButton(
                               label: 'Masuk ke Akun',
+                              isDark: isDark,
                               onTap: () async {
                                 if (_remember) {
                                   await _saveCredentials();
@@ -520,12 +542,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             const SizedBox(height: 30),
                             Row(
                               children: [
-                                Expanded(child: Divider(color: AppColors.warmBorder)),
+                                Expanded(child: Divider(color: isDark ? Colors.white24 : AppColors.warmBorder)),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                                  child: Text('atau', style: AppTypography.caption(color: AppColors.textSecondary)),
+                                  child: Text(
+                                    'atau',
+                                    style: AppTypography.caption(
+                                      color: isDark ? Colors.white70 : AppColors.textSecondary,
+                                    ),
+                                  ),
                                 ),
-                                Expanded(child: Divider(color: AppColors.warmBorder)),
+                                Expanded(child: Divider(color: isDark ? Colors.white24 : AppColors.warmBorder)),
                               ],
                             ),
                             const SizedBox(height: 14),
@@ -538,6 +565,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     child: _SecondaryButton(
                                       label: 'Biometrik',
                                       icon: Icons.fingerprint,
+                                      isDark: isDark,
                                       onTap: () async {
                                         final LocalAuthentication auth = LocalAuthentication();
                                         try {
@@ -567,6 +595,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 Expanded(
                                   child: _SecondaryButton(
                                     label: 'Google',
+                                    isDark: isDark,
                                     customIcon: Image.network(
                                       'https://www.google.com/favicon.ico',
                                       width: 18,
@@ -589,15 +618,18 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 ),
                                 child: RichText(
                                   text: TextSpan(
-                                    style: AppTypography.bodySm(color: AppColors.textSecondary),
+                                    style: AppTypography.bodySm(
+                                      color: isDark ? Colors.white70 : AppColors.textSecondary,
+                                    ),
                                     children: [
                                       const TextSpan(text: 'Belum punya akun? '),
                                       TextSpan(
                                         text: 'Daftar Sekarang',
-                                        style: AppTypography.bodySm().copyWith(
+                                        style: AppTypography.bodySm(
+                                          color: isDark ? const Color(0xFFFB923C) : AppColors.warmTerracotta,
+                                        ).copyWith(
                                           fontWeight: FontWeight.w700,
                                           decoration: TextDecoration.underline,
-                                          color: AppColors.textPrimary,
                                         ),
                                       ),
                                     ],
@@ -850,6 +882,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         ],
       ),
     );
+      },
+    );
   }
 }
 
@@ -864,6 +898,7 @@ class _PillInput extends StatelessWidget {
   final TextInputType? keyboardType;
   final TextEditingController? controller;
   final ValueChanged<String>? onChanged;
+  final bool isDark;
 
   const _PillInput({
     required this.hintText,
@@ -874,6 +909,7 @@ class _PillInput extends StatelessWidget {
     this.keyboardType,
     this.controller,
     this.onChanged,
+    this.isDark = false,
   });
 
   @override
@@ -881,9 +917,11 @@ class _PillInput extends StatelessWidget {
     return Container(
       height: 54,
       decoration: BoxDecoration(
-        color: AppColors.surfaceCard,
+        color: isDark ? Colors.white : AppColors.surfaceCard, // Kolom field putih saat darkmode
         borderRadius: AppRadii.pillRadius,
-        border: Border.all(color: AppColors.warmBorder),
+        border: Border.all(
+          color: isDark ? const Color(0xFFE5E2DB) : AppColors.warmBorder,
+        ),
         boxShadow: const [AppShadows.field],
       ),
       child: Row(
@@ -892,7 +930,11 @@ class _PillInput extends StatelessWidget {
           SizedBox(
             width: 48,
             height: 48,
-            child: Icon(prefixIcon, size: 20, color: AppColors.textSecondary),
+            child: Icon(
+              prefixIcon,
+              size: 20,
+              color: isDark ? Colors.black87 : AppColors.textSecondary,
+            ),
           ),
           Expanded(
             child: TextField(
@@ -900,10 +942,14 @@ class _PillInput extends StatelessWidget {
               onChanged: onChanged,
               obscureText: obscureText,
               keyboardType: keyboardType,
-              style: AppTypography.bodyMd(),
+              style: AppTypography.bodyMd(
+                color: isDark ? Colors.black : AppColors.textPrimary,
+              ),
               decoration: InputDecoration(
                 hintText: hintText,
-                hintStyle: AppTypography.bodyMd(color: AppColors.textMuted.withValues(alpha: 0.7)),
+                hintStyle: AppTypography.bodyMd(
+                  color: isDark ? Colors.black54 : AppColors.textMuted.withValues(alpha: 0.7),
+                ),
                 border: InputBorder.none,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
@@ -917,7 +963,11 @@ class _PillInput extends StatelessWidget {
                 width: 40,
                 height: 40,
                 margin: const EdgeInsets.only(right: 4),
-                child: Icon(suffixIcon, size: 20, color: AppColors.textSecondary),
+                child: Icon(
+                  suffixIcon,
+                  size: 20,
+                  color: isDark ? Colors.black87 : AppColors.textSecondary,
+                ),
               ),
             ),
         ],
@@ -929,8 +979,13 @@ class _PillInput extends StatelessWidget {
 class _StitchButton extends StatelessWidget {
   final String label;
   final VoidCallback onTap;
+  final bool isDark;
 
-  const _StitchButton({required this.label, required this.onTap});
+  const _StitchButton({
+    required this.label,
+    required this.onTap,
+    this.isDark = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -940,15 +995,22 @@ class _StitchButton extends StatelessWidget {
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: AppColors.primary,
-          foregroundColor: AppColors.white,
+          backgroundColor: isDark ? Colors.white : AppColors.primary,
+          foregroundColor: isDark ? Colors.black : AppColors.white,
           elevation: 0,
           shadowColor: Colors.transparent,
           shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),
         ).copyWith(
-          overlayColor: WidgetStateProperty.all(AppColors.white.withValues(alpha: 0.08)),
+          overlayColor: WidgetStateProperty.all(
+            (isDark ? Colors.black : AppColors.white).withValues(alpha: 0.08),
+          ),
         ),
-        child: Text(label, style: AppTypography.buttonLg(color: AppColors.white)),
+        child: Text(
+          label,
+          style: AppTypography.buttonLg(
+            color: isDark ? Colors.black : AppColors.white,
+          ),
+        ),
       ),
     );
   }
@@ -959,8 +1021,15 @@ class _SecondaryButton extends StatelessWidget {
   final IconData? icon;
   final Widget? customIcon;
   final VoidCallback onTap;
+  final bool isDark;
 
-  const _SecondaryButton({required this.label, this.icon, this.customIcon, required this.onTap});
+  const _SecondaryButton({
+    required this.label,
+    this.icon,
+    this.customIcon,
+    required this.onTap,
+    this.isDark = false,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -969,9 +1038,11 @@ class _SecondaryButton extends StatelessWidget {
       child: Container(
         height: 52,
         decoration: BoxDecoration(
-          color: AppColors.surfaceCard,
+          color: isDark ? Colors.white : AppColors.surfaceCard,
           borderRadius: AppRadii.pillRadius,
-          border: Border.all(color: AppColors.warmBorder.withValues(alpha: 0.9)),
+          border: Border.all(
+            color: isDark ? const Color(0xFFE5E2DB) : AppColors.warmBorder.withValues(alpha: 0.9),
+          ),
           boxShadow: const [AppShadows.soft],
         ),
         child: Row(
@@ -980,13 +1051,25 @@ class _SecondaryButton extends StatelessWidget {
             Container(
               width: 28,
               height: 28,
-              decoration: BoxDecoration(color: AppColors.surfaceField, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFFF1EEE7) : AppColors.surfaceField,
+                shape: BoxShape.circle,
+              ),
               child: customIcon != null
                   ? Center(child: customIcon)
-                  : Icon(icon, size: 18, color: AppColors.textPrimary),
+                  : Icon(
+                      icon,
+                      size: 18,
+                      color: isDark ? Colors.black : AppColors.textPrimary,
+                    ),
             ),
             const SizedBox(width: 8),
-            Text(label, style: AppTypography.buttonSm()),
+            Text(
+              label,
+              style: AppTypography.buttonSm(
+                color: isDark ? Colors.black : null,
+              ),
+            ),
           ],
         ),
       ),

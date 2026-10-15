@@ -329,14 +329,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
             final currencyService = CurrencyService.instance;
             final currentCode = currencyService.currentCurrency;
             const sampleAmount = 145000;
+            final theme = ThemeService.instance;
+            final isDark = theme.isDarkMode;
 
             return Container(
               constraints: BoxConstraints(
                 maxHeight: MediaQuery.of(context).size.height * 0.82,
               ),
               decoration: BoxDecoration(
-                color: ThemeService.instance.card,
+                color: theme.card,
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
@@ -347,7 +350,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       width: 44,
                       height: 4,
                       decoration: BoxDecoration(
-                        color: ThemeService.instance.border,
+                        color: theme.border,
                         borderRadius: BorderRadius.circular(2),
                       ),
                     ),
@@ -366,7 +369,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               width: 42,
                               height: 42,
                               decoration: BoxDecoration(
-                                color: const Color(0xFF1C1C18),
+                                color: isDark ? const Color(0xFF262C36) : const Color(0xFF1C1C18),
                                 borderRadius: BorderRadius.circular(12),
                               ),
                               child: const Icon(
@@ -384,7 +387,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 17,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C18),
+                                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                   ),
                                 ),
                                 Row(
@@ -403,7 +406,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF15803D),
+                                        color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D),
                                       ),
                                     ),
                                   ],
@@ -427,22 +430,22 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           child: Container(
                             width: 36,
                             height: 36,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFECE7DC),
+                            decoration: BoxDecoration(
+                              color: isDark ? const Color(0xFF262C36) : const Color(0xFFECE7DC),
                               shape: BoxShape.circle,
                             ),
                             child: currencyService.isLoading
-                                ? const Padding(
-                                    padding: EdgeInsets.all(8),
+                                ? Padding(
+                                    padding: const EdgeInsets.all(8),
                                     child: CircularProgressIndicator(
                                       strokeWidth: 2,
-                                      color: Color(0xFF1C1C18),
+                                      color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                     ),
                                   )
-                                : const Icon(
+                                : Icon(
                                     Icons.refresh,
                                     size: 18,
-                                    color: Color(0xFF1C1C18),
+                                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                   ),
                           ),
                         ),
@@ -450,11 +453,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 18),
+                  const SizedBox(height: 16),
 
-                  // Live Preview Card
+                  // Simulation Card
                   Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 22),
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
                       padding: const EdgeInsets.all(16),
                       decoration: BoxDecoration(
@@ -463,7 +466,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        borderRadius: BorderRadius.circular(20),
+                        borderRadius: BorderRadius.circular(18),
                         boxShadow: [
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.1),
@@ -479,74 +482,74 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'SIMULASI KONVERSI HARGA',
+                                'SIMULASI KONVERSI BIAYA',
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 10,
-                                  fontWeight: FontWeight.w700,
-                                  letterSpacing: 0.8,
+                                  fontSize: 10.5,
+                                  fontWeight: FontWeight.bold,
                                   color: const Color(0xFF94A3B8),
+                                  letterSpacing: 0.8,
                                 ),
                               ),
                               Text(
-                                currencyService.getRateString(currentCode),
+                                'Contoh: 1 Jam Parkir',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10.5,
-                                  fontWeight: FontWeight.w600,
                                   color: const Color(0xFFFDBA74),
+                                  fontWeight: FontWeight.w600,
                                 ),
                               ),
                             ],
                           ),
-                          const SizedBox(height: 12),
+                          const SizedBox(height: 10),
                           Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            crossAxisAlignment: CrossAxisAlignment.baseline,
+                            textBaseline: TextBaseline.alphabetic,
                             children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Nominal Asal (IDR)',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      color: const Color(0xFFCBD5E1),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    'Rp 145.000',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.w700,
-                                      color: Colors.white,
-                                    ),
-                                  ),
-                                ],
+                              Text(
+                                currencyService.format(sampleAmount),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFCBD5E1),
+                                ),
                               ),
-                              const Icon(
-                                Icons.arrow_forward_rounded,
-                                color: Color(0xFF94A3B8),
-                                size: 20,
+                              const SizedBox(width: 8),
+                              Text(
+                                '(${currencyService.currentInfo.symbol})',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.w600,
+                                  color: Colors.white,
+                                ),
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.end,
-                                children: [
-                                  Text(
-                                    'Setelah Dikonversi ($currentCode)',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      color: const Color(0xFFCBD5E1),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    currencyService.format(sampleAmount, includeCode: true),
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 17,
-                                      fontWeight: FontWeight.w800,
-                                      color: const Color(0xFF4ADE80),
-                                    ),
-                                  ),
-                                ],
+                              const Spacer(),
+                              Text(
+                                'Dasar: Rp 145.000',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: const Color(0xFF94A3B8),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 6),
+                          Row(
+                            children: [
+                              Text(
+                                currencyService.getRateString('USD'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10.5,
+                                  color: const Color(0xFFCBD5E1),
+                                ),
+                              ),
+                              const Spacer(),
+                              Text(
+                                'Terakhir: ${currencyService.lastUpdated != null ? "${currencyService.lastUpdated!.hour.toString().padLeft(2, "0")}:${currencyService.lastUpdated!.minute.toString().padLeft(2, "0")}" : "Tersimpan"}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 10,
+                                  color: const Color(0xFF4ADE80),
+                                  fontWeight: FontWeight.w600,
+                                ),
                               ),
                             ],
                           ),
@@ -557,37 +560,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 16),
 
-                  // Currency Options List
+                  // Currency list
                   Expanded(
                     child: ListView.separated(
-                      padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 20),
                       itemCount: CurrencyService.supportedCurrencies.length,
-                      separatorBuilder: (context, index) => const SizedBox(height: 8),
+                      separatorBuilder: (ctx, i) => const SizedBox(height: 8),
                       itemBuilder: (context, index) {
-                        final code = CurrencyService.supportedCurrencies.keys.elementAt(index);
-                        final info = CurrencyService.supportedCurrencies[code]!;
-                        final isSelected = currentCode == code;
+                        final info = CurrencyService.supportedCurrencies.values.elementAt(index);
+                        final code = info.code;
+                        final isSelected = code == currentCode;
 
                         return GestureDetector(
                           onTap: () async {
                             await currencyService.setCurrency(code);
                             setModalState(() {});
                             setState(() {});
-                            if (ctx.mounted) Navigator.pop(ctx);
-                            _showSuccessToast(
-                              'Mata uang diubah ke ${info.name}. Semua harga otomatis dikonversi!',
-                            );
+                            if (context.mounted) {
+                              Navigator.pop(context);
+                            }
+                            _showSuccessToast('Mata uang diubah ke $code (${info.name})');
                           },
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 160),
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                             decoration: BoxDecoration(
-                              color: isSelected ? Colors.white : const Color(0xFFF7F5EE),
+                              color: isSelected
+                                  ? (isDark ? const Color(0xFF262C36) : Colors.white)
+                                  : (isDark ? const Color(0xFF181C22) : const Color(0xFFF7F5EE)),
                               borderRadius: BorderRadius.circular(16),
                               border: Border.all(
                                 color: isSelected
-                                    ? const Color(0xFF1C1C18)
-                                    : const Color(0xFFEBE6DC),
+                                    ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                                    : (isDark ? const Color(0xFF2D3542) : const Color(0xFFEBE6DC)),
                                 width: isSelected ? 1.5 : 1,
                               ),
                               boxShadow: isSelected
@@ -618,7 +623,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14.5,
                                               fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF1C1C18),
+                                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                             ),
                                           ),
                                           const SizedBox(width: 8),
@@ -628,7 +633,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               vertical: 2,
                                             ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFECE7DC),
+                                              color: isDark ? const Color(0xFF111418) : const Color(0xFFECE7DC),
                                               borderRadius: BorderRadius.circular(6),
                                             ),
                                             child: Text(
@@ -636,7 +641,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 10,
                                                 fontWeight: FontWeight.w700,
-                                                color: const Color(0xFF1C1C18),
+                                                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1C1C18),
                                               ),
                                             ),
                                           ),
@@ -647,7 +652,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         info.name,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
-                                          color: const Color(0xFF62615B),
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF62615B),
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -656,7 +661,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 10.5,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF9E9B90),
+                                          color: isDark ? const Color(0xFF64748B) : const Color(0xFF9E9B90),
                                         ),
                                       ),
                                     ],
@@ -668,20 +673,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
                                     color: isSelected
-                                        ? const Color(0xFF1C1C18)
+                                        ? (isDark ? Colors.white : const Color(0xFF1C1C18))
                                         : Colors.transparent,
                                     border: Border.all(
                                       color: isSelected
-                                          ? const Color(0xFF1C1C18)
-                                          : const Color(0xFFCBD5E1),
+                                          ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                                          : (isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
                                       width: 2,
                                     ),
                                   ),
                                   child: isSelected
-                                      ? const Icon(
+                                      ? Icon(
                                           Icons.check,
                                           size: 14,
-                                          color: Colors.white,
+                                          color: isDark ? Colors.black : Colors.white,
                                         )
                                       : null,
                                 ),
@@ -704,6 +709,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showParkingPrefSelection(BuildContext context) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -713,15 +721,34 @@ class _SettingsScreenState extends State<SettingsScreen> {
           builder: (context, setModalState) {
             return Container(
               padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: isDark ? theme.card : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
               ),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Preferensi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  Center(
+                    child: Container(
+                      width: 40,
+                      height: 4,
+                      margin: const EdgeInsets.only(bottom: 20),
+                      decoration: BoxDecoration(
+                        color: isDark ? theme.border : const Color(0xFFE5E2DB),
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  Text(
+                    'Preferensi Parkir',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? Colors.white : const Color(0xFF1A1A18),
+                    ),
+                  ),
                   const SizedBox(height: 24),
                   
                   // SUV
@@ -734,19 +761,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       height: 64,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: _selectedParkingPref == 'Mobil SUV' ? const Color(0xFFF1EEE7) : Colors.transparent,
+                        color: _selectedParkingPref == 'Mobil SUV'
+                            ? (isDark ? theme.surfaceField : const Color(0xFFF1EEE7))
+                            : (isDark ? theme.card : Colors.transparent),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _selectedParkingPref == 'Mobil SUV' ? const Color(0xFF1C1C18) : Colors.transparent),
+                        border: Border.all(
+                          color: _selectedParkingPref == 'Mobil SUV'
+                              ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                              : (isDark ? theme.border : Colors.transparent),
+                          width: _selectedParkingPref == 'Mobil SUV' ? 1.5 : 1,
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.directions_car, color: const Color(0xFF1C1C18)),
+                          Icon(
+                            Icons.directions_car,
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Text('Golongan Mobil SUV', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                            child: Text(
+                              'Golongan Mobil SUV',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                              ),
+                            ),
                           ),
                           if (_selectedParkingPref == 'Mobil SUV')
-                            const Icon(Icons.check_circle, color: Color(0xFF1C1C18)),
+                            Icon(
+                              Icons.check_circle,
+                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                            ),
                         ],
                       ),
                     ),
@@ -763,19 +810,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       height: 64,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: _selectedParkingPref == 'Mobil Sedan/City' ? const Color(0xFFF1EEE7) : Colors.transparent,
+                        color: _selectedParkingPref == 'Mobil Sedan/City'
+                            ? (isDark ? theme.surfaceField : const Color(0xFFF1EEE7))
+                            : (isDark ? theme.card : Colors.transparent),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _selectedParkingPref == 'Mobil Sedan/City' ? const Color(0xFF1C1C18) : Colors.transparent),
+                        border: Border.all(
+                          color: _selectedParkingPref == 'Mobil Sedan/City'
+                              ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                              : (isDark ? theme.border : Colors.transparent),
+                          width: _selectedParkingPref == 'Mobil Sedan/City' ? 1.5 : 1,
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.directions_car, color: const Color(0xFF1C1C18)),
+                          Icon(
+                            Icons.directions_car,
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Text('Golongan Mobil Sedan/City', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                            child: Text(
+                              'Golongan Mobil Sedan/City',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                              ),
+                            ),
                           ),
                           if (_selectedParkingPref == 'Mobil Sedan/City')
-                            const Icon(Icons.check_circle, color: Color(0xFF1C1C18)),
+                            Icon(
+                              Icons.check_circle,
+                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                            ),
                         ],
                       ),
                     ),
@@ -792,19 +859,39 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       height: 64,
                       padding: const EdgeInsets.symmetric(horizontal: 16),
                       decoration: BoxDecoration(
-                        color: _selectedParkingPref == 'Motor Roda 2' ? const Color(0xFFF1EEE7) : Colors.transparent,
+                        color: _selectedParkingPref == 'Motor Roda 2'
+                            ? (isDark ? theme.surfaceField : const Color(0xFFF1EEE7))
+                            : (isDark ? theme.card : Colors.transparent),
                         borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: _selectedParkingPref == 'Motor Roda 2' ? const Color(0xFF1C1C18) : Colors.transparent),
+                        border: Border.all(
+                          color: _selectedParkingPref == 'Motor Roda 2'
+                              ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                              : (isDark ? theme.border : Colors.transparent),
+                          width: _selectedParkingPref == 'Motor Roda 2' ? 1.5 : 1,
+                        ),
                       ),
                       child: Row(
                         children: [
-                          Icon(Icons.two_wheeler, color: const Color(0xFF1C1C18)),
+                          Icon(
+                            Icons.two_wheeler,
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                          ),
                           const SizedBox(width: 16),
                           Expanded(
-                            child: Text('Motor Roda 2', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                            child: Text(
+                              'Motor Roda 2',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                              ),
+                            ),
                           ),
                           if (_selectedParkingPref == 'Motor Roda 2')
-                            const Icon(Icons.check_circle, color: Color(0xFF1C1C18)),
+                            Icon(
+                              Icons.check_circle,
+                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                            ),
                         ],
                       ),
                     ),
@@ -821,6 +908,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageSelection(BuildContext context) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
@@ -828,41 +918,78 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) {
         return Container(
           padding: const EdgeInsets.all(24),
-          decoration: const BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+          decoration: BoxDecoration(
+            color: isDark ? theme.card : Colors.white,
+            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+            border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('Setel Bahasa', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  margin: const EdgeInsets.only(bottom: 20),
+                  decoration: BoxDecoration(
+                    color: isDark ? theme.border : const Color(0xFFE5E2DB),
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              Text(
+                'Setel Bahasa',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : const Color(0xFF1A1A18),
+                ),
+              ),
               const SizedBox(height: 24),
               // Indonesia
               GestureDetector(
                 onTap: () {
                   Navigator.pop(context);
-                  // Optionally add setState to change active language state if it existed
                 },
                 child: Container(
                   height: 64, // "se jempol" height
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF6F3EC),
+                    color: isDark ? theme.surfaceField : const Color(0xFFF6F3EC),
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFF1A1A18), width: 1.5), // Active style
+                    border: Border.all(
+                      color: isDark ? Colors.white : const Color(0xFF1A1A18),
+                      width: 1.5,
+                    ), // Active style
                   ),
                   child: Row(
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: Image.network('https://flagcdn.com/w320/id.png', width: 32, height: 24, fit: BoxFit.cover),
+                        child: Image.network(
+                          'https://flagcdn.com/w320/id.png',
+                          width: 32,
+                          height: 24,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text('Bahasa Indonesia', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        child: Text(
+                          'Bahasa Indonesia',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF1A1A18),
+                          ),
+                        ),
                       ),
-                      const Icon(Icons.check_circle, color: Color(0xFF1A1A18), size: 20),
+                      Icon(
+                        Icons.check_circle,
+                        color: isDark ? Colors.white : const Color(0xFF1A1A18),
+                        size: 20,
+                      ),
                     ],
                   ),
                 ),
@@ -877,19 +1004,33 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   height: 64,
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? theme.card : Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: const Color(0xFFE5E2DB)),
+                    border: Border.all(
+                      color: isDark ? theme.border : const Color(0xFFE5E2DB),
+                    ),
                   ),
                   child: Row(
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(4),
-                        child: Image.network('https://flagcdn.com/w320/gb.png', width: 32, height: 24, fit: BoxFit.cover),
+                        child: Image.network(
+                          'https://flagcdn.com/w320/gb.png',
+                          width: 32,
+                          height: 24,
+                          fit: BoxFit.cover,
+                        ),
                       ),
                       const SizedBox(width: 16),
                       Expanded(
-                        child: Text('English', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18))),
+                        child: Text(
+                          'English',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                            color: isDark ? theme.textSecondary : const Color(0xFF1A1A18),
+                          ),
+                        ),
                       ),
                     ],
                   ),

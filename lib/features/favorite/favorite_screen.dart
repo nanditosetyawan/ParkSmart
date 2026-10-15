@@ -1,6 +1,7 @@
-import 'package:flutter/material.dart';
+﻿import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
+import '../../core/services/theme_service.dart';
 import '../parking/parking_detail_screen.dart';
 
 class FavoriteScreen extends StatefulWidget {
@@ -11,7 +12,6 @@ class FavoriteScreen extends StatefulWidget {
 }
 
 class _FavoriteScreenState extends State<FavoriteScreen> {
-  // Data dummy favorite sesuai dengan data di explore_map_screen.dart
   final List<Map<String, dynamic>> _allFavorites = [
     {
       'name': 'Central Park Mall Parking',
@@ -91,191 +91,216 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => ParkingDetailScreen(),
+        builder: (context) => const ParkingDetailScreen(),
       ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1F1F1F)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Text(
-          'Favorite Parking',
-          style: GoogleFonts.inter(
-            color: const Color(0xFF1F1F1F),
-            fontWeight: FontWeight.w700,
-            fontSize: 18,
-          ),
-        ),
-        centerTitle: true,
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-            child: Container(
-              height: 48,
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: TextField(
-                controller: _searchController,
-                onChanged: _onSearchChanged,
-                decoration: InputDecoration(
-                  hintText: 'Cari tempat favorit...',
-                  hintStyle: GoogleFonts.inter(color: const Color(0xFF9CA3AF), fontSize: 14),
-                  prefixIcon: const Icon(Icons.search, color: Color(0xFF6B7280)),
-                  border: InputBorder.none,
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
+
+        final bg = isDark ? theme.bg : Colors.white;
+        final textMain = isDark ? Colors.white : const Color(0xFF1F1F1F);
+        final textSub = isDark ? theme.textMuted : const Color(0xFF6B7280);
+        final cardBg = isDark ? theme.card : Colors.white;
+        final cardBorder = isDark ? theme.border : const Color(0xFFF3F4F6);
+        final searchBg = isDark ? theme.surfaceField : const Color(0xFFF3F4F6);
+
+        return Scaffold(
+          backgroundColor: bg,
+          appBar: AppBar(
+            backgroundColor: bg,
+            elevation: 0,
+            scrolledUnderElevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: textMain),
+              onPressed: () => Navigator.pop(context),
+            ),
+            title: Text(
+              'Favorite Parking',
+              style: GoogleFonts.inter(
+                color: textMain,
+                fontWeight: FontWeight.w700,
+                fontSize: 18,
               ),
             ),
+            centerTitle: true,
           ),
-          
-          // List
-          Expanded(
-            child: _displayedFavorites.isEmpty
-                ? Center(
-                    child: Text(
-                      'Tidak ditemukan tempat parkir.',
-                      style: GoogleFonts.inter(color: const Color(0xFF6B7280), fontSize: 14),
+          body: Column(
+            children: [
+              // Search Bar
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                child: Container(
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: searchBg,
+                    borderRadius: BorderRadius.circular(12),
+                    border: isDark ? Border.all(color: cardBorder) : null,
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: _onSearchChanged,
+                    style: GoogleFonts.inter(color: textMain, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Cari tempat favorit...',
+                      hintStyle: GoogleFonts.inter(color: textSub, fontSize: 14),
+                      prefixIcon: Icon(Icons.search, color: textSub),
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                    itemCount: _displayedFavorites.length,
-                    itemBuilder: (context, index) {
-                      final loc = _displayedFavorites[index];
-                      final isEv = loc['isEv'] == true;
-                      final String imgUrl = (loc['photos'] as List).first;
+                  ),
+                ),
+              ),
 
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 16),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
-                          border: Border.all(color: const Color(0xFFF3F4F6), width: 1),
+              // List
+              Expanded(
+                child: _displayedFavorites.isEmpty
+                    ? Center(
+                        child: Text(
+                          'Tidak ditemukan tempat parkir.',
+                          style: GoogleFonts.inter(color: textSub, fontSize: 14),
                         ),
-                        child: Row(
-                          children: [
-                            // Foto Parkir
-                            ClipRRect(
-                              borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-                              child: Image.network(
-                                imgUrl,
-                                width: 110,
-                                height: 120,
-                                fit: BoxFit.cover,
-                                errorBuilder: (c, e, s) => Container(
-                                  width: 110,
-                                  height: 120,
-                                  color: Colors.grey[200],
-                                  child: const Icon(Icons.local_parking, color: Colors.grey),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                        itemCount: _displayedFavorites.length,
+                        itemBuilder: (context, index) {
+                          final loc = _displayedFavorites[index];
+                          final isEv = loc['isEv'] == true;
+                          final String imgUrl = (loc['photos'] as List).first;
+
+                          return Container(
+                            margin: const EdgeInsets.only(bottom: 16),
+                            decoration: BoxDecoration(
+                              color: cardBg,
+                              borderRadius: BorderRadius.circular(16),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 4),
                                 ),
-                              ),
+                              ],
+                              border: Border.all(color: cardBorder, width: 1),
                             ),
-                            const SizedBox(width: 12),
-                            // Info Parkir
-                            Expanded(
-                              child: Padding(
-                                padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      loc['name'],
-                                      style: GoogleFonts.inter(
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                        color: const Color(0xFF1F1F1F),
-                                      ),
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
+                            child: Row(
+                              children: [
+                                // Foto Parkir
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
+                                  child: Image.network(
+                                    imgUrl,
+                                    width: 110,
+                                    height: 120,
+                                    fit: BoxFit.cover,
+                                    errorBuilder: (c, e, s) => Container(
+                                      width: 110,
+                                      height: 120,
+                                      color: isDark ? theme.surfaceField : Colors.grey[200],
+                                      child: Icon(Icons.local_parking, color: textSub),
                                     ),
-                                    const SizedBox(height: 4),
-                                    Text(
-                                      '${loc['distance']} • ${loc['price']}',
-                                      style: GoogleFonts.inter(
-                                        fontSize: 12,
-                                        color: const Color(0xFF6B7280),
-                                        fontWeight: FontWeight.w500,
-                                      ),
-                                    ),
-                                    const SizedBox(height: 12),
-                                    Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                // Info Parkir
+                                Expanded(
+                                  child: Padding(
+                                    padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        // Indikator EV atau Mobil biasa
-                                        Container(
-                                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                          decoration: BoxDecoration(
-                                            color: isEv ? const Color(0xFFDEF7EC) : const Color(0xFFE1EFFE),
-                                            borderRadius: BorderRadius.circular(6),
+                                        Text(
+                                          loc['name'],
+                                          style: GoogleFonts.inter(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w700,
+                                            color: textMain,
                                           ),
-                                          child: Text(
-                                            isEv ? 'EV Charging' : 'Parkir Reguler',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 10,
-                                              fontWeight: FontWeight.w600,
-                                              color: isEv ? const Color(0xFF03543F) : const Color(0xFF1E429F),
-                                            ),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          '${loc['distance']} • ${loc['price']}',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            color: textSub,
+                                            fontWeight: FontWeight.w500,
                                           ),
                                         ),
-                                        // Tombol Buka
-                                        Padding(
-                                          padding: const EdgeInsets.only(right: 12),
-                                          child: InkWell(
-                                            onTap: () => _openDetail(loc),
-                                            borderRadius: BorderRadius.circular(8),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                        const SizedBox(height: 12),
+                                        Row(
+                                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                          children: [
+                                            // Indikator EV atau Mobil biasa
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF1A73E8),
-                                                borderRadius: BorderRadius.circular(8),
+                                                color: isEv
+                                                    ? (isDark
+                                                        ? const Color(0xFF064E3B).withValues(alpha: 0.5)
+                                                        : const Color(0xFFDEF7EC))
+                                                    : (isDark
+                                                        ? const Color(0xFF1E3A8A).withValues(alpha: 0.5)
+                                                        : const Color(0xFFE1EFFE)),
+                                                borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
-                                                'Buka',
+                                                isEv ? 'EV Charging' : 'Parkir Reguler',
                                                 style: GoogleFonts.inter(
-                                                  color: Colors.white,
-                                                  fontSize: 12,
+                                                  fontSize: 10,
                                                   fontWeight: FontWeight.w600,
+                                                  color: isEv
+                                                      ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF03543F))
+                                                      : (isDark ? const Color(0xFF93C5FD) : const Color(0xFF1E429F)),
                                                 ),
                                               ),
                                             ),
-                                          ),
+                                            // Tombol Buka
+                                            Padding(
+                                              padding: const EdgeInsets.only(right: 12),
+                                              child: InkWell(
+                                                onTap: () => _openDetail(loc),
+                                                borderRadius: BorderRadius.circular(8),
+                                                child: Container(
+                                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(0xFF1A73E8),
+                                                    borderRadius: BorderRadius.circular(8),
+                                                  ),
+                                                  child: Text(
+                                                    'Buka',
+                                                    style: GoogleFonts.inter(
+                                                      color: Colors.white,
+                                                      fontSize: 12,
+                                                      fontWeight: FontWeight.w600,
+                                                    ),
+                                                  ),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  ),
                                 ),
-                              ),
+                              ],
                             ),
-                          ],
-                        ),
-                      );
-                    },
-                  ),
+                          );
+                        },
+                      ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

@@ -1,8 +1,8 @@
+import '../../core/services/theme_service.dart';
 import 'package:flutter/material.dart';
 import '../pin/pin_screen.dart';
 import '../session/active_session_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../home/home_screen.dart';
 
 class ExtendSessionScreen extends StatefulWidget {
   const ExtendSessionScreen({super.key});
@@ -26,307 +26,623 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
   Widget build(BuildContext context) {
     final selectedOption = _options[_selectedIndex];
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFFFCF9F2),
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF1C1C18)),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('PARKSMART', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF9A442D), letterSpacing: 1.5)),
-            Text('Extend Parking Session', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-          ],
-        ),
-      ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
-        children: [
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
 
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(24),
-              boxShadow: const [
-                BoxShadow(color: Color(0x0A000000), offset: Offset(0, 8), blurRadius: 30)
-              ],
+        return Scaffold(
+          backgroundColor: isDark ? theme.bg : const Color(0xFFFCF9F2),
+          appBar: AppBar(
+            backgroundColor: isDark ? theme.bg : const Color(0xFFFCF9F2),
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : const Color(0xFF1C1C18)),
+              onPressed: () => Navigator.pop(context),
             ),
-            child: Column(
+            title: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.local_parking, size: 16, color: Color(0xFF9A442D)),
-                            const SizedBox(width: 4),
-                            Text('Lokasi & Penempatan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
-                        Text('Slot A-05', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF020304))),
-                        Text('Lantai B2 • Pilar 14', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF45474A))),
-                      ],
-                    ),
-                    Container(
-                      width: 48, height: 48,
-                      decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle),
-                      child: const Icon(Icons.directions_car, color: Color(0xFF1C1D1F)),
+                Text(
+                  'PARKSMART',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? const Color(0xFFFB923C) : const Color(0xFF9A442D),
+                    letterSpacing: 1.5,
+                  ),
+                ),
+                Text(
+                  'Extend Parking Session',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          body: ListView(
+            padding: const EdgeInsets.all(20),
+            children: [
+              // Top Card Lokasi & Penempatan
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF181C22) : Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.04),
+                      offset: const Offset(0, 8),
+                      blurRadius: 30,
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E2DB))),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Sisa Waktu Sesi Ini', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
-                          Text('01:41:19', style: GoogleFonts.plusJakartaSans(fontSize: 32, fontWeight: FontWeight.bold, color: const Color(0xFF020304))),
-                        ],
-                      ),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
-                            child: Text('Batas Selesai', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                          ),
-                          const SizedBox(height: 4),
-                          Text('16:02 WIB', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                const Icon(Icons.local_parking, size: 16, color: Color(0xFF9A442D)),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Lokasi & Penempatan',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Slot A-05',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white : const Color(0xFF020304),
+                              ),
+                            ),
+                            Text(
+                              'Lantai B2 • Pilar 14',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.directions_car,
+                            color: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF262C36) : Colors.white,
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Sisa Waktu Sesi Ini',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
+                                ),
+                              ),
+                              Text(
+                                '01:41:19',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 32,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : const Color(0xFF020304),
+                                ),
+                              ),
+                            ],
+                          ),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF181C22) : const Color(0xFFF1EEE7),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: Text(
+                                  'Batas Selesai',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                '16:02 WIB',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 16),
                     Row(
                       children: [
                         const Icon(Icons.verified, size: 18, color: Color(0xFF059669)),
                         const SizedBox(width: 8),
-                        Text('Toyota Raize • B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                        Text(
+                          'Toyota Raize • B 1234 XYZ',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                          ),
+                        ),
                       ],
                     ),
-                  
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('PILIH DURASI TAMBAHAN', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
-              Text('Maks. +4 Jam', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF9A442D))),
-            ],
-          ),
-          const SizedBox(height: 12),
-          GridView.builder(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-              childAspectRatio: 1.4,
-            ),
-            itemCount: _options.length,
-            itemBuilder: (context, index) {
-              final option = _options[index];
-              final isSelected = _selectedIndex == index;
-              return GestureDetector(
-                onTap: () => setState(() => _selectedIndex = index),
-                child: Container(
-                  decoration: BoxDecoration(
-                    color: isSelected ? const Color(0xFF1C1D1F) : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    boxShadow: isSelected ? const [
-                      BoxShadow(color: Color(0x2E1C1D1F), offset: Offset(0, 10), blurRadius: 24)
-                    ] : const [
-                      BoxShadow(color: Color(0x0A000000), offset: Offset(0, 4), blurRadius: 10)
-                    ],
+              ),
+              const SizedBox(height: 24),
+
+              // Title Section Pilih Durasi
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'PILIH DURASI TAMBAHAN',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
+                    ),
                   ),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: Stack(
-                      children: [
-                        if (option['popular'])
-                          Positioned(
-                            top: 27, right: -45,
-                            child: Transform.rotate(
-                              angle: 0.785398,
-                              child: Container(
-                                width: 160,
-                                alignment: Alignment.center,
-                                padding: const EdgeInsets.symmetric(vertical: 3),
-                                color: const Color(0xFFFC9174),
-                                child: Text('POPULER', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.w900, color: const Color(0xFF742814), letterSpacing: 1.0)),
+                  Text(
+                    'Maks. +4 Jam',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFFFB923C) : const Color(0xFF9A442D),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 12),
+
+              // Grid Durasi: Di-reverse (yang putih jadi hitam, yang hitam jadi putih)
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: 12,
+                  mainAxisSpacing: 12,
+                  childAspectRatio: 1.4,
+                ),
+                itemCount: _options.length,
+                itemBuilder: (context, index) {
+                  final option = _options[index];
+                  final isSelected = _selectedIndex == index;
+
+                  // Penentuan warna dengan aturan reverse saat dark mode:
+                  // Light mode: isSelected = hitam (0xFF1C1D1F), !isSelected = putih (Colors.white)
+                  // Dark mode: isSelected = putih (Colors.white), !isSelected = hitam (0xFF181C22)
+                  final Color cardBg;
+                  final Color titleColor;
+                  final Color costColor;
+                  final Color timeColor;
+                  final Border? cardBorder;
+
+                  if (isDark) {
+                    if (isSelected) {
+                      cardBg = Colors.white; // yang hitam jadi putih
+                      titleColor = const Color(0xFF020304);
+                      costColor = const Color(0xFF020304);
+                      timeColor = const Color(0xFF5F6368);
+                      cardBorder = Border.all(color: Colors.white, width: 1.5);
+                    } else {
+                      cardBg = const Color(0xFF181C22); // yang putih jadi hitam
+                      titleColor = Colors.white;
+                      costColor = Colors.white;
+                      timeColor = const Color(0xFF94A3B8);
+                      cardBorder = Border.all(color: const Color(0xFF2D3542), width: 1);
+                    }
+                  } else {
+                    if (isSelected) {
+                      cardBg = const Color(0xFF1C1D1F);
+                      titleColor = Colors.white;
+                      costColor = Colors.white;
+                      timeColor = const Color(0xFF858587);
+                      cardBorder = null;
+                    } else {
+                      cardBg = Colors.white;
+                      titleColor = const Color(0xFF020304);
+                      costColor = const Color(0xFF020304);
+                      timeColor = const Color(0xFF45474A);
+                      cardBorder = null;
+                    }
+                  }
+
+                  return GestureDetector(
+                    onTap: () => setState(() => _selectedIndex = index),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: cardBg,
+                        borderRadius: BorderRadius.circular(16),
+                        border: cardBorder,
+                        boxShadow: isSelected
+                            ? [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.18),
+                                  offset: const Offset(0, 10),
+                                  blurRadius: 24,
+                                ),
+                              ]
+                            : [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                                  offset: const Offset(0, 4),
+                                  blurRadius: 10,
+                                ),
+                              ],
+                      ),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: Stack(
+                          children: [
+                            // Pita POPULER: Tetap jangan ubah warna
+                            if (option['popular'])
+                              Positioned(
+                                top: 27,
+                                right: -45,
+                                child: Transform.rotate(
+                                  angle: 0.785398,
+                                  child: Container(
+                                    width: 160,
+                                    alignment: Alignment.center,
+                                    padding: const EdgeInsets.symmetric(vertical: 3),
+                                    color: const Color(0xFFFC9174),
+                                    child: Text(
+                                      'POPULER',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 9,
+                                        fontWeight: FontWeight.w900,
+                                        color: const Color(0xFF742814),
+                                        letterSpacing: 1.0,
+                                      ),
+                                    ),
+                                  ),
+                                ),
                               ),
-                            ),
-                          ),
-                        Padding(
-                          padding: const EdgeInsets.all(12),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Row(
+                            Padding(
+                              padding: const EdgeInsets.all(12),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
-                                  Text(option['title'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF020304))),
-                                  Container(
-                                    width: 20, height: 20,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      color: isSelected ? const Color(0xFF9A442D) : const Color(0xFFEBE8E1),
-                                    ),
-                                    child: isSelected ? Center(child: Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle))) : null,
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                    children: [
+                                      Text(
+                                        option['title'],
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                          color: titleColor,
+                                        ),
+                                      ),
+                                      // Radio button: Warna tetap jangan ubah
+                                      Container(
+                                        width: 20,
+                                        height: 20,
+                                        decoration: BoxDecoration(
+                                          shape: BoxShape.circle,
+                                          color: isSelected
+                                              ? const Color(0xFF9A442D) // Tetap 0xFF9A442D
+                                              : (isDark ? const Color(0xFF333842) : const Color(0xFFEBE8E1)),
+                                        ),
+                                        child: isSelected
+                                            ? Center(
+                                                child: Container(
+                                                  width: 8,
+                                                  height: 8,
+                                                  decoration: const BoxDecoration(
+                                                    color: Colors.white, // Tetap dot putih
+                                                    shape: BoxShape.circle,
+                                                  ),
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                    ],
+                                  ),
+                                  Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        option['cost'],
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 18,
+                                          fontWeight: FontWeight.bold,
+                                          color: costColor,
+                                        ),
+                                      ),
+                                      Text(
+                                        option['time'],
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          color: timeColor,
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(option['cost'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF020304))),
-                                  Text(option['time'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: isSelected ? const Color(0xFF858587) : const Color(0xFF45474A))),
-                                ],
-                              ),
-                            ],
-                          ),
+                            ),
+                          ],
                         ),
-                      ],
+                      ),
                     ),
-                  ),
+                  );
+                },
+              ),
+              const SizedBox(height: 24),
+
+              // Bottom Card Detail Waktu Selesai & Metode Pembayaran (Tetap Putih Sesuai Permintaan)
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: Color(0x0A000000),
+                      offset: Offset(0, 8),
+                      blurRadius: 24,
+                    ),
+                  ],
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          Container(
-            padding: const EdgeInsets.all(20),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(24)),
-            child: Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                child: Column(
                   children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('WAKTU SELESAI BARU', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
-                        Row(
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(selectedOption['time'].toString().replaceAll('Hingga ', ''), style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF020304))),
-                            const SizedBox(width: 8),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                              decoration: BoxDecoration(color: const Color(0xFFFFDBD2), borderRadius: BorderRadius.circular(8)),
-                              child: Text('(${selectedOption['title']})', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF3C0800))),
+                            Text(
+                              'WAKTU SELESAI BARU',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: const Color(0xFF45474A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Text(
+                                  selectedOption['time'].toString().replaceAll('Hingga ', ''),
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF020304),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFFFDBD2),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Text(
+                                    '(${selectedOption['title']})',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF3C0800),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          children: [
+                            Text(
+                              'BIAYA TAMBAHAN',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                color: const Color(0xFF45474A),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              selectedOption['cost'],
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF9A442D),
+                              ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.end,
-                      children: [
-                        Text('BIAYA TAMBAHAN', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
-                        Text(selectedOption['cost'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF9A442D))),
-                      ],
+                    const Padding(
+                      padding: EdgeInsets.symmetric(vertical: 16),
+                      child: Divider(
+                        color: Color(0xFFE5E2DB),
+                      ),
                     ),
-                  ],
-                ),
-                const SizedBox(height: 16),
-                const Divider(color: Color(0xFFE5E2DB)),
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
                     Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        _buildPaymentLogo(_selectedPaymentMethod, 40),
-                        const SizedBox(width: 12),
-                        Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          mainAxisAlignment: MainAxisAlignment.center,
+                        Row(
                           children: [
-                            Text(_selectedPaymentMethod, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
-                            if (_selectedPaymentMethod == 'ParkSmart Wallet')
-                              Text('Saldo Aktif: Rp 45.000', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF1F4F3C))),
+                            _buildPaymentLogo(_selectedPaymentMethod, 40),
+                            const SizedBox(width: 12),
+                            Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  _selectedPaymentMethod,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFF1C1C18),
+                                  ),
+                                ),
+                                if (_selectedPaymentMethod == 'ParkSmart Wallet')
+                                  Text(
+                                    'Saldo Aktif: Rp 45.000',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      color: const Color(0xFF1F4F3C),
+                                    ),
+                                  ),
+                              ],
+                            ),
                           ],
+                        ),
+                        GestureDetector(
+                          onTap: _showPaymentMethodDialog,
+                          child: Text(
+                            'Ubah',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF45474A),
+                            ),
+                          ),
                         ),
                       ],
                     ),
-                    GestureDetector(
-                      onTap: _showPaymentMethodDialog,
-                      child: Text('Ubah', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
-                    ),
                   ],
                 ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 24),
-          Row(
-            children: [
-              const Icon(Icons.info_outline, size: 20, color: Color.fromARGB(255, 45, 46, 47)),
-              const SizedBox(width: 12),
-              Expanded(child: Text('Perpanjangan otomatis dikonfirmasi tanpa perlu tiket baru.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)))),
-            ],
-          ),
-          const SizedBox(height: 24),
-          SizedBox(
-            width: double.infinity,
-            height: 56,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.pushReplacement(
-                  context,
-                  MaterialPageRoute(builder: (_) => const PinScreen(nextScreen: ActiveSessionScreen(), transactionType: 'perpanjangan parkir')),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF020304),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
               ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
+              const SizedBox(height: 24),
+              Row(
                 children: [
-                  const Icon(Icons.history, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text('Konfirmasi & Bayar ${selectedOption['cost']}', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                  const SizedBox(width: 8),
-                  const Icon(Icons.arrow_forward, color: Colors.white),
+                  Icon(
+                    Icons.info_outline,
+                    size: 20,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color.fromARGB(255, 45, 46, 47),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Perpanjangan otomatis dikonfirmasi tanpa perlu tiket baru.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
+                      ),
+                    ),
+                  ),
                 ],
               ),
-            ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                height: 56,
+                child: ElevatedButton(
+                  onPressed: () {
+                    Navigator.pushReplacement(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const PinScreen(
+                          nextScreen: ActiveSessionScreen(),
+                          transactionType: 'perpanjangan parkir',
+                        ),
+                      ),
+                    );
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
+                    foregroundColor: isDark ? Colors.black : Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                    elevation: 0,
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.history,
+                        color: isDark ? Colors.black : Colors.white,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'Konfirmasi & Bayar ${selectedOption['cost']}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.black : Colors.white,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Icon(
+                        Icons.arrow_forward,
+                        color: isDark ? Colors.black : Colors.white,
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
   Widget _buildPaymentLogo(String method, double size) {
     if (method == 'ParkSmart Wallet') {
-      return Container(width: size, height: size, decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle), child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5));
+      return Container(
+        width: size,
+        height: size,
+        decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle),
+        child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5),
+      );
     } else if (method == 'ShopeePay') {
       return Image.asset('assets/images/shopee-pay-seeklogo.png', width: size, height: size, fit: BoxFit.contain);
     } else if (method == 'Gopay') {
@@ -341,9 +657,15 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
     showDialog(
       context: context,
       builder: (BuildContext context) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
+
         return Dialog(
-          backgroundColor: Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(20),
+            side: isDark ? const BorderSide(color: Color(0xFF2D3542)) : BorderSide.none,
+          ),
           child: Padding(
             padding: const EdgeInsets.all(20),
             child: Column(
@@ -353,12 +675,19 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.close, color: Colors.black54, size: 24),
+                      icon: Icon(Icons.close, color: isDark ? Colors.white70 : Colors.black54, size: 24),
                       onPressed: () => Navigator.pop(context),
                       padding: EdgeInsets.zero,
                       constraints: const BoxConstraints(),
                     ),
-                    Text('Pilih Metode Pembayaran', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1C1C18))),
+                    Text(
+                      'Pilih Metode Pembayaran',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      ),
+                    ),
                     const SizedBox(width: 24), // balance it out
                   ],
                 ),
@@ -387,6 +716,8 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
   }
 
   Widget _buildPaymentOption(String method) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
     bool isSelected = _selectedPaymentMethod == method;
     return GestureDetector(
       onTap: () {
@@ -396,26 +727,40 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
         Navigator.pop(context);
       },
       child: Container(
-        height: 90, // Equal height for all (60 + 50%)
+        height: 90,
         padding: const EdgeInsets.all(8),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFFFF7ED) : Colors.white,
+          color: isSelected
+              ? (isDark ? const Color(0xFF451A03) : const Color(0xFFFFF7ED))
+              : (isDark ? const Color(0xFF262C36) : Colors.white),
           border: Border.all(
-            color: isSelected ? const Color(0xFFF97316) : const Color(0xFFE5E2DB),
+            color: isSelected ? const Color(0xFFF97316) : (isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB)),
             width: isSelected ? 2 : 1,
           ),
           borderRadius: BorderRadius.circular(12),
         ),
-        child: method == 'ParkSmart Wallet' 
-          ? Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                _buildPaymentLogo(method, 20),
-                const SizedBox(height: 4),
-                Expanded(child: Text(method, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF1C1C18)), textAlign: TextAlign.center, maxLines: 1, overflow: TextOverflow.ellipsis)),
-              ],
-            )
-          : Center(child: _buildPaymentLogo(method, 32)),
+        child: method == 'ParkSmart Wallet'
+            ? Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  _buildPaymentLogo(method, 20),
+                  const SizedBox(height: 4),
+                  Expanded(
+                    child: Text(
+                      method,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              )
+            : Center(child: _buildPaymentLogo(method, 32)),
       ),
     );
   }

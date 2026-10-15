@@ -1,3 +1,4 @@
+import '../../core/services/theme_service.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import 'dart:convert';
@@ -353,10 +354,15 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final maneuver = _currentManeuver;
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
+        final maneuver = _currentManeuver;
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF6F3EC),
+        return Scaffold(
+      backgroundColor: isDark ? theme.bg : const Color(0xFFF6F3EC),
       body: Stack(
         children: [
           // ─── 1. PETA FLUTTER MAP ASLI ────────────────────────────────────
@@ -534,7 +540,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF1C1C18),
+                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -544,7 +550,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 maneuver['subtitle'] as String,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
-                                  color: const Color(0xFF5F6368),
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -759,8 +765,9 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: isDark ? const Color(0xFF1E232B) : Colors.white,
                           borderRadius: BorderRadius.circular(24),
+                          border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
                           boxShadow: const [
                             BoxShadow(
                               color: Colors.black12,
@@ -787,7 +794,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF1C1C18),
+                                                color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -806,7 +813,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                         '$_destType • Rute Navigasi Aktif',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12.5,
-                                          color: const Color(0xFF5F6368),
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -907,6 +914,8 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
           ),
         ],
       ),
+    );
+      },
     );
   }
 

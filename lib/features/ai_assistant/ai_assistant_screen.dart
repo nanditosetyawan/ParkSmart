@@ -1,3 +1,4 @@
+import '../../core/services/theme_service.dart';
 import 'dart:math' as math;
 import 'dart:convert';
 import 'package:flutter/material.dart';
@@ -23,7 +24,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   
   bool _isLoading = false;
   
-  final String _apiKey = dotenv.env['GROQ_API_KEY'] ?? '';
+  String get _apiKey {
+    try {
+      if (dotenv.isInitialized) {
+        final key = dotenv.env['GROQ_API_KEY'];
+        if (key != null && key.isNotEmpty) return key;
+      }
+    } catch (_) {}
+    return '';
+  }
   final String _modelName = 'qwen/qwen3.8-27b';
 
   String get _initialGreeting =>
@@ -98,7 +107,7 @@ GAYA BAHASA:
         }
       }
     } catch (e) {
-      print("Error loading chat history: $e");
+      debugPrint("Error loading chat history: $e");
     }
     
     // Fallback jika belum ada riwayat atau terjadi error
@@ -211,94 +220,102 @@ GAYA BAHASA:
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: Color(0xFF14202B)),
-          onPressed: () => Navigator.pushAndRemoveUntil(
-              context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false),
-        ),
-        
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.delete_outline, color: Color(0xFF14202B)),
-            onPressed: _clearChatHistory,
-            tooltip: 'Hapus Riwayat',
-          ),
-        ],
-        title: Row(
-          children: [
-            const Icon(Icons.smart_toy, color: Color(0xFF17A18A)),
-            const SizedBox(width: 8),
-            Text('AI Parking Assistant',
-                style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF14202B))),
-          ],
-        ),
-      ),
-      body: Column(
-        children: [
-          Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.all(16),
-              itemCount: _messages.length + (_isLoading ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (index == _messages.length) {
-                  return _buildTypingIndicator();
-                }
-                final msg = _messages[index];
-                final isUser = msg['role'] == 'user';
-                return isUser ? _buildUserMessage(msg['content']!) : _buildAiMessage(msg['content']!);
-              },
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        return Scaffold(
+          backgroundColor: theme.bg,
+          appBar: AppBar(
+            backgroundColor: theme.bg,
+            elevation: 0,
+            leading: IconButton(
+              icon: Icon(Icons.arrow_back, color: theme.iconColor),
+              onPressed: () => Navigator.pushAndRemoveUntil(
+                  context, MaterialPageRoute(builder: (_) => const HomeScreen()), (route) => false),
             ),
-          ),
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: const BoxDecoration(
-                color: Colors.white, border: Border(top: BorderSide(color: Color(0xFFD8DEE5)))),
-            child: Row(
+            actions: [
+              IconButton(
+                icon: Icon(Icons.delete_outline, color: theme.iconColor),
+                onPressed: _clearChatHistory,
+                tooltip: 'Hapus Riwayat',
+              ),
+            ],
+            title: Row(
               children: [
-                Expanded(
-                  child: Container(
-                    height: 48,
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF4F3F3),
-                      borderRadius: BorderRadius.circular(24),
-                    ),
-                    child: TextField(
-                      controller: _textController,
-                      decoration: InputDecoration(
-                        hintText: 'Ketik pesan...',
-                        hintStyle: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF64748B)),
-                        border: InputBorder.none,
-                      ),
-                      onSubmitted: (_) => _sendMessage(),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                GestureDetector(
-                  onTap: _sendMessage,
-                  child: Container(
-                    width: 48,
-                    height: 48,
-                    decoration: const BoxDecoration(color: Color(0xFF114177), shape: BoxShape.circle),
-                    child: const Icon(Icons.send, color: Colors.white, size: 20),
-                  ),
-                ),
+                const Icon(Icons.smart_toy, color: Color(0xFF17A18A)),
+                const SizedBox(width: 8),
+                Text('AI Parking Assistant',
+                    style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: theme.textPrimary)),
               ],
             ),
           ),
-        ],
-      ),
+          body: Column(
+            children: [
+              Expanded(
+                child: ListView.builder(
+                  controller: _scrollController,
+                  padding: const EdgeInsets.all(16),
+                  itemCount: _messages.length + (_isLoading ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (index == _messages.length) {
+                      return _buildTypingIndicator(theme);
+                    }
+                    final msg = _messages[index];
+                    final isUser = msg['role'] == 'user';
+                    return isUser ? _buildUserMessage(msg['content']!, theme) : _buildAiMessage(msg['content']!, theme);
+                  },
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: theme.card,
+                  border: Border(top: BorderSide(color: theme.border)),
+                ),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Container(
+                        height: 48,
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        decoration: BoxDecoration(
+                          color: theme.surfaceField,
+                          borderRadius: BorderRadius.circular(24),
+                        ),
+                        child: TextField(
+                          controller: _textController,
+                          style: GoogleFonts.inter(fontSize: 14, color: theme.textPrimary),
+                          decoration: InputDecoration(
+                            hintText: 'Ketik pesan...',
+                            hintStyle: GoogleFonts.inter(fontSize: 14, color: theme.textMuted),
+                            border: InputBorder.none,
+                          ),
+                          onSubmitted: (_) => _sendMessage(),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    GestureDetector(
+                      onTap: _sendMessage,
+                      child: Container(
+                        width: 48,
+                        height: 48,
+                        decoration: const BoxDecoration(color: Color(0xFF114177), shape: BoxShape.circle),
+                        child: const Icon(Icons.send, color: Colors.white, size: 20),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 
-  Widget _buildAiMessage(String text) {
+  Widget _buildAiMessage(String text, ThemeService theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -314,15 +331,16 @@ GAYA BAHASA:
           Expanded(
             child: Container(
               padding: const EdgeInsets.all(16),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
+              decoration: BoxDecoration(
+                color: theme.card,
+                borderRadius: const BorderRadius.only(
                   topRight: Radius.circular(20),
                   bottomLeft: Radius.circular(20),
                   bottomRight: Radius.circular(20),
                 ),
+                border: Border.all(color: theme.border.withValues(alpha: 0.6)),
               ),
-              child: Text(text, style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF14202B), height: 1.5)),
+              child: Text(text, style: GoogleFonts.inter(fontSize: 14, color: theme.textPrimary, height: 1.5)),
             ),
           ),
         ],
@@ -330,7 +348,7 @@ GAYA BAHASA:
     );
   }
 
-  Widget _buildUserMessage(String text) {
+  Widget _buildUserMessage(String text, ThemeService theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -356,15 +374,15 @@ GAYA BAHASA:
           Container(
             width: 32,
             height: 32,
-            decoration: BoxDecoration(color: const Color(0xFFE2E8F0), shape: BoxShape.circle),
-            child: const Icon(Icons.person, size: 16, color: Color(0xFF64748B)),
+            decoration: BoxDecoration(color: theme.chipBg, shape: BoxShape.circle),
+            child: Icon(Icons.person, size: 16, color: theme.iconColor),
           ),
         ],
       ),
     );
   }
 
-  Widget _buildTypingIndicator() {
+  Widget _buildTypingIndicator(ThemeService theme) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -382,13 +400,14 @@ GAYA BAHASA:
           const SizedBox(width: 12),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 14),
-            decoration: const BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.only(
+            decoration: BoxDecoration(
+              color: theme.card,
+              borderRadius: const BorderRadius.only(
                 topRight: Radius.circular(20),
                 bottomLeft: Radius.circular(20),
                 bottomRight: Radius.circular(20),
               ),
+              border: Border.all(color: theme.border.withValues(alpha: 0.6)),
             ),
             child: const TypingDotsIndicator(),
           ),

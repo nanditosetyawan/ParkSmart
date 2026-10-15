@@ -1,3 +1,4 @@
+import '../../core/services/theme_service.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -784,12 +785,17 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final bottomPadding = MediaQuery.of(context).padding.bottom;
-    const double bottomNavHeight = 64.0;
-    final totalBottomHeight = bottomNavHeight + bottomPadding;
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
+        final bottomPadding = MediaQuery.of(context).padding.bottom;
+        const double bottomNavHeight = 64.0;
+        final totalBottomHeight = bottomNavHeight + bottomPadding;
 
-    return Scaffold(
-      backgroundColor: Colors.white,
+        return Scaffold(
+          backgroundColor: isDark ? theme.bg : Colors.white,
       body: Stack(
         children: [
           // 1. FULLSCREEN FLUTTER MAP
@@ -818,7 +824,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 TileLayer(
                   urlTemplate: _isSatellite
                       ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                      : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                      : (isDark
+                          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
+                          : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
+                  subdomains: const ['a', 'b', 'c', 'd'],
                   userAgentPackageName: 'com.example.smart_parking',
                 ),
                 MarkerLayer(
@@ -1099,7 +1108,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 height: 44,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: const Color(0xFFC2E7FF),
+                  color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFC2E7FF),
                   boxShadow: [
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.18),
@@ -1108,9 +1117,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     ),
                   ],
                 ),
-                child: const Icon(
+                child: Icon(
                   Icons.layers_rounded,
-                  color: Color(0xFF001D35),
+                  color: isDark ? Colors.white : const Color(0xFF001D35),
                   size: 22,
                 ),
               ),
@@ -1131,7 +1140,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     height: 48,
                     decoration: BoxDecoration(
                       shape: BoxShape.circle,
-                      color: Colors.white,
+                      color: isDark ? theme.card : Colors.white,
+                      border: isDark ? Border.all(color: theme.border) : null,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.18),
@@ -1142,7 +1152,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     ),
                     child: Icon(
                       _isGpsActive ? Icons.my_location : Icons.location_disabled,
-                      color: _isGpsActive ? const Color(0xFF1A73E8) : const Color(0xFF5F6368),
+                      color: _isGpsActive ? const Color(0xFF1A73E8) : (isDark ? theme.textMuted : const Color(0xFF5F6368)),
                       size: 24,
                     ),
                   ),
@@ -1168,8 +1178,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                     height: 50,
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                        color: isDark ? theme.card : Colors.white,
                       borderRadius: BorderRadius.circular(28),
+                        border: isDark ? Border.all(color: theme.border) : null,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.12),
@@ -1204,14 +1215,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             onChanged: _onSearchChanged,
                             onSubmitted: (val) => _performAutoSearch(val),
                             style: GoogleFonts.inter(
-                              color: const Color(0xFF1F1F1F),
+                              color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
                             decoration: InputDecoration(
                               hintText: 'Cari kota di Indonesia, SPBU...',
                               hintStyle: GoogleFonts.inter(
-                                color: const Color(0xFF5F6368),
+                                color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                 fontSize: 15,
                                 fontWeight: FontWeight.w400,
                               ),
@@ -1237,9 +1248,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           ),
                         // Mic Icon di sisi paling kanan - memicu Voice Search Dialog
                         IconButton(
-                          icon: const Icon(
+                          icon: Icon(
                             Icons.mic,
-                            color: Color(0xFF3C4043),
+                            color: isDark ? Colors.white : const Color(0xFF3C4043),
                             size: 24,
                           ),
                           onPressed: _openVoiceSearchDialog,
@@ -1357,8 +1368,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
                   return Container(
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? theme.card : Colors.white,
                       borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                      border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.22),
@@ -1429,7 +1441,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                       width: 40,
                                       height: 5,
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFC7C7C7),
+                                        color: isDark ? const Color(0xFF475569) : const Color(0xFFC7C7C7),
                                         borderRadius: BorderRadius.circular(3),
                                       ),
                                     ),
@@ -1439,7 +1451,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
                               // BARIS 1 MELAYANG (STICKY HEADER 1): Nama Parkiran di kiri, Tombol Silang (X) SAJA di kanan
                               Container(
-                                color: Colors.white,
+                                color: isDark ? theme.card : Colors.white,
                                 padding: const EdgeInsets.fromLTRB(20, 0, 12, 6),
                                 child: Row(
                                   children: [
@@ -1449,7 +1461,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                         style: GoogleFonts.inter(
                                           fontSize: 19,
                                           fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF1F1F1F),
+                                          color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -1458,13 +1470,13 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                     IconButton(
                                       icon: Container(
                                         padding: const EdgeInsets.all(6),
-                                        decoration: const BoxDecoration(
-                                          color: Color(0xFFF1F3F4),
+                                        decoration: BoxDecoration(
+                                          color: isDark ? const Color(0xFF334155) : const Color(0xFFF1F3F4),
                                           shape: BoxShape.circle,
                                         ),
-                                        child: const Icon(
+                                        child: Icon(
                                           Icons.close,
-                                          color: Color(0xFF5F6368),
+                                          color: isDark ? Colors.white : const Color(0xFF5F6368),
                                           size: 20,
                                         ),
                                       ),
@@ -1486,7 +1498,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               // Area info yang akan ter-scroll naik dan hilang saat discroll ke atas
                               SliverToBoxAdapter(
                                 child: Container(
-                                  color: Colors.white,
+                                  color: isDark ? theme.card : Colors.white,
                                   padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1499,7 +1511,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                             style: GoogleFonts.inter(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF1F1F1F),
+                                              color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                             ),
                                           ),
                                           Row(
@@ -1516,7 +1528,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                             '(${loc['reviews'] ?? '340'})',
                                             style: GoogleFonts.inter(
                                               fontSize: 13,
-                                              color: const Color(0xFF5F6368),
+                                              color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                               fontWeight: FontWeight.w500,
                                             ),
                                           ),
@@ -1529,7 +1541,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                         '${loc['type']} • ${loc['price']} • Tersedia ${loc['slots']} slot',
                                         style: GoogleFonts.inter(
                                           fontSize: 13,
-                                          color: const Color(0xFF5F6368),
+                                          color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                           fontWeight: FontWeight.w500,
                                         ),
                                       ),
@@ -1543,14 +1555,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                             style: GoogleFonts.inter(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w700,
-                                              color: const Color(0xFF137333),
+                                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF137333),
                                             ),
                                           ),
                                           Text(
                                             ' • Tutup pukul 22.00 WIB',
                                             style: GoogleFonts.inter(
                                               fontSize: 13,
-                                              color: const Color(0xFF5F6368),
+                                              color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                             ),
                                           ),
                                         ],
@@ -1566,7 +1578,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                               height: 46,
                                               child: ElevatedButton.icon(
                                                 style: ElevatedButton.styleFrom(
-                                                  backgroundColor: const Color(0xFF1C1D1F),
+                                                  backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1C1D1F),
                                                   foregroundColor: Colors.white,
                                                   elevation: 0,
                                                   padding: const EdgeInsets.symmetric(horizontal: 10),
@@ -1649,7 +1661,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               // KONTEN TAB: Background agak keruh (#F6F8FA)
                               SliverToBoxAdapter(
                                 child: Container(
-                                  color: const Color(0xFFF6F8FA),
+                                  color: isDark ? theme.bg : const Color(0xFFF6F8FA),
                                   padding: const EdgeInsets.symmetric(vertical: 16),
                                   child: _buildSelectedTabContent(loc, photos),
                                 ),
@@ -1682,8 +1694,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
               builder: (context, scrollController) {
                 return Container(
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: isDark ? theme.card : Colors.white,
                     borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                    border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
                     boxShadow: [
                       BoxShadow(
                         color: Colors.black.withValues(alpha: 0.16),
@@ -1722,7 +1735,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 width: 40,
                                 height: 5,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFC7C7C7),
+                                  color: isDark ? const Color(0xFF475569) : const Color(0xFFC7C7C7),
                                   borderRadius: BorderRadius.circular(3),
                                 ),
                               ),
@@ -1741,7 +1754,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 style: GoogleFonts.inter(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1F1F1F),
+                                  color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                 ),
                               ),
                               // Kotak Cuaca Real-Time (Open-Meteo API)
@@ -1759,8 +1772,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFF1F3F4),
+                                    color: isDark ? theme.surfaceField : const Color(0xFFF1F3F4),
                                     borderRadius: BorderRadius.circular(12),
+                                    border: isDark ? Border.all(color: theme.border) : null,
                                   ),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.end,
@@ -1775,7 +1789,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                             style: GoogleFonts.inter(
                                               fontSize: 13,
                                               fontWeight: FontWeight.w600,
-                                              color: const Color(0xFF1F1F1F),
+                                              color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                             ),
                                           ),
                                         ],
@@ -1786,7 +1800,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                         style: GoogleFonts.inter(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF444746),
+                                           color: isDark ? theme.textMuted : const Color(0xFF444746),
                                         ),
                                       ),
                                     ],
@@ -1809,7 +1823,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF1F1F1F),
+                                    color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                 ),
                               ),
                               _SpinningLoadButton(
@@ -1873,10 +1887,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Container(
               height: totalBottomHeight,
               padding: EdgeInsets.only(bottom: bottomPadding),
-              decoration: const BoxDecoration(
-                color: Colors.white,
+              decoration: BoxDecoration(
+                color: isDark ? theme.bg : Colors.white,
                 border: Border(
-                  top: BorderSide(color: Color(0xFFE5E5E5), width: 0.8),
+                  top: BorderSide(color: isDark ? theme.border : const Color(0xFFE5E5E5), width: 0.8),
                 ),
               ),
               child: Row(
@@ -1891,12 +1905,12 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFC2E7FF),
+                              color: isDark ? const Color(0xFF1E3A8A) : const Color(0xFFC2E7FF),
                               borderRadius: BorderRadius.circular(16),
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.location_on,
-                              color: Color(0xFF001D35),
+                              color: isDark ? Colors.white : const Color(0xFF001D35),
                               size: 20,
                             ),
                           ),
@@ -1929,9 +1943,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           Stack(
                             clipBehavior: Clip.none,
                             children: [
-                              const Icon(
+                              Icon(
                                 Icons.bookmark_outline,
-                                color: Color(0xFF444746),
+                                color: isDark ? theme.textMuted : const Color(0xFF444746),
                                 size: 24,
                               ),
                               Positioned(
@@ -1975,9 +1989,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(
+                          Icon(
                             Icons.home_outlined,
-                            color: Color(0xFF444746),
+                            color: isDark ? theme.textMuted : const Color(0xFF444746),
                             size: 24,
                           ),
                           const SizedBox(height: 4),
@@ -2000,16 +2014,22 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         ],
       ),
     );
+      },
+    );
   }
 
   // Builder untuk Tab Bar berbaris ke kanan (Ringkasan, Ulasan, Tentang)
   Widget _buildDetailTabBar() {
+    final isDark = ThemeService.instance.isDarkMode;
+    final cardBg = isDark ? ThemeService.instance.card : Colors.white;
+    final borderColor = isDark ? ThemeService.instance.border : const Color(0xFFE5E5E5);
+
     return Container(
       height: 48,
-      decoration: const BoxDecoration(
-        color: Colors.white,
+      decoration: BoxDecoration(
+        color: cardBg,
         border: Border(
-          bottom: BorderSide(color: Color(0xFFE5E5E5), width: 1.0),
+          bottom: BorderSide(color: borderColor, width: 1.0),
         ),
       ),
       child: Row(
@@ -2023,9 +2043,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   }
 
   Widget _buildDetailTabItem({required int index, required String title}) {
+    final isDark = ThemeService.instance.isDarkMode;
     final isSelected = _selectedDetailTab == index;
-    // Hijau toska kegelapan
-    const darkTeal = Color(0xFF0F766E);
+    final darkTeal = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+    final unselectedColor = isDark ? ThemeService.instance.textMuted : const Color(0xFF5F6368);
 
     return Expanded(
       child: InkWell(
@@ -2044,12 +2065,11 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                   style: GoogleFonts.inter(
                     fontSize: 14,
                     fontWeight: isSelected ? FontWeight.w700 : FontWeight.w500,
-                    color: isSelected ? darkTeal : const Color(0xFF3C4043),
+                    color: isSelected ? darkTeal : unselectedColor,
                   ),
                 ),
               ),
             ),
-            // Garis highlight bawah jika tab aktif
             Container(
               height: 3,
               width: 72,
@@ -2064,7 +2084,6 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     );
   }
 
-  // Builder untuk isi konten tab (Background agak keruh #F6F8FA)
   Widget _buildSelectedTabContent(Map<String, dynamic> loc, List<String> photos) {
     if (_selectedDetailTab == 0) {
       // TAB 1: RINGKASAN
@@ -2093,7 +2112,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1F1F1F),
+                    color: ThemeService.instance.isDarkMode ? Colors.white : const Color(0xFF1F1F1F),
                 ),
               ),
               Container(
@@ -2212,8 +2231,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           child: Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: ThemeService.instance.isDarkMode ? ThemeService.instance.card : Colors.white,
               borderRadius: BorderRadius.circular(16),
+              border: ThemeService.instance.isDarkMode ? Border.all(color: ThemeService.instance.border) : null,
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
               ],
@@ -2221,7 +2241,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Rincian Parkir', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: const Color(0xFF1F1F1F))),
+                Text('Rincian Parkir', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: ThemeService.instance.isDarkMode ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 12),
                 _buildInfoRow(Icons.payments_outlined, 'Tarif Resmi', loc['price'] as String),
                 const Divider(height: 18),
@@ -2252,13 +2272,18 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       builder: (ctx) {
         return StatefulBuilder(
           builder: (modalContext, setModalState) {
+            final theme = ThemeService.instance;
+            final isDark = theme.isDarkMode;
+            final cardBg = isDark ? theme.card : Colors.white;
             final bottomInset = MediaQuery.of(modalContext).viewInsets.bottom;
+
             return Container(
               margin: EdgeInsets.only(bottom: bottomInset),
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 24),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+              decoration: BoxDecoration(
+                color: cardBg,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
               ),
               child: SingleChildScrollView(
                 child: Column(
@@ -2270,25 +2295,25 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         width: 38,
                         height: 4.5,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFC7C7C7),
+                          color: isDark ? const Color(0xFF475569) : const Color(0xFFC7C7C7),
                           borderRadius: BorderRadius.circular(3),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 16),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
                         Text(
-                          'Beri Ulasan Tempat',
+                          'Tulis Ulasan Parkir',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                            color: const Color(0xFF1C1C18),
+                            fontWeight: FontWeight.w800,
+                            color: isDark ? Colors.white : const Color(0xFF1C1D1F),
                           ),
                         ),
                         IconButton(
-                          icon: const Icon(Icons.close, size: 20, color: Color(0xFF5F6368)),
+                          icon: Icon(Icons.close, color: isDark ? theme.textMuted : const Color(0xFF5F6368)),
                           onPressed: () => Navigator.pop(modalContext),
                         ),
                       ],
@@ -2298,7 +2323,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       'Bagikan pengalaman parkir Anda untuk membantu pengguna lain.',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12.5,
-                        color: const Color(0xFF5F6368),
+                        color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -2313,7 +2338,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             icon: Icon(
                               Icons.star,
                               size: 34,
-                              color: isSelected ? const Color(0xFFF4B400) : const Color(0xFFE0E0E0),
+                              color: isSelected ? const Color(0xFFF4B400) : (isDark ? const Color(0xFF334155) : const Color(0xFFE0E0E0)),
                             ),
                             onPressed: () {
                               setModalState(() {
@@ -2325,7 +2350,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       ),
                     ),
                     const SizedBox(height: 16),
-                    // Topik Masukan (Style Hitam Putih persis FeedbackScreen)
+                    // Topik Masukan
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
@@ -2334,14 +2359,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 15,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF1C1C18),
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
                           ),
                         ),
                         Text(
                           'Pilih satu atau lebih',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 12,
-                            color: const Color(0xFF76777B),
+                            color: isDark ? theme.textMuted : const Color(0xFF76777B),
                           ),
                         ),
                       ],
@@ -2365,15 +2390,19 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: isSel ? const Color(0xFF020304) : Colors.white,
+                              color: isSel
+                                  ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304))
+                                  : (isDark ? theme.card : Colors.white),
                               borderRadius: BorderRadius.circular(24),
                               border: Border.all(
-                                color: isSel ? const Color(0xFF020304) : const Color(0xFFE0E0E0),
+                                color: isSel
+                                    ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304))
+                                    : (isDark ? theme.border : const Color(0xFFE0E0E0)),
                                 width: 1,
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: const Color(0xFF1C1D1F).withValues(alpha: 0.04),
+                                  color: Colors.black.withValues(alpha: 0.04),
                                   blurRadius: 4,
                                   offset: const Offset(0, 2),
                                 ),
@@ -2384,7 +2413,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: isSel ? Colors.white : const Color(0xFF1C1C18),
+                                color: isSel
+                                    ? (isDark ? const Color(0xFF0F172A) : Colors.white)
+                                    : (isDark ? Colors.white : const Color(0xFF1C1C18)),
                               ),
                             ),
                           ),
@@ -2396,17 +2427,30 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     TextField(
                       controller: textController,
                       maxLines: 3,
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      ),
                       decoration: InputDecoration(
                         hintText: 'Tuliskan deskripsi pengalaman parkir Anda...',
-                        hintStyle: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF9AA0A6)),
+                        hintStyle: GoogleFonts.inter(fontSize: 13, color: isDark ? theme.textMuted : const Color(0xFF9AA0A6)),
+                        filled: true,
+                        fillColor: isDark ? theme.surfaceField : Colors.white,
                         contentPadding: const EdgeInsets.all(12),
                         border: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFFDADCE0)),
+                          borderSide: BorderSide(color: isDark ? theme.border : const Color(0xFFDADCE0)),
+                        ),
+                        enabledBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide(color: isDark ? theme.border : const Color(0xFFDADCE0)),
                         ),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
-                          borderSide: const BorderSide(color: Color(0xFF020304), width: 1.5),
+                          borderSide: BorderSide(
+                            color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304),
+                            width: 1.5,
+                          ),
                         ),
                       ),
                     ),
@@ -2416,8 +2460,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       height: 46,
                       child: ElevatedButton(
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF020304),
-                          foregroundColor: Colors.white,
+                          backgroundColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304),
+                          foregroundColor: isDark ? const Color(0xFF0F172A) : Colors.white,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
                           elevation: 0,
                         ),
@@ -2470,6 +2514,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   // TAB ULASAN: Rating Skor, Filter Topik Masukan, dan Daftar Ulasan Nyata
   Widget _buildTabUlasan(Map<String, dynamic> loc) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final cardBg = isDark ? theme.card : Colors.white;
+
     final filteredReviews = _selectedReviewFilterTopic == 'Semua'
         ? _userReviews
         : _userReviews.where((r) => ((r['topics'] as List<dynamic>?) ?? []).contains(_selectedReviewFilterTopic)).toList();
@@ -2483,8 +2531,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
+              border: isDark ? Border.all(color: theme.border) : null,
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
               ],
@@ -2495,24 +2544,24 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 Column(
                   children: [
                     Text(
-                      '',
-                      style: GoogleFonts.inter(fontSize: 42, fontWeight: FontWeight.w800, color: const Color(0xFF1F1F1F)),
+                      '${loc['rating'] ?? 4.8}',
+                      style: GoogleFonts.inter(fontSize: 42, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1F1F1F)),
                     ),
                     Row(
                       children: List.generate(5, (_) => const Icon(Icons.star, color: Color(0xFFF4B400), size: 16)),
                     ),
                     const SizedBox(height: 4),
-                    Text(' ulasan', style: GoogleFonts.inter(fontSize: 12, color: const Color(0xFF5F6368))),
+                    Text('${loc['reviews'] ?? '340'} ulasan', style: GoogleFonts.inter(fontSize: 12, color: isDark ? theme.textMuted : const Color(0xFF5F6368))),
                   ],
                 ),
-                const SizedBox(width: 24),
-                // Bar Rating 5 - 1
+                const SizedBox(width: 20),
+                // Progress Bar Bintang 5 s/d 1
                 Expanded(
                   child: Column(
                     children: [
-                      _buildRatingBar('5', 0.85),
-                      _buildRatingBar('4', 0.10),
-                      _buildRatingBar('3', 0.03),
+                      _buildRatingBar('5', 0.82),
+                      _buildRatingBar('4', 0.12),
+                      _buildRatingBar('3', 0.04),
                       _buildRatingBar('2', 0.01),
                       _buildRatingBar('1', 0.01),
                     ],
@@ -2532,7 +2581,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
-                  color: const Color(0xFF1F1F1F),
+                  color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                 ),
               ),
               InkWell(
@@ -2541,20 +2590,20 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF020304),
+                    color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.rate_review_outlined, color: Colors.white, size: 14),
+                      Icon(Icons.rate_review_outlined, color: isDark ? const Color(0xFF0F172A) : Colors.white, size: 14),
                       const SizedBox(width: 5),
                       Text(
                         '+ Tulis Ulasan',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: isDark ? const Color(0xFF0F172A) : Colors.white,
                         ),
                       ),
                     ],
@@ -2565,7 +2614,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           ),
           const SizedBox(height: 10),
 
-          // FILTER BAR TOPIK MASUKAN (Style Hitam Putih)
+          // FILTER BAR TOPIK MASUKAN
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             child: Row(
@@ -2585,10 +2634,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     child: Container(
                       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 7),
                       decoration: BoxDecoration(
-                        color: isSelected ? const Color(0xFF020304) : Colors.white,
+                        color: isSelected
+                            ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304))
+                            : (isDark ? theme.card : Colors.white),
                         borderRadius: BorderRadius.circular(20),
                         border: Border.all(
-                          color: isSelected ? const Color(0xFF020304) : const Color(0xFFE5E5E5),
+                          color: isSelected
+                              ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF020304))
+                              : (isDark ? theme.border : const Color(0xFFE5E5E5)),
                           width: 1,
                         ),
                         boxShadow: [
@@ -2604,7 +2657,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
-                          color: isSelected ? Colors.white : const Color(0xFF1C1C18),
+                          color: isSelected
+                              ? (isDark ? const Color(0xFF0F172A) : Colors.white)
+                              : (isDark ? Colors.white : const Color(0xFF1C1C18)),
                         ),
                       ),
                     ),
@@ -2621,13 +2676,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
               width: double.infinity,
               padding: const EdgeInsets.all(24),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: cardBg,
                 borderRadius: BorderRadius.circular(16),
+                border: isDark ? Border.all(color: theme.border) : null,
               ),
               child: Center(
                 child: Text(
                   'Belum ada ulasan dengan topik ini.',
-                  style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF70757A)),
+                  style: GoogleFonts.inter(fontSize: 13, color: isDark ? theme.textMuted : const Color(0xFF70757A)),
                 ),
               ),
             )
@@ -2653,6 +2709,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   // TAB TENTANG: Deskripsi Parkiran + Fasilitas & Layanan
   Widget _buildTabTentang(Map<String, dynamic> loc) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final cardBg = isDark ? theme.card : Colors.white;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
@@ -2663,8 +2723,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
+              border: isDark ? Border.all(color: theme.border) : null,
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
               ],
@@ -2672,11 +2733,11 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Tentang Parkiran', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF1F1F1F))),
+                Text('Tentang Parkiran', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 8),
                 Text(
                   '${loc['name']} adalah fasilitas parkir pintar modern yang terintegrasi langsung dengan sistem navigasi mobile. Memiliki area luas dengan proteksi keamanan 24 jam, kemudahan akses keluar masuk otomatis, dan fasilitas penunjang ramah lingkungan untuk seluruh pengendara.',
-                  style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: const Color(0xFF444746)),
+                  style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF444746)),
                 ),
               ],
             ),
@@ -2688,8 +2749,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             width: double.infinity,
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: Colors.white,
+              color: cardBg,
               borderRadius: BorderRadius.circular(16),
+              border: isDark ? Border.all(color: theme.border) : null,
               boxShadow: [
                 BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 8, offset: const Offset(0, 2)),
               ],
@@ -2697,7 +2759,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Fasilitas & Layanan', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: const Color(0xFF1F1F1F))),
+                Text('Fasilitas & Layanan', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
@@ -2722,14 +2784,20 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   }
 
   Widget _buildInfoRow(IconData icon, String label, String value) {
+    final isDark = ThemeService.instance.isDarkMode;
+    final iconCol = isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+    final labelCol = isDark ? ThemeService.instance.textMuted : const Color(0xFF5F6368);
+    final valCol = isDark ? Colors.white : const Color(0xFF1F1F1F);
+
     return Row(
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFF0F766E)),
-        const SizedBox(width: 10),
-        Text(label, style: GoogleFonts.inter(fontSize: 13, color: const Color(0xFF5F6368))),
-        const Spacer(),
-        Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1F1F1F))),
-      ],
+      children:
+        [
+          Icon(icon, size: 18, color: iconCol),
+          const SizedBox(width: 10),
+          Text(label, style: GoogleFonts.inter(fontSize: 13, color: labelCol)),
+          const Spacer(),
+          Text(value, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: valCol)),
+        ],
     );
   }
 
@@ -2765,15 +2833,19 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     bool isEv = false,
     VoidCallback? onExplore,
   }) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final cardBg = isDark ? theme.card : Colors.white;
+
     return GestureDetector(
       onTap: onExplore,
       child: Container(
         height: 360,
         margin: const EdgeInsets.only(bottom: 20),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: cardBg,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          border: Border.all(color: isDark ? theme.border : Colors.black.withValues(alpha: 0.06)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -2786,15 +2858,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           borderRadius: BorderRadius.circular(24),
           child: Stack(
             children: [
-              // 1. FULL BACKGROUND IMAGE (Menampilkan mobil & area parkir dengan jelas)
+              // 1. FULL BACKGROUND IMAGE
               Positioned.fill(
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFFE5E7EB),
-                    child: const Center(
-                      child: Icon(Icons.local_parking, size: 52, color: Color(0xFF9CA3AF)),
+                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB),
+                    child: Center(
+                      child: Icon(Icons.local_parking, size: 52, color: isDark ? Colors.white54 : const Color(0xFF9CA3AF)),
                     ),
                   ),
                 ),
@@ -2831,7 +2903,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 ),
               ),
 
-              // 3. GRADIEN PUTIH LUNTUR PUDAR (Hanya di ~38% sisi bawah, menyisakan >62% foto mobil jernih tanpa blur)
+              // 3. GRADIEN LUNTUR PUDAR
               Positioned.fill(
                 child: Container(
                   decoration: BoxDecoration(
@@ -2839,10 +2911,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.white,
-                        Colors.white.withValues(alpha: 0.98),
-                        Colors.white.withValues(alpha: 0.75),
-                        Colors.white.withValues(alpha: 0.15),
+                        cardBg,
+                        cardBg.withValues(alpha: 0.98),
+                        cardBg.withValues(alpha: 0.75),
+                        cardBg.withValues(alpha: 0.15),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.16, 0.26, 0.34, 0.40],
@@ -2851,7 +2923,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 ),
               ),
 
-              // 4. KONTEN INFORMASI & TOMBOL EXPLORE DI SISI BAWAH PUTIH
+              // 4. KONTEN INFORMASI & TOMBOL EXPLORE
               Positioned(
                 left: 0,
                 right: 0,
@@ -2871,7 +2943,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16.5,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF1C1D1F),
+                                color: isDark ? Colors.white : const Color(0xFF1C1D1F),
                                 letterSpacing: -0.2,
                               ),
                               maxLines: 1,
@@ -2889,7 +2961,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF1F1F1F),
+                                    color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                   ),
                                 ),
                               ],
@@ -2902,14 +2974,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       // Keterangan Jarak & Slot
                       Row(
                         children: [
-                          const Icon(Icons.near_me_outlined, size: 13, color: Color(0xFF5F6368)),
+                          Icon(Icons.near_me_outlined, size: 13, color: isDark ? theme.textMuted : const Color(0xFF5F6368)),
                           const SizedBox(width: 4),
                           Text(
                             subtitle,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF5F6368),
+                              color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                             ),
                           ),
                         ],
@@ -2929,7 +3001,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF76777B),
+                                  color: isDark ? theme.textMuted : const Color(0xFF76777B),
                                   letterSpacing: 0.3,
                                 ),
                               ),
@@ -2938,7 +3010,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0F766E),
+                                  color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
                                 ),
                               ),
                             ],
@@ -2946,7 +3018,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           // Tombol Explore
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1C1D1F),
+                              backgroundColor: isDark ? const Color(0xFF334155) : const Color(0xFF1C1D1F),
                               foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
@@ -2984,11 +3056,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     required String review,
     List<String> topics = const [],
   }) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
     return Container(
       padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDark ? theme.card : Colors.white,
         borderRadius: BorderRadius.circular(14),
+        border: isDark ? Border.all(color: theme.border) : null,
         boxShadow: [
           BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 6, offset: const Offset(0, 2)),
         ],
@@ -3000,18 +3076,18 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundColor: const Color(0xFF0F766E).withValues(alpha: 0.15),
+                backgroundColor: isDark ? const Color(0xFF2DD4BF).withValues(alpha: 0.20) : const Color(0xFF0F766E).withValues(alpha: 0.15),
                 child: Text(
                   name.isNotEmpty ? name[0] : 'U',
-                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: const Color(0xFF0F766E)),
+                  style: GoogleFonts.inter(fontWeight: FontWeight.w700, color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E)),
                 ),
               ),
               const SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(name, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1F1F1F))),
-                  Text(date, style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF70757A))),
+                  Text(name, style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.w600, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
+                  Text(date, style: GoogleFonts.inter(fontSize: 11, color: isDark ? theme.textMuted : const Color(0xFF70757A))),
                 ],
               ),
               const Spacer(),
@@ -3023,17 +3099,17 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           const SizedBox(height: 10),
           Text(
             review,
-            style: GoogleFonts.inter(fontSize: 13, height: 1.4, color: const Color(0xFF3C4043)),
+            style: GoogleFonts.inter(fontSize: 13, height: 1.4, color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF3C4043)),
           ),
 
-          // BAGIAN TOPIK MASUKAN (Tergantung opsi yang diklik user saat ulasan, style hitam putih elegan)
+          // BAGIAN TOPIK MASUKAN
           if (topics.isNotEmpty) ...[
             const SizedBox(height: 12),
             Container(
               padding: const EdgeInsets.only(top: 10),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 border: Border(
-                  top: BorderSide(color: Color(0xFFF1F3F4), width: 1),
+                  top: BorderSide(color: isDark ? theme.border : const Color(0xFFF1F3F4), width: 1),
                 ),
               ),
               child: Column(
@@ -3047,14 +3123,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w700,
-                          color: const Color(0xFF1C1C18),
+                          color: isDark ? Colors.white : const Color(0xFF1C1C18),
                         ),
                       ),
                       Text(
                         ' dipilih',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10.5,
-                          color: const Color(0xFF76777B),
+                          color: isDark ? theme.textMuted : const Color(0xFF76777B),
                           fontWeight: FontWeight.w500,
                         ),
                       ),
@@ -3068,7 +3144,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       return Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                         decoration: BoxDecoration(
-                          color: const Color(0xFF020304), // Hitam pekat persis seperti di FeedbackScreen
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFF020304),
                           borderRadius: BorderRadius.circular(20),
                           boxShadow: [
                             BoxShadow(
@@ -3113,23 +3189,26 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   }
 
   Widget _buildFacilityBadge(IconData icon, String text) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: const Color(0xFFF1F3F4),
+        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F3F4),
         borderRadius: BorderRadius.circular(10),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: const Color(0xFF1A73E8)),
+          Icon(icon, size: 14, color: isDark ? const Color(0xFF90CAF9) : const Color(0xFF1A73E8)),
           const SizedBox(width: 5),
           Text(
             text,
             style: GoogleFonts.inter(
               fontSize: 11,
               fontWeight: FontWeight.w500,
-              color: const Color(0xFF3C4043),
+              color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF3C4043),
             ),
           ),
         ],
@@ -3142,21 +3221,29 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     required IconData icon,
     required bool isSelected,
   }) {
+    final isDark = ThemeService.instance.isDarkMode;
+    final bgColor = isSelected
+        ? (isDark ? const Color(0xFF1A73E8) : const Color(0xFFE8F0FE))
+        : (isDark ? ThemeService.instance.card : Colors.white);
+    final borderColor = isSelected
+        ? const Color(0xFF1A73E8)
+        : (isDark ? ThemeService.instance.border : Colors.black.withValues(alpha: 0.06));
+    final fgColor = isSelected
+        ? (isDark ? Colors.white : const Color(0xFF1A73E8))
+        : (isDark ? ThemeService.instance.textMuted : const Color(0xFF3C4043));
+
     return GestureDetector(
       onTap: () => _onCategoryTapped(title),
       child: Container(
         height: 36,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFFE8F0FE) : Colors.white,
+          color: bgColor,
           borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: isSelected ? const Color(0xFF1A73E8) : Colors.black.withValues(alpha: 0.06),
-            width: 1,
-          ),
+          border: Border.all(color: borderColor, width: 1),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.08),
               blurRadius: 4,
               offset: const Offset(0, 2),
             ),
@@ -3165,18 +3252,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(
-              icon,
-              color: isSelected ? const Color(0xFF1A73E8) : const Color(0xFF3C4043),
-              size: 18,
-            ),
+            Icon(icon, color: fgColor, size: 18),
             const SizedBox(width: 6),
             Text(
               title,
               style: GoogleFonts.inter(
                 fontSize: 13.5,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
-                color: isSelected ? const Color(0xFF1A73E8) : const Color(0xFF1F1F1F),
+                color: fgColor,
               ),
             ),
           ],
