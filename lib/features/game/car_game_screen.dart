@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'dart:async';
@@ -1459,7 +1460,9 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
   @override
   Widget build(BuildContext context) {
     if (!_sensorsConnected) {
-      return Scaffold(
+      return Theme(
+        data: AppTheme.light,
+        child: Scaffold(
         backgroundColor: const Color(0xFF0F172A),
         body: Center(
           child: Column(
@@ -1489,10 +1492,12 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
             ],
           ),
         ),
-      );
+      ));
     }
 
-    return PopScope(
+    return Theme(
+      data: AppTheme.light,
+      child: PopScope(
       canPop: false,
       onPopInvokedWithResult: (didPop, result) async {
         if (didPop) return;
@@ -1736,7 +1741,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
           ),
         ),
       ),
-    );
+    ));
   }
 
   Widget _buildPlayerCar() {

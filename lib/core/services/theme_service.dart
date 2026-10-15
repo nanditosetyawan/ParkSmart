@@ -7,8 +7,8 @@ class ThemeService extends ChangeNotifier {
 
   static const String _prefsKey = 'is_dark_mode';
 
-  // Default true as user requested dark mode activation
-  bool _isDarkMode = true;
+  // Default false (Light Mode) when first installed
+  bool _isDarkMode = false;
 
   bool get isDarkMode => _isDarkMode;
   ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
@@ -43,8 +43,8 @@ class ThemeService extends ChangeNotifier {
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
-    // Default to true as user requested activating dark mode
-    _isDarkMode = prefs.getBool(_prefsKey) ?? true;
+    // Default to false (Light Mode) when first installed
+    _isDarkMode = prefs.getBool(_prefsKey) ?? false;
     notifyListeners();
   }
 

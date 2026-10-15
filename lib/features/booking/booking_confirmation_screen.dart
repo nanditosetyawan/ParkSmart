@@ -31,7 +31,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                     decoration: BoxDecoration(color: const Color(0xFFBBEED4), borderRadius: AppRadii.pillRadius),
                     child: Row(
                       children: [
-                        const Icon(Icons.check_circle, size: 16, color: Color(0xFF002115)),
+                        Icon(Icons.check_circle, size: 16, color: Color(0xFF002115)),
                         const SizedBox(width: 6),
                         Text('Reservasi Berhasil', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF002115))),
                       ],
@@ -62,7 +62,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                     // Top Header Ribbon
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                      decoration: const BoxDecoration(
+                      decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
                       ),
@@ -71,7 +71,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                         children: [
                           Row(
                             children: [
-                              const Icon(Icons.local_parking, size: 20, color: AppColors.secondary),
+                              Icon(Icons.local_parking, size: 20, color: AppColors.secondary),
                               const SizedBox(width: 8),
                               Text('DIGITAL PARKING PASS', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: AppColors.textSecondary, letterSpacing: 1.0)),
                             ],

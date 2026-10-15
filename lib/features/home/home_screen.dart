@@ -421,7 +421,7 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             bottom: false,
             child: RefreshIndicator(
-              color: const Color(0xFF1C1D1F),
+              color: AppColors.textPrimary,
               backgroundColor: Colors.white,
               displacement: 40,
               edgeOffset: 10,
@@ -551,8 +551,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             width: 36, height: 36,
                             margin: const EdgeInsets.only(right: 8),
-                            decoration: const BoxDecoration(color: AppColors.surfaceDim, shape: BoxShape.circle),
-                            child: const Icon(Icons.tune, size: 18, color: AppColors.textPrimary),
+                            decoration: BoxDecoration(color: AppColors.surfaceDim, shape: BoxShape.circle),
+                            child: Icon(Icons.tune, size: 18, color: AppColors.textPrimary),
                           ),
                         ),
                       ],
@@ -615,7 +615,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                                 boxShadow: const [AppShadows.float],
                                               ),
                                               child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                                const Icon(Icons.local_parking, size: 16, color: AppColors.secondary),
+                                                Icon(Icons.local_parking, size: 16, color: AppColors.secondary),
                                                 const SizedBox(width: 6),
                                                 Text('Central Park • 24 slot', style: AppTypography.buttonSm(color: AppColors.white)),
                                               ]),
@@ -797,7 +797,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               width: 64, height: 64, fit: BoxFit.cover,
                               errorBuilder: (_, __, ___) => Container(
                                 width: 64, height: 64, color: AppColors.surfaceDim,
-                                child: const Icon(Icons.local_parking, color: AppColors.secondary),
+                                child: Icon(Icons.local_parking, color: AppColors.secondary),
                               ),
                             ),
                           ),
@@ -811,14 +811,14 @@ class _HomeScreenState extends State<HomeScreen> {
                           ])),
                           Container(
                             width: 40, height: 40,
-                            decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
-                            child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
+                            decoration: BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
+                            child: Icon(Icons.qr_code_2, size: 20, color: Colors.white),
                           ),
                         ]),
                         const SizedBox(height: 16),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(color: AppColors.white, borderRadius: AppRadii.lgRadius, border: Border.all(color: const Color(0xFFE5E2DB))),
+                          decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
@@ -836,7 +836,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                   child: Row(children: [
                                     Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
                                     const SizedBox(width: 6),
-                                    const Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
+                                    Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
                                   ]),
                                 ),
                               ),
@@ -938,7 +938,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1C1D1F),
+              color: AppColors.textPrimary,
             ),
           ),
         ],
@@ -955,9 +955,9 @@ class _HomeScreenState extends State<HomeScreen> {
       constraints: const BoxConstraints(maxWidth: 400),
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: AppColors.surfaceCard,
         borderRadius: BorderRadius.circular(26),
-        border: Border.all(color: const Color(0xFFE5E7EB), width: 1.2),
+        border: Border.all(color: AppColors.warmBorder, width: 1.2),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.18),
@@ -1024,7 +1024,7 @@ class _HomeScreenState extends State<HomeScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 24,
               fontWeight: FontWeight.w800,
-              color: const Color(0xFF111827),
+              color: AppColors.textPrimary,
               height: 1.15,
             ),
           ),
@@ -1038,7 +1038,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w500,
-                  color: const Color(0xFF6B7280),
+                  color: AppColors.textSecondary,
                 ),
               ),
             ],
@@ -1384,7 +1384,7 @@ class _FilterPopupState extends State<_FilterPopup> {
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.only(top: 16, bottom: 24),
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
@@ -1405,7 +1405,7 @@ class _FilterPopupState extends State<_FilterPopup> {
                       onTap: () => Navigator.pop(context),
                       child: Container(
                         padding: const EdgeInsets.all(8),
-                        child: const Icon(Icons.close, size: 20, color: Color(0xFF1A1A18)),
+                        child: Icon(Icons.close, size: 20, color: Color(0xFF1A1A18)),
                       ),
                     ),
                   ),
@@ -1550,7 +1550,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
         height: 360,
         margin: const EdgeInsets.only(top: 16),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(24),
           border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
           boxShadow: [
@@ -1618,10 +1618,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       begin: Alignment.bottomCenter,
                       end: Alignment.topCenter,
                       colors: [
-                        Colors.white,
-                        Colors.white.withValues(alpha: 0.98),
-                        Colors.white.withValues(alpha: 0.75),
-                        Colors.white.withValues(alpha: 0.15),
+                        AppColors.surfaceCard,
+                        AppColors.surfaceCard.withValues(alpha: 0.98),
+                        AppColors.surfaceCard.withValues(alpha: 0.75),
+                        AppColors.surfaceCard.withValues(alpha: 0.15),
                         Colors.transparent,
                       ],
                       stops: const [0.0, 0.16, 0.26, 0.34, 0.40],
@@ -1650,7 +1650,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16.5,
                                 fontWeight: FontWeight.w800,
-                                color: const Color(0xFF1C1D1F),
+                                color: AppColors.textPrimary,
                                 letterSpacing: -0.2,
                               ),
                               maxLines: 1,
@@ -1668,7 +1668,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12.5,
                                     fontWeight: FontWeight.w700,
-                                    color: const Color(0xFF1F1F1F),
+                                    color: AppColors.textPrimary,
                                   ),
                                 ),
                               ],

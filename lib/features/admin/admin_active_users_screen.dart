@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -231,7 +232,9 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
     final overstayCount = _sessions.where((s) => s['isOverstay'] == true).length;
     final evCount = _sessions.where((s) => s['isEv'] == true).length;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -436,7 +439,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {

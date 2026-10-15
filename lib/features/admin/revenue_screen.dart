@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:fl_chart/fl_chart.dart';
@@ -96,7 +97,9 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
   Widget build(BuildContext context) {
     final data = _currentData;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -159,7 +162,7 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
           _buildForecastTab(),
         ],
       ),
-    );
+    ));
   }
 
   // ============ TAB 1: RINGKASAN ============

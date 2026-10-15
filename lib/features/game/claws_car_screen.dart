@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
@@ -118,6 +119,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     )..repeat();
 
     // Controller pegas joystick kembali ke tengah saat dilepas
+    _joystickSpringAnimation = const AlwaysStoppedAnimation(Offset.zero);
     _joystickSpringController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 250),
@@ -450,7 +452,9 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFF090D16),
       body: SafeArea(
         child: Column(
@@ -668,7 +672,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
           ],
         ),
       ),
-    );
+    ));
   }
 
   // ============================================================

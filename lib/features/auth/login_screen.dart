@@ -487,7 +487,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       ),
                                     ),
                                     child: _remember
-                                        ? const Icon(Icons.check, size: 13, color: AppColors.white)
+                                        ? Icon(Icons.check, size: 13, color: AppColors.white)
                                         : null,
                                   ),
                                   const SizedBox(width: 7),
@@ -520,12 +520,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             const SizedBox(height: 30),
                             Row(
                               children: [
-                                const Expanded(child: Divider(color: AppColors.warmBorder)),
+                                Expanded(child: Divider(color: AppColors.warmBorder)),
                                 Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 16),
                                   child: Text('atau', style: AppTypography.caption(color: AppColors.textSecondary)),
                                 ),
-                                const Expanded(child: Divider(color: AppColors.warmBorder)),
+                                Expanded(child: Divider(color: AppColors.warmBorder)),
                               ],
                             ),
                             const SizedBox(height: 14),
@@ -571,7 +571,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                       'https://www.google.com/favicon.ico',
                                       width: 18,
                                       height: 18,
-                                      errorBuilder: (context, error, stackTrace) => const Icon(Icons.g_mobiledata, size: 20),
+                                      errorBuilder: (context, error, stackTrace) => Icon(Icons.g_mobiledata, size: 20),
                                     ),
                                     onTap: () {},
                                   ),

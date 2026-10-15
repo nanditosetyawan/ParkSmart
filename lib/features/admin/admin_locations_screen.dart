@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_slot_management_screen.dart';
@@ -250,7 +251,9 @@ class _LocationsScreenState extends State<LocationsScreen> {
     final totalOcc = _locations.fold<int>(0, (sum, l) => sum + (l['occupied'] as int));
     final occPercent = (totalOcc / (totalCap == 0 ? 1 : totalCap) * 100).toStringAsFixed(1);
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -389,7 +392,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {

@@ -1214,9 +1214,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                         ),
                         Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Divider(color: ThemeService.instance.divider, height: 1)),
                         _SettingToggleRow(
-                          icon: ThemeService.instance.isDarkMode ? Icons.dark_mode : Icons.light_mode,
-                          title: 'Dark Mode',
-                          subtitle: ThemeService.instance.isDarkMode ? 'Tema gelap aktif' : 'Tema terang aktif (Light Mode)',
+                          icon: ThemeService.instance.isDarkMode ? Icons.dark_mode_rounded : Icons.light_mode_rounded,
+                          title: ThemeService.instance.isDarkMode ? 'Dark Mode' : 'Light Mode',
+                          subtitle: '',
                           value: ThemeService.instance.isDarkMode,
                           onChanged: (val) {
                             ThemeService.instance.setDarkMode(val);
@@ -1353,10 +1353,10 @@ class _SettingToggleRow extends StatelessWidget {
   final ValueChanged<bool> onChanged;
 
   const _SettingToggleRow({
-    required this.icon, 
-    required this.title, 
-    required this.subtitle, 
-    required this.value, 
+    required this.icon,
+    required this.title,
+    this.subtitle = '',
+    required this.value,
     required this.onChanged,
   });
 
@@ -1365,45 +1365,51 @@ class _SettingToggleRow extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 40, 
-          height: 40, 
+          width: 42,
+          height: 42,
           decoration: BoxDecoration(
-            color: ThemeService.instance.chipBg, 
+            color: ThemeService.instance.chipBg,
             shape: BoxShape.circle,
-          ), 
+          ),
           child: Icon(icon, size: 20, color: ThemeService.instance.iconColor),
         ),
-        const SizedBox(width: 12),
+        const SizedBox(width: 14),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                title, 
+                title,
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16, 
-                  fontWeight: FontWeight.w600, 
+                  fontSize: 15.5,
+                  fontWeight: FontWeight.w600,
                   color: ThemeService.instance.textPrimary,
                 ),
               ),
-              if (subtitle.isNotEmpty) 
+              if (subtitle.isNotEmpty) ...[
+                const SizedBox(height: 2),
                 Text(
-                  subtitle, 
+                  subtitle,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13, 
+                    fontSize: 12.5,
                     color: ThemeService.instance.textSecondary,
                   ),
                 ),
+              ],
             ],
           ),
         ),
         Switch(
-          value: value, 
-          onChanged: onChanged, 
-          activeThumbColor: Colors.white, 
-          activeTrackColor: ThemeService.instance.isDarkMode 
-              ? const Color(0xFFC05621) 
-              : const Color(0xFF020304),
+          value: value,
+          onChanged: onChanged,
+          activeThumbColor: Colors.white,
+          activeTrackColor: const Color(0xFFC05621),
+          inactiveThumbColor: Colors.white,
+          inactiveTrackColor: ThemeService.instance.isDarkMode
+              ? const Color(0xFF333C4A)
+              : const Color(0xFFD1D5DB),
+          trackOutlineColor: WidgetStateProperty.all(Colors.transparent),
         ),
       ],
     );

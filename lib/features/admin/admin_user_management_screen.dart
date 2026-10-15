@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -700,7 +701,9 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     final pendingCount = _admins.where((a) => a['status'] == 'Pending Verifikasi').length;
     final inactiveCount = _admins.where((a) => a['status'] == 'Nonaktif').length;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -935,7 +938,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {

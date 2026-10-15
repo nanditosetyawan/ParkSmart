@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -152,7 +153,9 @@ class _AdminCitiesScreenState extends State<AdminCitiesScreen> {
     final activeCount = _cities.where((c) => c['isActive'] == true).length;
     final totalLocations = _cities.fold<int>(0, (sum, c) => sum + (c['locations'] as int));
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -357,7 +360,7 @@ class _AdminCitiesScreenState extends State<AdminCitiesScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {

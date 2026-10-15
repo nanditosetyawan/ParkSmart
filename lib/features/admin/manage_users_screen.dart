@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -224,7 +225,9 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -276,7 +279,7 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
           _buildWalletSessionsTab(),
         ],
       ),
-    );
+    ));
   }
 
   // ============ TAB 1: DAFTAR USER ============

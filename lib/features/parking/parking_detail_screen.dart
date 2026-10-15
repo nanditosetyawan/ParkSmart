@@ -89,7 +89,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                   _HeroPill(
                                     color: AppColors.primary.withOpacity(0.7),
                                     child: Row(children: [
-                                      const Icon(Icons.roofing, size: 15, color: AppColors.white),
+                                      Icon(Icons.roofing, size: 15, color: AppColors.white),
                                       const SizedBox(width: 4),
                                       Text('Basement B2', style: AppTypography.caption(color: AppColors.white)),
                                     ]),
@@ -108,7 +108,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                       color: AppColors.white.withOpacity(0.2),
                                       border: AppColors.white.withOpacity(0.2),
                                       child: Row(children: [
-                                        const Icon(Icons.schedule, size: 14, color: AppColors.white),
+                                        Icon(Icons.schedule, size: 14, color: AppColors.white),
                                         const SizedBox(width: 4),
                                         Text('24 Jam', style: AppTypography.caption(color: AppColors.white)),
                                       ]),
@@ -118,7 +118,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                       color: AppColors.white.withOpacity(0.2),
                                       border: AppColors.white.withOpacity(0.2),
                                       child: Row(children: [
-                                        const Icon(Icons.ev_station, size: 14, color: AppColors.white),
+                                        Icon(Icons.ev_station, size: 14, color: AppColors.white),
                                         const SizedBox(width: 4),
                                         Text('EV Ready', style: AppTypography.caption(color: AppColors.white)),
                                       ]),
@@ -127,7 +127,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                   _HeroPill(
                                     color: AppColors.white,
                                     child: Row(children: [
-                                      const Icon(Icons.star, size: 14, color: Colors.amber),
+                                      Icon(Icons.star, size: 14, color: Colors.amber),
                                       const SizedBox(width: 4),
                                       Text('4.8', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700)),
                                     ]),
@@ -162,7 +162,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                     ),
                     const SizedBox(height: 8),
                     Row(children: [
-                      const Icon(Icons.near_me, size: 18, color: Color(0xFF1F4F3C)),
+                      Icon(Icons.near_me, size: 18, color: Color(0xFF1F4F3C)),
                       const SizedBox(width: 6),
                       Expanded(
                         child: Text(
@@ -205,7 +205,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                             borderRadius: AppRadii.lgRadius,
                           ),
                           child: Row(children: [
-                            const Icon(Icons.tips_and_updates_outlined, size: 18, color: Colors.white),
+                            Icon(Icons.tips_and_updates_outlined, size: 18, color: Colors.white),
                             const SizedBox(width: 10),
                             Expanded(child: Text('Zona A lebih dekat ke Lobby Tribeca & Central Park Lift.', style: AppTypography.bodySm(color: Colors.white))),
                           ]),

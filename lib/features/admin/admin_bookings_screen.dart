@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -525,7 +526,9 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
       'Dibatalkan': _bookings.where((b) => b['status'] == 'Dibatalkan').length,
     };
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -642,7 +645,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildBookingList(List<Map<String, dynamic>> bookings) {

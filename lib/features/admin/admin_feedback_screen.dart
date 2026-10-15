@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -153,7 +154,9 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
   Widget build(BuildContext context) {
     final unresolvedCount = _feedbacks.where((f) => f['isResolved'] == false).length;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -365,7 +368,7 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {

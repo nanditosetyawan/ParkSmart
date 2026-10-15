@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_notifications_screen.dart';
@@ -27,7 +28,9 @@ class AdminDashboardScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -384,7 +387,7 @@ class AdminDashboardScreen extends StatelessWidget {
           const SizedBox(height: 20),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildKpiCard(String title, String value, IconData icon, Color color, String sub) {

@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -216,7 +217,9 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
     final occupied = _slots.where((s) => s['status'] == 'Terisi').length;
     final reserved = _slots.where((s) => s['status'] == 'Reserved').length;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -390,7 +393,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildMiniStat(String label, String value, Color color, Color bg) {

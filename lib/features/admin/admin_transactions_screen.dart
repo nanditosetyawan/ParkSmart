@@ -1,3 +1,4 @@
+import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -537,7 +538,9 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
     final totalPending = _transactions.where((t) => t['status'] == 'Pending').length;
     final totalFailed = _transactions.where((t) => t['status'] == 'Gagal').length;
 
-    return Scaffold(
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -659,7 +662,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
           ),
         ],
       ),
-    );
+    ));
   }
 
   Widget _buildTransactionList(List<Map<String, dynamic>> txns) {
