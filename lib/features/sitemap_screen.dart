@@ -13,6 +13,10 @@ import 'admin/admin_notifications_screen.dart';
 import 'admin/admin_kyc_screen.dart';
 import 'admin/admin_wallet_screen.dart';
 import 'admin/admin_cities_screen.dart';
+import 'admin/admin_user_management_screen.dart';
+import 'admin/admin_customer_profiles_screen.dart';
+import 'admin/admin_bookings_screen.dart';
+import 'admin/admin_transactions_screen.dart';
 
 // AI Assistant
 import 'ai_assistant/ai_assistant_screen.dart';
@@ -124,6 +128,10 @@ class SitemapScreen extends StatelessWidget {
             _Item('Injeksi Saldo Dompet', (c) => const AdminWalletScreen()),
             _Item('Master Kota & Wilayah', (c) => const AdminCitiesScreen()),
             _Item('Notifikasi Admin', (c) => const AdminNotificationsScreen()),
+            _Item('Kelola Admin (P1)', (c) => const AdminUserManagementScreen()),
+            _Item('Profil Customer (P1)', (c) => const AdminCustomerProfilesScreen()),
+            _Item('Manajemen Booking (P1)', (c) => const AdminBookingsScreen()),
+            _Item('Manajemen Transaksi (P1)', (c) => const AdminTransactionsScreen()),
           ]),
         ],
       ),

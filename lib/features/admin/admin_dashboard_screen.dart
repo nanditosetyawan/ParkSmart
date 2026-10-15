@@ -10,6 +10,10 @@ import 'admin_arcade_screen.dart';
 import 'admin_kyc_screen.dart';
 import 'admin_wallet_screen.dart';
 import 'admin_cities_screen.dart';
+import 'admin_user_management_screen.dart';
+import 'admin_customer_profiles_screen.dart';
+import 'admin_bookings_screen.dart';
+import 'admin_transactions_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
 
@@ -201,6 +205,40 @@ class AdminDashboardScreen extends StatelessWidget {
                 icon: Icons.videogame_asset_outlined,
                 label: 'Arcade Poin',
                 onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen())),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Baris Menu Baru (P1 Features)
+          Row(
+            children: [
+              _buildSecondaryAction(
+                context,
+                icon: Icons.people_outline,
+                label: 'Kelola Admin',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUserManagementScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.person_search,
+                label: 'Profil User',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.calendar_month,
+                label: 'Booking',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminBookingsScreen())),
+              ),
+              const SizedBox(width: 10),
+              _buildSecondaryAction(
+                context,
+                icon: Icons.receipt_long,
+                label: 'Transaksi',
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
               ),
             ],
           ),
