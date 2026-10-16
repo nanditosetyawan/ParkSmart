@@ -22,16 +22,19 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   late AnimationController _dropController;
   late Animation<double> _dropAnimation;
 
-  // Animasi capit membuka/menutup (0.0 = terbuka lebar, 1.0 = menjepit erat)
-  late AnimationController _clawGripController;
-  late Animation<double> _clawGripAnimation;
+  // Postur capit:
+  // 0.0 = Menguncup normal (posisi awal santai)
+  // 1.0 = Membuka kuncup capitan (terbuka lebar siap mencapit)
+  // 2.0 = Menguncup lagi (menjepit erat hadiah di dasar)
+  double _clawPose = 0.0;
+  late AnimationController _clawPoseController;
 
   // Animasi horizontal carriage saat meluncur otomatis ke lubang pembuangan
   late AnimationController _chuteTravelController;
   late Animation<double> _chuteTravelAnimation;
   double _chuteStartCraneX = 0.5;
 
-  // Animasi pintu penutup lubang pembuangan (3D perspective flap door)
+  // Animasi pintu penutup lubang pembuangan (3D perspective flap door dengan efek buka-tutup natural)
   late AnimationController _flapController;
   late Animation<double> _flapAnimation;
 
@@ -76,15 +79,10 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       curve: Curves.easeInOutQuad,
     );
 
-    // Controller capit (0.0 = TERBUKA LEBAR, 1.0 = MENJEPIT RAPAT)
-    _clawGripController = AnimationController(
+    // Controller transisi postur capit (0.0 = menguncup normal, 1.0 = terbuka lebar, 2.0 = menjepit)
+    _clawPoseController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 350),
-      value: 0.0, // Default terbuka lebar sesuai permintaan
-    );
-    _clawGripAnimation = CurvedAnimation(
-      parent: _clawGripController,
-      curve: Curves.easeInOutBack,
+      duration: const Duration(milliseconds: 300),
     );
 
     // Controller travel carriage ke lubang pembuangan
@@ -102,15 +100,33 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       });
     });
 
-    // Controller pintu flap 3D lubang pembuangan
+    // Controller pintu flap 3D lubang pembuangan dengan gerakan buka-tutup natural (berayun buka lalu balik menutup membal)
     _flapController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1050),
     );
-    _flapAnimation = CurvedAnimation(
-      parent: _flapController,
-      curve: Curves.elasticOut,
-    );
+    _flapAnimation = TweenSequence<double>([
+      // 1. Terdorong ke dalam oleh hadiah jatuh (0.0 -> 1.0)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOutCubic)),
+        weight: 28,
+      ),
+      // 2. Berayun kembali dan membal sedikit keluar (-0.16)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 1.0, end: -0.16).chain(CurveTween(curve: Curves.easeInOutQuad)),
+        weight: 26,
+      ),
+      // 3. Membal berayun ke dalam lagi sedikit (0.08)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: -0.16, end: 0.08).chain(CurveTween(curve: Curves.easeInOutQuad)),
+        weight: 22,
+      ),
+      // 4. Meredam dan kembali diam menutup normal (0.0)
+      TweenSequenceItem(
+        tween: Tween<double>(begin: 0.08, end: 0.0).chain(CurveTween(curve: Curves.easeOutQuad)),
+        weight: 24,
+      ),
+    ]).animate(_flapController);
 
     // Controller running lights marquee
     _marqueeLightController = AnimationController(
@@ -165,10 +181,45 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     } catch (_) {}
   }
 
+  // Helper untuk menganimasikan transisi postur capit secara halus
+  Future<void> _animateClawPose(
+    double target, {
+    Duration duration = const Duration(milliseconds: 300),
+    Curve curve = Curves.easeInOut,
+  }) async {
+    _clawPoseController.duration = duration;
+    final double start = _clawPose;
+    final tween = Tween<double>(begin: start, end: target);
+    final curved = CurvedAnimation(parent: _clawPoseController, curve: curve);
+    void listener() {
+      setState(() {
+        _clawPose = tween.evaluate(curved);
+      });
+    }
+
+    _clawPoseController.addListener(listener);
+    _clawPoseController.reset();
+    await _clawPoseController.forward();
+    _clawPoseController.removeListener(listener);
+    curved.dispose();
+    if (mounted) {
+      setState(() {
+        _clawPose = target;
+      });
+    }
+  }
+
   // ============================================================
   // LOGIKA ALUR CAPIT LENGKAP:
-  // 1. Terbuka lebar -> 2. Turun -> 3. Mencapit/Menutup ->
-  // 4. Naik -> 5. Ke lubang pembuangan -> 6. Lepas & Flap 3D buka -> 7. Reset
+  // 1. Awal: Menguncup normal (santai, tidak over-menguncup)
+  // 2. Klik: Membuka kuncup capitan dulu
+  // 3. Turun ke barang dalam kondisi terbuka lebar
+  // 4. Di dasar barang: Menguncup lagi / menjepit erat hadiah
+  // 5. Naik pas udah mentok ke atas
+  // 6. Geser ke lubang pembuangan hadiah di sebelah kiri
+  // 7. Di atas lubang hadiah: Terbuka kuncupnya melepaskan hadiah
+  // 8. Tutup lubang hadiah: Berayun buka-tutup natural (buka ke dalam lalu membal menutup)
+  // 9. Rel kembali ke tengah dan capit kembali menguncup normal
   // ============================================================
   Future<void> _triggerClawAction() async {
     if (_isOperating || _credits <= 0) return;
@@ -179,28 +230,33 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     });
     HapticFeedback.heavyImpact();
 
-    // 1. Capit dalam kondisi TERBUKA LEBAR meluncur TURUN
+    // 1. Dari posisi awal "menguncup normal", MEMBUKA KUNCUP CAPITAN DULU
+    await _animateClawPose(1.0, duration: const Duration(milliseconds: 280), curve: Curves.easeOutBack);
+    HapticFeedback.lightImpact();
+
+    // 2. Dalam kondisi TERBUKA LEBAR, capit meluncur TURUN ke barang
     await _dropController.forward();
     HapticFeedback.mediumImpact();
 
-    // 2. Di dasar, capit MENUTUP / MENJEPIT
-    await _clawGripController.forward();
+    // 3. Di dasar barang, capit MENGUNCUP LAGI (menjepit erat hadiah)
+    await _animateClawPose(2.0, duration: const Duration(milliseconds: 320), curve: Curves.easeInOut);
     HapticFeedback.heavyImpact();
+    await Future.delayed(const Duration(milliseconds: 160));
 
-    // 3. Dalam kondisi MENJEPIT, capit NAIK KEMBALI ke atas
+    // 4. Dalam kondisi MENJEPIT, capit NAIK PAS UDAH MENTOK ke atas
     await _dropController.reverse();
 
-    // 4. Meluncur OTOMATIS ke atas lubang pembuangan di sebelah kiri
+    // 5. Meluncur geser ke lubang pembuangan hadiah di sebelah kiri
     _chuteStartCraneX = _craneX;
     await _chuteTravelController.forward();
     _chuteTravelController.reset();
     _craneX = 0.10;
 
-    // 5. MELEPASKAN: Capit membuka lebar kembali di atas lubang pembuangan
-    await _clawGripController.reverse();
+    // 6. Di atas lubang hadiah, TERBUKA KUNCUPNYA untuk melepaskan hadiah
+    await _animateClawPose(1.0, duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
     HapticFeedback.heavyImpact();
 
-    // 6. Tutup lubang pembuangan berayun buka-tutup dalam perspektif 3D
+    // 7. Tutup lubang hadiah berayun buka-tutup secara natural
     _flapController.forward(from: 0.0);
 
     // Tambah skor & simpan high score
@@ -209,9 +265,9 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     });
     _saveHighScoreIfBest();
 
-    await Future.delayed(const Duration(milliseconds: 700));
+    await Future.delayed(const Duration(milliseconds: 800));
 
-    // 7. Rel bergerak kembali santai ke posisi tengah
+    // 8. Rel bergerak kembali ke posisi tengah santai, dan capit kembali MENGUNCUP NORMAL
     _chuteStartCraneX = _craneX;
     final centerTween = Tween<double>(begin: _craneX, end: 0.50);
     final returnController = AnimationController(
@@ -224,12 +280,17 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
         _craneX = centerTween.evaluate(returnAnim);
       });
     });
-    await returnController.forward();
+
+    await Future.wait([
+      returnController.forward(),
+      _animateClawPose(0.0, duration: const Duration(milliseconds: 550), curve: Curves.easeInOut),
+    ]);
     returnController.dispose();
 
     if (mounted) {
       setState(() {
         _craneX = 0.50;
+        _clawPose = 0.0; // Kembali menguncup normal
         _isOperating = false;
         if (_credits <= 0) {
           _showGameOverModal();
@@ -292,7 +353,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       _credits = 5;
       _craneX = 0.50;
       _isOperating = false;
-      _clawGripController.value = 0.0;
+      _clawPose = 0.0;
     });
   }
 
@@ -439,7 +500,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     _continuousMoveTimer?.cancel();
     _saveHighScoreIfBest();
     _dropController.dispose();
-    _clawGripController.dispose();
+    _clawPoseController.dispose();
     _chuteTravelController.dispose();
     _flapController.dispose();
     _marqueeLightController.dispose();
@@ -564,7 +625,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
               child: AnimatedBuilder(
                 animation: Listenable.merge([
                   _dropAnimation,
-                  _clawGripAnimation,
+                  _clawPoseController,
                   _flapAnimation,
                   _marqueeLightController,
                 ]),
@@ -573,7 +634,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                     painter: _ClawMachine3DScenePainter(
                       craneX: _craneX,
                       dropProgress: _dropAnimation.value,
-                      clawGrip: _clawGripAnimation.value,
+                      clawPose: _clawPose,
                       flapProgress: _flapAnimation.value,
                       marqueePhase: _marqueeLightController.value,
                     ),
@@ -613,6 +674,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                           width: joyBoxWidth,
                           height: joyBoxHeight,
                           child: Stack(
+                            clipBehavior: Clip.none,
                             alignment: Alignment.center,
                             children: [
                               // Dudukan Joystick (bawahController.png)
@@ -625,9 +687,9 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                                 ),
                               ),
 
-                              // Stik Pegangan (atasController.png) yang bergerak smooth & miring
+                              // Stik Pegangan (atasController.png) dinaikkan posisinya secara vertikal pas di lubang socket
                               Positioned(
-                                bottom: 22,
+                                bottom: 56,
                                 child: Transform(
                                   alignment: Alignment.bottomCenter,
                                   transform: Matrix4.translationValues(_joystickOffset.dx, _joystickOffset.dy * 0.35, 0)
@@ -813,14 +875,14 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
 class _ClawMachine3DScenePainter extends CustomPainter {
   final double craneX; // 0.0 to 1.0
   final double dropProgress; // 0.0 to 1.0
-  final double clawGrip; // 0.0 (terbuka lebar) to 1.0 (menjepit erat)
-  final double flapProgress; // 0.0 (tutup) s/d 1.0 (berayun buka ke dalam 3D)
+  final double clawPose; // 0.0 = menguncup normal, 1.0 = terbuka lebar, 2.0 = menjepit rapat
+  final double flapProgress; // -0.16 s/d 1.0 (berayun buka tutup natural)
   final double marqueePhase; // 0.0 to 1.0
 
   _ClawMachine3DScenePainter({
     required this.craneX,
     required this.dropProgress,
-    required this.clawGrip,
+    required this.clawPose,
     required this.flapProgress,
     required this.marqueePhase,
   });
@@ -878,24 +940,22 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     }
 
     // ------------------------------------------------------------
-    // C. DIMENSI KOTAK 3D MESIN CAPIT (TINGGI MAKSIMAL KE ATAS & BAWAH)
+    // C. DIMENSI KOTAK 3D MESIN CAPIT (DIKECILKAN HEIGHT-NYA SECARA PROPORSIONAL)
     // ------------------------------------------------------------
     final double boxW = w * 0.76;
     final double boxLeft = (w - boxW) * 0.42;
     final double boxRight = boxLeft + boxW;
 
-    // Keseluruhan height mesin dimaksimalkan:
-    // Marquee mulai sangat ke atas (h * 0.02)
-    // Dasar mesin menjulur ke bawah (h * 0.96)
-    final double marqueeTop = h * 0.025;
-    final double marqueeHeight = h * 0.085;
+    // Proporsi height mesin dan posisi vertikal diturunkan ke bawah agar tidak banyak ruang kosong di bawah:
+    final double marqueeTop = h * 0.15;
+    final double marqueeHeight = h * 0.08;
     final double glassTop = marqueeTop + marqueeHeight;
 
-    final double glassHeight = h * 0.45; // Etalase kaca tinggi leluasa
+    final double glassHeight = h * 0.36; // Etalase kaca proporsional
     final double bodyTop = glassTop + glassHeight;
 
-    final double bodyHeight = h * 0.40;
-    final double boxBottom = bodyTop + bodyHeight;
+    final double bodyHeight = h * 0.33; // Body bawah proporsional
+    final double boxBottom = bodyTop + bodyHeight; // h * 0.92, pas di lantai atas kontrol panel
 
     // Vektor kedalaman 3D rusuk
     const double depthDx = 30.0;
@@ -1022,6 +1082,32 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       Paint()..color = const Color(0xFF334155),
     );
 
+    // Kumpulan barang hadiah (capsule & mini arcade cars) di dasar lantai kaca
+    final prizeColors = [
+      const Color(0xFFEF4444),
+      const Color(0xFF3B82F6),
+      const Color(0xFF10B981),
+      const Color(0xFFF59E0B),
+      const Color(0xFFEC4899),
+    ];
+    for (int i = 0; i < prizeColors.length; i++) {
+      final double px = boxLeft + 24.0 + i * ((boxW - 48.0) / (prizeColors.length - 1));
+      final double py = bodyTop - 6.0 + (i % 2 == 0 ? -3.0 : 2.0);
+      final prizeRect = Rect.fromCenter(center: Offset(px, py), width: 22, height: 16);
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(prizeRect, const Radius.circular(6)),
+        Paint()..color = prizeColors[i],
+      );
+      // Highlight kilau kapsul hadiah
+      canvas.drawRRect(
+        RRect.fromRectAndRadius(
+          Rect.fromLTWH(prizeRect.left + 3, prizeRect.top + 2, 7, 5),
+          const Radius.circular(3),
+        ),
+        Paint()..color = Colors.white.withValues(alpha: 0.6),
+      );
+    }
+
     // ------------------------------------------------------------
     // G. MEKANISME PENGGERAK CAPIT & REL ATAS
     // Rel dan carriage bergerak smooth ke kanan/kiri mengikuti joystick
@@ -1056,7 +1142,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // Perhitungan jarak turun kabel baja
-    final double maxDropDistance = (bodyTop - railY) - 54.0;
+    final double maxDropDistance = (bodyTop - railY) - 46.0;
     final double clawCurrentY = railY + 8.0 + dropProgress * maxDropDistance;
 
     // Kabel baja vertikal
@@ -1087,18 +1173,38 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // ------------------------------------------------------------
-    // ANIMASI CAPIT BESI:
-    // Terbuka lebar terlebih dahulu (ujung pengait jangan bertemu),
-    // baru kemudian menutup saat mencapit di dasar!
-    // clawGrip: 0.0 = TERBUKA LEBAR, 1.0 = MENJEPIT RAPAT
+    // ANIMASI CAPIT BESI (ARAH ROTASI KINI DIBALIK / REVERSED):
+    // Sudut positif pada lengan kiri memutar keluar ke arah kiri (-X).
+    // Sudut negatif pada lengan kanan memutar keluar ke arah kanan (+X).
+    //
+    // 0.0 = Menguncup normal (idle santai, gap ~11px, tidak menyilang)
+    // 1.0 = Membuka kuncup capitan (terbuka lebar ke luar, gap ~43px)
+    // 2.0 = Menguncup lagi (menjepit erat hadiah di dasar, gap ~2.6px)
     // ------------------------------------------------------------
-    final double angleLeft = -0.68 + clawGrip * 0.62;  // -0.68 rad (terbuka lebar ~39 deg) s/d -0.06 rad (rapat)
-    final double angleRight = 0.68 - clawGrip * 0.62; // +0.68 rad (terbuka lebar ~39 deg) s/d +0.06 rad (rapat)
-    final double angleCenter = 0.12 * (1.0 - clawGrip);
+    double angleLeft;
+    double angleRight;
+    double angleCenter;
 
-    _drawWideSteelProng(canvas, Offset(cranePixelX - 7, clawCurrentY + 14), angleLeft, isLeft: true, isOpen: clawGrip < 0.5);
-    _drawWideSteelProng(canvas, Offset(cranePixelX + 7, clawCurrentY + 14), angleRight, isLeft: false, isOpen: clawGrip < 0.5);
-    _drawWideSteelProng(canvas, Offset(cranePixelX, clawCurrentY + 16), angleCenter, isCenter: true, isOpen: clawGrip < 0.5);
+    if (clawPose <= 1.0) {
+      final double t = clawPose.clamp(0.0, 1.0);
+      // Dari Menguncup Normal (+0.14) -> Membuka Lebar (+0.62)
+      angleLeft = 0.14 + t * 0.48;
+      // Dari Menguncup Normal (-0.14) -> Membuka Lebar (-0.62)
+      angleRight = -0.14 - t * 0.48;
+      angleCenter = t * 0.18;
+    } else {
+      final double t = (clawPose - 1.0).clamp(0.0, 1.0);
+      // Dari Membuka Lebar (+0.62) -> Menjepit Rapat (+0.01)
+      angleLeft = 0.62 - t * 0.61;
+      // Dari Membuka Lebar (-0.62) -> Menjepit Rapat (-0.01)
+      angleRight = -0.62 + t * 0.61;
+      angleCenter = 0.18 * (1.0 - t);
+    }
+
+    final bool isOpen = clawPose > 0.4 && clawPose < 1.6;
+    _drawWideSteelProng(canvas, Offset(cranePixelX - 7, clawCurrentY + 14), angleLeft, isLeft: true, isOpen: isOpen);
+    _drawWideSteelProng(canvas, Offset(cranePixelX + 7, clawCurrentY + 14), angleRight, isLeft: false, isOpen: isOpen);
+    _drawWideSteelProng(canvas, Offset(cranePixelX, clawCurrentY + 16), angleCenter, isCenter: true, isOpen: isOpen);
 
     // ------------------------------------------------------------
     // H. KACA DEPAN DENGAN EFEK PANTULAN GLASS (SPECULAR GLARE)
@@ -1242,8 +1348,8 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // Konsol miring menonjol ke depan
-    final double shelfTop = bodyTop + 6.0;
-    final double shelfHeight = 38.0;
+    final double shelfTop = bodyTop + 5.0;
+    final double shelfHeight = 32.0;
 
     final shelfPath = Path()
       ..moveTo(boxLeft + 10, shelfTop)
@@ -1269,42 +1375,42 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // Detail dekoratif di konsol kontrol
-    canvas.drawCircle(Offset(boxLeft + 45, shelfTop + 18), 7, Paint()..color = const Color(0xFF1E293B));
+    canvas.drawCircle(Offset(boxLeft + 45, shelfTop + 16), 6, Paint()..color = const Color(0xFF1E293B));
     canvas.drawLine(
-      Offset(boxLeft + 45, shelfTop + 18),
-      Offset(boxLeft + 42, shelfTop + 8),
+      Offset(boxLeft + 45, shelfTop + 16),
+      Offset(boxLeft + 42, shelfTop + 7),
       Paint()
         ..color = const Color(0xFFCBD5E1)
-        ..strokeWidth = 3
+        ..strokeWidth = 2.5
         ..strokeCap = StrokeCap.round,
     );
-    canvas.drawCircle(Offset(boxLeft + 42, shelfTop + 8), 5, Paint()..color = const Color(0xFFEF4444));
+    canvas.drawCircle(Offset(boxLeft + 42, shelfTop + 7), 4.5, Paint()..color = const Color(0xFFEF4444));
 
-    canvas.drawCircle(Offset(boxLeft + 75, shelfTop + 18), 5, Paint()..color = const Color(0xFFFBBF24));
-    canvas.drawCircle(Offset(boxLeft + 90, shelfTop + 18), 5, Paint()..color = const Color(0xFF10B981));
+    canvas.drawCircle(Offset(boxLeft + 72, shelfTop + 16), 4.5, Paint()..color = const Color(0xFFFBBF24));
+    canvas.drawCircle(Offset(boxLeft + 86, shelfTop + 16), 4.5, Paint()..color = const Color(0xFF10B981));
 
     // Lubang koin
-    final coinSlotRect = Rect.fromCenter(center: Offset(boxRight - 50, shelfTop + 18), width: 20, height: 14);
+    final coinSlotRect = Rect.fromCenter(center: Offset(boxRight - 48, shelfTop + 16), width: 18, height: 12);
     canvas.drawRRect(
       RRect.fromRectAndRadius(coinSlotRect, const Radius.circular(3)),
       Paint()..color = const Color(0xFF1E293B),
     );
     canvas.drawLine(
-      Offset(boxRight - 50, shelfTop + 13),
-      Offset(boxRight - 50, shelfTop + 23),
+      Offset(boxRight - 48, shelfTop + 12),
+      Offset(boxRight - 48, shelfTop + 20),
       Paint()
         ..color = const Color(0xFFFDE047)
-        ..strokeWidth = 2,
+        ..strokeWidth = 1.8,
     );
 
     // ------------------------------------------------------------
     // K. LUBANG PENGELUARAN HADIAH 3D DENGAN PINTU FLAP BERAYUN 3D
-    // "bisa bergerak buka tutup depan belakang dengan mempertahankan logic bangun ruang"
+    // Berayun buka-tutup natural: terbuka masuk ke dalam lalu membal menutup
     // ------------------------------------------------------------
     final double chuteW = boxW * 0.34;
-    final double chuteH = 54.0;
+    final double chuteH = 50.0;
     final double chuteX = boxLeft + 16.0;
-    final double chuteY = boxBottom - chuteH - 16.0;
+    final double chuteY = boxBottom - chuteH - 14.0;
 
     final chuteRect = Rect.fromLTWH(chuteX, chuteY, chuteW, chuteH);
 
@@ -1325,15 +1431,13 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // PINTU FLAP LOGAM DENGAN PERSPEKTIF 3D DEPAN-BELAKANG (LOGIKA BANGUN RUANG)
-    // Saat flapProgress berayun (0.0 s/d 1.0):
-    // Pintu berayun masuk ke dalam rongga mesin (swinging into depth).
-    // Bagian bawah pintu memendek karena foreshortening perspektif (cos angle)
-    // dan menyempit ke dalam (sin angle).
-    final double swingAngle = flapProgress * (math.pi / 2.8); // Berayun ke dalam hingga ~64 derajat
+    // Saat flapProgress berayun (0.0 -> 1.0 -> -0.16 -> 0.08 -> 0.0):
+    // Pintu berayun masuk ke dalam rongga mesin lalu membal natural kembali ke posisi normal menutup rapat.
+    final double swingAngle = flapProgress * (math.pi / 2.8);
     final double flapLen = (chuteH - 14) * math.cos(swingAngle);
     final double insetX = 6.0 * math.sin(swingAngle);
 
-    final flapTopY = chuteY + 6.0;
+    final flapTopY = chuteY + 5.0;
     final flapBotY = flapTopY + flapLen;
 
     final flapPath = Path()
@@ -1352,7 +1456,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
           end: Alignment.bottomCenter,
           colors: [
             const Color(0xFF94A3B8),
-            Color.lerp(const Color(0xFF334155), const Color(0xFF0F172A), flapProgress)!,
+            Color.lerp(const Color(0xFF334155), const Color(0xFF0F172A), flapProgress.clamp(0.0, 1.0))!,
           ],
         ).createShader(flapPath.getBounds()),
     );
@@ -1389,7 +1493,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     )..layout();
     prizeLabel.paint(
       canvas,
-      Offset(chuteX + (chuteW - prizeLabel.width) * 0.5, chuteY + chuteH - 10),
+      Offset(chuteX + (chuteW - prizeLabel.width) * 0.5, chuteY + chuteH - 11),
     );
   }
 
@@ -1448,7 +1552,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
   bool shouldRepaint(covariant _ClawMachine3DScenePainter oldDelegate) {
     return oldDelegate.craneX != craneX ||
         oldDelegate.dropProgress != dropProgress ||
-        oldDelegate.clawGrip != clawGrip ||
+        oldDelegate.clawPose != clawPose ||
         oldDelegate.flapProgress != flapProgress ||
         oldDelegate.marqueePhase != marqueePhase;
   }
