@@ -167,24 +167,45 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
 
   // ============ TAB 1: RINGKASAN ============
   Widget _buildSummaryTab(Map<String, dynamic> data) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // KPI Cards
-          _buildSectionTitle('KPI Utama', subtitle: 'Periode: $_selectedRange'),
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                _buildKPICard('Total Pendapatan', 'Rp ${_formatNumber(data['revenue'])}', Icons.attach_money, const Color(0xFF114177), growth: data['growth'], growthLabel: 'vs periode sebelumnya'),
-                _buildKPICard('Transaksi', _formatNumber(data['transactions']), Icons.receipt_long, const Color(0xFF17A18A), growth: 5.2, growthLabel: 'vs periode sebelumnya'),
-                _buildKPICard('Rata-rata/Tiket', 'Rp ${_formatNumber(data['avgTicket'])}', Icons.analytics, const Color(0xFFE07A5F), growth: -2.1, growthLabel: 'vs periode sebelumnya'),
-                _buildKPICard('Rata-rata/Hari', 'Rp ${_formatNumber((data['revenue'] / (_selectedRange.contains('Bulan') ? 30 : _selectedRange.contains('Minggu') ? 7 : 1)).round())}', Icons.calendar_today, const Color(0xFF9B59B6)),
-              ],
+      return SingleChildScrollView(
+        padding: const EdgeInsets.only(bottom: 24),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // KPI Cards
+            _buildSectionTitle('KPI Utama', subtitle: 'Periode: $_selectedRange'),
+            _buildCard(
+              padding: const EdgeInsets.all(20),
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final isNarrow = constraints.maxWidth < 600;
+                  if (isNarrow) {
+                    return Column(
+                      children: [
+                        _buildKPICard('Total Pendapatan', 'Rp ${_formatNumber(data['revenue'])}', Icons.attach_money, const Color(0xFF114177), growth: data['growth'], growthLabel: 'vs periode sebelumnya'),
+                        const SizedBox(height: 12),
+                        _buildKPICard('Transaksi', _formatNumber(data['transactions']), Icons.receipt_long, const Color(0xFF17A18A), growth: 5.2, growthLabel: 'vs periode sebelumnya'),
+                        const SizedBox(height: 12),
+                        _buildKPICard('Rata-rata/Tiket', 'Rp ${_formatNumber(data['avgTicket'])}', Icons.analytics, const Color(0xFFE07A5F), growth: -2.1, growthLabel: 'vs periode sebelumnya'),
+                        const SizedBox(height: 12),
+                        _buildKPICard('Rata-rata/Hari', 'Rp ${_formatNumber((data['revenue'] / (_selectedRange.contains('Bulan') ? 30 : _selectedRange.contains('Minggu') ? 7 : 1)).round())}', Icons.calendar_today, const Color(0xFF9B59B6)),
+                      ],
+                    );
+                  }
+                  return Row(
+                    children: [
+                      _buildKPICard('Total Pendapatan', 'Rp ${_formatNumber(data['revenue'])}', Icons.attach_money, const Color(0xFF114177), growth: data['growth'], growthLabel: 'vs periode sebelumnya'),
+                      const SizedBox(width: 12),
+                      _buildKPICard('Transaksi', _formatNumber(data['transactions']), Icons.receipt_long, const Color(0xFF17A18A), growth: 5.2, growthLabel: 'vs periode sebelumnya'),
+                      const SizedBox(width: 12),
+                      _buildKPICard('Rata-rata/Tiket', 'Rp ${_formatNumber(data['avgTicket'])}', Icons.analytics, const Color(0xFFE07A5F), growth: -2.1, growthLabel: 'vs periode sebelumnya'),
+                      const SizedBox(width: 12),
+                      _buildKPICard('Rata-rata/Hari', 'Rp ${_formatNumber((data['revenue'] / (_selectedRange.contains('Bulan') ? 30 : _selectedRange.contains('Minggu') ? 7 : 1)).round())}', Icons.calendar_today, const Color(0xFF9B59B6)),
+                    ],
+                  );
+                },
+              ),
             ),
-          ),
 
           // MRR Card
           _buildSectionTitle('Monthly Recurring Revenue (MRR)'),
@@ -249,13 +270,34 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
           _buildSectionTitle('Ringkasan Occupancy'),
           _buildCard(
             padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                _buildOccupancyCard('Rata-rata Keseluruhan', '78%', const Color(0xFF17A18A), Icons.park),
-                _buildOccupancyCard('Peak Hour (18-20)', '92%', const Color(0xFFE07A5F), Icons.schedule),
-                _buildOccupancyCard('Off Peak (02-05)', '23%', const Color(0xFF76777B), Icons.nightlight),
-                _buildOccupancyCard('Weekend vs Weekday', '+15%', const Color(0xFF9B59B6), Icons.weekend),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 600;
+                if (isNarrow) {
+                  return Column(
+                    children: [
+                      _buildOccupancyCard('Rata-rata Keseluruhan', '78%', const Color(0xFF17A18A), Icons.park),
+                      const SizedBox(height: 12),
+                      _buildOccupancyCard('Peak Hour (18-20)', '92%', const Color(0xFFE07A5F), Icons.schedule),
+                      const SizedBox(height: 12),
+                      _buildOccupancyCard('Off Peak (02-05)', '23%', const Color(0xFF76777B), Icons.nightlight),
+                      const SizedBox(height: 12),
+                      _buildOccupancyCard('Weekend vs Weekday', '+15%', const Color(0xFF9B59B6), Icons.weekend),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    _buildOccupancyCard('Rata-rata Keseluruhan', '78%', const Color(0xFF17A18A), Icons.park),
+                    const SizedBox(width: 12),
+                    _buildOccupancyCard('Peak Hour (18-20)', '92%', const Color(0xFFE07A5F), Icons.schedule),
+                    const SizedBox(width: 12),
+                    _buildOccupancyCard('Off Peak (02-05)', '23%', const Color(0xFF76777B), Icons.nightlight),
+                    const SizedBox(width: 12),
+                    _buildOccupancyCard('Weekend vs Weekday', '+15%', const Color(0xFF9B59B6), Icons.weekend),
+                  ],
+                );
+              },
             ),
           ),
 
@@ -452,20 +494,24 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
           const SizedBox(width: 12),
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-              Text(loc['city'], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+              Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis),
+              Text(loc['city'], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
             ]),
           ),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('Rp ${_formatNumber(loc['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-            Text('${loc['transactions']} txn', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-          ]),
+          Flexible(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text('Rp ${_formatNumber(loc['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis),
+              Text('${loc['transactions']} txn', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+            ]),
+          ),
           const SizedBox(width: 12),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: _occupancyColor(loc['occupancy']).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('${loc['occupancy']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: _occupancyColor(loc['occupancy'])))),
-            const SizedBox(height: 4),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('+${loc['growth']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)))),
-          ]),
+          Flexible(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: _occupancyColor(loc['occupancy']).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('${loc['occupancy']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: _occupancyColor(loc['occupancy'])))),
+              const SizedBox(height: 4),
+              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('+${loc['growth']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)))),
+            ]),
+          ),
         ],
       ),
     );
@@ -478,16 +524,26 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
         children: [
           Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.location_city, color: Color(0xFF114177), size: 20)),
           const SizedBox(width: 12),
-          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            Text(zone['zone'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold)),
-            Text('${zone['locations']} lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-          ])),
-          Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-            Text('Rp ${_formatNumber(zone['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-            Text('Occupancy: ${zone['occupancy']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-          ]),
+          Expanded(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+              Text(zone['zone'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
+              Text('${zone['locations']} lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+            ]),
+          ),
+          Flexible(
+            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
+              Text('Rp ${_formatNumber(zone['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis),
+              Text('Occupancy: ${zone['occupancy']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+            ]),
+          ),
           const SizedBox(width: 12),
-          Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4), decoration: BoxDecoration(color: zone['growth'] > 15 ? const Color(0xFF17A18A).withValues(alpha: 0.1) : const Color(0xFFE07A5F).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('+${zone['growth']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: zone['growth'] > 15 ? const Color(0xFF17A18A) : const Color(0xFFE07A5F)))),
+          Flexible(
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              decoration: BoxDecoration(color: zone['growth'] > 15 ? const Color(0xFF17A18A).withValues(alpha: 0.1) : const Color(0xFFE07A5F).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+              child: Text('+${zone['growth']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: zone['growth'] > 15 ? const Color(0xFF17A18A) : const Color(0xFFE07A5F))),
+            ),
+          ),
         ],
       ),
     );
@@ -551,12 +607,12 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
         children: [
           Container(width: 12, height: 12, decoration: BoxDecoration(color: v['color'], shape: BoxShape.circle)),
           const SizedBox(width: 12),
-          Expanded(child: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600))),
-          Text('Rp ${_formatNumber(v['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+          Expanded(child: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+          Flexible(child: Text('Rp ${_formatNumber(v['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 16),
-          Text('${v['transactions']} txn', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+          Flexible(child: Text('${v['transactions']} txn', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
           const SizedBox(width: 12),
-          Text('Avg: Rp ${_formatNumber(v['avgTicket'])}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+          Flexible(child: Text('Avg: Rp ${_formatNumber(v['avgTicket'])}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -569,19 +625,21 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
         children: [
           Container(width: 12, height: 12, decoration: BoxDecoration(color: v['color'], shape: BoxShape.circle)),
           const SizedBox(width: 12),
-          Expanded(child: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600))),
-          Container(
-            height: 8,
-            width: 120,
-            child: Stack(
-              children: [
-                Container(height: 8, decoration: BoxDecoration(color: const Color(0xFFE4DFD5), borderRadius: BorderRadius.circular(4))),
-                FractionallySizedBox(widthFactor: (v['avgTicket'] / 70000).clamp(0.0, 1.0), child: Container(height: 8, decoration: BoxDecoration(color: v['color'], borderRadius: BorderRadius.circular(4)))),
-              ],
+          Expanded(child: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
+          Flexible(
+            child: Container(
+              height: 8,
+              width: 120,
+              child: Stack(
+                children: [
+                  Container(height: 8, decoration: BoxDecoration(color: const Color(0xFFE4DFD5), borderRadius: BorderRadius.circular(4))),
+                  FractionallySizedBox(widthFactor: (v['avgTicket'] / 70000).clamp(0.0, 1.0), child: Container(height: 8, decoration: BoxDecoration(color: v['color'], borderRadius: BorderRadius.circular(4)))),
+                ],
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          Text('Rp ${_formatNumber(v['avgTicket'])}/jam', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+          Flexible(child: Text('Rp ${_formatNumber(v['avgTicket'])}/jam', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -602,12 +660,30 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
           // Forecast Cards
           _buildCard(
             padding: const EdgeInsets.all(20),
-            child: Row(
-              children: [
-                _buildForecastCard('Bulan Depan', 'Rp ${_formatNumber(nextMonthForecast.round())}', '+15%', const Color(0xFF114177), Icons.event),
-                _buildForecastCard('Triwulan Depan', 'Rp ${_formatNumber(nextQuarterForecast.round())}', '+12%', const Color(0xFF17A18A), Icons.date_range),
-                _buildForecastCard('Tahun Depan (Est.)', 'Rp ${_formatNumber((_revenueData['year']!['revenue'] * 1.22).round())}', '+22%', const Color(0xFF9B59B6), Icons.trending_up),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 600;
+                if (isNarrow) {
+                  return Column(
+                    children: [
+                      _buildForecastCard('Bulan Depan', 'Rp ${_formatNumber(nextMonthForecast.round())}', '+15%', const Color(0xFF114177), Icons.event),
+                      const SizedBox(height: 12),
+                      _buildForecastCard('Triwulan Depan', 'Rp ${_formatNumber(nextQuarterForecast.round())}', '+12%', const Color(0xFF17A18A), Icons.date_range),
+                      const SizedBox(height: 12),
+                      _buildForecastCard('Tahun Depan (Est.)', 'Rp ${_formatNumber((_revenueData['year']!['revenue'] * 1.22).round())}', '+22%', const Color(0xFF9B59B6), Icons.trending_up),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    _buildForecastCard('Bulan Depan', 'Rp ${_formatNumber(nextMonthForecast.round())}', '+15%', const Color(0xFF114177), Icons.event),
+                    const SizedBox(width: 12),
+                    _buildForecastCard('Triwulan Depan', 'Rp ${_formatNumber(nextQuarterForecast.round())}', '+12%', const Color(0xFF17A18A), Icons.date_range),
+                    const SizedBox(width: 12),
+                    _buildForecastCard('Tahun Depan (Est.)', 'Rp ${_formatNumber((_revenueData['year']!['revenue'] * 1.22).round())}', '+22%', const Color(0xFF9B59B6), Icons.trending_up),
+                  ],
+                );
+              },
             ),
           ),
 
@@ -717,49 +793,59 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
   }
 
   Widget _buildKPICard(String label, String value, IconData icon, Color color, {double? growth, String? growthLabel}) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 20, color: color),
-                const SizedBox(width: 8),
-                Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)))),
+    return Flexible(
+      fit: FlexFit.tight,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 140),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Row(
+                children: [
+                  Icon(icon, size: 20, color: color),
+                  const SizedBox(width: 8),
+                  Flexible(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Flexible(child: FittedBox(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: color)))),
+              if (growth != null) ...[
+                const SizedBox(height: 4),
+                Flexible(child: Row(children: [
+                  Icon(growth >= 0 ? Icons.trending_up : Icons.trending_down, size: 12, color: growth >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B)),
+                  const SizedBox(width: 4),
+                  Flexible(child: Text('${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: growth >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B)), overflow: TextOverflow.ellipsis)),
+                  if (growthLabel != null) ...[const SizedBox(width: 4), Flexible(child: Text(growthLabel, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis))],
+                ])),
               ],
-            ),
-            const SizedBox(height: 8),
-            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: color)),
-            if (growth != null) ...[
-              const SizedBox(height: 4),
-              Row(children: [
-                Icon(growth >= 0 ? Icons.trending_up : Icons.trending_down, size: 12, color: growth >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B)),
-                const SizedBox(width: 4),
-                Text('${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: growth >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B))),
-                if (growthLabel != null) ...[const SizedBox(width: 4), Text(growthLabel, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B)))],
-              ]),
             ],
-          ],
+          ),
         ),
       ),
     );
   }
 
   Widget _buildOccupancyCard(String label, String value, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
-        child: Column(
-          children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: color)),
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: color), textAlign: TextAlign.center),
-          ],
+    return Flexible(
+      fit: FlexFit.tight,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 120),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 24, color: color),
+              const SizedBox(height: 8),
+              Flexible(child: FittedBox(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: color)))),
+              Flexible(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: color), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis)),
+            ],
+          ),
         ),
       ),
     );
@@ -780,20 +866,25 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
   }
 
   Widget _buildForecastCard(String label, String value, String growth, Color color, IconData icon) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
-        child: Column(
-          children: [
-            Icon(icon, size: 24, color: color),
-            const SizedBox(height: 8),
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center),
-            const SizedBox(height: 4),
-            Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text(growth, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)))),
-          ],
+    return Flexible(
+      fit: FlexFit.tight,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(minWidth: 120),
+        child: Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(icon, size: 24, color: color),
+              const SizedBox(height: 8),
+              Flexible(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis)),
+              const SizedBox(height: 4),
+              Flexible(child: FittedBox(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center))),
+              const SizedBox(height: 4),
+              Flexible(child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text(growth, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))))),
+            ],
+          ),
         ),
       ),
     );
@@ -815,9 +906,9 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: Row(
         children: [
-          Expanded(flex: 2, child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)))),
-          Expanded(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177)))),
-          Expanded(flex: 2, child: Text(detail, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)))),
+          Expanded(flex: 2, child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis)),
+          Expanded(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis)),
+          Expanded(flex: 2, child: Text(detail, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );

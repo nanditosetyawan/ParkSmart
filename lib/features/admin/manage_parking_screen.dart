@@ -258,7 +258,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)))),
+                    Expanded(child: Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                       decoration: BoxDecoration(color: statusColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
@@ -377,6 +377,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               DropdownButtonFormField<String>(
                 initialValue: status,
                 decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                isExpanded: true,
                 items: ['Aktif', 'Padat', 'Maintenance', 'Nonaktif'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) => status = v ?? 'Aktif',
               ),
@@ -423,7 +424,10 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   // ============ TAB 2: SLOT ============
   Widget _buildSlotsTab() {
-    final loc = _locations.firstWhere((l) => l['id'] == _selectedLocationId);
+    final loc = _locations.firstWhere(
+      (l) => l['id'] == _selectedLocationId,
+      orElse: () => _locations.first,
+    );
     final summary = _slotSummary;
     final slots = _filteredSlots;
 
@@ -438,42 +442,111 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 400;
+                    if (isNarrow) {
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text('Kelola Slot Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                              Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          DropdownButtonFormField<String>(
+                            initialValue: _selectedLocationId,
+                            isDense: true,
+                            isExpanded: true,
+                            decoration: InputDecoration(labelText: 'Pilih Lokasi', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                            items: _locations.map<DropdownMenuItem<String>>((l) => DropdownMenuItem<String>(value: l['id'] as String, child: Text(l['name'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
+                            onChanged: (v) => setState(() => _selectedLocationId = v ?? _locations.first['id']),
+                          ),
+                        ],
+                      );
+                    }
+                    return Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text('Kelola Slot Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                        Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Kelola Slot Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                            Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
+                          ],
+                        ),
+                        DropdownButtonFormField<String>(
+                          initialValue: _selectedLocationId,
+                          isDense: true,
+                          decoration: InputDecoration(labelText: 'Pilih Lokasi', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                          items: _locations.map<DropdownMenuItem<String>>((l) => DropdownMenuItem<String>(value: l['id'] as String, child: Text(l['name'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
+                          onChanged: (v) => setState(() => _selectedLocationId = v ?? _locations.first['id']),
+                        ),
                       ],
-                    ),
-                    DropdownButtonFormField<String>(
-                      initialValue: _selectedLocationId,
-                      isDense: true,
-                      decoration: InputDecoration(labelText: 'Pilih Lokasi', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                      items: _locations.map<DropdownMenuItem<String>>((l) => DropdownMenuItem<String>(value: l['id'] as String, child: Text(l['name'] as String, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
-                      onChanged: (v) => setState(() => _selectedLocationId = v ?? _locations.first['id']),
-                    ),
-                  ],
+                    );
+                  },
                 ),
                 const SizedBox(height: 20),
                 // Summary cards
-                Row(
-                  children: [
-                    _buildSummaryCard('Total', summary['total']!, Icons.grid_3x3, const Color(0xFF45474A)),
-                    _buildSummaryCard('Tersedia', summary['available']!, Icons.check_circle, const Color(0xFF17A18A)),
-                    _buildSummaryCard('Terisi', summary['occupied']!, Icons.directions_car, const Color(0xFFD94B4B)),
-                    _buildSummaryCard('EV', summary['ev']!, Icons.ev_station, const Color(0xFFE07A5F)),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildSummaryCard('Disabilitas', summary['disabled']!, Icons.accessible, const Color(0xFF9B59B6)),
-                    _buildSummaryCard('Motor', summary['motorcycle']!, Icons.two_wheeler, const Color(0xFF114177)),
-                    _buildSummaryCard('Reguler', summary['regular']!, Icons.square, const Color(0xFF76777B)),
-                  ],
+                LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isNarrow = constraints.maxWidth < 500;
+                    if (isNarrow) {
+                      return Column(
+                        children: [
+                          Row(
+                            children: [
+                              _buildSummaryCard('Total', summary['total']!, Icons.grid_3x3, const Color(0xFF45474A)),
+                              _buildSummaryCard('Tersedia', summary['available']!, Icons.check_circle, const Color(0xFF17A18A)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _buildSummaryCard('Terisi', summary['occupied']!, Icons.directions_car, const Color(0xFFD94B4B)),
+                              _buildSummaryCard('EV', summary['ev']!, Icons.ev_station, const Color(0xFFE07A5F)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _buildSummaryCard('Disabilitas', summary['disabled']!, Icons.accessible, const Color(0xFF9B59B6)),
+                              _buildSummaryCard('Motor', summary['motorcycle']!, Icons.two_wheeler, const Color(0xFF114177)),
+                            ],
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            children: [
+                              _buildSummaryCard('Reguler', summary['regular']!, Icons.square, const Color(0xFF76777B)),
+                            ],
+                          ),
+                        ],
+                      );
+                    }
+                    return Column(
+                      children: [
+                        Row(
+                          children: [
+                            _buildSummaryCard('Total', summary['total']!, Icons.grid_3x3, const Color(0xFF45474A)),
+                            _buildSummaryCard('Tersedia', summary['available']!, Icons.check_circle, const Color(0xFF17A18A)),
+                            _buildSummaryCard('Terisi', summary['occupied']!, Icons.directions_car, const Color(0xFFD94B4B)),
+                            _buildSummaryCard('EV', summary['ev']!, Icons.ev_station, const Color(0xFFE07A5F)),
+                          ],
+                        ),
+                        const SizedBox(height: 12),
+                        Row(
+                          children: [
+                            _buildSummaryCard('Disabilitas', summary['disabled']!, Icons.accessible, const Color(0xFF9B59B6)),
+                            _buildSummaryCard('Motor', summary['motorcycle']!, Icons.two_wheeler, const Color(0xFF114177)),
+                            _buildSummaryCard('Reguler', summary['regular']!, Icons.square, const Color(0xFF76777B)),
+                          ],
+                        ),
+                      ],
+                    );
+                  },
                 ),
               ],
             ),
@@ -481,35 +554,71 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
           // Filters
           _buildCard(
-            child: Row(
-              children: [
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedSlotType,
-                    isDense: true,
-                    decoration: InputDecoration(labelText: 'Tipe Slot', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                    items: ['Semua', 'Reguler', 'EV', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
-                    onChanged: (v) => setState(() => _selectedSlotType = v ?? 'Semua'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: DropdownButtonFormField<String>(
-                    initialValue: _selectedSlotStatus,
-                    isDense: true,
-                    decoration: InputDecoration(labelText: 'Status', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                    items: ['Semua', 'Tersedia', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
-                    onChanged: (v) => setState(() => _selectedSlotStatus = v ?? 'Semua'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                ElevatedButton.icon(
-                  onPressed: _showAddSlotDialog,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: Text('Tambah Slot', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
-                  style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-                ),
-              ],
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final isNarrow = constraints.maxWidth < 450;
+                if (isNarrow) {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedSlotType,
+                        isDense: true,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: 'Tipe Slot', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        items: ['Semua', 'Reguler', 'EV', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
+                        onChanged: (v) => setState(() => _selectedSlotType = v ?? 'Semua'),
+                      ),
+                      const SizedBox(height: 12),
+                      DropdownButtonFormField<String>(
+                        initialValue: _selectedSlotStatus,
+                        isDense: true,
+                        isExpanded: true,
+                        decoration: InputDecoration(labelText: 'Status', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        items: ['Semua', 'Tersedia', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
+                        onChanged: (v) => setState(() => _selectedSlotStatus = v ?? 'Semua'),
+                      ),
+                      const SizedBox(height: 12),
+                      ElevatedButton.icon(
+                        onPressed: _showAddSlotDialog,
+                        icon: const Icon(Icons.add, size: 18),
+                        label: Text('Tambah Slot', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      ),
+                    ],
+                  );
+                }
+                return Row(
+                  children: [
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _selectedSlotType,
+                        isDense: true,
+                        decoration: InputDecoration(labelText: 'Tipe Slot', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        items: ['Semua', 'Reguler', 'EV', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
+                        onChanged: (v) => setState(() => _selectedSlotType = v ?? 'Semua'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: DropdownButtonFormField<String>(
+                        initialValue: _selectedSlotStatus,
+                        isDense: true,
+                        decoration: InputDecoration(labelText: 'Status', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                        items: ['Semua', 'Tersedia', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
+                        onChanged: (v) => setState(() => _selectedSlotStatus = v ?? 'Semua'),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton.icon(
+                      onPressed: _showAddSlotDialog,
+                      icon: const Icon(Icons.add, size: 18),
+                      label: Text('Tambah Slot', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                    ),
+                  ],
+                );
+              },
             ),
           ),
 
@@ -517,17 +626,27 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           _buildSectionTitle('Daftar Slot', subtitle: '${slots.length} slot ditampilkan'),
           _buildCard(
             padding: const EdgeInsets.all(12),
-            child: GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                childAspectRatio: 1.1,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-              ),
-              itemCount: slots.length > 50 ? 50 : slots.length, // Limit for performance
-              itemBuilder: (_, i) => _buildSlotCard(slots[i]),
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                // Calculate optimal cross axis count based on width
+                final crossAxisCount = (constraints.maxWidth / 140).floor().clamp(2, 6);
+                // Calculate childAspectRatio more carefully to avoid overflow
+                final itemWidth = (constraints.maxWidth - (crossAxisCount - 1) * 10) / crossAxisCount;
+                final itemHeight = 150.0;
+                final childAspectRatio = itemWidth / itemHeight;
+                return GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: crossAxisCount,
+                    childAspectRatio: childAspectRatio.clamp(0.8, 1.4),
+                    crossAxisSpacing: 10,
+                    mainAxisSpacing: 10,
+                  ),
+                  itemCount: slots.length > 50 ? 50 : slots.length, // Limit for performance
+                  itemBuilder: (_, i) => _buildSlotCard(slots[i]),
+                );
+              },
             ),
           ),
           if (slots.length > 50)
@@ -577,33 +696,54 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           borderRadius: BorderRadius.circular(12),
           border: Border.all(color: isOccupied ? const Color(0xFFD94B4B).withValues(alpha: 0.3) : const Color(0xFFE4DFD5)),
         ),
-        padding: const EdgeInsets.all(10),
+        padding: const EdgeInsets.all(8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
           children: [
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: typeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-              child: Text(slot['type'], style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.bold, color: typeColor)),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
+                decoration: BoxDecoration(color: typeColor.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                child: FittedBox(
+                  child: Text(slot['type'], style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.bold, color: typeColor)),
+                ),
+              ),
             ),
-            const SizedBox(height: 6),
-            Text(slot['code'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            const SizedBox(height: 2),
-            Text(slot['floor'], style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
+            Flexible(
+              child: FittedBox(
+                child: Text(slot['code'], style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              ),
+            ),
+            const SizedBox(height: 1),
+            Flexible(
+              child: FittedBox(
+                child: Text(slot['floor'], style: GoogleFonts.plusJakartaSans(fontSize: 8, color: const Color(0xFF76777B))),
+              ),
+            ),
+            const SizedBox(height: 4),
             Container(
-              width: 10,
-              height: 10,
+              width: 8,
+              height: 8,
               decoration: BoxDecoration(
                 color: isOccupied ? const Color(0xFFD94B4B) : const Color(0xFF17A18A),
                 shape: BoxShape.circle,
               ),
             ),
-            const SizedBox(height: 2),
-            Text(isOccupied ? 'Terisi' : 'Tersedia', style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.w600, color: isOccupied ? const Color(0xFFD94B4B) : const Color(0xFF17A18A))),
+            const SizedBox(height: 1),
+            Flexible(
+              child: FittedBox(
+                child: Text(isOccupied ? 'Terisi' : 'Tersedia', style: GoogleFonts.plusJakartaSans(fontSize: 7, fontWeight: FontWeight.w600, color: isOccupied ? const Color(0xFFD94B4B) : const Color(0xFF17A18A))),
+              ),
+            ),
             if (isOccupied && slot['vehiclePlate'] != null) ...[
-              const SizedBox(height: 4),
-              Text(slot['vehiclePlate'], style: GoogleFonts.jetBrainsMono(fontSize: 8, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+              const SizedBox(height: 2),
+              Flexible(
+                child: FittedBox(
+                  child: Text(slot['vehiclePlate'], style: GoogleFonts.jetBrainsMono(fontSize: 7, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+                ),
+              ),
             ],
           ],
         ),
@@ -640,6 +780,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               DropdownButtonFormField<String>(
                 initialValue: type,
                 decoration: InputDecoration(labelText: 'Tipe Slot', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                isExpanded: true,
                 items: ['Reguler', 'EV', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                 onChanged: (v) => type = v ?? 'Reguler',
               ),
@@ -647,6 +788,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               DropdownButtonFormField<String>(
                 initialValue: status,
                 decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                isExpanded: true,
                 items: ['Tersedia', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) => status = v ?? 'Tersedia',
               ),
@@ -726,7 +868,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               children: [
                 Row(
                   children: [
-                    Expanded(child: Text(rule['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: rule['isActive'] ? const Color(0xFF1A1A18) : const Color(0xFF76777B)))),
+                    Expanded(child: Text(rule['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: rule['isActive'] ? const Color(0xFF1A1A18) : const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                       decoration: BoxDecoration(color: rule['isActive'] ? const Color(0xFFD1F2EB) : const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(4)),
@@ -813,6 +955,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               DropdownButtonFormField<String>(
                 initialValue: location,
                 decoration: InputDecoration(labelText: 'Lokasi', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                isExpanded: true,
                 items: ['Semua Lokasi', ..._locations.map((l) => l['name'] as String)].map<DropdownMenuItem<String>>((l) => DropdownMenuItem<String>(value: l, child: Text(l))).toList(),
                 onChanged: (v) => location = v ?? 'Semua Lokasi',
               ),
@@ -820,6 +963,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               DropdownButtonFormField<String>(
                 initialValue: vehicleType,
                 decoration: InputDecoration(labelText: 'Tipe Kendaraan', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+                isExpanded: true,
                 items: ['Mobil', 'Motor', 'EV', 'Semua'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
                 onChanged: (v) => vehicleType = v ?? 'Mobil',
               ),
@@ -879,19 +1023,22 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   Widget _buildDialogField(String label, TextEditingController ctrl, IconData icon, {int maxLines = 1, TextInputType? keyboardType}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 12),
-      child: TextField(
-        controller: ctrl,
-        maxLines: maxLines,
-        keyboardType: keyboardType,
-        style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
-        decoration: InputDecoration(
-          labelText: label,
-          labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
-          prefixIcon: Icon(icon, color: const Color(0xFF114177), size: 20),
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          filled: true,
-          fillColor: const Color(0xFFF9F9F9),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: TextField(
+          controller: ctrl,
+          maxLines: maxLines,
+          keyboardType: keyboardType,
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
+          decoration: InputDecoration(
+            labelText: label,
+            labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+            prefixIcon: Icon(icon, color: const Color(0xFF114177), size: 20),
+            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+            filled: true,
+            fillColor: const Color(0xFFF9F9F9),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          ),
         ),
       ),
     );

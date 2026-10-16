@@ -253,6 +253,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)), child: Center(child: Text(currency['symbol']!, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF114177))))),
           const SizedBox(width: 12),
@@ -265,19 +266,22 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
               ],
             ),
           ),
-          SizedBox(
-            width: 140,
-            child: TextField(
-              controller: ctrl,
-              style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF1A1A18)),
-              decoration: InputDecoration(
-                labelText: 'Rate',
-                labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                isDense: true,
+          const SizedBox(width: 12),
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180, minWidth: 100),
+              child: TextField(
+                controller: ctrl,
+                style: GoogleFonts.jetBrainsMono(fontSize: 13, color: const Color(0xFF1A1A18)),
+                decoration: InputDecoration(
+                  labelText: 'Rate',
+                  labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  isDense: true,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
           ),
         ],
@@ -369,14 +373,14 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(children: [
-                  Text(tz['name']!, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18))),
+                  Expanded(child: Text(tz['name']!, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis)),
                   if (isDefault) ...[const SizedBox(width: 6), Container(padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1), decoration: BoxDecoration(color: const Color(0xFF17A18A), borderRadius: BorderRadius.circular(3)), child: Text('DEFAULT', style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.bold, color: Colors.white)))],
                 ]),
-                Text(tz['cities']!, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                Text(tz['cities']!, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          Text(tz['offset']!, style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A))),
+          Flexible(child: Text(tz['offset']!, style: GoogleFonts.jetBrainsMono(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)), overflow: TextOverflow.ellipsis)),
         ],
       ),
     );
@@ -521,24 +525,26 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18))),
+                Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis),
               ],
             ),
           ),
-          SizedBox(
-            width: 100,
-            child: TextField(
-              controller: ctrl,
-              style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-              decoration: InputDecoration(
-                labelText: suffix,
-                labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                isDense: true,
-                suffixText: suffix,
+          Flexible(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 180, minWidth: 100),
+              child: TextField(
+                controller: ctrl,
+                style: GoogleFonts.jetBrainsMono(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                decoration: InputDecoration(
+                  labelText: suffix,
+                  labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                  isDense: true,
+                  suffixText: suffix,
+                ),
+                keyboardType: const TextInputType.numberWithOptions(decimal: true),
               ),
-              keyboardType: const TextInputType.numberWithOptions(decimal: true),
             ),
           ),
         ],
@@ -582,20 +588,23 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(labels[key] ?? key, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          Text(labels[key] ?? key, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis),
           const SizedBox(height: 6),
-          TextField(
-            controller: ctrl,
-            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF1A1A18)),
-            maxLines: 2,
-            decoration: InputDecoration(
-              hintText: 'Template pesan...',
-              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
-              filled: true,
-              fillColor: const Color(0xFFF9F9F9),
-              border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
-              contentPadding: const EdgeInsets.all(12),
-              isDense: true,
+          ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: double.infinity),
+            child: TextField(
+              controller: ctrl,
+              style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF1A1A18)),
+              maxLines: 2,
+              decoration: InputDecoration(
+                hintText: 'Template pesan...',
+                hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                filled: true,
+                fillColor: const Color(0xFFF9F9F9),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                contentPadding: const EdgeInsets.all(12),
+                isDense: true,
+              ),
             ),
           ),
         ],
