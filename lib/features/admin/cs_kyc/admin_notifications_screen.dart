@@ -1,9 +1,7 @@
-import '../../theme/app_theme.dart';
+import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_kyc_screen.dart';
-import 'admin_active_users_screen.dart';
-import 'admin_wallet_screen.dart';
 import 'admin_feedback_screen.dart';
 
 class AdminNotificationsScreen extends StatefulWidget {
@@ -32,9 +30,19 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
     if (action == 'Tinjau KTP') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen()));
     } else if (action == 'Cek Overstay') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen()));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Akses Dibatasi: Tindakan ini adalah wewenang Divisi Operasional.'),
+          backgroundColor: Color(0xFF114177),
+        ),
+      );
     } else if (action == 'Cek Dompet') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen()));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Akses Dibatasi: Tindakan ini adalah wewenang Divisi Finansial.'),
+          backgroundColor: Color(0xFFD97706),
+        ),
+      );
     } else if (action == 'Lihat Ulasan') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackAdminScreen()));
     }

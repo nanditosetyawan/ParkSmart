@@ -1,8 +1,7 @@
-import '../../theme/app_theme.dart';
+import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_slot_management_screen.dart';
-import 'admin_pricing_screen.dart';
 
 class LocationsScreen extends StatefulWidget {
   const LocationsScreen({super.key});
@@ -517,7 +516,14 @@ class _LocationsScreenState extends State<LocationsScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PricingScreen())),
+                    onPressed: () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Akses Dibatasi: Pengaturan tarif hanya dapat dikelola oleh Admin Finansial atau Super Admin (Darurat).'),
+                          backgroundColor: Color(0xFFC0392B),
+                        ),
+                      );
+                    },
                     icon: const Icon(Icons.price_change_outlined, size: 16, color: Color(0xFF114177)),
                     label: Text('Atur Tarif', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
                     style: OutlinedButton.styleFrom(

@@ -1,7 +1,7 @@
-import '../../theme/app_theme.dart';
+import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import '../sitemap_screen.dart';
+import '../../sitemap_screen.dart';
 
 class AdminAppSettingsScreen extends StatefulWidget {
   const AdminAppSettingsScreen({super.key});

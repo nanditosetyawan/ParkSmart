@@ -1,26 +1,29 @@
-import '../../theme/app_theme.dart';
+import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'admin_notifications_screen.dart';
-import 'admin_locations_screen.dart';
-import 'admin_slot_management_screen.dart';
-import 'admin_pricing_screen.dart';
-import 'admin_active_users_screen.dart';
-import 'admin_feedback_screen.dart';
-import 'admin_arcade_screen.dart';
-import 'admin_kyc_screen.dart';
-import 'admin_wallet_screen.dart';
-import 'admin_cities_screen.dart';
+import '../cs_kyc/admin_notifications_screen.dart';
+import '../operations/admin_locations_screen.dart';
+import '../operations/admin_slot_management_screen.dart';
+import '../finance/admin_pricing_screen.dart';
+import '../operations/admin_active_users_screen.dart';
+import '../cs_kyc/admin_feedback_screen.dart';
+import '../cs_kyc/admin_arcade_screen.dart';
+import '../cs_kyc/admin_kyc_screen.dart';
+import '../finance/admin_wallet_screen.dart';
+import '../operations/admin_cities_screen.dart';
 import 'admin_user_management_screen.dart';
-import 'admin_customer_profiles_screen.dart';
-import 'admin_bookings_screen.dart';
-import 'admin_transactions_screen.dart';
+import '../cs_kyc/admin_customer_profiles_screen.dart';
+import '../finance/admin_bookings_screen.dart';
+import '../finance/admin_transactions_screen.dart';
 import 'admin_ai_config_screen.dart';
 import 'admin_app_settings_screen.dart';
-import 'manage_parking_screen.dart';
-import 'manage_users_screen.dart';
-import 'revenue_screen.dart';
-import '../sitemap_screen.dart';
+import '../operations/manage_parking_screen.dart';
+import '../cs_kyc/manage_users_screen.dart';
+import '../finance/revenue_screen.dart';
+import '../operations/admin_operations_dashboard_screen.dart';
+import '../finance/admin_finance_dashboard_screen.dart';
+import '../cs_kyc/admin_cskyc_dashboard_screen.dart';
+import '../../sitemap_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
 
@@ -62,8 +65,29 @@ class AdminDashboardScreen extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                Text('Panel Admin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                Row(
+                  children: [
+                    Text('ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                    const SizedBox(width: 6),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFEDE9FE),
+                        borderRadius: BorderRadius.circular(4),
+                        border: Border.all(color: const Color(0xFF8B5CF6), width: 0.8),
+                      ),
+                      child: Text(
+                        'Super Admin',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF6D28D9),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                Text('Control Hub Super Admin', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
               ],
             ),
           ],
@@ -120,14 +144,151 @@ class AdminDashboardScreen extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(20),
         children: [
-          Text('Selamat Datang, Admin', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          Text('Selamat Datang, Super Admin', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
           const SizedBox(height: 4),
           Row(
             children: [
-              const Icon(Icons.calendar_today, size: 14, color: Color(0xFF76777B)),
+              const Icon(Icons.shield_outlined, size: 14, color: Color(0xFF6D28D9)),
               const SizedBox(width: 6),
-              Text('Operasional Real-Time ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
+              Text('Hak Akses Tertinggi • Monitoring Seluruh Divisi', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
             ],
+          ),
+          const SizedBox(height: 18),
+
+          // Role Switcher Cards
+          Text('Akses Dashboard Divisi Admin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminOperationsDashboardScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF3B82F6).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: const Color(0xFFDBEAFE), borderRadius: BorderRadius.circular(6)),
+                              child: const Icon(Icons.local_shipping_outlined, color: Color(0xFF1D4ED8), size: 16),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF1D4ED8)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Operasional', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        Text('Fasilitas & IoT', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminFinanceDashboardScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: const Color(0xFFFEF3C7), borderRadius: BorderRadius.circular(6)),
+                              child: const Icon(Icons.account_balance_wallet, color: Color(0xFFB45309), size: 16),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFFB45309)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('Finansial', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        Text('Tarif & Omzet', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: GestureDetector(
+                  onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCsKycDashboardScreen())),
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: const Color(0xFF14B8A6).withValues(alpha: 0.3)),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(6),
+                              decoration: BoxDecoration(color: const Color(0xFFCCFBF1), borderRadius: BorderRadius.circular(6)),
+                              child: const Icon(Icons.support_agent, color: Color(0xFF0F766E), size: 16),
+                            ),
+                            const Spacer(),
+                            const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF0F766E)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text('CS & KYC', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        Text('Verifikasi & CRM', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Emergency Override Console Banner
+          Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: const Color(0xFFFBF0EA),
+              borderRadius: BorderRadius.circular(14),
+              border: Border.all(color: const Color(0xFFE07A5F).withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFFE07A5F), borderRadius: BorderRadius.circular(8)),
+                  child: const Icon(Icons.flash_on, color: Colors.white, size: 20),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Emergency Master Access Active', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF8B2500))),
+                      Text('Super Admin memiliki hak veto & akses bypass darurat ke seluruh fitur admin divisi.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                    ],
+                  ),
+                ),
+              ],
+            ),
           ),
           const SizedBox(height: 20),
 

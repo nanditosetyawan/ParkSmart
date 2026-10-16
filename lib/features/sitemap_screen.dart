@@ -2,27 +2,36 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../core/services/theme_service.dart';
 
-// Admin
-import 'admin/admin_dashboard_screen.dart';
-import 'admin/admin_locations_screen.dart';
-import 'admin/admin_slot_management_screen.dart';
-import 'admin/admin_active_users_screen.dart';
-import 'admin/admin_feedback_screen.dart';
-import 'admin/admin_arcade_screen.dart';
-import 'admin/admin_pricing_screen.dart';
-import 'admin/admin_notifications_screen.dart';
-import 'admin/admin_kyc_screen.dart';
-import 'admin/admin_wallet_screen.dart';
-import 'admin/admin_cities_screen.dart';
-import 'admin/admin_user_management_screen.dart';
-import 'admin/admin_customer_profiles_screen.dart';
-import 'admin/admin_bookings_screen.dart';
-import 'admin/admin_transactions_screen.dart';
-import 'admin/admin_ai_config_screen.dart';
-import 'admin/admin_app_settings_screen.dart';
-import 'admin/manage_parking_screen.dart';
-import 'admin/manage_users_screen.dart';
-import 'admin/revenue_screen.dart';
+// Admin - Super Admin
+import 'admin/super_admin/admin_dashboard_screen.dart';
+import 'admin/super_admin/admin_user_management_screen.dart';
+import 'admin/super_admin/admin_app_settings_screen.dart';
+import 'admin/super_admin/admin_ai_config_screen.dart';
+
+// Admin - Operations
+import 'admin/operations/admin_operations_dashboard_screen.dart';
+import 'admin/operations/admin_locations_screen.dart';
+import 'admin/operations/admin_cities_screen.dart';
+import 'admin/operations/admin_slot_management_screen.dart';
+import 'admin/operations/manage_parking_screen.dart';
+import 'admin/operations/admin_active_users_screen.dart';
+
+// Admin - Finance
+import 'admin/finance/admin_finance_dashboard_screen.dart';
+import 'admin/finance/admin_pricing_screen.dart';
+import 'admin/finance/admin_wallet_screen.dart';
+import 'admin/finance/admin_transactions_screen.dart';
+import 'admin/finance/revenue_screen.dart';
+import 'admin/finance/admin_bookings_screen.dart';
+
+// Admin - CS & KYC
+import 'admin/cs_kyc/admin_cskyc_dashboard_screen.dart';
+import 'admin/cs_kyc/admin_kyc_screen.dart';
+import 'admin/cs_kyc/admin_customer_profiles_screen.dart';
+import 'admin/cs_kyc/manage_users_screen.dart';
+import 'admin/cs_kyc/admin_feedback_screen.dart';
+import 'admin/cs_kyc/admin_notifications_screen.dart';
+import 'admin/cs_kyc/admin_arcade_screen.dart';
 
 // AI Assistant
 import 'ai_assistant/ai_assistant_screen.dart';
@@ -219,44 +228,73 @@ class SitemapScreen extends StatelessWidget {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                      ),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(Icons.shield_outlined, size: 16, color: isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9)),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              'Konsep RBAC: Super Admin memiliki Emergency Master Access ke semua fitur. Admin divisi (Operasional, Finansial, CS & KYC) terisolasi ketat hanya pada fiturnya sendiri.',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11,
+                                height: 1.4,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ],
                 ),
               ),
 
               // ─── ADMIN CLUSTER 1: SISTEM & SUPER ADMIN ───
               _buildCategory('10. Admin: Sistem & Super Admin', [
-                _Item('Dashboard Utama Admin', 'admin_dashboard_screen.dart', (c) => const DashboardScreen(), role: 'Super Admin'),
-                _Item('Manajemen Akun Admin (RBAC)', 'admin_user_management_screen.dart', (c) => const AdminUserManagementScreen(), role: 'Super Admin'),
-                _Item('Pengaturan Parameter Global App', 'admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen(), role: 'Super Admin'),
-                _Item('Konfigurasi Engine & Model AI', 'admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen(), role: 'Super Admin'),
+                _Item('Dashboard Utama Admin', 'super_admin/admin_dashboard_screen.dart', (c) => const DashboardScreen(), role: 'Super Admin'),
+                _Item('Manajemen Akun Admin (RBAC)', 'super_admin/admin_user_management_screen.dart', (c) => const AdminUserManagementScreen(), role: 'Super Admin'),
+                _Item('Pengaturan Parameter Global App', 'super_admin/admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen(), role: 'Super Admin'),
+                _Item('Konfigurasi Engine & Model AI', 'super_admin/admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen(), role: 'Super Admin'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 2: OPERASIONAL & FASILITAS ───
               _buildCategory('11. Admin: Operasional & Fasilitas Parkir', [
-                _Item('Kelola Master Lokasi Parkir', 'admin_locations_screen.dart', (c) => const LocationsScreen(), role: 'Operations'),
-                _Item('Master Kota & Wilayah Operasional', 'admin_cities_screen.dart', (c) => const AdminCitiesScreen(), role: 'Operations'),
-                _Item('Manajemen Slot & Sensor IoT', 'admin_slot_management_screen.dart', (c) => const SlotManagementScreen(), role: 'Operations'),
-                _Item('Kelola Parkir Terpadu', 'manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
-                _Item('Monitoring Kendaraan Aktif & Overstay', 'admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
+                _Item('Dashboard Khusus Operasional', 'operations/admin_operations_dashboard_screen.dart', (c) => const AdminOperationsDashboardScreen(), role: 'Operations', isNew: true),
+                _Item('Kelola Master Lokasi Parkir', 'operations/admin_locations_screen.dart', (c) => const LocationsScreen(), role: 'Operations'),
+                _Item('Master Kota & Wilayah Operasional', 'operations/admin_cities_screen.dart', (c) => const AdminCitiesScreen(), role: 'Operations'),
+                _Item('Manajemen Slot & Sensor IoT', 'operations/admin_slot_management_screen.dart', (c) => const SlotManagementScreen(), role: 'Operations'),
+                _Item('Kelola Parkir Terpadu', 'operations/manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
+                _Item('Monitoring Kendaraan Aktif & Overstay', 'operations/admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 3: FINANSIAL & TRANSAKSI ───
               _buildCategory('12. Admin: Finansial, Billing & Pendapatan', [
-                _Item('Konfigurasi Tarif & Aturan Waktu', 'admin_pricing_screen.dart', (c) => const PricingScreen(), role: 'Finance'),
-                _Item('Injeksi Saldo & Wallet Admin', 'admin_wallet_screen.dart', (c) => const AdminWalletScreen(), role: 'Finance'),
-                _Item('Audit Transaksi Finansial', 'admin_transactions_screen.dart', (c) => const AdminTransactionsScreen(), role: 'Finance'),
-                _Item('Laporan Pendapatan & Revenue Analytics', 'revenue_screen.dart', (c) => const RevenueScreen(), role: 'Finance'),
-                _Item('Manajemen Data Reservasi & Booking', 'admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Finance'),
+                _Item('Dashboard Khusus Finansial', 'finance/admin_finance_dashboard_screen.dart', (c) => const AdminFinanceDashboardScreen(), role: 'Finance', isNew: true),
+                _Item('Konfigurasi Tarif & Aturan Waktu', 'finance/admin_pricing_screen.dart', (c) => const PricingScreen(), role: 'Finance'),
+                _Item('Injeksi Saldo & Wallet Admin', 'finance/admin_wallet_screen.dart', (c) => const AdminWalletScreen(), role: 'Finance'),
+                _Item('Audit Transaksi Finansial', 'finance/admin_transactions_screen.dart', (c) => const AdminTransactionsScreen(), role: 'Finance'),
+                _Item('Laporan Pendapatan & Revenue Analytics', 'finance/revenue_screen.dart', (c) => const RevenueScreen(), role: 'Finance'),
+                _Item('Manajemen Data Reservasi & Booking', 'finance/admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Finance'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN & KYC ───
               _buildCategory('13. Admin: Layanan Pelanggan, KYC & Gamifikasi', [
-                _Item('Verifikasi Dokumen KTP (KYC)', 'admin_kyc_screen.dart', (c) => const AdminKycScreen(), role: 'CS & KYC'),
-                _Item('Profil Customer & Riwayat CRM', 'admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen(), role: 'CS & KYC'),
-                _Item('Kelola User Terpadu (Status Akun)', 'manage_users_screen.dart', (c) => const ManageUsersScreen(), role: 'CS & KYC'),
-                _Item('Review Feedback & Keluhan Pengguna', 'admin_feedback_screen.dart', (c) => const FeedbackAdminScreen(), role: 'CS & KYC'),
-                _Item('Pusat Notifikasi & Broadcast Masal', 'admin_notifications_screen.dart', (c) => const AdminNotificationsScreen(), role: 'CS & KYC'),
-                _Item('Pengaturan Poin, Arcade & Hadiah', 'admin_arcade_screen.dart', (c) => const ArcadeAdminScreen(), role: 'CS & KYC'),
+                _Item('Dashboard Khusus CS & KYC', 'cs_kyc/admin_cskyc_dashboard_screen.dart', (c) => const AdminCsKycDashboardScreen(), role: 'CS & KYC', isNew: true),
+                _Item('Verifikasi Dokumen KTP (KYC)', 'cs_kyc/admin_kyc_screen.dart', (c) => const AdminKycScreen(), role: 'CS & KYC'),
+                _Item('Profil Customer & Riwayat CRM', 'cs_kyc/admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen(), role: 'CS & KYC'),
+                _Item('Kelola User Terpadu (Status Akun)', 'cs_kyc/manage_users_screen.dart', (c) => const ManageUsersScreen(), role: 'CS & KYC'),
+                _Item('Review Feedback & Keluhan Pengguna', 'cs_kyc/admin_feedback_screen.dart', (c) => const FeedbackAdminScreen(), role: 'CS & KYC'),
+                _Item('Pusat Notifikasi & Broadcast Masal', 'cs_kyc/admin_notifications_screen.dart', (c) => const AdminNotificationsScreen(), role: 'CS & KYC'),
+                _Item('Pengaturan Poin, Arcade & Hadiah', 'cs_kyc/admin_arcade_screen.dart', (c) => const ArcadeAdminScreen(), role: 'CS & KYC'),
               ], isDark, theme),
               const SizedBox(height: 32),
             ],
