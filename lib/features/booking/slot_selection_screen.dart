@@ -342,7 +342,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                   _LegendItem(
                                     color: isDark ? theme.card : _kSurfaceContainerLowest,
                                     label: 'Tersedia',
-                                    border: isDark ? theme.border : const Color(0xFFC6C6CA),
+                                    border: isDark ? Colors.white : const Color(0xFFC6C6CA),
                                     isDark: isDark,
                                   ),
                                   _LegendItem(
@@ -567,7 +567,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
       );
     } else {
       bg = isDark ? theme.card : _kSurfaceContainerLowest;
-      border = isDark ? theme.border : const Color(0xFFC6C6CA);
+      border = isDark ? Colors.white : const Color(0xFFC6C6CA);
       icon = isEV
           ? Container(
               width: 24,
@@ -598,7 +598,12 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
               decoration: BoxDecoration(
                 color: bg,
                 borderRadius: BorderRadius.circular(16),
-                border: border != null ? Border.all(color: border) : null,
+                border: border != null
+                    ? Border.all(
+                        color: border,
+                        width: (isDark && border == Colors.white) ? 1.5 : 1.0,
+                      )
+                    : null,
                 boxShadow: selected
                     ? [
                         BoxShadow(

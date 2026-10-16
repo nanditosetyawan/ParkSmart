@@ -1,4 +1,4 @@
-﻿import 'dart:async';
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/services/theme_service.dart';
 import 'active_session_screen.dart';
@@ -454,7 +454,11 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            const Icon(Icons.verified, size: 15, color: Color(0xFF004A3E)),
+                            Icon(
+                              Icons.verified,
+                              size: 15,
+                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF004A3E),
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               'Denda overstay otomatis Rp 5.000/jam via ParkSmart Wallet',
@@ -480,12 +484,21 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
   }
 
   Widget _buildPaymentLogo(String method, double size) {
+    final isDark = ThemeService.instance.isDarkMode;
     if (method == 'ParkSmart Wallet') {
       return Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle),
-        child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1EEE7),
+          shape: BoxShape.circle,
+          border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
+        ),
+        child: Icon(
+          Icons.account_balance_wallet,
+          color: isDark ? Colors.white : const Color(0xFF020304),
+          size: size * 0.5,
+        ),
       );
     } else if (method == 'ShopeePay') {
       return Image.asset('assets/images/shopee-pay-seeklogo.png', width: size, height: size, fit: BoxFit.contain);

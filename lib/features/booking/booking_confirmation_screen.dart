@@ -99,14 +99,15 @@ class BookingConfirmationScreen extends StatelessWidget {
                   const SizedBox(height: 28),
 
                   // Floating Digital Parking Pass Ticket (TETAP PUTIH DENGAN TEKS SANGAT JELAS)
+                  // Floating Digital Parking Pass Ticket (Agak abu-abu di dark mode, selaras dengan kartu lain)
                   Container(
                     decoration: BoxDecoration(
-                      color: Colors.white, // Card digital parkir TETAP PUTIH
+                      color: isDark ? theme.card : Colors.white,
                       borderRadius: BorderRadius.circular(20),
-                      border: Border.all(color: const Color(0xFFE5E2DB)),
+                      border: Border.all(color: isDark ? theme.border : const Color(0xFFE5E2DB)),
                       boxShadow: [
                         BoxShadow(
-                          color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                          color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.08),
                           blurRadius: 24,
                           offset: const Offset(0, 8),
                         ),
@@ -117,10 +118,10 @@ class BookingConfirmationScreen extends StatelessWidget {
                         // Top Header Ribbon
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
-                            borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-                            border: Border(bottom: BorderSide(color: Color(0xFFF1EEE7))),
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.card : Colors.white,
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                            border: Border(bottom: BorderSide(color: isDark ? theme.border : const Color(0xFFF1EEE7))),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -130,7 +131,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                   Icon(
                                     Icons.local_parking,
                                     size: 20,
-                                    color: AppColors.secondary,
+                                    color: isDark ? const Color(0xFFFB923C) : AppColors.secondary,
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
@@ -138,7 +139,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.w600,
-                                      color: const Color(0xFF62615B),
+                                      color: isDark ? theme.textSecondary : const Color(0xFF62615B),
                                       letterSpacing: 1.0,
                                     ),
                                   ),
@@ -147,15 +148,16 @@ class BookingConfirmationScreen extends StatelessWidget {
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1C1C18),
+                                  color: Colors.white,
                                   borderRadius: AppRadii.pillRadius,
+                                  border: isDark ? null : Border.all(color: const Color(0xFFE5E2DB)),
                                 ),
                                 child: Text(
                                   '#PS-88210-CP',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
-                                    color: Colors.white,
+                                    color: Colors.black,
                                   ),
                                 ),
                               ),
@@ -163,7 +165,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                           ),
                         ),
 
-                        // Ticket Details (Teks hitam jelas di atas card putih)
+                        // Ticket Details (Teks kontras dan jelas di atas kartu)
                         Padding(
                           padding: const EdgeInsets.all(16),
                           child: Column(
@@ -179,7 +181,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF7A7874),
+                                          color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
                                           letterSpacing: 0.5,
                                         ),
                                       ),
@@ -189,7 +191,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
-                                          color: const Color(0xFF1C1C18),
+                                          color: theme.textPrimary,
                                         ),
                                       ),
                                       const SizedBox(height: 2),
@@ -197,7 +199,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                         'South Lobby, Basement B2',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
-                                          color: const Color(0xFF7A7874),
+                                          color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
                                         ),
                                       ),
                                     ],
@@ -205,8 +207,13 @@ class BookingConfirmationScreen extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFFDE8E1),
+                                      color: isDark
+                                          ? const Color(0xFF9A442D).withValues(alpha: 0.25)
+                                          : const Color(0xFFFDE8E1),
                                       borderRadius: BorderRadius.circular(12),
+                                      border: isDark
+                                          ? Border.all(color: const Color(0xFF9A442D).withValues(alpha: 0.5))
+                                          : null,
                                     ),
                                     child: Column(
                                       children: [
@@ -215,7 +222,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,
-                                            color: const Color(0xFFC05621),
+                                            color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
                                             letterSpacing: 0.5,
                                           ),
                                         ),
@@ -224,7 +231,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 20,
                                             fontWeight: FontWeight.w800,
-                                            color: const Color(0xFFC05621),
+                                            color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
                                           ),
                                         ),
                                       ],
@@ -234,17 +241,17 @@ class BookingConfirmationScreen extends StatelessWidget {
                               ),
                               const SizedBox(height: 16),
                               Row(
-                                children: const [
+                                children: [
                                   Expanded(
                                     child: _InfoBox(
                                       icon: Icons.directions_car,
                                       label: 'Kendaraan',
                                       title: 'Toyota Raize',
                                       subtitle: 'B 1234 XYZ',
-                                      subtitleColor: Color(0xFFC05621),
+                                      subtitleColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
                                     ),
                                   ),
-                                  SizedBox(width: 12),
+                                  const SizedBox(width: 12),
                                   Expanded(
                                     child: _InfoBox(
                                       icon: Icons.schedule,
@@ -402,13 +409,16 @@ class _InfoBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: const Color(0xFFF9F7F2), // Tetap cerah di atas card putih
+        color: isDark ? theme.cardAlt : const Color(0xFFF9F7F2),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: const Color(0xFFEBE6DC),
+          color: isDark ? theme.border : const Color(0xFFEBE6DC),
         ),
       ),
       child: Column(
@@ -419,7 +429,7 @@ class _InfoBox extends StatelessWidget {
               Icon(
                 icon,
                 size: 16,
-                color: const Color(0xFF7A7874),
+                color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
               ),
               const SizedBox(width: 6),
               Text(
@@ -427,7 +437,7 @@ class _InfoBox extends StatelessWidget {
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF7A7874),
+                  color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
                 ),
               ),
             ],
@@ -438,7 +448,7 @@ class _InfoBox extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 15,
               fontWeight: FontWeight.w700,
-              color: const Color(0xFF1C1C18), // Teks hitam tebal jelas terlihat
+              color: theme.textPrimary,
             ),
           ),
           const SizedBox(height: 2),
@@ -447,7 +457,7 @@ class _InfoBox extends StatelessWidget {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: subtitleColor ?? const Color(0xFF7A7874),
+              color: subtitleColor ?? (isDark ? theme.textSecondary : const Color(0xFF7A7874)),
             ),
           ),
         ],

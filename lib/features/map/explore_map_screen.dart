@@ -824,10 +824,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 TileLayer(
                   urlTemplate: _isSatellite
                       ? 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}'
-                      : (isDark
-                          ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}.png'
-                          : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png'),
-                  subdomains: const ['a', 'b', 'c', 'd'],
+                      : 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  tileBuilder: (!_isSatellite && isDark)
+                      ? darkModeTileBuilder
+                      : null,
                   userAgentPackageName: 'com.example.smart_parking',
                 ),
                 MarkerLayer(
@@ -3223,28 +3223,28 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   }) {
     final isDark = ThemeService.instance.isDarkMode;
     final bgColor = isSelected
-        ? (isDark ? const Color(0xFF1A73E8) : const Color(0xFFE8F0FE))
-        : (isDark ? ThemeService.instance.card : Colors.white);
+        ? (isDark ? const Color(0xFF1D4ED8) : const Color(0xFFE8F0FE))
+        : (isDark ? const Color(0xFF1E232B) : Colors.white);
     final borderColor = isSelected
-        ? const Color(0xFF1A73E8)
-        : (isDark ? ThemeService.instance.border : Colors.black.withValues(alpha: 0.06));
+        ? (isDark ? const Color(0xFF60A5FA) : const Color(0xFF1A73E8))
+        : (isDark ? const Color(0xFF475569) : const Color(0xFFD1D5DB));
     final fgColor = isSelected
         ? (isDark ? Colors.white : const Color(0xFF1A73E8))
-        : (isDark ? ThemeService.instance.textMuted : const Color(0xFF3C4043));
+        : (isDark ? Colors.white : const Color(0xFF1F2937));
 
     return GestureDetector(
       onTap: () => _onCategoryTapped(title),
       child: Container(
-        height: 36,
+        height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 14),
         decoration: BoxDecoration(
           color: bgColor,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(color: borderColor, width: 1),
+          borderRadius: BorderRadius.circular(19),
+          border: Border.all(color: borderColor, width: 1.2),
           boxShadow: [
             BoxShadow(
-              color: isDark ? Colors.black26 : Colors.black.withValues(alpha: 0.08),
-              blurRadius: 4,
+              color: isDark ? Colors.black45 : Colors.black.withValues(alpha: 0.08),
+              blurRadius: 6,
               offset: const Offset(0, 2),
             ),
           ],
@@ -3252,13 +3252,13 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(icon, color: fgColor, size: 18),
-            const SizedBox(width: 6),
+            Icon(icon, color: fgColor, size: 19),
+            const SizedBox(width: 7),
             Text(
               title,
               style: GoogleFonts.inter(
                 fontSize: 13.5,
-                fontWeight: isSelected ? FontWeight.w600 : FontWeight.w500,
+                fontWeight: FontWeight.w600,
                 color: fgColor,
               ),
             ),

@@ -382,6 +382,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                 // Base Tile Layer OpenStreetMap (100% Gratis & Realistis)
                 TileLayer(
                   urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                  tileBuilder: isDark ? darkModeTileBuilder : null,
                   userAgentPackageName: 'com.smartparking.app',
                 ),
 
@@ -500,13 +501,14 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: isDark ? theme.card : Colors.white,
                       borderRadius: BorderRadius.circular(24),
-                      boxShadow: const [
+                      border: isDark ? Border.all(color: theme.border) : null,
+                      boxShadow: [
                         BoxShadow(
-                          color: Colors.black12,
+                          color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black12,
                           blurRadius: 12,
-                          offset: Offset(0, 4),
+                          offset: const Offset(0, 4),
                         ),
                       ],
                     ),
@@ -518,13 +520,13 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                           child: Container(
                             width: 46,
                             height: 46,
-                            decoration: const BoxDecoration(
-                              color: Color(0xFF1C1D1F),
+                            decoration: BoxDecoration(
+                              color: isDark ? theme.chipBg : const Color(0xFF1C1D1F),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               maneuver['icon'] as IconData,
-                              color: Colors.white,
+                              color: isDark ? theme.textPrimary : Colors.white,
                               size: 24,
                             ),
                           ),
@@ -540,7 +542,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                  color: theme.textPrimary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -550,7 +552,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 maneuver['subtitle'] as String,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
-                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                                  color: theme.textSecondary,
                                 ),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
@@ -577,16 +579,18 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                             height: 40,
                             decoration: BoxDecoration(
                               color: _isMuted
-                                  ? const Color(0xFFFCE8E6)
-                                  : const Color(0xFFF1EEE7),
+                                  ? (isDark
+                                      ? const Color(0xFF7F1D1D).withValues(alpha: 0.35)
+                                      : const Color(0xFFFCE8E6))
+                                  : (isDark ? theme.chipBg : const Color(0xFFF1EEE7)),
                               shape: BoxShape.circle,
                             ),
                             child: Icon(
                               _isMuted ? Icons.volume_off : Icons.volume_up,
                               size: 20,
                               color: _isMuted
-                                  ? const Color(0xFFD93025)
-                                  : const Color(0xFF45474A),
+                                  ? const Color(0xFFF87171)
+                                  : (isDark ? theme.iconColor : const Color(0xFF45474A)),
                             ),
                           ),
                         ),
@@ -627,20 +631,22 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? theme.card : Colors.white,
                               borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
+                              border: isDark ? Border.all(color: theme.border) : null,
+                              boxShadow: [
                                 BoxShadow(
-                                    color: Colors.black12, blurRadius: 6),
+                                    color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
+                                    blurRadius: 6),
                               ],
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.navigation_rounded,
                                   size: 14,
-                                  color: Color(0xFF9A442D),
+                                  color: isDark ? const Color(0xFFF87171) : const Color(0xFF9A442D),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
@@ -648,7 +654,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C18),
+                                    color: theme.textPrimary,
                                   ),
                                 ),
                               ],
@@ -661,11 +667,13 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: const Color(0xFF1C1D1F),
+                              color: isDark ? const Color(0xFF262C36) : const Color(0xFF1C1D1F),
                               borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
+                              border: isDark ? Border.all(color: theme.border) : null,
+                              boxShadow: [
                                 BoxShadow(
-                                    color: Colors.black12, blurRadius: 6),
+                                    color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
+                                    blurRadius: 6),
                               ],
                             ),
                             child: Text(
@@ -686,11 +694,13 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 14, vertical: 8),
                             decoration: BoxDecoration(
-                              color: Colors.white,
+                              color: isDark ? theme.card : Colors.white,
                               borderRadius: BorderRadius.circular(20),
-                              boxShadow: const [
+                              border: isDark ? Border.all(color: theme.border) : null,
+                              boxShadow: [
                                 BoxShadow(
-                                    color: Colors.black12, blurRadius: 6),
+                                    color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
+                                    blurRadius: 6),
                               ],
                             ),
                             child: Row(
@@ -707,7 +717,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C18),
+                                    color: theme.textPrimary,
                                   ),
                                 ),
                               ],
@@ -731,20 +741,23 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                       Align(
                         alignment: Alignment.centerRight,
                         child: Container(
-                          decoration: const BoxDecoration(
-                            color: Colors.white,
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.card : Colors.white,
                             shape: BoxShape.circle,
+                            border: isDark ? Border.all(color: theme.border) : null,
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black12,
+                                color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
                                 blurRadius: 8,
-                                offset: Offset(0, 2),
+                                offset: const Offset(0, 2),
                               ),
                             ],
                           ),
                           child: IconButton(
-                            icon: const Icon(Icons.my_location,
-                                color: Color(0xFF1C1D1F)),
+                            icon: Icon(
+                              Icons.my_location,
+                              color: isDark ? theme.iconColor : const Color(0xFF1C1D1F),
+                            ),
                             onPressed: () {
                               _centerOnUser();
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -765,14 +778,14 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         padding: const EdgeInsets.symmetric(
                             horizontal: 20, vertical: 16),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                          color: isDark ? theme.card : Colors.white,
                           borderRadius: BorderRadius.circular(24),
-                          border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
-                          boxShadow: const [
+                          border: isDark ? Border.all(color: theme.border) : null,
+                          boxShadow: [
                             BoxShadow(
-                              color: Colors.black12,
+                              color: isDark ? Colors.black.withValues(alpha: 0.3) : Colors.black12,
                               blurRadius: 18,
-                              offset: Offset(0, 4),
+                              offset: const Offset(0, 4),
                             ),
                           ],
                         ),
@@ -794,7 +807,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.bold,
-                                                color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                                color: theme.textPrimary,
                                               ),
                                               maxLines: 1,
                                               overflow: TextOverflow.ellipsis,
@@ -813,7 +826,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                         '$_destType • Rute Navigasi Aktif',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12.5,
-                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                                          color: theme.textSecondary,
                                         ),
                                         maxLines: 1,
                                         overflow: TextOverflow.ellipsis,
@@ -833,13 +846,15 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 Container(
                                   width: 48,
                                   height: 48,
-                                  decoration: const BoxDecoration(
-                                    color: Color(0xFFF1EEE7),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? theme.chipBg : const Color(0xFFF1EEE7),
                                     shape: BoxShape.circle,
                                   ),
                                   child: IconButton(
-                                    icon: const Icon(Icons.more_horiz,
-                                        color: Color(0xFF1C1D1F)),
+                                    icon: Icon(
+                                      Icons.more_horiz,
+                                      color: isDark ? theme.iconColor : const Color(0xFF1C1D1F),
+                                    ),
                                     onPressed: () {
                                       _showNavigationOptions(context);
                                     },
@@ -872,8 +887,8 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                         Navigator.pop(context);
                                       },
                                       style: ElevatedButton.styleFrom(
-                                        backgroundColor: const Color(0xFF1C1D1F),
-                                        foregroundColor: Colors.white,
+                                        backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                                        foregroundColor: isDark ? Colors.black : Colors.white,
                                         elevation: 0,
                                         shape: RoundedRectangleBorder(
                                           borderRadius: BorderRadius.circular(24),
@@ -888,12 +903,13 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14.5,
                                               fontWeight: FontWeight.bold,
+                                              color: isDark ? Colors.black : Colors.white,
                                             ),
                                           ),
                                           const SizedBox(width: 8),
-                                          const Icon(
+                                          Icon(
                                             Icons.check_circle,
-                                            color: Colors.white,
+                                            color: isDark ? Colors.black : Colors.white,
                                             size: 18,
                                           ),
                                         ],
@@ -922,55 +938,104 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
   void _showNavigationOptions(BuildContext context) {
     showModalBottomSheet(
       context: context,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
       builder: (ctx) {
-        return SafeArea(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Opsi Navigasi',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+        return ListenableBuilder(
+          listenable: ThemeService.instance,
+          builder: (ctx, _) {
+            final theme = ThemeService.instance;
+            final isDark = theme.isDarkMode;
+
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? theme.card : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+                border: isDark ? Border.all(color: theme.border) : null,
+              ),
+              child: SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Center(
+                        child: Container(
+                          width: 36,
+                          height: 4,
+                          margin: const EdgeInsets.only(bottom: 16),
+                          decoration: BoxDecoration(
+                            color: isDark ? Colors.white24 : Colors.black12,
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                      ),
+                      Text(
+                        'Opsi Navigasi',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: theme.textPrimary,
+                        ),
+                      ),
+                      const SizedBox(height: 14),
+                      ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        leading: const Icon(Icons.refresh_rounded,
+                            color: Color(0xFF1A73E8)),
+                        title: Text(
+                          'Hitung Ulang Rute Tercepat',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: theme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _fetchRoadRoute();
+                        },
+                      ),
+                      ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        leading: Icon(
+                          Icons.my_location,
+                          color: isDark ? const Color(0xFF34D399) : const Color(0xFF1C1D1F),
+                        ),
+                        title: Text(
+                          'Pusatkan ke Posisi GPS',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: theme.textPrimary,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          _centerOnUser();
+                        },
+                      ),
+                      ListTile(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        leading: const Icon(Icons.close_rounded,
+                            color: Color(0xFFEA4335)),
+                        title: Text(
+                          'Hentikan Navigasi',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: const Color(0xFFEA4335),
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        onTap: () {
+                          Navigator.pop(ctx);
+                          Navigator.pop(context);
+                        },
+                      ),
+                    ],
                   ),
                 ),
-                const SizedBox(height: 14),
-                ListTile(
-                  leading: const Icon(Icons.refresh_rounded,
-                      color: Color(0xFF1A73E8)),
-                  title: const Text('Hitung Ulang Rute Tercepat'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _fetchRoadRoute();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.my_location,
-                      color: Color(0xFF1C1D1F)),
-                  title: const Text('Pusatkan ke Posisi GPS'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    _centerOnUser();
-                  },
-                ),
-                ListTile(
-                  leading: const Icon(Icons.close_rounded,
-                      color: Color(0xFFEA4335)),
-                  title: const Text('Hentikan Navigasi'),
-                  onTap: () {
-                    Navigator.pop(ctx);
-                    Navigator.pop(context);
-                  },
-                ),
-              ],
-            ),
-          ),
+              ),
+            );
+          },
         );
       },
     );

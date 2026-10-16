@@ -151,16 +151,16 @@ class SessionCheckoutScreen extends StatelessWidget {
                         ),
                         const SizedBox(height: 24),
 
-                        // Card Toyota Raize (Dibiarkan full apa adanya seperti aslinya sesuai permintaan)
+                        // Card Toyota Raize
                         Container(
                           padding: const EdgeInsets.all(24),
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: isDark ? const Color(0xFF181C22) : Colors.white,
                             borderRadius: BorderRadius.circular(28),
-                            border: Border.all(color: const Color(0xFFE5E2DB)),
+                            border: Border.all(color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB)),
                             boxShadow: [
                               BoxShadow(
-                                color: const Color(0xFF1C1C18).withValues(alpha: 0.05),
+                                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
                                 blurRadius: 30,
                                 offset: const Offset(0, 8),
                               ),
@@ -177,14 +177,14 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         width: 40,
                                         height: 40,
                                         decoration: BoxDecoration(
-                                          color: Colors.white,
+                                          color: isDark ? const Color(0xFF262C36) : Colors.white,
                                           borderRadius: BorderRadius.circular(16),
-                                          border: Border.all(color: const Color(0xFFE5E2DB)),
+                                          border: Border.all(color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB)),
                                         ),
-                                        child: const Icon(
+                                        child: Icon(
                                           Icons.local_parking,
                                           size: 22,
-                                          color: Color(0xFF1C1C18),
+                                          color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                         ),
                                       ),
                                       const SizedBox(width: 12),
@@ -196,14 +196,14 @@ class SessionCheckoutScreen extends StatelessWidget {
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF1C1C18),
+                                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                             ),
                                           ),
                                           Text(
                                             'B 1234 XYZ',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 13,
-                                              color: const Color(0xFF76777B),
+                                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                             ),
                                           ),
                                         ],
@@ -213,34 +213,35 @@ class SessionCheckoutScreen extends StatelessWidget {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFF1EEE7),
+                                      color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
                                       borderRadius: BorderRadius.circular(16),
+                                      border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
                                     ),
                                     child: Text(
                                       'Basement B2',
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
-                                        color: const Color(0xFF1C1C18),
+                                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                       ),
                                     ),
                                   ),
                                 ],
                               ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 16),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
                                 child: Divider(
-                                  color: Color(0xFFF1EEE7),
+                                  color: isDark ? const Color(0xFF2D3542) : const Color(0xFFF1EEE7),
                                   height: 1,
                                 ),
                               ),
                               Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: isDark ? const Color(0xFF262C36) : Colors.white,
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFFE5E2DB),
+                                    color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
                                   ),
                                 ),
                                 child: Column(
@@ -252,14 +253,14 @@ class SessionCheckoutScreen extends StatelessWidget {
                                           'Durasi Total',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
-                                            color: const Color(0xFF76777B),
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                           ),
                                         ),
                                         Text(
                                           'Waktu (WIB)',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
-                                            color: const Color(0xFF76777B),
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                           ),
                                         ),
                                       ],
@@ -275,7 +276,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF1C1C18),
+                                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                           ),
                                         ),
                                         Text(
@@ -283,30 +284,31 @@ class SessionCheckoutScreen extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
-                                            color: const Color(0xFF45474A),
+                                            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF45474A),
                                           ),
                                         ),
                                       ],
                                     ),
-                                    const SizedBox(height: 12),
-                                    const Divider(
-                                      color: Color(0xFFE5E2DB),
-                                      height: 1,
+                                    Padding(
+                                      padding: const EdgeInsets.symmetric(vertical: 12),
+                                      child: Divider(
+                                        color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE5E2DB),
+                                        height: 1,
+                                      ),
                                     ),
-                                    const SizedBox(height: 10),
                                     Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.pin_drop,
                                           size: 16,
-                                          color: Color(0xFF1C1C18),
+                                          color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1C18),
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
                                           'Slot A-05 • Central Park Mall',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
-                                            color: const Color(0xFF45474A),
+                                            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF45474A),
                                           ),
                                         ),
                                       ],
@@ -323,7 +325,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF1C1C18),
+                                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF1C1C18),
                                       letterSpacing: 1.0,
                                     ),
                                   ),
@@ -340,7 +342,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w500,
-                                          color: const Color(0xFF2E7D32),
+                                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
                                         ),
                                       ),
                                       Text(
@@ -348,7 +350,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF2E7D32),
+                                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
                                         ),
                                       ),
                                     ],
@@ -363,7 +365,9 @@ class SessionCheckoutScreen extends StatelessWidget {
                                   (index) => Expanded(
                                     child: Container(
                                       height: 1,
-                                      color: index.isEven ? const Color(0xFFC6C6CA) : Colors.transparent,
+                                      color: index.isEven
+                                          ? (isDark ? const Color(0xFF3B4454) : const Color(0xFFC6C6CA))
+                                          : Colors.transparent,
                                     ),
                                   ),
                                 ),
@@ -379,7 +383,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         'Total Terbayar',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
-                                          color: const Color(0xFF76777B),
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                         ),
                                       ),
                                       Text(
@@ -387,7 +391,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF1C1C18),
+                                          color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                         ),
                                       ),
                                     ],
@@ -398,15 +402,16 @@ class SessionCheckoutScreen extends StatelessWidget {
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                         decoration: BoxDecoration(
-                                          color: const Color(0xFFE8F5E9),
+                                          color: isDark ? const Color(0xFF064E3B) : const Color(0xFFE8F5E9),
                                           borderRadius: BorderRadius.circular(16),
+                                          border: isDark ? Border.all(color: const Color(0xFF047857)) : null,
                                         ),
                                         child: Row(
                                           children: [
-                                            const Icon(
+                                            Icon(
                                               Icons.check,
                                               size: 14,
-                                              color: Color(0xFF1B5E20),
+                                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF1B5E20),
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
@@ -414,7 +419,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
-                                                color: const Color(0xFF1B5E20),
+                                                color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF1B5E20),
                                               ),
                                             ),
                                           ],
@@ -425,26 +430,27 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         'ParkSmart Pay',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
-                                          color: const Color(0xFF76777B),
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                         ),
                                       ),
                                     ],
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
-                              const Divider(
-                                color: Color(0xFFF1EEE7),
-                                height: 1,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 16),
+                                child: Divider(
+                                  color: isDark ? const Color(0xFF2D3542) : const Color(0xFFF1EEE7),
+                                  height: 1,
+                                ),
                               ),
-                              const SizedBox(height: 12),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
-                                  const Icon(
+                                  Icon(
                                     Icons.sensors,
                                     size: 16,
-                                    color: Color(0xFF1B5E20),
+                                    color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF1B5E20),
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
@@ -452,7 +458,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
-                                      color: const Color(0xFF1B5E20),
+                                      color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF1B5E20),
                                     ),
                                   ),
                                 ],
@@ -558,6 +564,7 @@ class _ReceiptRow extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = ThemeService.instance.isDarkMode;
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
@@ -565,7 +572,7 @@ class _ReceiptRow extends StatelessWidget {
           label,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
-            color: const Color(0xFF45474A),
+            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
           ),
         ),
         Text(
@@ -573,7 +580,7 @@ class _ReceiptRow extends StatelessWidget {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             fontWeight: FontWeight.w500,
-            color: const Color(0xFF1C1C18),
+            color: isDark ? Colors.white : const Color(0xFF1C1C18),
           ),
         ),
       ],

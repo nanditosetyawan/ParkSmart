@@ -43,8 +43,9 @@ class CheckoutScreen extends StatelessWidget {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF3B1E1E) : _kSecondaryFixed,
+                          color: isDark ? const Color(0xFF451A1A) : _kSecondaryFixed,
                           borderRadius: AppRadii.pillRadius,
+                          border: Border.all(color: isDark ? const Color(0xFFF97316) : const Color(0xFFE5A99C)),
                         ),
                         child: Row(
                           children: [
@@ -119,8 +120,9 @@ class CheckoutScreen extends StatelessWidget {
                               width: 48,
                               height: 48,
                               decoration: BoxDecoration(
-                                color: isDark ? theme.surfaceField : _kSurfaceContainerLow,
+                                color: isDark ? const Color(0xFF262C36) : _kSurfaceContainerLow,
                                 borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE5E2DB)),
                               ),
                               child: Icon(
                                 Icons.local_parking,
@@ -136,7 +138,7 @@ class CheckoutScreen extends StatelessWidget {
                                   Text(
                                     'LOKASI TERPILIH',
                                     style: AppTypography.overline(
-                                      color: isDark ? theme.textMuted : _kOutline,
+                                      color: isDark ? const Color(0xFF94A3B8) : _kOutline,
                                     ),
                                   ),
                                   Text(
@@ -151,8 +153,9 @@ class CheckoutScreen extends StatelessWidget {
                             Container(
                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                               decoration: BoxDecoration(
-                                color: isDark ? theme.surfaceField : _kSurfaceContainerHigh,
+                                color: isDark ? const Color(0xFF2E3848) : _kSurfaceContainerHigh,
                                 borderRadius: AppRadii.pillRadius,
+                                border: Border.all(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
                               ),
                               child: Row(
                                 children: [
@@ -164,7 +167,9 @@ class CheckoutScreen extends StatelessWidget {
                                   const SizedBox(width: 4),
                                   Text(
                                     '2 Jam',
-                                    style: AppTypography.labelMd(
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w700,
                                       color: isDark ? Colors.white : Colors.black,
                                     ),
                                   ),
@@ -255,10 +260,10 @@ class CheckoutScreen extends StatelessWidget {
                         // Kendaraan terdaftar
                         Container(
                           decoration: BoxDecoration(
-                            color: isDark ? theme.surfaceField : Colors.white,
+                            color: isDark ? const Color(0xFF2E3848) : const Color(0xFFF7F5EE),
                             borderRadius: BorderRadius.circular(12),
                             border: Border.all(
-                              color: isDark ? theme.border : _kOutline.withValues(alpha: 0.3),
+                              color: isDark ? const Color(0xFF475569) : const Color(0xFFE2DDD2),
                             ),
                             boxShadow: const [AppShadows.soft],
                           ),
@@ -274,10 +279,19 @@ class CheckoutScreen extends StatelessWidget {
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 child: Row(
                                   children: [
-                                    Icon(
-                                      Icons.directions_car_outlined,
-                                      size: 20,
-                                      color: isDark ? Colors.white : _kOnSurfaceVariant,
+                                    Container(
+                                      width: 36,
+                                      height: 36,
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE2DDD2)),
+                                      ),
+                                      child: Icon(
+                                        Icons.directions_car_rounded,
+                                        size: 20,
+                                        color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1D1F),
+                                      ),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -286,15 +300,19 @@ class CheckoutScreen extends StatelessWidget {
                                         children: [
                                           Text(
                                             'KENDARAAN TERDAFTAR',
-                                            style: AppTypography.overline(
-                                              color: isDark ? theme.textMuted : _kOutline,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: 0.5,
+                                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
                                             ),
                                           ),
+                                          const SizedBox(height: 2),
                                           Text(
                                             'Toyota Raize',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
-                                              fontWeight: FontWeight.w600,
+                                              fontWeight: FontWeight.w700,
                                               color: isDark ? Colors.white : Colors.black,
                                             ),
                                           ),
@@ -302,26 +320,26 @@ class CheckoutScreen extends StatelessWidget {
                                       ),
                                     ),
                                     Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                                       decoration: BoxDecoration(
-                                        color: isDark ? theme.card : _kSurfaceContainerHigh,
+                                        color: isDark ? const Color(0xFF1E232B) : Colors.white,
                                         borderRadius: AppRadii.pillRadius,
-                                        border: isDark ? Border.all(color: theme.border) : null,
+                                        border: Border.all(color: isDark ? const Color(0xFF475569) : const Color(0xFFC6C6CA)),
                                       ),
                                       child: Text(
                                         'B 1234 XYZ',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark ? Colors.white : Colors.black,
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark ? Colors.white : const Color(0xFF1C1D1F),
                                         ),
                                       ),
                                     ),
-                                    const SizedBox(width: 8),
+                                    const SizedBox(width: 6),
                                     Icon(
                                       Icons.chevron_right,
                                       size: 20,
-                                      color: isDark ? theme.textMuted : _kOutline,
+                                      color: isDark ? Colors.white : const Color(0xFF1C1D1F),
                                     ),
                                   ],
                                 ),
@@ -401,9 +419,9 @@ class CheckoutScreen extends StatelessWidget {
                               width: 44,
                               height: 44,
                               decoration: BoxDecoration(
-                                color: isDark ? theme.card : _kSurfaceContainerHigh.withValues(alpha: 0.6),
+                                color: isDark ? const Color(0xFF262C36) : const Color(0xFFEBE8E1),
                                 shape: BoxShape.circle,
-                                border: isDark ? Border.all(color: theme.border) : null,
+                                border: Border.all(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
                               ),
                               child: Icon(
                                 Icons.arrow_back,
@@ -436,8 +454,8 @@ class CheckoutScreen extends StatelessWidget {
                   child: Container(
                     padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
                     decoration: BoxDecoration(
-                      color: isDark ? theme.bg : _kSurface,
-                      border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
+                      color: isDark ? const Color(0xFF1E232B) : _kSurface,
+                      border: Border(top: BorderSide(color: isDark ? theme.border : const Color(0xFFEAE5DC))),
                     ),
                     child: SizedBox(
                       width: double.infinity,
@@ -453,16 +471,17 @@ class CheckoutScreen extends StatelessWidget {
                           ),
                         ),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: isDark ? Colors.white : _kPrimaryContainer,
+                          backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
                           foregroundColor: isDark ? Colors.black : Colors.white,
-                          elevation: 0,
+                          elevation: 2,
+                          shadowColor: isDark ? Colors.white24 : Colors.black26,
                           shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),
                         ),
                         child: Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             Icon(
-                              Icons.lock_outline,
+                              Icons.lock_rounded,
                               size: 18,
                               color: isDark ? Colors.black : Colors.white,
                             ),
@@ -470,8 +489,8 @@ class CheckoutScreen extends StatelessWidget {
                             Text(
                               'Konfirmasi Bayar Sekarang',
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 15,
-                                fontWeight: FontWeight.w700,
+                                fontSize: 15.5,
+                                fontWeight: FontWeight.w800,
                                 color: isDark ? Colors.black : Colors.white,
                               ),
                             ),
@@ -490,7 +509,6 @@ class CheckoutScreen extends StatelessWidget {
   }
 
   static Widget _priceRow(String label, String val, {bool isDark = false}) {
-    final theme = ThemeService.instance;
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),
       child: Row(
@@ -500,7 +518,8 @@ class CheckoutScreen extends StatelessWidget {
             label,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 14,
-              color: isDark ? theme.textMuted : _kOnSurfaceVariant,
+              fontWeight: FontWeight.w500,
+              color: isDark ? Colors.white : const Color(0xFF1C1D1F),
             ),
           ),
           Text(
@@ -647,10 +666,10 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
 
     return Container(
       decoration: BoxDecoration(
-        color: isDark ? theme.surfaceField : Colors.white,
+        color: isDark ? const Color(0xFF2E3848) : const Color(0xFFF7F5EE),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(
-          color: isDark ? theme.border : _kOutline.withValues(alpha: 0.3),
+          color: isDark ? const Color(0xFF475569) : const Color(0xFFE2DDD2),
         ),
         boxShadow: const [AppShadows.soft],
       ),
@@ -663,10 +682,19 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
             padding: const EdgeInsets.all(12),
             child: Row(
               children: [
-                Icon(
-                  Icons.calendar_today_outlined,
-                  size: 20,
-                  color: isDark ? Colors.white : _kOnSurfaceVariant,
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE2DDD2)),
+                  ),
+                  child: Icon(
+                    Icons.calendar_today_rounded,
+                    size: 18,
+                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1D1F),
+                  ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
@@ -675,25 +703,51 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
                     children: [
                       Text(
                         'JADWAL KEDATANGAN',
-                        style: AppTypography.overline(
-                          color: isDark ? theme.textMuted : _kOutline,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.w700,
+                          letterSpacing: 0.5,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
                         ),
                       ),
+                      const SizedBox(height: 2),
                       Text(
                         '$startStr - $endStr WIB',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
-                          fontWeight: FontWeight.w600,
+                          fontWeight: FontWeight.w700,
                           color: isDark ? Colors.white : Colors.black,
                         ),
                       ),
                     ],
                   ),
                 ),
-                Icon(
-                  Icons.edit_calendar,
-                  size: 20,
-                  color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                    borderRadius: AppRadii.pillRadius,
+                    border: Border.all(color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.edit_calendar,
+                        size: 14,
+                        color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Ubah',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),

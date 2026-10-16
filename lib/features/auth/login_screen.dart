@@ -327,7 +327,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
             height: sheetHeight + 150.0,
             child: Container(
               decoration: BoxDecoration(
-                color: isDark ? const Color(0xFF111418) : const Color(0xFFFAF7F2), // Background yang dapat diseret jadi seperti homescreen saat darkmode
+                color: isDark ? const Color(0xFF262C36) : const Color(0xFFFAF7F2), // Background yang dapat diseret lebih terang di darkmode (tidak pekat)
                 borderRadius: const BorderRadius.vertical(top: Radius.circular(38)),
                 border: isDark ? Border(top: BorderSide(color: Colors.white.withValues(alpha: 0.15), width: 1)) : null,
                 boxShadow: [

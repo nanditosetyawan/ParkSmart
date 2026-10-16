@@ -20,6 +20,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:geocoding/geocoding.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import '../sitemap_screen.dart';
+import '../../core/services/theme_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -795,7 +796,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             child: Image.network(
                               'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr',
                               width: 64, height: 64, fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => Container(
+                              errorBuilder: (context, error, stackTrace) => Container(
                                 width: 64, height: 64, color: AppColors.surfaceDim,
                                 child: Icon(Icons.local_parking, color: AppColors.secondary),
                               ),
@@ -1544,6 +1545,8 @@ class _RecommendationsListState extends State<_RecommendationsList> {
       );
     }
 
+    final isDark = ThemeService.instance.isDarkMode;
+
     return GestureDetector(
       onTap: openInExplore,
       child: Container(
@@ -1552,10 +1555,12 @@ class _RecommendationsListState extends State<_RecommendationsList> {
         decoration: BoxDecoration(
           color: AppColors.surfaceCard,
           borderRadius: BorderRadius.circular(24),
-          border: Border.all(color: Colors.black.withValues(alpha: 0.06)),
+          border: Border.all(
+            color: isDark ? const Color(0xFF2D3542) : Colors.black.withValues(alpha: 0.06),
+          ),
           boxShadow: [
             BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
+              color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
               blurRadius: 18,
               offset: const Offset(0, 6),
             ),
@@ -1570,7 +1575,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     color: const Color(0xFFE5E7EB),
                     child: const Center(
                       child: Icon(Icons.local_parking, size: 52, color: Color(0xFF9CA3AF)),
@@ -1681,14 +1686,18 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       // Keterangan Jarak & Slot
                       Row(
                         children: [
-                          const Icon(Icons.near_me_outlined, size: 13, color: Color(0xFF5F6368)),
+                          Icon(
+                            Icons.near_me_outlined,
+                            size: 13,
+                            color: isDark ? Colors.white : const Color(0xFF5F6368),
+                          ),
                           const SizedBox(width: 4),
                           Text(
                             subtitle,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
-                              color: const Color(0xFF5F6368),
+                              color: isDark ? Colors.white : const Color(0xFF5F6368),
                             ),
                           ),
                         ],
@@ -1708,7 +1717,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w700,
-                                  color: const Color(0xFF76777B),
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                   letterSpacing: 0.3,
                                 ),
                               ),
@@ -1717,7 +1726,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
-                                  color: const Color(0xFF0F766E),
+                                  color: isDark ? Colors.white : const Color(0xFF0F766E),
                                 ),
                               ),
                             ],
@@ -1725,20 +1734,25 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                           // Tombol Explore
                           ElevatedButton.icon(
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: const Color(0xFF1C1D1F),
-                              foregroundColor: Colors.white,
+                              backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                              foregroundColor: isDark ? Colors.black : Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(16),
                               ),
                               padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
                               elevation: 0,
                             ),
-                            icon: const Icon(Icons.explore_rounded, size: 16),
+                            icon: Icon(
+                              Icons.explore_rounded,
+                              size: 16,
+                              color: isDark ? Colors.black : Colors.white,
+                            ),
                             label: Text(
                               'Explore',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.black : Colors.white,
                               ),
                             ),
                             onPressed: openInExplore,
@@ -1758,118 +1772,124 @@ class _RecommendationsListState extends State<_RecommendationsList> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 28),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('Rekomendasi Lainnya', style: AppTypography.headlineMd()),
-              GestureDetector(
-                onTap: () async {
-                  if (_isLoading) return;
-                  setState(() => _isLoading = true);
-                  await Future.delayed(const Duration(seconds: 1));
-                  if (mounted) {
-                    setState(() {
-                      _isLoading = false;
-                      _extraCount++;
-                    });
-                  }
-                },
-                child: _isLoading 
-                  ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                  : Text('Lihat Semua', style: AppTypography.buttonSm(color: AppColors.secondary)),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 2),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-          child: _buildCard(
-            title: 'Grand Indonesia West Mall', 
-            subtitle: '850m • 8 slot kosong', 
-            price: 'Rp 6.000 / jam', 
-            imageUrl: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-            rating: '4.8',
-            locData: const {
-              'name': 'Grand Indonesia West Mall',
-              'type': 'Parkiran Mall',
-              'point': LatLng(-6.1953, 106.8208),
-              'slots': 8,
-              'isEv': false,
-              'distance': '850m',
-              'price': 'Rp 6.000 / jam',
-              'rating': 4.8,
-              'reviews': '1.820',
-              'hours': 'Buka • Tutup pukul 22.00 WIB',
-              'photos': [
-                'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-                'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-              ],
-            },
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-          child: _buildCard(
-            title: 'Central Park Mall Parking', 
-            subtitle: '350m • 42 slot tersedia', 
-            price: 'Rp 5.000 / jam', 
-            imageUrl: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-            rating: '4.7',
-            isEv: true,
-            locData: const {
-              'name': 'Central Park Mall Parking',
-              'type': 'Parkiran Mall',
-              'point': LatLng(-6.1788, 106.7916),
-              'slots': 42,
-              'isEv': true,
-              'distance': '350m',
-              'price': 'Rp 5.000 / jam',
-              'rating': 4.7,
-              'reviews': '1.420',
-              'hours': 'Buka • Tutup pukul 22.00 WIB',
-              'photos': [
-                'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-                'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-              ],
-            },
-          ),
-        ),
-        for (int i = 0; i < _extraCount; i++)
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-            child: _buildCard(
-              title: 'Plaza Indonesia (Lantai 2)', 
-              subtitle: '1.2km • Tersedia 12 slot', 
-              price: 'Rp 5.000 / jam', 
-              imageUrl: 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-              rating: '4.6',
-              locData: const {
-                'name': 'Plaza Indonesia (Lantai 2)',
-                'type': 'Parkiran Mall',
-                'point': LatLng(-6.1928, 106.8228),
-                'slots': 12,
-                'isEv': false,
-                'distance': '1.2km',
-                'price': 'Rp 5.000 / jam',
-                'rating': 4.6,
-                'reviews': '1.150',
-                'hours': 'Buka • Tutup pukul 22.00 WIB',
-                'photos': [
-                  'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-                  'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const SizedBox(height: 28),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Rekomendasi Lainnya', style: AppTypography.headlineMd()),
+                  GestureDetector(
+                    onTap: () async {
+                      if (_isLoading) return;
+                      setState(() => _isLoading = true);
+                      await Future.delayed(const Duration(seconds: 1));
+                      if (mounted) {
+                        setState(() {
+                          _isLoading = false;
+                          _extraCount++;
+                        });
+                      }
+                    },
+                    child: _isLoading 
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                      : Text('Lihat Semua', style: AppTypography.buttonSm(color: AppColors.secondary)),
+                  ),
                 ],
-              },
+              ),
             ),
-          ),
-        const SizedBox(height: 36),
-      ],
+            const SizedBox(height: 2),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+              child: _buildCard(
+                title: 'Grand Indonesia West Mall', 
+                subtitle: '850m • 8 slot kosong', 
+                price: 'Rp 6.000 / jam', 
+                imageUrl: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                rating: '4.8',
+                locData: const {
+                  'name': 'Grand Indonesia West Mall',
+                  'type': 'Parkiran Mall',
+                  'point': LatLng(-6.1953, 106.8208),
+                  'slots': 8,
+                  'isEv': false,
+                  'distance': '850m',
+                  'price': 'Rp 6.000 / jam',
+                  'rating': 4.8,
+                  'reviews': '1.820',
+                  'hours': 'Buka • Tutup pukul 22.00 WIB',
+                  'photos': [
+                    'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+                  ],
+                },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+              child: _buildCard(
+                title: 'Central Park Mall Parking', 
+                subtitle: '350m • 42 slot tersedia', 
+                price: 'Rp 5.000 / jam', 
+                imageUrl: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+                rating: '4.7',
+                isEv: true,
+                locData: const {
+                  'name': 'Central Park Mall Parking',
+                  'type': 'Parkiran Mall',
+                  'point': LatLng(-6.1788, 106.7916),
+                  'slots': 42,
+                  'isEv': true,
+                  'distance': '350m',
+                  'price': 'Rp 5.000 / jam',
+                  'rating': 4.7,
+                  'reviews': '1.420',
+                  'hours': 'Buka • Tutup pukul 22.00 WIB',
+                  'photos': [
+                    'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+                    'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                  ],
+                },
+              ),
+            ),
+            for (int i = 0; i < _extraCount; i++)
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+                child: _buildCard(
+                  title: 'Plaza Indonesia (Lantai 2)', 
+                  subtitle: '1.2km • Tersedia 12 slot', 
+                  price: 'Rp 5.000 / jam', 
+                  imageUrl: 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
+                  rating: '4.6',
+                  locData: const {
+                    'name': 'Plaza Indonesia (Lantai 2)',
+                    'type': 'Parkiran Mall',
+                    'point': LatLng(-6.1928, 106.8228),
+                    'slots': 12,
+                    'isEv': false,
+                    'distance': '1.2km',
+                    'price': 'Rp 5.000 / jam',
+                    'rating': 4.6,
+                    'reviews': '1.150',
+                    'hours': 'Buka • Tutup pukul 22.00 WIB',
+                    'photos': [
+                      'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
+                      'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                    ],
+                  },
+                ),
+              ),
+            const SizedBox(height: 36),
+          ],
+        );
+      },
     );
   }
 }
+

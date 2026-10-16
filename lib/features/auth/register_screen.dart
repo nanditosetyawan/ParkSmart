@@ -22,9 +22,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         final isDark = theme.isDarkMode;
 
         return Scaffold(
-          backgroundColor: isDark ? Colors.black : const Color(0xFFF6F3EC),
+          backgroundColor: isDark ? const Color(0xFF111418) : const Color(0xFFF6F3EC),
           body: SafeArea(
             child: SingleChildScrollView(
+              physics: const BouncingScrollPhysics(),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24.0),
                 child: Column(
@@ -37,10 +38,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         width: 44,
                         height: 44,
                         decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                          color: isDark ? const Color(0xFF181C22) : Colors.white,
                           shape: BoxShape.circle,
                           border: Border.all(
-                            color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
+                            color: isDark ? const Color(0xFF28303C) : const Color(0xFFE5E2DB),
                           ),
                         ),
                         child: Icon(
@@ -50,34 +51,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         ),
                       ),
                     ),
-                    const SizedBox(height: 32),
+                    const SizedBox(height: 28),
 
-                    // Premium Header
+                    // Premium Header Badge
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 7),
                       decoration: BoxDecoration(
-                        color: isDark ? const Color(0xFF1E232B) : const Color(0xFF1C1C18),
-                        borderRadius: BorderRadius.circular(12),
-                        border: isDark ? Border.all(color: const Color(0xFF2DD4BF).withValues(alpha: 0.3)) : null,
+                        color: isDark ? const Color(0xFF0D2824) : const Color(0xFF1C1C18),
+                        borderRadius: BorderRadius.circular(20),
+                        border: isDark
+                            ? Border.all(color: const Color(0xFF2DD4BF).withValues(alpha: 0.6), width: 1.2)
+                            : null,
                       ),
-                      child: Text(
-                        'Bergabung Sekarang',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFF2DD4BF) : Colors.white,
-                          letterSpacing: 0.5,
-                        ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.stars_rounded,
+                            size: 15,
+                            color: isDark ? const Color(0xFF2DD4BF) : Colors.white,
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'Bergabung Sekarang',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              fontWeight: FontWeight.bold,
+                              color: isDark ? const Color(0xFF2DD4BF) : Colors.white,
+                              letterSpacing: 0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Text(
                       'Buat Akun\nBaru Anda.',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 36,
                         fontWeight: FontWeight.w800,
                         color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                        height: 1.1,
+                        height: 1.15,
                         letterSpacing: -1.0,
                       ),
                     ),
@@ -90,19 +104,20 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         height: 1.5,
                       ),
                     ),
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 32),
 
-                    // Grouped Form Card (Kolom field putih, teks & placeholder hitam)
+                    // Grouped Form Card (Sleek dark card in dark mode, clean white in light mode)
                     Container(
                       decoration: BoxDecoration(
-                        color: Colors.white, // Kolom field putih
+                        color: isDark ? const Color(0xFF181C22) : Colors.white,
                         borderRadius: BorderRadius.circular(24),
                         border: Border.all(
-                          color: const Color(0xFFE5E2DB),
+                          color: isDark ? const Color(0xFF28303C) : const Color(0xFFE5E2DB),
+                          width: 1.2,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.04),
+                            color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.04),
                             blurRadius: 24,
                             offset: const Offset(0, 8),
                           ),
@@ -115,33 +130,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             label: 'Nama Lengkap',
                             hint: 'Sarah Natasha',
                             isFirst: true,
+                            isDark: isDark,
                           ),
-                          const Divider(
+                          Divider(
                             height: 1,
-                            color: Color(0xFFF1EEE7),
-                            indent: 52,
+                            color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
+                            indent: 70,
                           ),
                           _buildField(
                             icon: Icons.email_outlined,
                             label: 'Email',
                             hint: 'nama@email.com',
                             type: TextInputType.emailAddress,
+                            isDark: isDark,
                           ),
-                          const Divider(
+                          Divider(
                             height: 1,
-                            color: Color(0xFFF1EEE7),
-                            indent: 52,
+                            color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
+                            indent: 70,
                           ),
                           _buildField(
                             icon: Icons.phone_outlined,
                             label: 'No. Handphone',
                             hint: '0812 3456 7890',
                             type: TextInputType.phone,
+                            isDark: isDark,
                           ),
-                          const Divider(
+                          Divider(
                             height: 1,
-                            color: Color(0xFFF1EEE7),
-                            indent: 52,
+                            color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
+                            indent: 70,
                           ),
                           _buildField(
                             icon: Icons.lock_outline,
@@ -149,12 +167,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             hint: 'Min. 8 karakter',
                             obscure: _obscurePassword,
                             isLast: true,
+                            isDark: isDark,
                             suffix: GestureDetector(
                               onTap: () => setState(() => _obscurePassword = !_obscurePassword),
                               child: Icon(
                                 _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
                                 size: 20,
-                                color: const Color(0xFFA29F98),
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFFA29F98),
                               ),
                             ),
                           ),
@@ -162,9 +181,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: 36),
+                    const SizedBox(height: 32),
 
-                    // Action Button (Tombol putih, teks hitam saat dark mode)
+                    // Action Button (Tombol putih kontras tinggi dengan teks hitam)
                     SizedBox(
                       width: double.infinity,
                       height: 56,
@@ -173,7 +192,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
                           foregroundColor: isDark ? Colors.black : Colors.white,
-                          elevation: 0,
+                          elevation: isDark ? 6 : 0,
+                          shadowColor: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                         ),
                         child: Row(
@@ -185,6 +205,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
                                 color: isDark ? Colors.black : Colors.white,
+                                letterSpacing: 0.3,
                               ),
                             ),
                             const SizedBox(width: 10),
@@ -210,7 +231,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           text: TextSpan(
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
-                              color: isDark ? Colors.white70 : const Color(0xFF45474A),
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
                             ),
                             children: [
                               const TextSpan(text: 'Sudah punya akun? '),
@@ -219,7 +240,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFFFB923C) : const Color(0xFF1C1C18),
+                                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1C18),
                                   decoration: TextDecoration.underline,
                                 ),
                               ),
@@ -248,36 +269,45 @@ class _RegisterScreenState extends State<RegisterScreen> {
     bool isFirst = false,
     bool isLast = false,
     Widget? suffix,
+    required bool isDark,
   }) {
     return Padding(
-      padding: EdgeInsets.only(top: isFirst ? 8 : 4, bottom: isLast ? 8 : 4),
+      padding: EdgeInsets.only(top: isFirst ? 10 : 6, bottom: isLast ? 10 : 6),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          const SizedBox(width: 20),
-          Icon(
-            icon,
-            size: 20,
-            color: const Color(0xFF7A7874),
+          const SizedBox(width: 18),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              color: isDark ? const Color(0xFF262C36) : const Color(0xFFF5F2EA),
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Icon(
+              icon,
+              size: 20,
+              color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF7A7874),
+            ),
           ),
-          const SizedBox(width: 16),
+          const SizedBox(width: 14),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
                   label,
                   style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
+                    fontSize: 11.5,
                     fontWeight: FontWeight.w600,
-                    color: const Color(0xFF7A7874),
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7A7874),
                     letterSpacing: 0.2,
                   ),
                 ),
                 SizedBox(
-                  height: 36,
+                  height: 38,
                   child: TextField(
                     obscureText: obscure,
                     keyboardType: type,
@@ -285,22 +315,23 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       hintText: hint,
                       border: InputBorder.none,
                       hintStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 15,
-                        color: const Color(0xFFA29F98),
+                        fontSize: 14.5,
+                        color: isDark ? const Color(0xFF64748B) : const Color(0xFFA29F98),
+                        fontWeight: FontWeight.normal,
                       ),
-                      contentPadding: const EdgeInsets.only(bottom: 12),
+                      contentPadding: const EdgeInsets.only(bottom: 10),
                     ),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: const Color(0xFF1C1C18),
+                      color: isDark ? Colors.white : const Color(0xFF1C1C18),
                     ),
                   ),
                 ),
               ],
             ),
           ),
-          if (suffix != null) Padding(padding: const EdgeInsets.only(right: 20), child: suffix),
+          if (suffix != null) Padding(padding: const EdgeInsets.only(right: 18), child: suffix),
         ],
       ),
     );

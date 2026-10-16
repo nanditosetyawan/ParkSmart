@@ -425,16 +425,19 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
               ),
               const SizedBox(height: 24),
 
-              // Bottom Card Detail Waktu Selesai & Metode Pembayaran (Tetap Putih Sesuai Permintaan)
+              // Bottom Card Detail Waktu Selesai & Metode Pembayaran (Warna sama dengan card sisa waktu)
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? const Color(0xFF262C36) : Colors.white,
                   borderRadius: BorderRadius.circular(24),
-                  boxShadow: const [
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
+                  ),
+                  boxShadow: [
                     BoxShadow(
-                      color: Color(0x0A000000),
-                      offset: Offset(0, 8),
+                      color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                      offset: const Offset(0, 8),
                       blurRadius: 24,
                     ),
                   ],
@@ -451,7 +454,8 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                               'WAKTU SELESAI BARU',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: const Color(0xFF45474A),
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -462,14 +466,14 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF020304),
+                                    color: isDark ? Colors.white : const Color(0xFF020304),
                                   ),
                                 ),
                                 const SizedBox(width: 8),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFFFFDBD2),
+                                    color: isDark ? const Color(0xFF451A14) : const Color(0xFFFFDBD2),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
@@ -477,7 +481,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
-                                      color: const Color(0xFF3C0800),
+                                      color: isDark ? const Color(0xFFFF8C68) : const Color(0xFF3C0800),
                                     ),
                                   ),
                                 ),
@@ -492,7 +496,8 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                               'BIAYA TAMBAHAN',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
-                                color: const Color(0xFF45474A),
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
                               ),
                             ),
                             const SizedBox(height: 4),
@@ -501,17 +506,17 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
-                                color: const Color(0xFF9A442D),
+                                color: isDark ? const Color(0xFFFB923C) : const Color(0xFF9A442D),
                               ),
                             ),
                           ],
                         ),
                       ],
                     ),
-                    const Padding(
-                      padding: EdgeInsets.symmetric(vertical: 16),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 16),
                       child: Divider(
-                        color: Color(0xFFE5E2DB),
+                        color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
                       ),
                     ),
                     Row(
@@ -530,7 +535,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C18),
+                                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                   ),
                                 ),
                                 if (_selectedPaymentMethod == 'ParkSmart Wallet')
@@ -538,7 +543,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                     'Saldo Aktif: Rp 45.000',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
-                                      color: const Color(0xFF1F4F3C),
+                                      color: isDark ? const Color(0xFF34D399) : const Color(0xFF1F4F3C),
                                     ),
                                   ),
                               ],
@@ -552,7 +557,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
-                              color: const Color(0xFF45474A),
+                              color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF45474A),
                             ),
                           ),
                         ),
@@ -636,12 +641,21 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
   }
 
   Widget _buildPaymentLogo(String method, double size) {
+    final isDark = ThemeService.instance.isDarkMode;
     if (method == 'ParkSmart Wallet') {
       return Container(
         width: size,
         height: size,
-        decoration: const BoxDecoration(color: Color(0xFFF1EEE7), shape: BoxShape.circle),
-        child: Icon(Icons.account_balance_wallet, color: const Color(0xFF020304), size: size * 0.5),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF181C22) : const Color(0xFFF1EEE7),
+          shape: BoxShape.circle,
+          border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
+        ),
+        child: Icon(
+          Icons.account_balance_wallet,
+          color: isDark ? Colors.white : const Color(0xFF020304),
+          size: size * 0.5,
+        ),
       );
     } else if (method == 'ShopeePay') {
       return Image.asset('assets/images/shopee-pay-seeklogo.png', width: size, height: size, fit: BoxFit.contain);

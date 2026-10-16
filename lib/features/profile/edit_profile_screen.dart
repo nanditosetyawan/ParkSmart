@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/services/theme_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String initialName;
@@ -136,14 +137,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   }
 
   void _showPhotoOptions() {
+    final isDark = ThemeService.instance.isDarkMode;
+    final theme = ThemeService.instance;
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       builder: (ctx) => Container(
         padding: const EdgeInsets.all(24),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        decoration: BoxDecoration(
+          color: isDark ? const Color(0xFF1E232B) : Colors.white,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? Border(top: BorderSide(color: theme.border, width: 1.5)) : null,
         ),
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -154,7 +159,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 width: 40,
                 height: 4,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFE2E8F0),
+                  color: isDark ? const Color(0xFF333D4E) : const Color(0xFFE2E8F0),
                   borderRadius: BorderRadius.circular(2),
                 ),
               ),
@@ -165,7 +170,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
-                color: const Color(0xFF1C1C18),
+                color: isDark ? Colors.white : const Color(0xFF1C1C18),
               ),
             ),
             const SizedBox(height: 18),
@@ -175,17 +180,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
+                  color: isDark ? const Color(0xFF28303C) : const Color(0xFFF1EEE7),
                   borderRadius: BorderRadius.circular(10),
+                  border: isDark ? Border.all(color: theme.border) : null,
                 ),
-                child: const Icon(Icons.camera_alt, color: Color(0xFF1C1C18), size: 20),
+                child: Icon(Icons.camera_alt, color: isDark ? Colors.white : const Color(0xFF1C1C18), size: 20),
               ),
               title: Text(
                 'Ambil Foto dari Kamera',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1C1C18),
+                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
                 ),
               ),
               onTap: () {
@@ -199,17 +205,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
+                  color: isDark ? const Color(0xFF28303C) : const Color(0xFFF1EEE7),
                   borderRadius: BorderRadius.circular(10),
+                  border: isDark ? Border.all(color: theme.border) : null,
                 ),
-                child: const Icon(Icons.photo_library, color: Color(0xFF1C1C18), size: 20),
+                child: Icon(Icons.photo_library, color: isDark ? Colors.white : const Color(0xFF1C1C18), size: 20),
               ),
               title: Text(
                 'Pilih dari Galeri',
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
-                  color: const Color(0xFF1C1C18),
+                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
                 ),
               ),
               onTap: () {
@@ -225,278 +232,306 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFFCF9F2),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // Header App Bar
-            Container(
-              height: 64,
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              decoration: BoxDecoration(
-                color: const Color(0xFFFCF9F2),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.03),
-                    blurRadius: 6,
-                    offset: const Offset(0, 1),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: () => Navigator.pop(context),
-                    child: Container(
-                      width: 40,
-                      height: 40,
-                      decoration: const BoxDecoration(
-                        color: Color(0xFFF1EEE7),
-                        shape: BoxShape.circle,
-                      ),
-                      child: const Icon(
-                        Icons.arrow_back,
-                        size: 20,
-                        color: Color(0xFF1C1C18),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 14),
-                  Text(
-                    'Edit Data Diri',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1C1C18),
-                    ),
-                  ),
-                ],
-              ),
-            ),
+    return ListenableBuilder(
+      listenable: ThemeService.instance,
+      builder: (context, _) {
+        final theme = ThemeService.instance;
+        final isDark = theme.isDarkMode;
 
-            // Scrollable Form Body
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    // Profile Photo with Camera Badge
-                    Center(
-                      child: Stack(
-                        children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              border: Border.all(
-                                color: const Color(0xFFEBE6DC),
-                                width: 3,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.08),
-                                  blurRadius: 16,
-                                  offset: const Offset(0, 4),
-                                ),
-                              ],
-                              image: DecorationImage(
-                                image: NetworkImage(_profileImageUrl),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
+        return Scaffold(
+          backgroundColor: isDark ? theme.bg : const Color(0xFFFCF9F2),
+          body: SafeArea(
+            child: Column(
+              children: [
+                // Header App Bar
+                Container(
+                  height: 64,
+                  padding: const EdgeInsets.symmetric(horizontal: 20),
+                  decoration: BoxDecoration(
+                    color: isDark ? theme.bg : const Color(0xFFFCF9F2),
+                    border: Border(
+                      bottom: BorderSide(
+                        color: isDark ? theme.border : Colors.black.withValues(alpha: 0.05),
+                        width: 1,
+                      ),
+                    ),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 1),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      GestureDetector(
+                        onTap: () => Navigator.pop(context),
+                        child: Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.card : const Color(0xFFF1EEE7),
+                            shape: BoxShape.circle,
+                            border: isDark ? Border.all(color: theme.border) : null,
                           ),
-                          Positioned(
-                            bottom: 0,
-                            right: 0,
-                            child: GestureDetector(
-                              onTap: _showPhotoOptions,
-                              child: Container(
-                                width: 34,
-                                height: 34,
+                          child: Icon(
+                            Icons.arrow_back,
+                            size: 20,
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 14),
+                      Text(
+                        'Edit Data Diri',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                // Scrollable Form Body
+                Expanded(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 20),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.center,
+                      children: [
+                        // Profile Photo with Camera Badge
+                        Center(
+                          child: Stack(
+                            children: [
+                              Container(
+                                width: 100,
+                                height: 100,
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFF1C1C18),
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.white,
-                                    width: 2.5,
+                                    color: isDark ? theme.border : const Color(0xFFEBE6DC),
+                                    width: 3,
+                                  ),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.08),
+                                      blurRadius: 16,
+                                      offset: const Offset(0, 4),
+                                    ),
+                                  ],
+                                  image: DecorationImage(
+                                    image: NetworkImage(_profileImageUrl),
+                                    fit: BoxFit.cover,
                                   ),
                                 ),
-                                child: const Icon(
-                                  Icons.camera_alt,
-                                  size: 16,
-                                  color: Colors.white,
-                                ),
                               ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    GestureDetector(
-                      onTap: _showPhotoOptions,
-                      child: Text(
-                        'Ubah Foto Profil',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
-                          color: const Color(0xFFC05621),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // Card Form Data
-                    Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(20),
-                        border: Border.all(color: const Color(0xFFEBE6DC)),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.02),
-                            blurRadius: 12,
-                            offset: const Offset(0, 4),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'INFORMASI PENGGUNA',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 11,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: 0.8,
-                              color: const Color(0xFF62615B),
-                            ),
-                          ),
-                          const SizedBox(height: 18),
-
-                          // Nama Lengkap
-                          _buildFormField(
-                            label: 'Nama Lengkap',
-                            controller: _nameController,
-                            icon: Icons.person_outline,
-                            hint: 'Masukkan nama lengkap',
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Email
-                          _buildFormField(
-                            label: 'Alamat Email',
-                            controller: _emailController,
-                            icon: Icons.mail_outline,
-                            keyboardType: TextInputType.emailAddress,
-                            hint: 'Masukkan alamat email',
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Nomor Telepon
-                          _buildFormField(
-                            label: 'Nomor Telepon / WhatsApp',
-                            controller: _phoneController,
-                            icon: Icons.phone_outlined,
-                            keyboardType: TextInputType.phone,
-                            hint: '+62 812-xxxx-xxxx',
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Jenis Kelamin Selector
-                          Text(
-                            'Jenis Kelamin',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF62615B),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          Row(
-                            children: [
-                              _buildGenderOption('Laki-laki', Icons.male),
-                              const SizedBox(width: 12),
-                              _buildGenderOption('Perempuan', Icons.female),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Tanggal Lahir
-                          _buildFormField(
-                            label: 'Tanggal Lahir',
-                            controller: _birthDateController,
-                            icon: Icons.calendar_today_outlined,
-                            hint: 'Contoh: 14 Mei 1998',
-                          ),
-                          const SizedBox(height: 16),
-
-                          // Alamat
-                          _buildFormField(
-                            label: 'Alamat Tinggal / Domisili',
-                            controller: _addressController,
-                            icon: Icons.location_on_outlined,
-                            hint: 'Alamat lengkap',
-                            maxLines: 2,
-                          ),
-                        ],
-                      ),
-                    ),
-
-                    const SizedBox(height: 28),
-
-                    // Tombol Simpan
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton(
-                        onPressed: _isLoading ? null : _saveChanges,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF1C1C18),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(26),
-                          ),
-                        ),
-                        child: _isLoading
-                            ? const SizedBox(
-                                width: 22,
-                                height: 22,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2.5,
-                                  color: Colors.white,
-                                ),
-                              )
-                            : Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(Icons.check, size: 18),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'Simpan Perubahan',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14.5,
-                                      fontWeight: FontWeight.bold,
+                              Positioned(
+                                bottom: 0,
+                                right: 0,
+                                child: GestureDetector(
+                                  onTap: _showPhotoOptions,
+                                  child: Container(
+                                    width: 34,
+                                    height: 34,
+                                    decoration: BoxDecoration(
+                                      color: isDark ? const Color(0xFFFB923C) : const Color(0xFF1C1C18),
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                        color: isDark ? theme.bg : Colors.white,
+                                        width: 2.5,
+                                      ),
+                                    ),
+                                    child: Icon(
+                                      Icons.camera_alt,
+                                      size: 16,
+                                      color: isDark ? Colors.black : Colors.white,
                                     ),
                                   ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        GestureDetector(
+                          onTap: _showPhotoOptions,
+                          child: Text(
+                            'Ubah Foto Profil',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
+                              color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
+                            ),
+                          ),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        // Card Form Data
+                        Container(
+                          padding: const EdgeInsets.all(20),
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.card : Colors.white,
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(
+                              color: isDark ? theme.border : const Color(0xFFEBE6DC),
+                              width: 1,
+                            ),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.02),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'INFORMASI PENGGUNA',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w800,
+                                  letterSpacing: 0.8,
+                                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF62615B),
+                                ),
+                              ),
+                              const SizedBox(height: 18),
+
+                              // Nama Lengkap
+                              _buildFormField(
+                                label: 'Nama Lengkap',
+                                controller: _nameController,
+                                icon: Icons.person_outline,
+                                hint: 'Masukkan nama lengkap',
+                                isDark: isDark,
+                                theme: theme,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Email
+                              _buildFormField(
+                                label: 'Alamat Email',
+                                controller: _emailController,
+                                icon: Icons.mail_outline,
+                                keyboardType: TextInputType.emailAddress,
+                                hint: 'Masukkan alamat email',
+                                isDark: isDark,
+                                theme: theme,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Nomor Telepon
+                              _buildFormField(
+                                label: 'Nomor Telepon / WhatsApp',
+                                controller: _phoneController,
+                                icon: Icons.phone_outlined,
+                                keyboardType: TextInputType.phone,
+                                hint: '+62 812-xxxx-xxxx',
+                                isDark: isDark,
+                                theme: theme,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Jenis Kelamin Selector
+                              Text(
+                                'Jenis Kelamin',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF62615B),
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Row(
+                                children: [
+                                  _buildGenderOption('Laki-laki', Icons.male, isDark, theme),
+                                  const SizedBox(width: 12),
+                                  _buildGenderOption('Perempuan', Icons.female, isDark, theme),
                                 ],
                               ),
-                      ),
+                              const SizedBox(height: 16),
+
+                              // Tanggal Lahir
+                              _buildFormField(
+                                label: 'Tanggal Lahir',
+                                controller: _birthDateController,
+                                icon: Icons.calendar_today_outlined,
+                                hint: 'Contoh: 14 Mei 1998',
+                                isDark: isDark,
+                                theme: theme,
+                              ),
+                              const SizedBox(height: 16),
+
+                              // Alamat
+                              _buildFormField(
+                                label: 'Alamat Tinggal / Domisili',
+                                controller: _addressController,
+                                icon: Icons.location_on_outlined,
+                                hint: 'Alamat lengkap',
+                                maxLines: 2,
+                                isDark: isDark,
+                                theme: theme,
+                              ),
+                            ],
+                          ),
+                        ),
+
+                        const SizedBox(height: 28),
+
+                        // Tombol Simpan
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: _isLoading ? null : _saveChanges,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
+                              foregroundColor: isDark ? Colors.black : Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(26),
+                              ),
+                            ),
+                            child: _isLoading
+                                ? SizedBox(
+                                    width: 22,
+                                    height: 22,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.5,
+                                      color: isDark ? Colors.black : Colors.white,
+                                    ),
+                                  )
+                                : Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      const Icon(Icons.check, size: 18),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        'Simpan Perubahan',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14.5,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
                     ),
-                    const SizedBox(height: 20),
-                  ],
+                  ),
                 ),
-              ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -505,6 +540,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     required TextEditingController controller,
     required IconData icon,
     required String hint,
+    required bool isDark,
+    required ThemeService theme,
     TextInputType keyboardType = TextInputType.text,
     int maxLines = 1,
   }) {
@@ -516,15 +553,18 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           style: GoogleFonts.plusJakartaSans(
             fontSize: 12,
             fontWeight: FontWeight.w600,
-            color: const Color(0xFF62615B),
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF62615B),
           ),
         ),
         const SizedBox(height: 8),
         Container(
           decoration: BoxDecoration(
-            color: const Color(0xFFF9F7F2),
+            color: isDark ? theme.surfaceField : const Color(0xFFF9F7F2),
             borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFEBE6DC)),
+            border: Border.all(
+              color: isDark ? theme.border : const Color(0xFFEBE6DC),
+              width: 1,
+            ),
           ),
           child: TextField(
             controller: controller,
@@ -533,17 +573,21 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 13.5,
               fontWeight: FontWeight.w600,
-              color: const Color(0xFF1C1C18),
+              color: isDark ? Colors.white : const Color(0xFF1C1C18),
             ),
             decoration: InputDecoration(
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: InputBorder.none,
-              prefixIcon: Icon(icon, size: 18, color: const Color(0xFF62615B)),
+              prefixIcon: Icon(
+                icon,
+                size: 18,
+                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF62615B),
+              ),
               hintText: hint,
               hintStyle: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
-                color: const Color(0xFF9E9B90),
+                color: isDark ? const Color(0xFF64748B) : const Color(0xFF9E9B90),
               ),
             ),
           ),
@@ -552,7 +596,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     );
   }
 
-  Widget _buildGenderOption(String gender, IconData icon) {
+  Widget _buildGenderOption(String gender, IconData icon, bool isDark, ThemeService theme) {
     final bool isSelected = _selectedGender == gender;
     return Expanded(
       child: GestureDetector(
@@ -560,10 +604,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? const Color(0xFF1C1C18) : const Color(0xFFF9F7F2),
+            color: isSelected
+                ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                : (isDark ? theme.surfaceField : const Color(0xFFF9F7F2)),
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
-              color: isSelected ? const Color(0xFF1C1C18) : const Color(0xFFEBE6DC),
+              color: isSelected
+                  ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                  : (isDark ? theme.border : const Color(0xFFEBE6DC)),
+              width: 1.5,
             ),
           ),
           child: Row(
@@ -572,15 +621,19 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               Icon(
                 icon,
                 size: 16,
-                color: isSelected ? Colors.white : const Color(0xFF62615B),
+                color: isSelected
+                    ? (isDark ? Colors.black : Colors.white)
+                    : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF62615B)),
               ),
               const SizedBox(width: 6),
               Text(
                 gender,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12.5,
-                  fontWeight: FontWeight.w600,
-                  color: isSelected ? Colors.white : const Color(0xFF1C1C18),
+                  fontWeight: FontWeight.w700,
+                  color: isSelected
+                      ? (isDark ? Colors.black : Colors.white)
+                      : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF1C1C18)),
                 ),
               ),
             ],

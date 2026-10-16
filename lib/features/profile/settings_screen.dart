@@ -1405,7 +1405,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             GestureDetector(
                               onTap: _isCacheCleared ? null : () {
                                 setState(() {
-                                  _cacheSize = '0 KB tersimpan (Bersih)';
+                                  _cacheSize = '0 KB tersimpan';
                                   _isCacheCleared = true;
                                 });
                               },
@@ -1414,7 +1414,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 decoration: BoxDecoration(color: ThemeService.instance.chipBg, borderRadius: BorderRadius.circular(16)),
                                 child: _isCacheCleared 
                                   ? Row(children: [const Icon(Icons.done, size: 14, color: Color(0xFF45474A)), const SizedBox(width: 4), Text('Beres', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)))])
-                                  : Text('Bersihkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF9A442D))),
+                                  : Text('Bersihkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color.fromARGB(255, 255, 255, 255))),
                               ),
                             ),
                           ],
@@ -1429,21 +1429,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   Center(
                     child: Column(
                       children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Container(width: 8, height: 8, decoration: const BoxDecoration(color: Color(0xFF5F8F78), shape: BoxShape.circle)),
-                            const SizedBox(width: 8),
-                            Text('ParkSmart v2.4.0 (Build 2026.10)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
-                          ],
-                        ),
-                        const SizedBox(height: 4),
+                      
                         Row(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
                             const Icon(Icons.token, size: 14, color: Color(0xFF45474A)),
                             const SizedBox(width: 6),
-                            Text('Blockchain Verified Network • Jakarta Smart Mobility', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: ThemeService.instance.textSecondary)),
+                            Text('Made by Love 🗿', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: ThemeService.instance.textSecondary)),
                           ],
                         ),
                       ],

@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart';
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
+import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/theme_service.dart';
 
 class SmartScanner {
   static Future<void> openCameraAndProcess(BuildContext context) async {
@@ -58,16 +60,46 @@ class SmartScanner {
     // Tutup loading dialog
     Navigator.pop(context);
 
+    final isDark = ThemeService.instance.isDarkMode;
+
     // Tampilkan hasil
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Hasil Deteksi Kamera', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Text(resultMessage, style: const TextStyle(fontSize: 16)),
+        backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: isDark ? const Color(0xFF333D4E) : const Color(0xFFE2E8F0),
+            width: 1.5,
+          ),
+        ),
+        title: Text(
+          'Hasil Deteksi Kamera',
+          style: GoogleFonts.plusJakartaSans(
+            fontWeight: FontWeight.bold,
+            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+          ),
+        ),
+        content: Text(
+          resultMessage,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 15,
+            height: 1.4,
+            color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF333333),
+          ),
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Tutup'),
+            child: Text(
+              'Tutup',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+                fontSize: 14,
+                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1A73E8),
+              ),
+            ),
           ),
         ],
       ),

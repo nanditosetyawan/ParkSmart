@@ -161,7 +161,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
         final isDark = theme.isDarkMode;
 
         return Scaffold(
-          backgroundColor: isDark ? Colors.black : const Color(0xFFF9F9F9),
+          backgroundColor: isDark ? theme.bg : const Color(0xFFF9F9F9),
           body: SafeArea(
             child: Column(
               children: [
@@ -357,16 +357,19 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                         ),
                         const SizedBox(height: 24),
 
-                        // Booking Detail Card (TETAP PUTIH DENGAN ISI YANG TETAP BERSIH & JELAS)
+                        // Booking Detail Card (Dark mode styled, distinct from background)
                         Container(
                           padding: const EdgeInsets.all(20),
                           decoration: BoxDecoration(
-                            color: Colors.white, // Card kode booking TETAP PUTIH
+                            color: isDark ? const Color(0xFF1E232B) : Colors.white,
                             borderRadius: BorderRadius.circular(28),
-                            border: Border.all(color: const Color(0xFFE5E2DB)),
+                            border: Border.all(
+                              color: isDark ? const Color(0xFF333D4E) : const Color(0xFFE5E2DB),
+                              width: 1.2,
+                            ),
                             boxShadow: [
                               BoxShadow(
-                                color: Colors.black.withValues(alpha: isDark ? 0.3 : 0.05),
+                                color: Colors.black.withValues(alpha: isDark ? 0.35 : 0.05),
                                 blurRadius: 20,
                                 offset: const Offset(0, 4),
                               ),
@@ -384,17 +387,18 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                         'KODE BOOKING',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF76777B),
+                                          fontWeight: FontWeight.w700,
+                                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                           letterSpacing: 0.5,
                                         ),
                                       ),
+                                      const SizedBox(height: 2),
                                       Text(
                                         'PS-20261024-8842',
                                         style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: const Color(0xFF1C1D1F),
+                                          fontSize: 15,
+                                          fontWeight: FontWeight.w800,
+                                          color: isDark ? Colors.white : const Color(0xFF1C1D1F),
                                         ),
                                       ),
                                     ],
@@ -402,18 +406,18 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFFECFDF5),
+                                      color: isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5),
                                       borderRadius: BorderRadius.circular(16),
                                       border: Border.all(
-                                        color: const Color(0xFFA7F3D0),
+                                        color: isDark ? const Color(0xFF059669) : const Color(0xFFA7F3D0),
                                       ),
                                     ),
                                     child: Row(
                                       children: [
-                                        const Icon(
+                                        Icon(
                                           Icons.verified,
                                           size: 13,
-                                          color: Color(0xFF065F46),
+                                          color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -421,7 +425,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF065F46),
+                                            color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
                                           ),
                                         ),
                                       ],
@@ -429,23 +433,25 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                   ),
                                 ],
                               ),
-                              const Padding(
-                                padding: EdgeInsets.symmetric(vertical: 12),
+                              Padding(
+                                padding: const EdgeInsets.symmetric(vertical: 12),
                                 child: Divider(
-                                  color: Color(0xFFE5E2DB),
+                                  color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
                                   height: 1,
                                 ),
                               ),
                               Row(
                                 children: [
+                                  // Inner Box 1: Plat Nomor Kendaraan
                                   Expanded(
                                     child: Container(
                                       padding: const EdgeInsets.all(14),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFCF9F2),
+                                        color: isDark ? const Color(0xFF28303C) : const Color(0xFFFCF9F2),
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: const Color(0xFFE5E2DB),
+                                          color: isDark ? const Color(0xFF3D4758) : const Color(0xFFE5E2DB),
+                                          width: 1.2,
                                         ),
                                       ),
                                       child: Column(
@@ -455,8 +461,8 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                             'Plat Nomor Kendaraan',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF76777B),
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -464,15 +470,17 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                             'B 1234 XYZ',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFF1C1D1F),
+                                              fontWeight: FontWeight.w800,
+                                              color: isDark ? Colors.white : const Color(0xFF1C1D1F),
                                             ),
                                           ),
+                                          const SizedBox(height: 1),
                                           Text(
                                             'Toyota Raize',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
-                                              color: const Color(0xFF45474A),
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF45474A),
                                             ),
                                           ),
                                         ],
@@ -480,14 +488,16 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                     ),
                                   ),
                                   const SizedBox(width: 12),
+                                  // Inner Box 2: Slot Reservasi
                                   Expanded(
                                     child: Container(
                                       padding: const EdgeInsets.all(14),
                                       decoration: BoxDecoration(
-                                        color: const Color(0xFFFCF9F2),
+                                        color: isDark ? const Color(0xFF28303C) : const Color(0xFFFCF9F2),
                                         borderRadius: BorderRadius.circular(16),
                                         border: Border.all(
-                                          color: const Color(0xFFE5E2DB),
+                                          color: isDark ? const Color(0xFF3D4758) : const Color(0xFFE5E2DB),
+                                          width: 1.2,
                                         ),
                                       ),
                                       child: Column(
@@ -497,8 +507,8 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                             'Slot Reservasi',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11,
-                                              fontWeight: FontWeight.w500,
-                                              color: const Color(0xFF76777B),
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                             ),
                                           ),
                                           const SizedBox(height: 4),
@@ -510,8 +520,8 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                                 'A-05',
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 18,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: const Color(0xFF1C1D1F),
+                                                  fontWeight: FontWeight.w800,
+                                                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1D1F),
                                                 ),
                                               ),
                                               const SizedBox(width: 4),
@@ -519,8 +529,8 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                                 'Basement B2',
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: const Color(0xFF76777B),
+                                                  fontWeight: FontWeight.w600,
+                                                  color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF76777B),
                                                 ),
                                               ),
                                             ],
@@ -528,18 +538,18 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                           const SizedBox(height: 2),
                                           Row(
                                             children: [
-                                              const Icon(
+                                              Icon(
                                                 Icons.near_me,
                                                 size: 12,
-                                                color: Color(0xFF065F46),
+                                                color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
                                               ),
                                               const SizedBox(width: 2),
                                               Text(
                                                 'Dekat Lift Utama',
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: const Color(0xFF065F46),
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark ? const Color(0xFF34D399) : const Color(0xFF065F46),
                                                 ),
                                               ),
                                             ],
@@ -551,22 +561,24 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                 ],
                               ),
                               const SizedBox(height: 16),
+                              // Inner Box 3: Info Box
                               Container(
                                 padding: const EdgeInsets.all(14),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF6F3EC),
+                                  color: isDark ? const Color(0xFF28303C) : const Color(0xFFF6F3EC),
                                   borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: const Color(0xFFE5E2DB),
+                                    color: isDark ? const Color(0xFF3D4758) : const Color(0xFFE5E2DB),
+                                    width: 1.2,
                                   ),
                                 ),
                                 child: Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(
-                                      Icons.info,
+                                    Icon(
+                                      Icons.info_rounded,
                                       size: 20,
-                                      color: Color(0xFF1C1D1F),
+                                      color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1D1F),
                                     ),
                                     const SizedBox(width: 12),
                                     Expanded(
@@ -574,7 +586,8 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                         'Palang akan terangkat otomatis saat plat nomor terbaca. Anda juga dapat menekan tombol di bawah bila sistem palang belum terbuka.',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
-                                          color: const Color(0xFF45474A),
+                                          fontWeight: FontWeight.w500,
+                                          color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF45474A),
                                           height: 1.5,
                                         ),
                                       ),
