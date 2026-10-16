@@ -23,8 +23,12 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   List<Map<String, String>> _messages = [];
   
   bool _isLoading = false;
+  String? _customGroqApiKey;
   
   String get _apiKey {
+    if (_customGroqApiKey != null && _customGroqApiKey!.isNotEmpty) {
+      return _customGroqApiKey!;
+    }
     try {
       if (dotenv.isInitialized) {
         final key = dotenv.env['GROQ_API_KEY'];
@@ -94,6 +98,10 @@ GAYA BAHASA:
   Future<void> _loadChatHistory() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      final savedGroqKey = prefs.getString('groq_api_key');
+      if (savedGroqKey != null && savedGroqKey.isNotEmpty) {
+        _customGroqApiKey = savedGroqKey;
+      }
       final String? messagesJson = prefs.getString('ai_chat_history');
       
       if (messagesJson != null && messagesJson.isNotEmpty) {
@@ -146,6 +154,19 @@ GAYA BAHASA:
     
     _textController.clear();
     _scrollToBottom();
+
+    if (_apiKey.isEmpty) {
+      await Future.delayed(const Duration(milliseconds: 500));
+      setState(() {
+        _messages.add({
+          'role': 'assistant',
+          'content': 'Groq API Key belum dikonfigurasi. Silakan minta Super Admin mengatur Groq API Key di Dashboard Super Admin > Konfigurasi Groq AI Key atau pada konfigurasi .env.'
+        });
+        _isLoading = false;
+      });
+      _saveChatHistory();
+      return;
+    }
 
     try {
       // Siapkan histori chat untuk dikirim ke Groq

@@ -14,7 +14,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   String _selectedRoleFilter = 'Semua';
   String _selectedStatusFilter = 'Semua';
 
-  final List<String> _roleFilters = ['Semua', 'Super Admin', 'Admin Lokasi', 'Operator', 'Viewer'];
+  final List<String> _roleFilters = ['Semua', 'Super Admin', 'Admin Operasional', 'Admin Finansial', 'Admin CS & KYC'];
   final List<String> _statusFilters = ['Semua', 'Aktif', 'Nonaktif', 'Pending Verifikasi'];
 
   final List<Map<String, dynamic>> _admins = [
@@ -28,60 +28,47 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
       'avatar': 'D',
       'lastLogin': '2 jam lalu',
       'locations': ['Semua Lokasi'],
-      'permissions': ['Manajemen User', 'Konfigurasi Sistem', 'Laporan Keuangan', 'Audit Log'],
+      'permissions': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
       'createdAt': '12 Jan 2024',
     },
     {
       'id': 'ADM-002',
       'name': 'Rina Wijaya',
-      'email': 'rina@parksmart.id',
+      'email': 'rina.ops@parksmart.id',
       'phone': '+62 856-7890-1234',
-      'role': 'Admin Lokasi',
+      'role': 'Admin Operasional',
       'status': 'Aktif',
       'avatar': 'R',
       'lastLogin': 'Hari ini 08:30',
-      'locations': ['Central Park Mall', 'Grand Indonesia'],
-      'permissions': ['Kelola Slot', 'Monitoring Sesi', 'Verifikasi KTP', 'Injeksi Saldo'],
+      'locations': ['Semua Lokasi'],
+      'permissions': ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'],
       'createdAt': '05 Feb 2024',
     },
     {
       'id': 'ADM-003',
       'name': 'Bambang Sutrisno',
-      'email': 'bambang@parksmart.id',
+      'email': 'bambang.fin@parksmart.id',
       'phone': '+62 878-1122-3344',
-      'role': 'Operator',
+      'role': 'Admin Finansial',
       'status': 'Aktif',
       'avatar': 'B',
-      'lastLogin': '3 hari lalu',
-      'locations': ['Malioboro Mall'],
-      'permissions': ['Monitoring Sesi', 'Force Check-Out', 'Kirim Notifikasi'],
+      'lastLogin': 'Kemarin 17:15',
+      'locations': ['Semua Lokasi'],
+      'permissions': ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'],
       'createdAt': '20 Mar 2024',
     },
     {
       'id': 'ADM-004',
-      'name': 'Siti Nurhaliza',
-      'email': 'siti@parksmart.id',
+      'name': 'Siti Rahma',
+      'email': 'siti.cs@parksmart.id',
       'phone': '+62 813-9988-7766',
-      'role': 'Admin Lokasi',
-      'status': 'Nonaktif',
+      'role': 'Admin CS & KYC',
+      'status': 'Aktif',
       'avatar': 'S',
-      'lastLogin': '2 minggu lalu',
-      'locations': ['Pacific Place SCBD'],
-      'permissions': ['Kelola Slot', 'Monitoring Sesi', 'Verifikasi KTP'],
+      'lastLogin': '1 jam lalu',
+      'locations': ['Semua Lokasi'],
+      'permissions': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],
       'createdAt': '10 Apr 2024',
-    },
-    {
-      'id': 'ADM-005',
-      'name': 'Andi Saputra',
-      'email': 'andi@parksmart.id',
-      'phone': '+62 821-4455-6677',
-      'role': 'Viewer',
-      'status': 'Pending Verifikasi',
-      'avatar': 'A',
-      'lastLogin': 'Belum login',
-      'locations': ['Tunjungan Plaza 6'],
-      'permissions': ['Lihat Dashboard', 'Lihat Laporan'],
-      'createdAt': 'Hari ini',
     },
   ];
 
@@ -110,13 +97,13 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   Color _getRoleColor(String role) {
     switch (role) {
       case 'Super Admin':
-        return const Color(0xFF7C3AED);
-      case 'Admin Lokasi':
+        return const Color(0xFF6D28D9);
+      case 'Admin Operasional':
         return const Color(0xFF114177);
-      case 'Operator':
-        return const Color(0xFFE07A5F);
-      case 'Viewer':
+      case 'Admin Finansial':
         return const Color(0xFF17A18A);
+      case 'Admin CS & KYC':
+        return const Color(0xFFE07A5F);
       default:
         return const Color(0xFF76777B);
     }
@@ -125,13 +112,13 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   Color _getRoleBg(String role) {
     switch (role) {
       case 'Super Admin':
-        return const Color(0xFFF0E8FF);
-      case 'Admin Lokasi':
+        return const Color(0xFFEDE9FE);
+      case 'Admin Operasional':
         return const Color(0xFFE3EEFF);
-      case 'Operator':
-        return const Color(0xFFFDECE7);
-      case 'Viewer':
+      case 'Admin Finansial':
         return const Color(0xFFD1F2EB);
+      case 'Admin CS & KYC':
+        return const Color(0xFFFDECE7);
       default:
         return const Color(0xFFF1EEE7);
     }
@@ -167,17 +154,17 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
-    String selectedRole = 'Operator';
+    String selectedRole = 'Admin Operasional';
     String selectedStatus = 'Aktif';
     final List<String> selectedLocations = [];
     List<String> selectedPermissions = []; // Removed final
 
     final allLocations = ['Central Park Mall', 'Grand Indonesia', 'Pacific Place SCBD', 'Malioboro Mall', 'Tunjungan Plaza 6', 'Senayan City'];
     final rolePermissions = {
-      'Super Admin': ['Manajemen User', 'Konfigurasi Sistem', 'Laporan Keuangan', 'Audit Log', 'Kelola Slot', 'Monitoring Sesi', 'Verifikasi KTP', 'Injeksi Saldo', 'Force Check-Out', 'Kirim Notifikasi', 'Lihat Dashboard', 'Lihat Laporan'],
-      'Admin Lokasi': ['Kelola Slot', 'Monitoring Sesi', 'Verifikasi KTP', 'Injeksi Saldo', 'Lihat Dashboard', 'Lihat Laporan'],
-      'Operator': ['Monitoring Sesi', 'Force Check-Out', 'Kirim Notifikasi', 'Lihat Dashboard'],
-      'Viewer': ['Lihat Dashboard', 'Lihat Laporan'],
+      'Super Admin': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
+      'Admin Operasional': ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'],
+      'Admin Finansial': ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'],
+      'Admin CS & KYC': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],
     };
 
     showDialog(
@@ -316,6 +303,48 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
             ElevatedButton(
               onPressed: () {
                 if (nameCtrl.text.isNotEmpty && emailCtrl.text.isNotEmpty) {
+                  // Batasan kuota ketat: 1 akun per role
+                  final existingAdmin = _admins.firstWhere(
+                    (a) => a['role'] == selectedRole,
+                    orElse: () => {},
+                  );
+                  if (existingAdmin.isNotEmpty) {
+                    showDialog(
+                      context: context,
+                      builder: (alertCtx) => AlertDialog(
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                        backgroundColor: Colors.white,
+                        title: Row(
+                          children: [
+                            const Icon(Icons.warning_amber_rounded, color: Color(0xFFD94B4B)),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                'Batas Kuota Role Terpenuhi',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                              ),
+                            ),
+                          ],
+                        ),
+                        content: Text(
+                          'Role "$selectedRole" sudah memiliki 1 akun aktif (${existingAdmin['name']}).\n\nSesuai SOP keamanan, pembuatan akun dibatasi maksimal 1 admin per role. Silakan edit atau bekukan akun yang ada.',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A), height: 1.4),
+                        ),
+                        actions: [
+                          ElevatedButton(
+                            onPressed: () => Navigator.pop(alertCtx),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF1C1D1F),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            ),
+                            child: Text('Tutup', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white)),
+                          ),
+                        ],
+                      ),
+                    );
+                    return;
+                  }
+
                   setState(() {
                     _admins.insert(0, {
                       'id': 'ADM-${(_admins.length + 1).toString().padLeft(3, '0')}',
@@ -326,8 +355,8 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       'status': selectedStatus,
                       'avatar': nameCtrl.text[0].toUpperCase(),
                       'lastLogin': 'Baru dibuat',
-                      'locations': selectedLocations.isEmpty ? ['Belum ditentukan'] : selectedLocations,
-                      'permissions': selectedPermissions,
+                      'locations': selectedLocations.isEmpty ? ['Semua Lokasi'] : selectedLocations,
+                      'permissions': selectedPermissions.isEmpty ? (rolePermissions[selectedRole] ?? []) : selectedPermissions,
                       'createdAt': DateTime.now().toString().split(' ')[0],
                     });
                   });
@@ -360,6 +389,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     final roleBg = _getRoleBg(admin['role']);
     final statusColor = _getStatusColor(admin['status']);
     final statusBg = _getStatusBg(admin['status']);
+    final isFrozen = admin['status'] == 'Dibekukan (SOP)' || admin['status'] == 'Nonaktif';
 
     showModalBottomSheet(
       context: context,
@@ -422,7 +452,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                   )).toList(),
                 ),
                 const SizedBox(height: 16),
-                Text('Izin & Permission', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                Text('Izin & Wewenang RBAC', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                 const SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
@@ -433,7 +463,65 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                     child: Text(perm, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF114177))),
                   )).toList(),
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 20),
+
+                // Tindakan SOP: Bekukan Admin & Reset Kredensial
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9F9F9),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE4DFD5)),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Tindakan Tata Kelola & SOP', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      const SizedBox(height: 10),
+                      Row(
+                        children: [
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _showResetCredentialDialog(admin);
+                              },
+                              icon: const Icon(Icons.lock_reset, size: 16, color: Color(0xFF114177)),
+                              label: Text('Reset Kredensial', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF114177)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _toggleFreezeAdmin(admin);
+                              },
+                              icon: Icon(isFrozen ? Icons.check_circle_outline : Icons.block, size: 16, color: Colors.white),
+                              label: Text(
+                                isFrozen ? 'Buka Blokir' : 'Bekukan (SOP)',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: isFrozen ? const Color(0xFF17A18A) : const Color(0xFFD94B4B),
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
                 Row(
                   children: [
                     Expanded(
@@ -442,10 +530,10 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                           Navigator.pop(ctx);
                           _showEditAdminDialog(admin);
                         },
-                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF114177)),
-                        label: Text('Edit', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                        icon: const Icon(Icons.edit_outlined, size: 18, color: Color(0xFF1C1D1F)),
+                        label: Text('Edit Data', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1C1D1F))),
                         style: OutlinedButton.styleFrom(
-                          side: const BorderSide(color: Color(0xFF114177)),
+                          side: const BorderSide(color: Color(0xFFE4DFD5)),
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
                         ),
@@ -455,6 +543,15 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                     Expanded(
                       child: ElevatedButton.icon(
                         onPressed: () {
+                          if (admin['role'] == 'Super Admin') {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('Super Admin utama tidak dapat dihapus!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                                backgroundColor: const Color(0xFFD94B4B),
+                              ),
+                            );
+                            return;
+                          }
                           setState(() {
                             _admins.removeWhere((a) => a['id'] == admin['id']);
                           });
@@ -471,7 +568,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                         icon: const Icon(Icons.delete_outline, size: 18, color: Colors.white),
                         label: Text('Hapus', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFD94B4B),
+                          backgroundColor: const Color(0xFF45474A),
                           elevation: 0,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                           padding: const EdgeInsets.symmetric(vertical: 14),
@@ -489,6 +586,104 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     );
   }
 
+  void _showResetCredentialDialog(Map<String, dynamic> admin) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Row(
+          children: [
+            const Icon(Icons.lock_reset, color: Color(0xFF114177)),
+            const SizedBox(width: 8),
+            Text('Reset Kredensial', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
+          ],
+        ),
+        content: Text(
+          'Reset kata sandi dan kredensial untuk admin "${admin['name']}" (${admin['role']})?\n\nSistem akan men-generate password baru sementara yang wajib diganti pada saat login berikutnya.',
+          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B))),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text('Kredensial di-reset! Password sementara: PARK-${admin['id']}-TEMP', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                  backgroundColor: const Color(0xFF17A18A),
+                  duration: const Duration(seconds: 4),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177)),
+            child: const Text('Reset Sekarang', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _toggleFreezeAdmin(Map<String, dynamic> admin) {
+    final isCurrentlyFrozen = admin['status'] == 'Dibekukan (SOP)' || admin['status'] == 'Nonaktif';
+    if (!isCurrentlyFrozen) {
+      showDialog(
+        context: context,
+        builder: (ctx) => AlertDialog(
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Row(
+            children: [
+              const Icon(Icons.gavel, color: Color(0xFFD94B4B)),
+              const SizedBox(width: 8),
+              Text('Bekukan Akun Admin', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
+            ],
+          ),
+          content: Text(
+            'Admin "${admin['name']}" akan dibekukan karena dugaan pelanggaran SOP operasional.\n\nAkses login dan wewenang sistem divisi akan diblokir segera.',
+            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A)),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B))),
+            ),
+            ElevatedButton(
+              onPressed: () {
+                setState(() {
+                  admin['status'] = 'Dibekukan (SOP)';
+                });
+                Navigator.pop(ctx);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Akun ${admin['name']} DIBEKUKAN karena pelanggaran SOP.', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color(0xFFD94B4B),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
+              child: const Text('Bekukan Akun', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      );
+    } else {
+      setState(() {
+        admin['status'] = 'Aktif';
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Status akun ${admin['name']} dipulihkan menjadi AKTIF.', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+          backgroundColor: const Color(0xFF17A18A),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   void _showEditAdminDialog(Map<String, dynamic> admin) {
     final nameCtrl = TextEditingController(text: admin['name']);
     final emailCtrl = TextEditingController(text: admin['email']);
@@ -496,14 +691,14 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     String selectedRole = admin['role'];
     String selectedStatus = admin['status'];
     final List<String> selectedLocations = List<String>.from(admin['locations']);
-    List<String> selectedPermissions = List<String>.from(admin['permissions']); // Removed final
+    List<String> selectedPermissions = List<String>.from(admin['permissions']);
 
-    final allLocations = ['Central Park Mall', 'Grand Indonesia', 'Pacific Place SCBD', 'Malioboro Mall', 'Tunjungan Plaza 6', 'Senayan City'];
+    final allLocations = ['Semua Lokasi', 'Central Park Mall', 'Grand Indonesia', 'Pacific Place SCBD', 'Malioboro Mall', 'Tunjungan Plaza 6', 'Senayan City'];
     final rolePermissions = {
-      'Super Admin': ['Manajemen User', 'Konfigurasi Sistem', 'Laporan Keuangan', 'Audit Log', 'Kelola Slot', 'Monitoring Sesi', 'Verifikasi KTP', 'Injeksi Saldo', 'Force Check-Out', 'Kirim Notifikasi', 'Lihat Dashboard', 'Lihat Laporan'],
-      'Admin Lokasi': ['Kelola Slot', 'Monitoring Sesi', 'Verifikasi KTP', 'Injeksi Saldo', 'Lihat Dashboard', 'Lihat Laporan'],
-      'Operator': ['Monitoring Sesi', 'Force Check-Out', 'Kirim Notifikasi', 'Lihat Dashboard'],
-      'Viewer': ['Lihat Dashboard', 'Lihat Laporan'],
+      'Super Admin': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
+      'Admin Operasional': ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'],
+      'Admin Finansial': ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'],
+      'Admin CS & KYC': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],
     };
 
     showDialog(
@@ -642,6 +837,44 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
             ElevatedButton(
               onPressed: () {
                 if (nameCtrl.text.isNotEmpty && emailCtrl.text.isNotEmpty) {
+                  // Cek kuota jika role diubah
+                  if (selectedRole != admin['role']) {
+                    final conflictAdmin = _admins.firstWhere(
+                      (a) => a['role'] == selectedRole && a['id'] != admin['id'],
+                      orElse: () => {},
+                    );
+                    if (conflictAdmin.isNotEmpty) {
+                      showDialog(
+                        context: context,
+                        builder: (alertCtx) => AlertDialog(
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                          backgroundColor: Colors.white,
+                          title: Row(
+                            children: [
+                              const Icon(Icons.warning_amber_rounded, color: Color(0xFFD94B4B)),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text('Kuota Role Terisi', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                              ),
+                            ],
+                          ),
+                          content: Text(
+                            'Role "$selectedRole" sudah dipegang oleh ${conflictAdmin['name']}.\n\nSesuai SOP, kuota akun dibatasi maksimal 1 admin per role.',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF45474A)),
+                          ),
+                          actions: [
+                            ElevatedButton(
+                              onPressed: () => Navigator.pop(alertCtx),
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF1C1D1F)),
+                              child: const Text('Tutup', style: TextStyle(color: Colors.white)),
+                            ),
+                          ],
+                        ),
+                      );
+                      return;
+                    }
+                  }
+
                   setState(() {
                     final idx = _admins.indexWhere((a) => a['id'] == admin['id']);
                     if (idx != -1) {
@@ -653,7 +886,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                         'role': selectedRole,
                         'status': selectedStatus,
                         'avatar': nameCtrl.text[0].toUpperCase(),
-                        'locations': selectedLocations.isEmpty ? ['Belum ditentukan'] : selectedLocations,
+                        'locations': selectedLocations.isEmpty ? ['Semua Lokasi'] : selectedLocations,
                         'permissions': selectedPermissions,
                       };
                     }
@@ -698,8 +931,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   @override
   Widget build(BuildContext context) {
     final activeCount = _admins.where((a) => a['status'] == 'Aktif').length;
-    final pendingCount = _admins.where((a) => a['status'] == 'Pending Verifikasi').length;
-    final inactiveCount = _admins.where((a) => a['status'] == 'Nonaktif').length;
 
     return Theme(
       data: AppTheme.light,
@@ -742,14 +973,35 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
               children: [
                 Row(
                   children: [
-                    _buildStatCard('Total Admin', '${_admins.length}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
+                    _buildStatCard('Kuota RBAC', '${_admins.length}/4 Role', const Color(0xFF6D28D9), const Color(0xFFEDE9FE)),
                     const SizedBox(width: 10),
-                    _buildStatCard('Aktif', '$activeCount', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
+                    _buildStatCard('Akun Aktif', '$activeCount', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
                     const SizedBox(width: 10),
-                    _buildStatCard('Pending', '$pendingCount', const Color(0xFFE07A5F), const Color(0xFFFDECE7)),
+                    _buildStatCard('Dibekukan/SOP', '${_admins.where((a) => a['status'] == 'Dibekukan (SOP)' || a['status'] == 'Nonaktif').length}', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
                   ],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF5F3FF),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(color: const Color(0xFFDDD6FE)),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.shield_outlined, size: 16, color: Color(0xFF6D28D9)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          'Kebijakan SOP: Kuota dibatasi ketat 1 akun per role (Super Admin, Operasional, Finansial, CS & KYC).',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF6D28D9)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 12),
 
                 // Search box
                 Container(

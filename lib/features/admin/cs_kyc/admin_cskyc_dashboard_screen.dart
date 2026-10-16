@@ -22,19 +22,8 @@ class AdminCsKycDashboardScreen extends StatelessWidget {
           backgroundColor: Colors.white,
           elevation: 0,
           centerTitle: false,
-          leading: Navigator.canPop(context)
-              ? GestureDetector(
-                  onTap: () => Navigator.pop(context),
-                  child: Container(
-                    margin: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1EEE7),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
-                  ),
-                )
-              : null,
+          automaticallyImplyLeading: false,
+          titleSpacing: 16,
           title: Row(
             children: [
               Container(
@@ -78,19 +67,6 @@ class AdminCsKycDashboardScreen extends StatelessWidget {
             ],
           ),
           actions: [
-            GestureDetector(
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen())),
-              child: Container(
-                width: 40,
-                height: 40,
-                margin: const EdgeInsets.only(right: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Icon(Icons.developer_board, size: 20, color: Color(0xFF1A1A18)),
-              ),
-            ),
             GestureDetector(
               onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen())),
               child: Container(
