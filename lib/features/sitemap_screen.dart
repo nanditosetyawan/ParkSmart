@@ -112,6 +112,7 @@ class SitemapScreen extends StatelessWidget {
           ),
           body: ListView(
             children: [
+              // ─── USER CLIENT SCREENS ───
               _buildCategory('1. Auth & Onboarding', [
                 _Item('Login (Masuk)', 'login_screen.dart', (c) => const LoginScreen()),
                 _Item('Register (Daftar Akun)', 'register_screen.dart', (c) => const RegisterScreen()),
@@ -174,32 +175,113 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Car Game (Parkir 2D Runner)', 'car_game_screen.dart', (c) => const CarGameScreen()),
                 _Item('Claws Car (Mesin Capit Hadiah 3D)', 'claws_car_screen.dart', (c) => const ClawsCarScreen(), isNew: true),
               ], isDark, theme),
-              _buildCategory('10. Admin & Management Portal', [
-                _Item('Dashboard Utama Admin', 'admin_dashboard_screen.dart', (c) => const DashboardScreen()),
-                _Item('Kelola Lokasi Parkir', 'admin_locations_screen.dart', (c) => const LocationsScreen()),
-                _Item('Manajemen Slot & Sensor', 'admin_slot_management_screen.dart', (c) => const SlotManagementScreen()),
-                _Item('Monitoring Pengguna Aktif', 'admin_active_users_screen.dart', (c) => const ActiveUsersScreen()),
-                _Item('Pengaturan Arcade & Reward', 'admin_arcade_screen.dart', (c) => const ArcadeAdminScreen()),
-                _Item('Review Feedback Pengguna', 'admin_feedback_screen.dart', (c) => const FeedbackAdminScreen()),
-                _Item('Konfigurasi Tarif Parkir', 'admin_pricing_screen.dart', (c) => const PricingScreen()),
-                _Item('Verifikasi Dokumen KTP (KYC)', 'admin_kyc_screen.dart', (c) => const AdminKycScreen()),
-                _Item('Injeksi Saldo & Wallet Admin', 'admin_wallet_screen.dart', (c) => const AdminWalletScreen()),
-                _Item('Master Kota & Wilayah Operasional', 'admin_cities_screen.dart', (c) => const AdminCitiesScreen()),
-                _Item('Pusat Notifikasi & Broadcast Admin', 'admin_notifications_screen.dart', (c) => const AdminNotificationsScreen()),
-                _Item('Manajemen Akun Admin (P1)', 'admin_user_management_screen.dart', (c) => const AdminUserManagementScreen()),
-                _Item('Profil Customer & CRM (P1)', 'admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen()),
-                _Item('Manajemen Data Booking (P1)', 'admin_bookings_screen.dart', (c) => const AdminBookingsScreen()),
-                _Item('Manajemen Transaksi Finansial (P1)', 'admin_transactions_screen.dart', (c) => const AdminTransactionsScreen()),
-                _Item('Konfigurasi AI Engine (P2)', 'admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen()),
-                _Item('Pengaturan Parameter Global (P2)', 'admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen()),
-                _Item('Kelola Parkir Terpadu (P3)', 'manage_parking_screen.dart', (c) => const ManageParkingScreen()),
-                _Item('Kelola User Terpadu (P3)', 'manage_users_screen.dart', (c) => const ManageUsersScreen()),
-                _Item('Laporan Pendapatan & Analytics (P3)', 'revenue_screen.dart', (c) => const RevenueScreen()),
+
+              // ─── ADMIN HEADER DIVIDER & ROLE GUIDE ───
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 24, 16, 8),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 4,
+                          height: 18,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF10B981),
+                            borderRadius: BorderRadius.circular(2),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'PANEL ADMIN & KLASIFIKASI ROLE',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.1,
+                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF475569),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 10),
+                    SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          _buildRoleLegendBadge('Super Admin', isDark),
+                          const SizedBox(width: 8),
+                          _buildRoleLegendBadge('Operations', isDark),
+                          const SizedBox(width: 8),
+                          _buildRoleLegendBadge('Finance', isDark),
+                          const SizedBox(width: 8),
+                          _buildRoleLegendBadge('CS & KYC', isDark),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+              // ─── ADMIN CLUSTER 1: SISTEM & SUPER ADMIN ───
+              _buildCategory('10. Admin: Sistem & Super Admin', [
+                _Item('Dashboard Utama Admin', 'admin_dashboard_screen.dart', (c) => const DashboardScreen(), role: 'Super Admin'),
+                _Item('Manajemen Akun Admin (RBAC)', 'admin_user_management_screen.dart', (c) => const AdminUserManagementScreen(), role: 'Super Admin'),
+                _Item('Pengaturan Parameter Global App', 'admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen(), role: 'Super Admin'),
+                _Item('Konfigurasi Engine & Model AI', 'admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen(), role: 'Super Admin'),
               ], isDark, theme),
+
+              // ─── ADMIN CLUSTER 2: OPERASIONAL & FASILITAS ───
+              _buildCategory('11. Admin: Operasional & Fasilitas Parkir', [
+                _Item('Kelola Master Lokasi Parkir', 'admin_locations_screen.dart', (c) => const LocationsScreen(), role: 'Operations'),
+                _Item('Master Kota & Wilayah Operasional', 'admin_cities_screen.dart', (c) => const AdminCitiesScreen(), role: 'Operations'),
+                _Item('Manajemen Slot & Sensor IoT', 'admin_slot_management_screen.dart', (c) => const SlotManagementScreen(), role: 'Operations'),
+                _Item('Kelola Parkir Terpadu', 'manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
+                _Item('Monitoring Kendaraan Aktif & Overstay', 'admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
+              ], isDark, theme),
+
+              // ─── ADMIN CLUSTER 3: FINANSIAL & TRANSAKSI ───
+              _buildCategory('12. Admin: Finansial, Billing & Pendapatan', [
+                _Item('Konfigurasi Tarif & Aturan Waktu', 'admin_pricing_screen.dart', (c) => const PricingScreen(), role: 'Finance'),
+                _Item('Injeksi Saldo & Wallet Admin', 'admin_wallet_screen.dart', (c) => const AdminWalletScreen(), role: 'Finance'),
+                _Item('Audit Transaksi Finansial', 'admin_transactions_screen.dart', (c) => const AdminTransactionsScreen(), role: 'Finance'),
+                _Item('Laporan Pendapatan & Revenue Analytics', 'revenue_screen.dart', (c) => const RevenueScreen(), role: 'Finance'),
+                _Item('Manajemen Data Reservasi & Booking', 'admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Finance'),
+              ], isDark, theme),
+
+              // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN & KYC ───
+              _buildCategory('13. Admin: Layanan Pelanggan, KYC & Gamifikasi', [
+                _Item('Verifikasi Dokumen KTP (KYC)', 'admin_kyc_screen.dart', (c) => const AdminKycScreen(), role: 'CS & KYC'),
+                _Item('Profil Customer & Riwayat CRM', 'admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen(), role: 'CS & KYC'),
+                _Item('Kelola User Terpadu (Status Akun)', 'manage_users_screen.dart', (c) => const ManageUsersScreen(), role: 'CS & KYC'),
+                _Item('Review Feedback & Keluhan Pengguna', 'admin_feedback_screen.dart', (c) => const FeedbackAdminScreen(), role: 'CS & KYC'),
+                _Item('Pusat Notifikasi & Broadcast Masal', 'admin_notifications_screen.dart', (c) => const AdminNotificationsScreen(), role: 'CS & KYC'),
+                _Item('Pengaturan Poin, Arcade & Hadiah', 'admin_arcade_screen.dart', (c) => const ArcadeAdminScreen(), role: 'CS & KYC'),
+              ], isDark, theme),
+              const SizedBox(height: 32),
             ],
           ),
         );
       },
+    );
+  }
+
+  Widget _buildRoleLegendBadge(String role, bool isDark) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: _getRoleBgColor(role, isDark),
+        borderRadius: BorderRadius.circular(6),
+        border: Border.all(color: _getRoleBorderColor(role), width: 1),
+      ),
+      child: Text(
+        role,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 10,
+          fontWeight: FontWeight.bold,
+          color: _getRoleTextColor(role, isDark),
+        ),
+      ),
     );
   }
 
@@ -252,7 +334,27 @@ class SitemapScreen extends StatelessWidget {
                   ),
                 ),
               ),
-              if (i.isNew)
+              if (i.role != null) ...[
+                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: _getRoleBgColor(i.role!, isDark),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: _getRoleBorderColor(i.role!), width: 1),
+                  ),
+                  child: Text(
+                    i.role!,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: _getRoleTextColor(i.role!, isDark),
+                    ),
+                  ),
+                ),
+              ],
+              if (i.isNew) ...[
+                const SizedBox(width: 6),
                 Container(
                   margin: const EdgeInsets.only(right: 6),
                   padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
@@ -270,6 +372,7 @@ class SitemapScreen extends StatelessWidget {
                     ),
                   ),
                 ),
+              ],
             ],
           ),
           subtitle: Padding(
@@ -313,6 +416,51 @@ class SitemapScreen extends StatelessWidget {
       )).toList(),
     );
   }
+
+  static Color _getRoleBgColor(String role, bool isDark) {
+    switch (role) {
+      case 'Super Admin':
+        return isDark ? const Color(0xFF5B21B6).withValues(alpha: 0.3) : const Color(0xFFEDE9FE);
+      case 'Operations':
+        return isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFDBEAFE);
+      case 'Finance':
+        return isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7);
+      case 'CS & KYC':
+        return isDark ? const Color(0xFF134E4A).withValues(alpha: 0.3) : const Color(0xFFCCFBF1);
+      default:
+        return isDark ? Colors.white10 : const Color(0xFFF1F5F9);
+    }
+  }
+
+  static Color _getRoleBorderColor(String role) {
+    switch (role) {
+      case 'Super Admin':
+        return const Color(0xFF8B5CF6);
+      case 'Operations':
+        return const Color(0xFF3B82F6);
+      case 'Finance':
+        return const Color(0xFFF59E0B);
+      case 'CS & KYC':
+        return const Color(0xFF14B8A6);
+      default:
+        return const Color(0xFF94A3B8);
+    }
+  }
+
+  static Color _getRoleTextColor(String role, bool isDark) {
+    switch (role) {
+      case 'Super Admin':
+        return isDark ? const Color(0xFFA78BFA) : const Color(0xFF6D28D9);
+      case 'Operations':
+        return isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
+      case 'Finance':
+        return isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+      case 'CS & KYC':
+        return isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
+      default:
+        return isDark ? Colors.white70 : Colors.black87;
+    }
+  }
 }
 
 class _Item {
@@ -321,6 +469,7 @@ class _Item {
   final Widget Function(BuildContext)? builder;
   final void Function(BuildContext)? onAction;
   final bool isNew;
+  final String? role;
 
   _Item(
     this.name,
@@ -328,5 +477,6 @@ class _Item {
     this.builder, {
     this.onAction,
     this.isNew = false,
+    this.role,
   });
 }
