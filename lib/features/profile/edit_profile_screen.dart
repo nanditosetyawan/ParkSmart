@@ -579,6 +579,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               isDense: true,
               contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
               border: InputBorder.none,
+              enabledBorder: InputBorder.none,
+              focusedBorder: InputBorder.none,
+              disabledBorder: InputBorder.none,
+              errorBorder: InputBorder.none,
+              focusedErrorBorder: InputBorder.none,
+              filled: false,
+              fillColor: Colors.transparent,
               prefixIcon: Icon(
                 icon,
                 size: 18,

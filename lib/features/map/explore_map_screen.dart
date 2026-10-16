@@ -1219,6 +1219,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               fontSize: 15,
                               fontWeight: FontWeight.w500,
                             ),
+                            cursorColor: isDark ? Colors.white : const Color(0xFF1F1F1F),
                             decoration: InputDecoration(
                               hintText: 'Cari kota di Indonesia, SPBU...',
                               hintStyle: GoogleFonts.inter(
@@ -1227,6 +1228,13 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 fontWeight: FontWeight.w400,
                               ),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              filled: false,
+                              fillColor: Colors.transparent,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
                             ),

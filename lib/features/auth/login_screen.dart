@@ -20,6 +20,7 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../home/home_screen.dart';
 import '../auth/register_screen.dart';
+import '../auth/forgot_password_screen.dart';
 import '../admin/admin_dashboard_screen.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -451,7 +452,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                 children: [
                                   Text('Kata Sandi', style: AppTypography.labelMd(color: isDark ? Colors.white : null)),
                                   GestureDetector(
-                                    onTap: () {},
+                                    onTap: () {
+                                      Navigator.push(
+                                        context,
+                                        MaterialPageRoute(builder: (_) => const ForgotPasswordScreen()),
+                                      );
+                                    },
                                     child: Text(
                                       'Lupa Sandi?',
                                       style: AppTypography.labelSm(
@@ -781,6 +787,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         hintText: 'Username',
                                         hintStyle: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF94A3B8)),
                                         border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        errorBorder: InputBorder.none,
+                                        focusedErrorBorder: InputBorder.none,
+                                        filled: false,
+                                        fillColor: Colors.transparent,
                                         isDense: true,
                                       ),
                                     ),
@@ -819,6 +832,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                         hintText: 'Password',
                                         hintStyle: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF94A3B8)),
                                         border: InputBorder.none,
+                                        enabledBorder: InputBorder.none,
+                                        focusedBorder: InputBorder.none,
+                                        disabledBorder: InputBorder.none,
+                                        errorBorder: InputBorder.none,
+                                        focusedErrorBorder: InputBorder.none,
+                                        filled: false,
+                                        fillColor: Colors.transparent,
                                         isDense: true,
                                       ),
                                     ),
@@ -946,6 +966,7 @@ class _PillInput extends StatelessWidget {
               onChanged: onChanged,
               obscureText: obscureText,
               keyboardType: keyboardType,
+              cursorColor: isDark ? Colors.black : AppColors.primary,
               style: AppTypography.bodyMd(
                 color: isDark ? Colors.black : AppColors.textPrimary,
               ),
@@ -955,6 +976,13 @@ class _PillInput extends StatelessWidget {
                   color: isDark ? Colors.black54 : AppColors.textMuted.withValues(alpha: 0.7),
                 ),
                 border: InputBorder.none,
+                enabledBorder: InputBorder.none,
+                focusedBorder: InputBorder.none,
+                disabledBorder: InputBorder.none,
+                errorBorder: InputBorder.none,
+                focusedErrorBorder: InputBorder.none,
+                filled: false,
+                fillColor: Colors.transparent,
                 isDense: true,
                 contentPadding: const EdgeInsets.symmetric(vertical: 0),
               ),

@@ -4,7 +4,8 @@ import 'package:flutter/services.dart';
 import '../../core/services/theme_service.dart';
 
 class OtpResetScreen extends StatefulWidget {
-  const OtpResetScreen({super.key});
+  final String? destination;
+  const OtpResetScreen({super.key, this.destination});
 
   @override
   State<OtpResetScreen> createState() => _OtpResetScreenState();
@@ -122,9 +123,13 @@ class _OtpResetScreenState extends State<OtpResetScreen> {
                           height: 1.5,
                         ),
                         children: [
-                          const TextSpan(text: 'Kami telah mengirimkan kode 6 digit ke nomor\n'),
                           TextSpan(
-                            text: '+62 812 3456 7890',
+                            text: widget.destination != null && widget.destination!.contains('@')
+                                ? 'Kami telah mengirimkan kode 6 digit ke email\n'
+                                : 'Kami telah mengirimkan kode 6 digit ke nomor\n',
+                          ),
+                          TextSpan(
+                            text: widget.destination ?? '+62 812 3456 7890',
                             style: TextStyle(
                               fontWeight: FontWeight.bold,
                               color: textMain,
@@ -189,6 +194,13 @@ class _OtpResetScreenState extends State<OtpResetScreen> {
                               ),
                               decoration: const InputDecoration(
                                 border: InputBorder.none,
+                                enabledBorder: InputBorder.none,
+                                focusedBorder: InputBorder.none,
+                                disabledBorder: InputBorder.none,
+                                errorBorder: InputBorder.none,
+                                focusedErrorBorder: InputBorder.none,
+                                filled: false,
+                                fillColor: Colors.transparent,
                                 counterText: '',
                               ),
                               onChanged: (val) => _onChanged(val, index),

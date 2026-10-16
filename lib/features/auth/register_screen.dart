@@ -12,6 +12,28 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscurePassword = true;
+  late final TextEditingController _nameController;
+  late final TextEditingController _emailController;
+  late final TextEditingController _phoneController;
+  late final TextEditingController _passwordController;
+
+  @override
+  void initState() {
+    super.initState();
+    _nameController = TextEditingController();
+    _emailController = TextEditingController();
+    _phoneController = TextEditingController();
+    _passwordController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -125,10 +147,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       ),
                       child: Column(
                         children: [
-                          _buildField(
+                          _FloatingRegisterField(
                             icon: Icons.person_outline,
                             label: 'Nama Lengkap',
-                            hint: 'Sarah Natasha',
+                            controller: _nameController,
                             isFirst: true,
                             isDark: isDark,
                           ),
@@ -137,10 +159,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
                             indent: 70,
                           ),
-                          _buildField(
+                          _FloatingRegisterField(
                             icon: Icons.email_outlined,
                             label: 'Email',
-                            hint: 'nama@email.com',
+                            controller: _emailController,
                             type: TextInputType.emailAddress,
                             isDark: isDark,
                           ),
@@ -149,10 +171,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
                             indent: 70,
                           ),
-                          _buildField(
+                          _FloatingRegisterField(
                             icon: Icons.phone_outlined,
                             label: 'No. Handphone',
-                            hint: '0812 3456 7890',
+                            controller: _phoneController,
                             type: TextInputType.phone,
                             isDark: isDark,
                           ),
@@ -161,10 +183,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             color: isDark ? const Color(0xFF262C36) : const Color(0xFFF1EEE7),
                             indent: 70,
                           ),
-                          _buildField(
+                          _FloatingRegisterField(
                             icon: Icons.lock_outline,
                             label: 'Kata Sandi',
-                            hint: 'Min. 8 karakter',
+                            controller: _passwordController,
                             obscure: _obscurePassword,
                             isLast: true,
                             isDark: isDark,
@@ -259,80 +281,186 @@ class _RegisterScreenState extends State<RegisterScreen> {
       },
     );
   }
+}
 
-  Widget _buildField({
-    required IconData icon,
-    required String label,
-    required String hint,
-    TextInputType? type,
-    bool obscure = false,
-    bool isFirst = false,
-    bool isLast = false,
-    Widget? suffix,
-    required bool isDark,
-  }) {
-    return Padding(
-      padding: EdgeInsets.only(top: isFirst ? 10 : 6, bottom: isLast ? 10 : 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          const SizedBox(width: 18),
-          Container(
-            width: 38,
-            height: 38,
-            decoration: BoxDecoration(
-              color: isDark ? const Color(0xFF262C36) : const Color(0xFFF5F2EA),
-              borderRadius: BorderRadius.circular(10),
+class _FloatingRegisterField extends StatefulWidget {
+  final IconData icon;
+  final String label;
+  final TextEditingController? controller;
+  final TextInputType? type;
+  final bool obscure;
+  final bool isFirst;
+  final bool isLast;
+  final Widget? suffix;
+  final bool isDark;
+
+  const _FloatingRegisterField({
+    required this.icon,
+    required this.label,
+    this.controller,
+    this.type,
+    this.obscure = false,
+    this.isFirst = false,
+    this.isLast = false,
+    this.suffix,
+    required this.isDark,
+  });
+
+  @override
+  State<_FloatingRegisterField> createState() => _FloatingRegisterFieldState();
+}
+
+class _FloatingRegisterFieldState extends State<_FloatingRegisterField> {
+  late final FocusNode _focusNode;
+  late final TextEditingController _controller;
+  bool _ownsController = false;
+  bool _isFocused = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _focusNode = FocusNode();
+    _focusNode.addListener(_onFocusChange);
+
+    if (widget.controller != null) {
+      _controller = widget.controller!;
+    } else {
+      _controller = TextEditingController();
+      _ownsController = true;
+    }
+    _controller.addListener(_onTextChange);
+  }
+
+  void _onFocusChange() {
+    if (mounted) {
+      setState(() {
+        _isFocused = _focusNode.hasFocus;
+      });
+    }
+  }
+
+  void _onTextChange() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
+  @override
+  void dispose() {
+    _focusNode.removeListener(_onFocusChange);
+    _focusNode.dispose();
+    _controller.removeListener(_onTextChange);
+    if (_ownsController) {
+      _controller.dispose();
+    }
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final bool hasText = _controller.text.isNotEmpty;
+    final bool isFloating = _isFocused || hasText;
+    final isDark = widget.isDark;
+
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _focusNode.requestFocus(),
+      child: Padding(
+        padding: EdgeInsets.only(
+          top: widget.isFirst ? 8 : 4,
+          bottom: widget.isLast ? 8 : 4,
+        ),
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            const SizedBox(width: 18),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF262C36) : const Color(0xFFF5F2EA),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(
+                widget.icon,
+                size: 20,
+                color: _isFocused
+                    ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF114177))
+                    : (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF7A7874)),
+              ),
             ),
-            child: Icon(
-              icon,
-              size: 20,
-              color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF7A7874),
-            ),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                const SizedBox(height: 6),
-                Text(
-                  label,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11.5,
-                    fontWeight: FontWeight.w600,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF7A7874),
-                    letterSpacing: 0.2,
-                  ),
-                ),
-                SizedBox(
-                  height: 38,
-                  child: TextField(
-                    obscureText: obscure,
-                    keyboardType: type,
-                    decoration: InputDecoration(
-                      hintText: hint,
-                      border: InputBorder.none,
-                      hintStyle: GoogleFonts.plusJakartaSans(
-                        fontSize: 14.5,
-                        color: isDark ? const Color(0xFF64748B) : const Color(0xFFA29F98),
-                        fontWeight: FontWeight.normal,
+            const SizedBox(width: 14),
+            Expanded(
+              child: SizedBox(
+                height: 56,
+                child: Stack(
+                  children: [
+                    // Animated Floating Label
+                    AnimatedPositioned(
+                      duration: const Duration(milliseconds: 200),
+                      curve: Curves.easeOutCubic,
+                      left: 0,
+                      top: isFloating ? 7 : 18,
+                      child: IgnorePointer(
+                        child: AnimatedDefaultTextStyle(
+                          duration: const Duration(milliseconds: 200),
+                          curve: Curves.easeOutCubic,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: isFloating ? 11.5 : 15.0,
+                            fontWeight: isFloating ? FontWeight.w700 : FontWeight.w500,
+                            color: _isFocused
+                                ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF114177))
+                                : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF7A7874)),
+                            letterSpacing: isFloating ? 0.3 : 0.0,
+                          ),
+                          child: Text(widget.label),
+                        ),
                       ),
-                      contentPadding: const EdgeInsets.only(bottom: 10),
                     ),
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 15,
-                      fontWeight: FontWeight.w600,
-                      color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                    // TextField input
+                    Positioned(
+                      left: 0,
+                      right: 0,
+                      top: 22,
+                      bottom: 4,
+                      child: TextField(
+                        controller: _controller,
+                        focusNode: _focusNode,
+                        obscureText: widget.obscure,
+                        keyboardType: widget.type,
+                        cursorColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF114177),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                        ),
+                        decoration: const InputDecoration(
+                          border: InputBorder.none,
+                          enabledBorder: InputBorder.none,
+                          focusedBorder: InputBorder.none,
+                          disabledBorder: InputBorder.none,
+                          errorBorder: InputBorder.none,
+                          focusedErrorBorder: InputBorder.none,
+                          filled: false,
+                          fillColor: Colors.transparent,
+                          isDense: true,
+                          contentPadding: EdgeInsets.zero,
+                        ),
+                      ),
                     ),
-                  ),
+                  ],
                 ),
-              ],
+              ),
             ),
-          ),
-          if (suffix != null) Padding(padding: const EdgeInsets.only(right: 18), child: suffix),
-        ],
+            if (widget.suffix != null)
+              Padding(
+                padding: const EdgeInsets.only(right: 18),
+                child: widget.suffix,
+              )
+            else
+              const SizedBox(width: 18),
+          ],
+        ),
       ),
     );
   }

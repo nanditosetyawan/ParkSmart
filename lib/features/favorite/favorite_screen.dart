@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/services/theme_service.dart';
@@ -152,6 +152,13 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                       hintStyle: GoogleFonts.inter(color: textSub, fontSize: 14),
                       prefixIcon: Icon(Icons.search, color: textSub),
                       border: InputBorder.none,
+                      enabledBorder: InputBorder.none,
+                      focusedBorder: InputBorder.none,
+                      disabledBorder: InputBorder.none,
+                      errorBorder: InputBorder.none,
+                      focusedErrorBorder: InputBorder.none,
+                      filled: false,
+                      fillColor: Colors.transparent,
                       contentPadding: const EdgeInsets.symmetric(vertical: 14),
                     ),
                   ),

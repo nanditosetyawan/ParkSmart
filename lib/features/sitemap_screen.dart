@@ -32,6 +32,7 @@ import 'ai_assistant/ai_results_screen.dart';
 import 'auth/login_screen.dart';
 import 'auth/otp_reset_screen.dart';
 import 'auth/register_screen.dart';
+import 'auth/forgot_password_screen.dart';
 
 // Booking
 import 'booking/booking_confirmation_screen.dart';
@@ -101,6 +102,7 @@ class SitemapScreen extends StatelessWidget {
               _buildCategory('Auth', [
                 _Item('Login', (c) => const LoginScreen()),
                 _Item('Register', (c) => const RegisterScreen()),
+                _Item('Lupa Sandi', (c) => const ForgotPasswordScreen()),
                 _Item('OTP / Reset', (c) => const OtpResetScreen()),
               ], isDark, theme),
               _buildCategory('Main App', [
