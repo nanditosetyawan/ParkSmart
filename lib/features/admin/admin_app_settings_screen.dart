@@ -1,6 +1,7 @@
 import '../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../sitemap_screen.dart';
 
 class AdminAppSettingsScreen extends StatefulWidget {
   const AdminAppSettingsScreen({super.key});
@@ -197,7 +198,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
                 ),
                 const SizedBox(height: 12),
                 _buildSliderRow(
-                  label: 'Update Interval: ${_rateUpdateIntervalHours} jam',
+                  label: 'Update Interval: $_rateUpdateIntervalHours jam',
                   value: _rateUpdateIntervalHours.toDouble(),
                   min: 1,
                   max: 168,
@@ -691,6 +692,11 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
           ],
         ),
         actions: [
+          IconButton(
+            tooltip: 'Dev Sitemap',
+            icon: const Icon(Icons.developer_board, size: 20, color: Color(0xFF1A1A18)),
+            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen())),
+          ),
           TextButton.icon(
             onPressed: () => ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Pengaturan disimpan ke Supabase app_settings'), backgroundColor: Color(0xFF17A18A))),
             icon: const Icon(Icons.save, size: 18, color: Color(0xFF17A18A)),

@@ -38,6 +38,11 @@ import 'auth/forgot_password_screen.dart';
 import 'booking/booking_confirmation_screen.dart';
 import 'booking/slot_selection_screen.dart';
 
+// Camera & Scanner
+import 'camera/smart_scanner.dart';
+import 'vehicle/custom_camera_screen.dart';
+import 'profile/ktp_camera_screen.dart';
+
 // Checkout & Session
 import 'checkout/checkout_screen.dart';
 import 'session/active_session_screen.dart';
@@ -46,17 +51,23 @@ import 'session/expiring_session_screen.dart';
 import 'session/extend_session_screen.dart';
 import 'session/session_checkout_screen.dart';
 
+// Favorite
+import 'favorite/favorite_screen.dart';
+
 // History
 import 'history/history_detail_screen.dart';
 import 'history/history_screen.dart';
 import 'history/verified_parking_sessions_screen.dart';
 
-// Profile & Vehicle
-import 'profile/feedback_screen.dart';
+// Profile, Settings & PIN
 import 'profile/profile_screen.dart';
+import 'profile/edit_profile_screen.dart';
 import 'profile/settings_screen.dart';
+import 'profile/pin_settings_screen.dart';
 import 'profile/vehicle_screen.dart';
 import 'profile/payment_methods_screen.dart';
+import 'profile/feedback_screen.dart';
+import 'pin/pin_screen.dart';
 import 'vehicle/add_vehicle_screen.dart';
 
 // Home & Notification & Parking
@@ -65,10 +76,12 @@ import 'notification/notification_screen.dart';
 import 'parking/parking_detail_screen.dart';
 import 'map/explore_map_screen.dart';
 
-// Nav & Game
+// Navigation & Games
 import 'navigation/ar_navigation_screen.dart';
 import 'game/game_lobby_screen.dart';
+import 'game/game_list_screen.dart';
 import 'game/car_game_screen.dart';
+import 'game/claws_car_screen.dart';
 
 class SitemapScreen extends StatelessWidget {
   const SitemapScreen({super.key});
@@ -99,73 +112,89 @@ class SitemapScreen extends StatelessWidget {
           ),
           body: ListView(
             children: [
-              _buildCategory('Auth', [
-                _Item('Login', (c) => const LoginScreen()),
-                _Item('Register', (c) => const RegisterScreen()),
-                _Item('Lupa Sandi', (c) => const ForgotPasswordScreen()),
-                _Item('OTP / Reset', (c) => const OtpResetScreen()),
+              _buildCategory('1. Auth & Onboarding', [
+                _Item('Login (Masuk)', 'login_screen.dart', (c) => const LoginScreen()),
+                _Item('Register (Daftar Akun)', 'register_screen.dart', (c) => const RegisterScreen()),
+                _Item('Lupa Sandi (Forgot Password)', 'forgot_password_screen.dart', (c) => const ForgotPasswordScreen(), isNew: true),
+                _Item('OTP & Reset Sandi', 'otp_reset_screen.dart', (c) => const OtpResetScreen()),
               ], isDark, theme),
-              _buildCategory('Main App', [
-                _Item('Home', (c) => const HomeScreen()),
-                _Item('Notifications', (c) => const NotificationScreen()),
-                _Item('Peta Jelajah (Google Maps)', (c) => const ExploreMapScreen()),
-                _Item('Parking Detail', (c) => const ParkingDetailScreen()),
+              _buildCategory('2. Main Navigation & Exploration', [
+                _Item('Home (Beranda Utama)', 'home_screen.dart', (c) => const HomeScreen()),
+                _Item('Favorit Parkir Terverifikasi', 'favorite_screen.dart', (c) => const FavoriteScreen(), isNew: true),
+                _Item('Peta Jelajah (Explore Map)', 'explore_map_screen.dart', (c) => const ExploreMapScreen()),
+                _Item('Pusat Notifikasi', 'notification_screen.dart', (c) => const NotificationScreen()),
+                _Item('Detail Tempat Parkir', 'parking_detail_screen.dart', (c) => const ParkingDetailScreen()),
               ], isDark, theme),
-              _buildCategory('Booking', [
-                _Item('AR Navigation', (c) => const ArNavigationScreen()),
-                _Item('Slot Selection', (c) => const SlotSelectionScreen()),
-                _Item('Booking Confirmation', (c) => const BookingConfirmationScreen()),
-                _Item('Checkout', (c) => const CheckoutScreen()),
+              _buildCategory('3. Booking & Reservasi', [
+                _Item('Pilih Slot Parkir (Slot Selection)', 'slot_selection_screen.dart', (c) => const SlotSelectionScreen()),
+                _Item('Konfirmasi Booking', 'booking_confirmation_screen.dart', (c) => const BookingConfirmationScreen()),
+                _Item('Navigasi AR (AR Wayfinding)', 'ar_navigation_screen.dart', (c) => const ArNavigationScreen()),
+                _Item('Checkout & Pembayaran Booking', 'checkout_screen.dart', (c) => const CheckoutScreen()),
               ], isDark, theme),
-              _buildCategory('Session', [
-                _Item('Check-In', (c) => const CheckinScreen()),
-                _Item('Active Session', (c) => const ActiveSessionScreen()),
-                _Item('Sesi Berakhir Segera', (c) => const ExpiringSessionScreen()),
-                _Item('Extend Session', (c) => const ExtendSessionScreen()),
-                _Item('Selesai Parkir (Checkout)', (c) => const SessionCheckoutScreen()),
+              _buildCategory('4. Sesi Parkir (Park Session)', [
+                _Item('Check-In Masuk Parkir (QR Gate)', 'checkin_screen.dart', (c) => const CheckinScreen()),
+                _Item('Sesi Parkir Aktif (Active Session)', 'active_session_screen.dart', (c) => const ActiveSessionScreen()),
+                _Item('Peringatan Sesi Segera Berakhir', 'expiring_session_screen.dart', (c) => const ExpiringSessionScreen()),
+                _Item('Perpanjangan Durasi Parkir (Extend)', 'extend_session_screen.dart', (c) => const ExtendSessionScreen()),
+                _Item('Checkout & Selesai Parkir (Exit)', 'session_checkout_screen.dart', (c) => const SessionCheckoutScreen()),
               ], isDark, theme),
-              _buildCategory('History', [
-                _Item('Riwayat Parkir Utama', (c) => const HistoryScreen()),
-                _Item('Detail Riwayat', (c) => const HistoryDetailScreen()),
-                _Item('Sesi Terverifikasi', (c) => const VerifiedParkingSessionsScreen()),
+              _buildCategory('5. Riwayat & Transaksi (History)', [
+                _Item('Riwayat Parkir Utama', 'history_screen.dart', (c) => const HistoryScreen()),
+                _Item('Detail Riwayat Parkir', 'history_detail_screen.dart', (c) => const HistoryDetailScreen()),
+                _Item('Sesi Parkir Terverifikasi', 'verified_parking_sessions_screen.dart', (c) => const VerifiedParkingSessionsScreen()),
               ], isDark, theme),
-              _buildCategory('AI Assistant', [
-                _Item('Asisten ParkSmart AI', (c) => const AiAssistantScreen()),
-                _Item('Hasil Rekomendasi AI', (c) => const AiResultsScreen()),
+              _buildCategory('6. AI Assistant (ParkSmart AI)', [
+                _Item('Asisten Suara & Chat ParkSmart AI', 'ai_assistant_screen.dart', (c) => const AiAssistantScreen()),
+                _Item('Hasil Rekomendasi Pintar AI', 'ai_results_screen.dart', (c) => const AiResultsScreen()),
               ], isDark, theme),
-              _buildCategory('Profile & Settings', [
-                _Item('Profil Pengguna', (c) => const ProfileScreen()),
-                _Item('Preferensi Aplikasi', (c) => const SettingsScreen()),
-                _Item('Kendaraan Terdaftar', (c) => const VehicleScreen()),
-                _Item('Tambah Kendaraan', (c) => const AddVehicleScreen()),
-                _Item('Metode Pembayaran', (c) => const PaymentMethodsScreen()),
-                _Item('Bagaimana Pengalaman Parkir', (c) => const FeedbackScreen()),
+              _buildCategory('7. Profil Pengguna & Keamanan', [
+                _Item('Profil Pengguna Utama', 'profile_screen.dart', (c) => const ProfileScreen()),
+                _Item('Edit Profil Lengkap', 'edit_profile_screen.dart', (c) => const EditProfileScreen(), isNew: true),
+                _Item('Pengaturan PIN Transaksi', 'pin_settings_screen.dart', (c) => const PinSettingsScreen(), isNew: true),
+                _Item('Verifikasi PIN Layar Penuh', 'pin_screen.dart', (c) => const PinScreen(
+                  nextScreen: HomeScreen(),
+                  transactionType: 'parkir',
+                ), isNew: true),
+                _Item('Pengaturan & Preferensi App', 'settings_screen.dart', (c) => const SettingsScreen()),
+                _Item('Metode Pembayaran & Saldo', 'payment_methods_screen.dart', (c) => const PaymentMethodsScreen()),
+                _Item('Kirim Ulasan & Pengalaman Parkir', 'feedback_screen.dart', (c) => const FeedbackScreen()),
               ], isDark, theme),
-              _buildCategory('Games & AR', [
-                _Item('Game Lobby', (c) => const GameLobbyScreen()),
-                _Item('Car Game', (c) => const CarGameScreen()),
+              _buildCategory('8. Kendaraan & Kamera Scanner', [
+                _Item('Daftar Kendaraan Terdaftar', 'vehicle_screen.dart', (c) => const VehicleScreen()),
+                _Item('Tambah Kendaraan Baru', 'add_vehicle_screen.dart', (c) => const AddVehicleScreen()),
+                _Item('Kamera Pindai Plat & STNK', 'custom_camera_screen.dart', (c) => const CustomCameraScreen(), isNew: true),
+                _Item('Kamera KYC KTP & Selfie Wajah', 'ktp_camera_screen.dart', (c) => const KtpCameraScreen(), isNew: true),
+                _Item('Smart Scanner ML Kit (AI Vision / Barcode)', 'smart_scanner.dart', null, onAction: (ctx) {
+                  SmartScanner.openCameraAndProcess(ctx);
+                }, isNew: true),
               ], isDark, theme),
-              _buildCategory('Admin / MCP Screens', [
-                _Item('Dashboard', (c) => const DashboardScreen()),
-                _Item('Locations', (c) => const LocationsScreen()),
-                _Item('Slot Management', (c) => const SlotManagementScreen()),
-                _Item('Active Users', (c) => const ActiveUsersScreen()),
-                _Item('Arcade & Reward', (c) => const ArcadeAdminScreen()),
-                _Item('Feedback', (c) => const FeedbackAdminScreen()),
-                _Item('Konfigurasi Tarif', (c) => const PricingScreen()),
-                _Item('Verifikasi KTP (KYC)', (c) => const AdminKycScreen()),
-                _Item('Injeksi Saldo Dompet', (c) => const AdminWalletScreen()),
-                _Item('Master Kota & Wilayah', (c) => const AdminCitiesScreen()),
-                _Item('Notifikasi Admin', (c) => const AdminNotificationsScreen()),
-                _Item('Kelola Admin (P1)', (c) => const AdminUserManagementScreen()),
-                _Item('Profil Customer (P1)', (c) => const AdminCustomerProfilesScreen()),
-                _Item('Manajemen Booking (P1)', (c) => const AdminBookingsScreen()),
-                _Item('Manajemen Transaksi (P1)', (c) => const AdminTransactionsScreen()),
-                _Item('Konfigurasi AI (P2)', (c) => const AdminAiConfigScreen()),
-                _Item('Pengaturan App (P2)', (c) => const AdminAppSettingsScreen()),
-                _Item('Kelola Parkir (P3)', (c) => const ManageParkingScreen()),
-                _Item('Kelola User (P3)', (c) => const ManageUsersScreen()),
-                _Item('Pendapatan & Analytics (P3)', (c) => const RevenueScreen()),
+              _buildCategory('9. Arcade & Mini Games', [
+                _Item('Lobi Game (Arcade Hub)', 'game_lobby_screen.dart', (c) => const GameLobbyScreen()),
+                _Item('Daftar Mini-Game Terpilih', 'game_list_screen.dart', (c) => const GameListScreen(), isNew: true),
+                _Item('Car Game (Parkir 2D Runner)', 'car_game_screen.dart', (c) => const CarGameScreen()),
+                _Item('Claws Car (Mesin Capit Hadiah 3D)', 'claws_car_screen.dart', (c) => const ClawsCarScreen(), isNew: true),
+              ], isDark, theme),
+              _buildCategory('10. Admin & Management Portal', [
+                _Item('Dashboard Utama Admin', 'admin_dashboard_screen.dart', (c) => const DashboardScreen()),
+                _Item('Kelola Lokasi Parkir', 'admin_locations_screen.dart', (c) => const LocationsScreen()),
+                _Item('Manajemen Slot & Sensor', 'admin_slot_management_screen.dart', (c) => const SlotManagementScreen()),
+                _Item('Monitoring Pengguna Aktif', 'admin_active_users_screen.dart', (c) => const ActiveUsersScreen()),
+                _Item('Pengaturan Arcade & Reward', 'admin_arcade_screen.dart', (c) => const ArcadeAdminScreen()),
+                _Item('Review Feedback Pengguna', 'admin_feedback_screen.dart', (c) => const FeedbackAdminScreen()),
+                _Item('Konfigurasi Tarif Parkir', 'admin_pricing_screen.dart', (c) => const PricingScreen()),
+                _Item('Verifikasi Dokumen KTP (KYC)', 'admin_kyc_screen.dart', (c) => const AdminKycScreen()),
+                _Item('Injeksi Saldo & Wallet Admin', 'admin_wallet_screen.dart', (c) => const AdminWalletScreen()),
+                _Item('Master Kota & Wilayah Operasional', 'admin_cities_screen.dart', (c) => const AdminCitiesScreen()),
+                _Item('Pusat Notifikasi & Broadcast Admin', 'admin_notifications_screen.dart', (c) => const AdminNotificationsScreen()),
+                _Item('Manajemen Akun Admin (P1)', 'admin_user_management_screen.dart', (c) => const AdminUserManagementScreen()),
+                _Item('Profil Customer & CRM (P1)', 'admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen()),
+                _Item('Manajemen Data Booking (P1)', 'admin_bookings_screen.dart', (c) => const AdminBookingsScreen()),
+                _Item('Manajemen Transaksi Finansial (P1)', 'admin_transactions_screen.dart', (c) => const AdminTransactionsScreen()),
+                _Item('Konfigurasi AI Engine (P2)', 'admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen()),
+                _Item('Pengaturan Parameter Global (P2)', 'admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen()),
+                _Item('Kelola Parkir Terpadu (P3)', 'manage_parking_screen.dart', (c) => const ManageParkingScreen()),
+                _Item('Kelola User Terpadu (P3)', 'manage_users_screen.dart', (c) => const ManageUsersScreen()),
+                _Item('Laporan Pendapatan & Analytics (P3)', 'revenue_screen.dart', (c) => const RevenueScreen()),
               ], isDark, theme),
             ],
           ),
@@ -175,32 +204,110 @@ class SitemapScreen extends StatelessWidget {
   }
 
   Widget _buildCategory(String title, List<_Item> items, bool isDark, ThemeService theme) {
+    final newCount = items.where((i) => i.isNew).length;
+
     return ExpansionTile(
       collapsedIconColor: isDark ? const Color(0xFF94A3B8) : Colors.black54,
       iconColor: isDark ? Colors.white : Colors.black,
-      title: Text(
-        title,
-        style: GoogleFonts.plusJakartaSans(
-          fontWeight: FontWeight.bold,
-          color: isDark ? Colors.white : Colors.black,
-        ),
+      title: Row(
+        children: [
+          Expanded(
+            child: Text(
+              title,
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.bold,
+                color: isDark ? Colors.white : Colors.black,
+              ),
+            ),
+          ),
+          if (newCount > 0)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.16),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF10B981), width: 1),
+              ),
+              child: Text(
+                '$newCount baru',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF10B981),
+                ),
+              ),
+            ),
+        ],
       ),
       children: items.map((i) => Builder(
         builder: (ctx) => ListTile(
-          title: Text(
-            i.name,
-            style: GoogleFonts.plusJakartaSans(
-              color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1C1C18),
-              fontWeight: FontWeight.w500,
+          title: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  i.name,
+                  style: GoogleFonts.plusJakartaSans(
+                    color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF1C1C18),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              if (i.isNew)
+                Container(
+                  margin: const EdgeInsets.only(right: 6),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(6),
+                    border: Border.all(color: const Color(0xFF10B981), width: 1),
+                  ),
+                  child: Text(
+                    '(baru)',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF10B981),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+          subtitle: Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: RichText(
+              text: TextSpan(
+                children: [
+                  TextSpan(
+                    text: i.fileName,
+                    style: GoogleFonts.jetBrainsMono(
+                      fontSize: 11,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  if (i.isNew)
+                    TextSpan(
+                      text: ' (baru)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                ],
+              ),
             ),
           ),
           trailing: Icon(
-            Icons.arrow_forward_ios,
+            i.onAction != null ? Icons.camera_alt_outlined : Icons.arrow_forward_ios,
             size: 14,
             color: isDark ? const Color(0xFF94A3B8) : Colors.grey,
           ),
           onTap: () {
-            Navigator.push(ctx, MaterialPageRoute(builder: (context) => i.builder(context)));
+            if (i.onAction != null) {
+              i.onAction!(ctx);
+            } else if (i.builder != null) {
+              Navigator.push(ctx, MaterialPageRoute(builder: (context) => i.builder!(context)));
+            }
           },
         ),
       )).toList(),
@@ -210,6 +317,16 @@ class SitemapScreen extends StatelessWidget {
 
 class _Item {
   final String name;
-  final Widget Function(BuildContext) builder;
-  _Item(this.name, this.builder);
+  final String fileName;
+  final Widget Function(BuildContext)? builder;
+  final void Function(BuildContext)? onAction;
+  final bool isNew;
+
+  _Item(
+    this.name,
+    this.fileName,
+    this.builder, {
+    this.onAction,
+    this.isNew = false,
+  });
 }

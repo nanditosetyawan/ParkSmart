@@ -20,6 +20,7 @@ import 'admin_app_settings_screen.dart';
 import 'manage_parking_screen.dart';
 import 'manage_users_screen.dart';
 import 'revenue_screen.dart';
+import '../sitemap_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
 
@@ -68,6 +69,19 @@ class AdminDashboardScreen extends StatelessWidget {
           ],
         ),
         actions: [
+          GestureDetector(
+            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen())),
+            child: Container(
+              width: 40,
+              height: 40,
+              margin: const EdgeInsets.only(right: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF1EEE7),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(Icons.developer_board, size: 20, color: Color(0xFF1A1A18)),
+            ),
+          ),
           GestureDetector(
             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen())),
             child: Container(
@@ -272,7 +286,7 @@ class AdminDashboardScreen extends StatelessWidget {
                       ),
                       const SizedBox(height: 24),
 
-                      // Baris Menu P3 (Consolidated Management)
+                      // Baris Menu P3 (Consolidated Management & Dev Tools)
                       Row(
                         children: [
                           _buildSecondaryAction(
@@ -295,7 +309,97 @@ class AdminDashboardScreen extends StatelessWidget {
                             label: 'Pendapatan',
                             onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueScreen())),
                           ),
+                          const SizedBox(width: 10),
+                          _buildSecondaryAction(
+                            context,
+                            icon: Icons.developer_board,
+                            label: 'Dev Sitemap',
+                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen())),
+                          ),
                         ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // Developer Tools & Sitemap Banner Card
+                      GestureDetector(
+                        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen())),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            gradient: const LinearGradient(
+                              colors: [Color(0xFF1C1D1F), Color(0xFF2E333D)],
+                              begin: Alignment.topLeft,
+                              end: Alignment.bottomRight,
+                            ),
+                            borderRadius: BorderRadius.circular(16),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.08),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 42,
+                                height: 42,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Icon(Icons.developer_board, color: Colors.white, size: 22),
+                              ),
+                              const SizedBox(width: 14),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Text(
+                                          'Developer Tools & Sitemap',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                            borderRadius: BorderRadius.circular(6),
+                                            border: Border.all(color: const Color(0xFF10B981), width: 1),
+                                          ),
+                                          child: Text(
+                                            'Dev',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 10,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF10B981),
+                                            ),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    const SizedBox(height: 3),
+                                    Text(
+                                      'Akses langsung seluruh 60 layar & fitur ParkSmart ID',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        color: const Color(0xFFCBD5E1),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(Icons.arrow_forward_ios, size: 14, color: Colors.white70),
+                            ],
+                          ),
+                        ),
                       ),
                       const SizedBox(height: 24),
 
@@ -384,8 +488,17 @@ class AdminDashboardScreen extends StatelessWidget {
             capacity: '415 / 450 terisi',
             revenue: 'Rp 2.1 Jt',
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 80),
         ],
+      ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen()));
+        },
+        label: const Text('Dev Sitemap'),
+        icon: const Icon(Icons.developer_board),
+        backgroundColor: const Color(0xFF1C1D1F),
+        foregroundColor: Colors.white,
       ),
     ));
   }
