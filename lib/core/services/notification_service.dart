@@ -39,4 +39,31 @@ class NotificationService {
       notificationDetails: platformChannelSpecifics,
     );
   }
+
+  Future<void> showMaintenanceNotification({required String title, required String body}) async {
+    try {
+      await requestPermissions();
+      const AndroidNotificationDetails maintenanceDetails = AndroidNotificationDetails(
+        'maintenance_alerts_channel',
+        'Pemberitahuan Maintenance Sistem',
+        channelDescription: 'Pemberitahuan darurat pemeliharaan sistem ParkSmart',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: true,
+        styleInformation: BigTextStyleInformation(''),
+      );
+      const NotificationDetails platformDetails = NotificationDetails(
+        android: maintenanceDetails,
+      );
+      await _flutterLocalNotificationsPlugin.show(
+        991,
+        title,
+        body,
+        platformDetails,
+      );
+    } catch (e) {
+      // Ignore if on desktop/web or headless
+    }
+  }
 }

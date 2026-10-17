@@ -4,6 +4,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/currency_service.dart';
 import 'core/services/theme_service.dart';
+import 'core/services/maintenance_service.dart';
 import 'theme/app_theme.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -21,6 +22,7 @@ void main() async {
   await NotificationService().init();
   await CurrencyService.instance.init();
   await ThemeService.instance.init();
+  await MaintenanceService.instance.init();
   
   // Meminta izin akses utama
   try {

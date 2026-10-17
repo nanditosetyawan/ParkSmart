@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
@@ -42,11 +43,21 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
       if (savedKey != null && savedKey.isNotEmpty) {
         _apiKeyCtrl.text = savedKey;
       } else {
-        // Default placeholder realistis format Groq Key
-        _apiKeyCtrl.text = 'gsk_m8Z9xL12MnOpQrStUvWxYz34567890AbCdEfGhIjKlMnOpQrSt';
+        // Cek dari .env jika belum pernah diatur oleh admin di SharedPreferences
+        String? envKey;
+        try {
+          if (dotenv.isInitialized) {
+            envKey = dotenv.env['GROQ_API_KEY'];
+          }
+        } catch (_) {}
+        if (envKey != null && envKey.isNotEmpty) {
+          _apiKeyCtrl.text = envKey;
+        } else {
+          _apiKeyCtrl.text = '';
+        }
       }
     } catch (_) {
-      _apiKeyCtrl.text = 'gsk_m8Z9xL12MnOpQrStUvWxYz34567890AbCdEfGhIjKlMnOpQrSt';
+      _apiKeyCtrl.text = '';
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -124,7 +135,7 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
     final stopwatch = Stopwatch()..start();
 
     try {
-      // Coba panggil endpoint Groq langsung
+      // Panggilan asli langsung ke endpoint Groq Cloud LPU
       final response = await http.post(
         Uri.parse(_endpointUrl),
         headers: {
@@ -138,39 +149,46 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
           ],
           'max_tokens': 30,
         }),
-      ).timeout(const Duration(seconds: 8));
+      ).timeout(const Duration(seconds: 10));
 
       stopwatch.stop();
 
       if (response.statusCode == 200) {
         final decoded = jsonDecode(response.body);
         final reply = decoded['choices']?[0]?['message']?['content'] ?? 'Koneksi sukses.';
+        final usage = decoded['usage'];
+        final compTokens = usage?['completion_tokens'] ?? '-';
+        final totalTime = usage?['total_time'] ?? '-';
+
         setState(() {
           _isTesting = false;
           _testLatencyMs = stopwatch.elapsedMilliseconds;
           _testSuccess = true;
-          _testOutput = 'HTTP 200 OK (Groq LPU)\nModel: $_modelName\nLatensi: ${stopwatch.elapsedMilliseconds} ms\nRespon: "$reply"';
+          _testOutput = 'HTTP 200 OK ($_providerName Live Terhubung)\nModel: $_modelName\nLatensi Nyata: ${stopwatch.elapsedMilliseconds} ms\nPenggunaan Token: $compTokens token ($totalTime s)\nRespon Nyata: "$reply"';
         });
       } else {
-        final bodyText = response.body;
+        String errorDetail = response.body;
+        try {
+          final decoded = jsonDecode(response.body);
+          if (decoded['error']?['message'] != null) {
+            errorDetail = decoded['error']['message'];
+          }
+        } catch (_) {}
+
         setState(() {
           _isTesting = false;
           _testLatencyMs = stopwatch.elapsedMilliseconds;
           _testSuccess = false;
-          _testOutput = 'HTTP ${response.statusCode} - ${response.reasonPhrase}\nRespon Server: $bodyText';
+          _testOutput = 'HTTP ${response.statusCode} - ${response.reasonPhrase}\nDetail Error Server Groq: $errorDetail';
         });
       }
     } catch (e) {
       stopwatch.stop();
-      // Jika offline atau koneksi gagal, periksa format key realistis
-      final bool looksValid = key.startsWith('gsk_') && key.length > 20;
       setState(() {
         _isTesting = false;
-        _testLatencyMs = stopwatch.elapsedMilliseconds > 0 ? stopwatch.elapsedMilliseconds : 148;
-        _testSuccess = looksValid;
-        _testOutput = looksValid
-            ? 'HTTP 200 OK (Groq LPU Terverifikasi)\nProvider: $_providerName\nModel: $_modelName\nStatus: Format API Key Valid (gsk_...)\nLatensi Simulasi: 148 ms'
-            : 'Gagal terhubung ke Groq: $e\nPastikan koneksi internet aktif dan API Key valid.';
+        _testLatencyMs = stopwatch.elapsedMilliseconds;
+        _testSuccess = false;
+        _testOutput = 'Gagal terhubung ke endpoint Groq Cloud: $e\nSilakan periksa koneksi internet perangkat Anda atau status endpoint Groq.';
       });
     }
   }

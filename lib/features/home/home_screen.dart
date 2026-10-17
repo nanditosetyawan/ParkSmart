@@ -21,6 +21,7 @@ import 'package:geocoding/geocoding.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import '../sitemap_screen.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/maintenance_service.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -140,6 +141,15 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     // Langsung minta akses GPS saat membuka aplikasi agar posisi map relevan
     _initGpsAndOrientation();
+
+    // Periksa apakah sistem sedang dalam mode maintenance global
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          MaintenanceService.instance.isGlobalMaintenance &&
+          !MaintenanceService.instance.isWarningOnly) {
+        MaintenanceService.showGlobalMaintenanceDialog(context);
+      }
+    });
   }
 
   @override

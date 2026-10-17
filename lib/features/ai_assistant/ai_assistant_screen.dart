@@ -147,6 +147,15 @@ GAYA BAHASA:
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
+    // Pastikan selalu menggunakan API Key terbaru yang diinputkan oleh Super Admin
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final latestKey = prefs.getString('groq_api_key');
+      if (latestKey != null && latestKey.isNotEmpty) {
+        _customGroqApiKey = latestKey;
+      }
+    } catch (_) {}
+
     setState(() {
       _messages.add({'role': 'user', 'content': text});
       _isLoading = true;

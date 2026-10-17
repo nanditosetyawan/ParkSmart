@@ -4,6 +4,7 @@ import '../features/history/history_screen.dart';
 import '../features/profile/profile_screen.dart';
 import '../features/ai_assistant/ai_assistant_screen.dart';
 import '../features/camera/smart_scanner.dart';
+import '../core/services/maintenance_service.dart';
 
 enum DockTab { home, history, ai, profile }
 
@@ -55,6 +56,16 @@ class BottomDockNavigation extends StatelessWidget {
             ),
           ),
           _buildIcon(context, Icons.auto_awesome_outlined, DockTab.ai, () {
+            if (MaintenanceService.instance.isAiMaintenance) {
+              MaintenanceService.showModularMaintenanceDialog(
+                context,
+                title: 'Engine AI Assistant Sedang Maintenance',
+                message:
+                    'Fitur asisten pencarian cerdas ParkSmart sementara ditutup untuk pembaruan model. Anda tetap dapat melakukan reservasi dan jelajah peta secara normal.',
+                icon: Icons.smart_toy_outlined,
+              );
+              return;
+            }
             if (activeTab != DockTab.ai) {
               Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => const AiAssistantScreen()));
             }

@@ -7,6 +7,7 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../checkout/checkout_screen.dart';
+import '../../core/services/maintenance_service.dart';
 
 // Stitch Material3 slot colors
 const _kSecondary = Color(0xFF9A442D);
@@ -27,6 +28,25 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
   int _selectedFloor = 1; // B2 is index 1
 
   final _floors = ['Lantai B1', 'Lantai B2', 'Lantai B3', 'Lantai B4 (Khusus Valet)'];
+
+  @override
+  void initState() {
+    super.initState();
+    if (MaintenanceService.instance.isBookingMaintenance) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pop(context);
+          MaintenanceService.showModularMaintenanceDialog(
+            context,
+            title: 'Gateway Booking Sedang Maintenance',
+            message:
+                'Layanan pemesanan dan reservasi tiket parkir sementara dinonaktifkan untuk pemeliharaan sistem. Anda tetap dapat menjelajahi peta dan fitur lainnya.',
+            icon: Icons.event_busy,
+          );
+        }
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {

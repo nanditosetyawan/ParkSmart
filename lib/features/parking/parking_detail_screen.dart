@@ -8,6 +8,7 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../booking/slot_selection_screen.dart';
+import '../../core/services/maintenance_service.dart';
 
 class ParkingDetailScreen extends StatefulWidget {
   const ParkingDetailScreen({super.key});
@@ -498,10 +499,22 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                           child: SizedBox(
                             height: 52,
                             child: ElevatedButton(
-                              onPressed: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const SlotSelectionScreen()),
-                              ),
+                              onPressed: () {
+                                if (MaintenanceService.instance.isBookingMaintenance) {
+                                  MaintenanceService.showModularMaintenanceDialog(
+                                    context,
+                                    title: 'Gateway Booking Sedang Maintenance',
+                                    message:
+                                        'Layanan pemesanan dan reservasi tiket parkir sementara dinonaktifkan untuk pemeliharaan sistem. Anda tetap dapat menjelajahi peta dan fitur lainnya.',
+                                    icon: Icons.event_busy,
+                                  );
+                                  return;
+                                }
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const SlotSelectionScreen()),
+                                );
+                              },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isDark ? Colors.white : AppColors.primary,
                                 foregroundColor: isDark ? Colors.black : AppColors.white,

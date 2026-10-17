@@ -8,6 +8,7 @@ import 'admin_user_management_screen.dart';
 import 'admin_app_settings_screen.dart';
 import 'admin_ai_config_screen.dart';
 import '../cs_kyc/admin_notifications_screen.dart';
+import '../../../core/services/maintenance_service.dart';
 
 // Screens for Emergency Override Access to other divisions
 import '../operations/admin_operations_dashboard_screen.dart';
@@ -56,6 +57,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _isMaintenanceActive = MaintenanceService.instance.isGlobalMaintenance;
   }
 
   @override
@@ -484,19 +486,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ),
             ElevatedButton.icon(
-              onPressed: () {
+              onPressed: () async {
                 setState(() => _isMaintenanceActive = true);
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Mode Maintenance AKTIF. Aplikasi publik terkunci.',
-                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white),
+                await MaintenanceService.instance.setGlobalMaintenance(true, notifyPush: true);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Mode Maintenance AKTIF. Push notifikasi telah dikirim ke pengguna.',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white),
+                      ),
+                      backgroundColor: const Color(0xFFD94B4B),
+                      behavior: SnackBarBehavior.floating,
                     ),
-                    backgroundColor: const Color(0xFFD94B4B),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  );
+                }
               },
               icon: const Icon(Icons.lock, size: 16, color: Colors.white),
               label: Text(
@@ -520,6 +525,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
     } else {
       setState(() => _isMaintenanceActive = false);
+      MaintenanceService.instance.setGlobalMaintenance(false);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(
@@ -875,7 +881,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header Monitoring & Tombol Reset Kursor
+          // Header: Icon + Info Divisi & Dropdown Pilihan Metrik (Pendapatan, Total, Customer)
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
@@ -906,34 +912,69 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ],
               ),
-              if (isInspecting)
-                InkWell(
-                  onTap: () {
-                    setState(() {
-                      _inspectedPointIndex = null;
-                    });
-                  },
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                    decoration: BoxDecoration(
-                      color: accentColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(8),
-                      border: Border.all(color: accentColor.withValues(alpha: 0.3)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Icon(Icons.refresh, color: accentColor, size: 12),
-                        const SizedBox(width: 4),
-                        Text(
-                          'Kembali',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: accentColor),
+
+              // Dropdown Pilihan Metrik menggantikan posisi tombol Kembali
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1EEE7),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE4DFD5)),
+                ),
+                child: DropdownButtonHideUnderline(
+                  child: DropdownButton<int>(
+                    value: _selectedMetricIndex,
+                    isDense: true,
+                    icon: const Icon(Icons.arrow_drop_down, color: Color(0xFF1A1A18), size: 20),
+                    borderRadius: BorderRadius.circular(12),
+                    elevation: 3,
+                    dropdownColor: Colors.white,
+                    items: [
+                      DropdownMenuItem<int>(
+                        value: 0,
+                        child: Text(
+                          'Pendapatan',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
                         ),
-                      ],
-                    ),
+                      ),
+                      DropdownMenuItem<int>(
+                        value: 1,
+                        child: Text(
+                          'Total',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                        ),
+                      ),
+                      DropdownMenuItem<int>(
+                        value: 2,
+                        child: Text(
+                          'Customer',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                        ),
+                      ),
+                    ],
+                    onChanged: (val) {
+                      if (val != null) {
+                        setState(() {
+                          _selectedMetricIndex = val;
+                          _inspectedPointIndex = null;
+                        });
+                      }
+                    },
                   ),
                 ),
+              ),
             ],
           ),
           const SizedBox(height: 14),
@@ -949,24 +990,33 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           const SizedBox(height: 6),
 
-          // Persentase Pertumbuhan / Tanggal Titik Kursor
+          // Persentase Pertumbuhan / Tanggal Titik Kursor (dapat disentuh untuk reset)
           if (isInspecting)
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.15),
-                borderRadius: BorderRadius.circular(6),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(Icons.calendar_today_outlined, size: 11, color: accentColor),
-                  const SizedBox(width: 4),
-                  Text(
-                    displayDate ?? '',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: accentColor),
-                  ),
-                ],
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _inspectedPointIndex = null;
+                });
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: accentColor.withValues(alpha: 0.15),
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(Icons.calendar_today_outlined, size: 11, color: accentColor),
+                    const SizedBox(width: 4),
+                    Text(
+                      displayDate ?? '',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: accentColor),
+                    ),
+                    const SizedBox(width: 4),
+                    Icon(Icons.close, size: 11, color: accentColor),
+                  ],
+                ),
               ),
             )
           else
@@ -987,7 +1037,55 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
           const SizedBox(height: 14),
 
-          // ⏱️ FILTER PERIODE WAKTU (1 Hari, 1 Minggu, 1 Bulan, 1 Tahun)
+          // ⛰️ Chart Area Responsif Penuh (HANYA KURSOR SAJA - Gestur Drag & Tap Langsung Menggerakkan Kursor)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double canvasWidth = constraints.maxWidth;
+              const double canvasHeight = 165.0;
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAF9),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFEFECE6)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (details) {
+                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                    },
+                    onPanStart: (details) {
+                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                    },
+                    onPanUpdate: (details) {
+                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                    },
+                    child: SizedBox(
+                      width: canvasWidth,
+                      height: canvasHeight,
+                      child: CustomPaint(
+                        painter: _MountainChartPainter(
+                          data: chartData,
+                          pointValues: pointValues,
+                          pointDates: pointDates,
+                          xLabels: xLabels,
+                          inspectedIndex: _inspectedPointIndex,
+                          lineColor: accentColor,
+                          gradientStart: accentColor.withValues(alpha: 0.35),
+                          gradientEnd: accentColor.withValues(alpha: 0.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 14),
+
+          // ⏱️ FILTER PERIODE WAKTU (1 Hari, 1 Minggu, 1 Bulan, 1 Tahun) di Posisi Bawah
           Container(
             padding: const EdgeInsets.all(4),
             decoration: BoxDecoration(
@@ -1050,100 +1148,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               ),
                             ),
                           ],
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              }),
-            ),
-          ),
-          const SizedBox(height: 14),
-
-          // ⛰️ Chart Area Responsif Penuh (HANYA KURSOR SAJA - Gestur Drag & Tap Langsung Menggerakkan Kursor)
-          LayoutBuilder(
-            builder: (context, constraints) {
-              final double canvasWidth = constraints.maxWidth;
-              const double canvasHeight = 165.0;
-
-              return Container(
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFAFAF9),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFFEFECE6)),
-                ),
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(14),
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTapDown: (details) {
-                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
-                    },
-                    onPanStart: (details) {
-                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
-                    },
-                    onPanUpdate: (details) {
-                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
-                    },
-                    child: SizedBox(
-                      width: canvasWidth,
-                      height: canvasHeight,
-                      child: CustomPaint(
-                        painter: _MountainChartPainter(
-                          data: chartData,
-                          pointValues: pointValues,
-                          pointDates: pointDates,
-                          xLabels: xLabels,
-                          inspectedIndex: _inspectedPointIndex,
-                          lineColor: accentColor,
-                          gradientStart: accentColor.withValues(alpha: 0.35),
-                          gradientEnd: accentColor.withValues(alpha: 0.0),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 14),
-
-          // Segmented Switcher untuk 3 Metrik Divisi (Pendapatan, Booking, Customer)
-          Container(
-            padding: const EdgeInsets.all(4),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1EEE7),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Row(
-              children: List.generate(_divisionalMetrics.length, (index) {
-                final isSelected = _selectedMetricIndex == index;
-                final item = _divisionalMetrics[index];
-                return Expanded(
-                  child: GestureDetector(
-                    onTap: () {
-                      setState(() {
-                        _selectedMetricIndex = index;
-                        _inspectedPointIndex = null;
-                      });
-                    },
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      decoration: BoxDecoration(
-                        color: isSelected ? Colors.white : Colors.transparent,
-                        borderRadius: BorderRadius.circular(8),
-                        boxShadow: isSelected
-                            ? [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 4, offset: const Offset(0, 1))]
-                            : null,
-                      ),
-                      child: Center(
-                        child: Text(
-                          item['title'].toString().split(' ')[0], // Pendapatan, Booking, Customer
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11,
-                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-                            color: isSelected ? const Color(0xFF1A1A18) : const Color(0xFF76777B),
-                          ),
                         ),
                       ),
                     ),
