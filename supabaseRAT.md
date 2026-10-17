@@ -575,6 +575,19 @@ Diagram kotak berikut memvisualisasikan modul gamifikasi mini-arcade (*Claws Car
 │ │      model_name: VARCHAR │  │      action_type : VARCH │  │ [FK] updated_by: UUID│ │
 │ │      intent_schema: JSONB│  │      is_enabled  : BOOL  │  │ (FK -> admin_users.id│ │
 │ └──────────────────────────┘  └──────────────────────────┘  └──────────────────────┘ │
+│ ┌──────────────────────────────────────────────────────────────────────────────────┐ │
+│ │                  AI_AGENT_CONFIGS (Singleton 1 Row Active Table)                 │ │
+│ ├──────────────────────────────────────────────────────────────────────────────────┤ │
+│ │ [PK] id           : UUID                                                         │ │
+│ │      provider     : VARCHAR(100) ('Groq Cloud (LPU™ Inference)')                 │ │
+│ │      model_name   : VARCHAR(100) ('qwen/qwen3.8-27b')                            │ │
+│ │      api_key      : TEXT ('gsk_...') (Kunci Akses Resmi AI Agent Jarvis)        │ │
+│ │      endpoint_url : TEXT ('https://api.groq.com/openai/v1/chat/completions')    │ │
+│ │      is_active    : BOOLEAN (TRUE)                                               │ │
+│ │      updated_by   : VARCHAR(100) ('Super Admin')                                 │ │
+│ │      updated_at   : TIMESTAMPTZ (Waktu Terakhir Disimpan)                        │ │
+│ │      >> ATURAN SINGLETON: Update = Hapus Row Lama (DELETE) & Insert Row Baru     │ │
+│ └──────────────────────────────────────────────────────────────────────────────────┘ │
 └──────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -584,6 +597,7 @@ Diagram kotak berikut memvisualisasikan modul gamifikasi mini-arcade (*Claws Car
 | `arcade_games` | `id` | `──(1:N)──►` | `arcade_scores` | `game_id` | `ON DELETE CASCADE` | Mencatat skor sesi bermain pengguna pada game Claws Car / Parking Challenge. |
 | `users` | `id` | `──(1:N)──►` | `arcade_scores` | `user_id` | `ON DELETE CASCADE` | Menghubungkan perolehan skor dan injeksi reward SmartPoints ke akun pemain. |
 | `admin_users` | `id` | `──(1:N)──►` | `system_feature_toggles`| `updated_by`| `ON DELETE SET NULL` | Mencatat staf admin yang mengaktifkan/menonaktifkan saklar darurat sistem. |
+| `admin_users` | `name` | `──(1:1)──►` | `ai_agent_configs`| `updated_by`| `ON DELETE SET DEFAULT` | **Singleton 1 Row:** Mencatat kunci API aktif AI Agent Groq/Qwen (Ganti = Hapus Lama & Insert Baru). |
 
 ---
 

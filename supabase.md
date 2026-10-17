@@ -2123,6 +2123,34 @@ CREATE TABLE IF NOT EXISTS public.ai_system_configs (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- TABEL: ai_agent_configs (Konfigurasi Kunci API AI Agent Jarvis & Groq Cloud LPU)
+-- ============================================================================
+-- ATURAN ARSITEKTUR SINGLETON (TEPAT 1 BARIS / 1 ROW):
+-- 1. Menyimpan API Key resmi Groq Cloud (LPU™ Inference) model Qwen 2.5 (qwen/qwen3.8-27b).
+-- 2. Saat user/admin memasukkan API Key baru, sistem wajib menghapus record yang lama (DELETE)
+--    lalu menyisipkan record yang baru (INSERT), sehingga di dalam tabel HANYA ADA TEPAT 1 BARIS.
+-- 3. Data bersifat persisten; saat aplikasi ditutup/reboot dan dibuka kembali, form input
+--    tidak akan kosong karena dimuat otomatis dari database Supabase dan cache lokal SharedPreferences.
+CREATE TABLE IF NOT EXISTS public.ai_agent_configs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    provider VARCHAR(100) NOT NULL DEFAULT 'Groq Cloud (LPU™ Inference)',
+    model_name VARCHAR(100) NOT NULL DEFAULT 'qwen/qwen3.8-27b',
+    api_key TEXT NOT NULL,
+    endpoint_url TEXT NOT NULL DEFAULT 'https://api.groq.com/openai/v1/chat/completions',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_by VARCHAR(100) DEFAULT 'Super Admin',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- Kebijakan RLS untuk ai_agent_configs:
+-- SELECT diizinkan untuk authenticated users & sistem service role.
+-- INSERT & DELETE hanya diizinkan untuk Super Admin (atau Service Role).
+ALTER TABLE public.ai_agent_configs ENABLE ROW LEVEL SECURITY;
+CREATE POLICY "Allow read ai_agent_configs" ON public.ai_agent_configs FOR SELECT USING (TRUE);
+CREATE POLICY "Allow super_admin manage ai_agent_configs" ON public.ai_agent_configs FOR ALL USING (public.is_admin());
+
+
 CREATE TABLE IF NOT EXISTS public.ai_fallback_rules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
     trigger_condition VARCHAR(50) NOT NULL CHECK (trigger_condition IN ('timeout', 'parse_error', 'low_confidence', 'no_slots_found', 'model_unavailable')),

@@ -57,10 +57,10 @@ class NotificationService {
         android: maintenanceDetails,
       );
       await _flutterLocalNotificationsPlugin.show(
-        991,
-        title,
-        body,
-        platformDetails,
+        id: 991,
+        title: title,
+        body: body,
+        notificationDetails: platformDetails,
       );
     } catch (e) {
       // Ignore if on desktop/web or headless

@@ -110,12 +110,13 @@ class _LocationsScreenState extends State<LocationsScreen> {
     }).toList();
   }
 
-  void _showAddLocationDialog() {
-    final nameCtrl = TextEditingController();
-    final addressCtrl = TextEditingController();
-    final capacityCtrl = TextEditingController();
-    final rateCtrl = TextEditingController(text: '5000');
-    String cityVal = 'Jakarta Barat';
+  void _showAddLocationDialog({Map<String, dynamic>? loc}) {
+    final isEdit = loc != null;
+    final nameCtrl = TextEditingController(text: loc?['name'] ?? '');
+    final addressCtrl = TextEditingController(text: loc?['address'] ?? '');
+    final capacityCtrl = TextEditingController(text: loc?['capacity']?.toString() ?? '');
+    final rateCtrl = TextEditingController(text: loc?['hourlyRate']?.toString() ?? '5000');
+    String cityVal = loc?['city'] ?? 'Jakarta Barat';
 
     showModalBottomSheet(
       context: context,
@@ -132,12 +133,57 @@ class _LocationsScreenState extends State<LocationsScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Tambah Lokasi Baru', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  Text(isEdit ? 'Edit Lokasi Parkir' : 'Tambah Lokasi Baru', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                   IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close, color: Color(0xFF76777B))),
                 ],
               ),
-              const Divider(color: Color(0xFFF1EEE7)),
-              const SizedBox(height: 10),
+              const Divider(color: Color(0xFFF3F4F6)),
+              const SizedBox(height: 8),
+
+              // 1. Upload Foto Lokasi
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF114177).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.add_a_photo_outlined, color: Color(0xFF114177), size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Foto Lokasi / Gedung', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                          Text('Unggah foto tampak depan atau gerbang parkir', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Foto gedung berhasil dipilih!'), backgroundColor: Color(0xFF114177), duration: Duration(seconds: 1)),
+                        );
+                      },
+                      child: Text('Pilih Foto', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // 2. Nama Lokasi
               TextField(
                 controller: nameCtrl,
                 decoration: InputDecoration(
@@ -147,6 +193,8 @@ class _LocationsScreenState extends State<LocationsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
+              // 3. Kota & Alamat
               DropdownButtonFormField<String>(
                 initialValue: cityVal,
                 decoration: InputDecoration(
@@ -169,6 +217,8 @@ class _LocationsScreenState extends State<LocationsScreen> {
                 ),
               ),
               const SizedBox(height: 12),
+
+              // 4. Jumlah Slot & 5. Tarif
               Row(
                 children: [
                   Expanded(
@@ -176,7 +226,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                       controller: capacityCtrl,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'Total Kapasitas (Slot)',
+                        labelText: 'Jumlah Slot Parkir',
                         labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -188,7 +238,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                       controller: rateCtrl,
                       keyboardType: TextInputType.number,
                       decoration: InputDecoration(
-                        labelText: 'Tarif Dasar / Jam',
+                        labelText: 'Tarif Parkir (Rp/Jam)',
                         labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                       ),
@@ -203,26 +253,34 @@ class _LocationsScreenState extends State<LocationsScreen> {
                   onPressed: () {
                     if (nameCtrl.text.isNotEmpty && capacityCtrl.text.isNotEmpty) {
                       setState(() {
-                        _locations.insert(0, {
-                          'id': 'LOC-00${_locations.length + 1}',
-                          'name': nameCtrl.text,
-                          'city': cityVal,
-                          'address': addressCtrl.text.isEmpty ? 'Alamat belum diatur' : addressCtrl.text,
-                          'floors': 'Lantai Utama',
-                          'capacity': int.tryParse(capacityCtrl.text) ?? 100,
-                          'occupied': 0,
-                          'carSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.7).round(),
-                          'motorSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.2).round(),
-                          'evSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.1).round(),
-                          'hourlyRate': int.tryParse(rateCtrl.text) ?? 5000,
-                          'status': 'Aktif Normal',
-                          'statusColor': const Color(0xFF17A18A),
-                        });
+                        if (isEdit) {
+                          loc['name'] = nameCtrl.text;
+                          loc['city'] = cityVal;
+                          loc['address'] = addressCtrl.text.isEmpty ? loc['address'] : addressCtrl.text;
+                          loc['capacity'] = int.tryParse(capacityCtrl.text) ?? loc['capacity'];
+                          loc['hourlyRate'] = int.tryParse(rateCtrl.text) ?? loc['hourlyRate'];
+                        } else {
+                          _locations.insert(0, {
+                            'id': 'LOC-00${_locations.length + 1}',
+                            'name': nameCtrl.text,
+                            'city': cityVal,
+                            'address': addressCtrl.text.isEmpty ? 'Alamat belum diatur' : addressCtrl.text,
+                            'floors': 'Lantai Utama',
+                            'capacity': int.tryParse(capacityCtrl.text) ?? 100,
+                            'occupied': 0,
+                            'carSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.7).round(),
+                            'motorSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.2).round(),
+                            'evSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.1).round(),
+                            'hourlyRate': int.tryParse(rateCtrl.text) ?? 5000,
+                            'status': 'Aktif Normal',
+                            'statusColor': const Color(0xFF17A18A),
+                          });
+                        }
                       });
                       Navigator.pop(ctx);
                       ScaffoldMessenger.of(context).showSnackBar(
                         SnackBar(
-                          content: Text('Lokasi ${nameCtrl.text} berhasil ditambahkan!'),
+                          content: Text(isEdit ? 'Lokasi ${nameCtrl.text} berhasil diperbarui!' : 'Lokasi ${nameCtrl.text} berhasil ditambahkan!'),
                           backgroundColor: const Color(0xFF17A18A),
                         ),
                       );
@@ -234,7 +292,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                     padding: const EdgeInsets.symmetric(vertical: 14),
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
-                  child: Text('Simpan Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: Text(isEdit ? 'Perbarui Lokasi' : 'Simpan Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: Colors.white)),
                 ),
               ),
             ],
@@ -261,7 +319,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
           onTap: () => Navigator.pop(context),
           child: Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
           ),
         ),
@@ -293,7 +351,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                   children: [
                     _buildStatCard('Total Fasilitas', '${_locations.length}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
                     const SizedBox(width: 10),
-                    _buildStatCard('Total Slot', '$totalCap', const Color(0xFF45474A), const Color(0xFFF1EEE7)),
+                    _buildStatCard('Total Slot', '$totalCap', const Color(0xFF45474A), const Color(0xFFF3F4F6)),
                     const SizedBox(width: 10),
                     _buildStatCard('Okupansi Rata2', '$occPercent%', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
                   ],
@@ -304,7 +362,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                 Container(
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     children: [
                       const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
@@ -346,7 +404,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                   child: Container(
                     padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
-                      color: isSelected ? const Color(0xFF114177) : const Color(0xFFF1EEE7),
+                      color: isSelected ? const Color(0xFF114177) : const Color(0xFFF3F4F6),
                       borderRadius: BorderRadius.circular(20),
                     ),
                     child: Center(
@@ -436,7 +494,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                       width: 44,
                       height: 44,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF1EEE7),
+                        color: const Color(0xFFF3F4F6),
                         borderRadius: BorderRadius.circular(12),
                       ),
                       child: const Icon(Icons.local_parking, color: Color(0xFF114177), size: 24),
@@ -483,7 +541,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
                   child: LinearProgressIndicator(
                     value: pct,
                     minHeight: 6,
-                    backgroundColor: const Color(0xFFF1EEE7),
+                    backgroundColor: const Color(0xFFE5E7EB),
                     valueColor: AlwaysStoppedAnimation<Color>(
                       pct > 0.9 ? const Color(0xFFD94B4B) : pct > 0.7 ? const Color(0xFFE07A5F) : const Color(0xFF17A18A),
                     ),
@@ -492,7 +550,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFF1EEE7)),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
 
           // Slot Categories pills
           Padding(
@@ -507,7 +565,7 @@ class _LocationsScreenState extends State<LocationsScreen> {
               ],
             ),
           ),
-          const Divider(height: 1, color: Color(0xFFF1EEE7)),
+          const Divider(height: 1, color: Color(0xFFF3F4F6)),
 
           // Actions
           Padding(
@@ -516,18 +574,11 @@ class _LocationsScreenState extends State<LocationsScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Akses Dibatasi: Pengaturan tarif hanya dapat dikelola oleh Admin Finansial atau Super Admin (Darurat).'),
-                          backgroundColor: Color(0xFFC0392B),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.price_change_outlined, size: 16, color: Color(0xFF114177)),
-                    label: Text('Atur Tarif', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                    onPressed: () => _showAddLocationDialog(loc: loc),
+                    icon: const Icon(Icons.edit_outlined, size: 16, color: Color(0xFF114177)),
+                    label: Text('Edit Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
                     style: OutlinedButton.styleFrom(
-                      side: const BorderSide(color: Color(0xFFE4DFD5)),
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),

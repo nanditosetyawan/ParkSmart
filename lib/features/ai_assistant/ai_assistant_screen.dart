@@ -7,6 +7,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../home/home_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
+import '../../core/services/maintenance_service.dart';
+import '../../core/services/ai_config_service.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
@@ -93,15 +95,28 @@ GAYA BAHASA:
   void initState() {
     super.initState();
     _loadChatHistory();
+    if (MaintenanceService.instance.isAiMaintenance) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          MaintenanceService.showModularMaintenanceDialog(
+            context,
+            title: 'Engine AI Assistant Sedang Maintenance',
+            message:
+                'Fitur asisten pencarian cerdas ParkSmart sementara ditutup untuk pembaruan model. Anda tetap dapat melakukan reservasi dan jelajah peta secara normal.',
+            icon: Icons.smart_toy_outlined,
+          );
+        }
+      });
+    }
   }
 
   Future<void> _loadChatHistory() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedGroqKey = prefs.getString('groq_api_key');
-      if (savedGroqKey != null && savedGroqKey.isNotEmpty) {
-        _customGroqApiKey = savedGroqKey;
+      final activeKey = await AiConfigService.instance.loadActiveApiKey();
+      if (activeKey != null && activeKey.isNotEmpty) {
+        _customGroqApiKey = activeKey;
       }
+      final prefs = await SharedPreferences.getInstance();
       final String? messagesJson = prefs.getString('ai_chat_history');
       
       if (messagesJson != null && messagesJson.isNotEmpty) {

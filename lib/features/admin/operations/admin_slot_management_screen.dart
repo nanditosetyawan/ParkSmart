@@ -68,7 +68,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
       case 'Reserved':
         return const Color(0xFFE3EEFF);
       case 'Maintenance':
-        return const Color(0xFFF1EEE7);
+        return const Color(0xFFF3F4F6);
       default:
         return const Color(0xFFFDECE7);
     }
@@ -120,7 +120,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
                     ),
                   ],
                 ),
-                const Divider(color: Color(0xFFF1EEE7), height: 28),
+                const Divider(color: Color(0xFFF3F4F6), height: 28),
 
                 if (slot['plate'] != null) ...[
                   Row(
@@ -228,7 +228,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
           onTap: () => Navigator.pop(context),
           child: Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
           ),
         ),
@@ -251,7 +251,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 2),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFF1EEE7),
+                    color: const Color(0xFFF3F4F6),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
@@ -318,7 +318,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
             child: Row(
               children: [
-                _buildMiniStat('Total', '$total', const Color(0xFF45474A), const Color(0xFFF1EEE7)),
+                _buildMiniStat('Total', '$total', const Color(0xFF45474A), const Color(0xFFF3F4F6)),
                 const SizedBox(width: 8),
                 _buildMiniStat('Tersedia', '$available', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
                 const SizedBox(width: 8),

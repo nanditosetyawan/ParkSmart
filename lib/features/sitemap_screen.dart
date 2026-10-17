@@ -11,10 +11,10 @@ import 'admin/super_admin/admin_ai_config_screen.dart';
 // Admin - Operations
 import 'admin/operations/admin_operations_dashboard_screen.dart';
 import 'admin/operations/admin_locations_screen.dart';
-import 'admin/operations/admin_cities_screen.dart';
 import 'admin/operations/admin_slot_management_screen.dart';
-import 'admin/operations/manage_parking_screen.dart';
 import 'admin/operations/admin_active_users_screen.dart';
+
+import 'admin/operations/admin_bookings_screen.dart';
 
 // Admin - Finance
 import 'admin/finance/admin_finance_dashboard_screen.dart';
@@ -22,7 +22,6 @@ import 'admin/finance/admin_pricing_screen.dart';
 import 'admin/finance/admin_wallet_screen.dart';
 import 'admin/finance/admin_transactions_screen.dart';
 import 'admin/finance/revenue_screen.dart';
-import 'admin/finance/admin_bookings_screen.dart';
 
 // Admin - CS & KYC
 import 'admin/cs_kyc/admin_cskyc_dashboard_screen.dart';
@@ -270,10 +269,9 @@ class SitemapScreen extends StatelessWidget {
               _buildCategory('11. Admin: Operasional & Fasilitas Parkir', [
                 _Item('Dashboard Khusus Operasional', 'operations/admin_operations_dashboard_screen.dart', (c) => const AdminOperationsDashboardScreen(), role: 'Operations', isNew: true),
                 _Item('Kelola Master Lokasi Parkir', 'operations/admin_locations_screen.dart', (c) => const LocationsScreen(), role: 'Operations'),
-                _Item('Master Kota & Wilayah Operasional', 'operations/admin_cities_screen.dart', (c) => const AdminCitiesScreen(), role: 'Operations'),
                 _Item('Manajemen Slot & Sensor IoT', 'operations/admin_slot_management_screen.dart', (c) => const SlotManagementScreen(), role: 'Operations'),
-                _Item('Kelola Parkir Terpadu', 'operations/manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
                 _Item('Monitoring Kendaraan Aktif & Overstay', 'operations/admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
+                _Item('Manajemen Data Reservasi & Booking', 'operations/admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Operations'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 3: FINANSIAL & TRANSAKSI ───
@@ -281,9 +279,8 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Dashboard Khusus Finansial', 'finance/admin_finance_dashboard_screen.dart', (c) => const AdminFinanceDashboardScreen(), role: 'Finance', isNew: true),
                 _Item('Konfigurasi Tarif & Aturan Waktu', 'finance/admin_pricing_screen.dart', (c) => const PricingScreen(), role: 'Finance'),
                 _Item('Injeksi Saldo & Wallet Admin', 'finance/admin_wallet_screen.dart', (c) => const AdminWalletScreen(), role: 'Finance'),
-                _Item('Audit Transaksi Finansial', 'finance/admin_transactions_screen.dart', (c) => const AdminTransactionsScreen(), role: 'Finance'),
+                _Item('Riwayat & Mutasi Transaksi', 'finance/admin_transactions_screen.dart', (c) => const AdminTransactionsScreen(), role: 'Finance'),
                 _Item('Laporan Pendapatan & Revenue Analytics', 'finance/revenue_screen.dart', (c) => const RevenueScreen(), role: 'Finance'),
-                _Item('Manajemen Data Reservasi & Booking', 'finance/admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Finance'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN & KYC ───

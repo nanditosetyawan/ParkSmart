@@ -23,7 +23,7 @@ class BottomDockNavigation extends StatelessWidget {
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF1C1D1F).withOpacity(0.2),
+            color: const Color(0xFF1C1D1F).withValues(alpha: 0.2),
             blurRadius: 24,
             offset: const Offset(0, 12),
           ),
@@ -94,7 +94,7 @@ class BottomDockNavigation extends StatelessWidget {
         child: Icon(
           icon,
           size: 22,
-          color: isActive ? Colors.white : Colors.white.withOpacity(0.55),
+          color: isActive ? Colors.white : Colors.white.withValues(alpha: 0.55),
         ),
       ),
     );

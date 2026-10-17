@@ -696,6 +696,20 @@ CREATE TABLE IF NOT EXISTS public.ai_system_configs (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+-- TABEL: ai_agent_configs (Konfigurasi Kunci API AI Agent Jarvis & Groq Cloud LPU - Singleton 1 Row)
+-- Aturan Integritas Singleton: Saat mengganti API key, wajib DELETE row lama & INSERT row baru (Tepat 1 Row).
+CREATE TABLE IF NOT EXISTS public.ai_agent_configs (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    provider VARCHAR(100) NOT NULL DEFAULT 'Groq Cloud (LPU™ Inference)',
+    model_name VARCHAR(100) NOT NULL DEFAULT 'qwen/qwen3.8-27b',
+    api_key TEXT NOT NULL,
+    endpoint_url TEXT NOT NULL DEFAULT 'https://api.groq.com/openai/v1/chat/completions',
+    is_active BOOLEAN NOT NULL DEFAULT TRUE,
+    updated_by VARCHAR(100) DEFAULT 'Super Admin',
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- TABEL 39: ai_fallback_rules (Aturan Penyelamat Bila AI Timeout / Error)
 CREATE TABLE IF NOT EXISTS public.ai_fallback_rules (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

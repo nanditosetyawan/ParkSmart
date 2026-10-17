@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'admin_kyc_detail_modal.dart';
 
 class ManageUsersScreen extends StatefulWidget {
   const ManageUsersScreen({super.key});
@@ -687,9 +688,75 @@ class _ManageUsersScreenState extends State<ManageUsersScreen> with SingleTicker
               if (user['kycStatus'] == 'Menunggu Verifikasi')
                 Row(
                   children: [
-                    Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('KYC disetujui'), backgroundColor: Color(0xFF17A18A))); }, icon: const Icon(Icons.check), label: Text('Setujui', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)))),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(context);
+                          setState(() {
+                            user['kycStatus'] = 'Terverifikasi';
+                            if (user['kycDocuments'] is List) {
+                              for (var doc in user['kycDocuments']) {
+                                if (doc['status'] == 'Diajukan') {
+                                  doc['status'] = 'Terverifikasi';
+                                  doc['verifiedAt'] = 'Hari ini';
+                                }
+                              }
+                            }
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('KYC ${user['name']} disetujui'),
+                              backgroundColor: const Color(0xFF17A18A),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.check),
+                        label: Text('Setujui', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF17A18A),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
                     const SizedBox(width: 12),
-                    Expanded(child: ElevatedButton.icon(onPressed: () { Navigator.pop(context); ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('KYC ditolak'), backgroundColor: Color(0xFFD94B4B))); }, icon: const Icon(Icons.close), label: Text('Tolak', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)), style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B), foregroundColor: Colors.white, padding: const EdgeInsets.symmetric(vertical: 14)))),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () async {
+                          final reason = await showKycRejectReasonDialog(
+                            context,
+                            applicantName: user['name'] ?? 'Pengguna',
+                          );
+                          if (reason != null && reason.isNotEmpty && context.mounted) {
+                            Navigator.pop(context);
+                            setState(() {
+                              user['kycStatus'] = 'Ditolak';
+                              if (user['kycDocuments'] is List) {
+                                for (var doc in user['kycDocuments']) {
+                                  if (doc['status'] == 'Diajukan') {
+                                    doc['status'] = 'Ditolak';
+                                    doc['rejectReason'] = reason;
+                                  }
+                                }
+                              }
+                            });
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(
+                                content: Text('KYC ${user['name']} ditolak. Alasan: $reason'),
+                                backgroundColor: const Color(0xFFD94B4B),
+                              ),
+                            );
+                          }
+                        },
+                        icon: const Icon(Icons.close),
+                        label: Text('Tolak', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFD94B4B),
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 14),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
             ],

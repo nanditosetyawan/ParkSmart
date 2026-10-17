@@ -1,4 +1,8 @@
 import 'dart:math' as math;
+import 'dart:io';
+import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -9,28 +13,25 @@ import 'admin_app_settings_screen.dart';
 import 'admin_ai_config_screen.dart';
 import '../cs_kyc/admin_notifications_screen.dart';
 import '../../../core/services/maintenance_service.dart';
+import '../../../core/services/client_info_service.dart';
 
-// Screens for Emergency Override Access to other divisions
-import '../operations/admin_operations_dashboard_screen.dart';
-import '../operations/manage_parking_screen.dart';
+// Screens for Direct Feature Access to other divisions
 import '../operations/admin_locations_screen.dart';
-import '../operations/admin_cities_screen.dart';
 import '../operations/admin_slot_management_screen.dart';
 import '../operations/admin_active_users_screen.dart';
 
-import '../finance/admin_finance_dashboard_screen.dart';
 import '../finance/revenue_screen.dart';
 import '../finance/admin_pricing_screen.dart';
 import '../finance/admin_transactions_screen.dart';
 import '../finance/admin_wallet_screen.dart';
 import '../finance/admin_bookings_screen.dart';
 
-import '../cs_kyc/admin_cskyc_dashboard_screen.dart';
 import '../cs_kyc/admin_kyc_screen.dart';
 import '../cs_kyc/admin_customer_profiles_screen.dart';
 import '../cs_kyc/manage_users_screen.dart';
 import '../cs_kyc/admin_feedback_screen.dart';
 import '../cs_kyc/admin_arcade_screen.dart';
+import '../cs_kyc/admin_kyc_detail_modal.dart';
 
 import '../../sitemap_screen.dart';
 
@@ -54,10 +55,56 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   // 📈 Kursor Crosshair Inspection State
   int? _inspectedPointIndex;
 
+  // 👤 Super Admin Profile State
+  String _superAdminName = 'Dito Pratama';
+  final String _superAdminEmail = 'dito@parksmart.id';
+  String? _superAdminAvatarPath;
+
+  // 🪪 Daftar Permintaan Konfirmasi Pendaftaran KTP (KYC) Baru
+  final List<Map<String, dynamic>> _pendingKycList = [
+    {
+      'id': 'KYC-001',
+      'name': 'Rafi Maulana',
+      'nik': '3273011504030001',
+      'submittedAt': '15 mnt lalu',
+      'status': 'Menunggu',
+      'city': 'Bandung, Jawa Barat',
+      'dob': '15 April 2003',
+      'address': 'Jl. Dago Asri No. 12, Coblong',
+    },
+    {
+      'id': 'KYC-002',
+      'name': 'Siti Rahayu',
+      'nik': '3578024507980002',
+      'submittedAt': '1 jam lalu',
+      'status': 'Menunggu',
+      'city': 'Surabaya, Jawa Timur',
+      'dob': '25 Juli 1998',
+      'address': 'Jl. Darmo Permai III No. 8',
+    },
+   
+  ];
+
   @override
   void initState() {
     super.initState();
     _isMaintenanceActive = MaintenanceService.instance.isGlobalMaintenance;
+    _loadSuperAdminProfile();
+    _initClientAuditLogs();
+  }
+
+  Future<void> _loadSuperAdminProfile() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('super_admin_name');
+      final savedAvatar = prefs.getString('super_admin_avatar');
+      if (savedName != null && savedName.isNotEmpty) {
+        setState(() => _superAdminName = savedName);
+      }
+      if (savedAvatar != null && savedAvatar.isNotEmpty) {
+        setState(() => _superAdminAvatarPath = savedAvatar);
+      }
+    } catch (_) {}
   }
 
   @override
@@ -274,53 +321,59 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     },
   ];
 
-  // Log Aktivitas Login Admin
-  final List<Map<String, dynamic>> _adminLogs = [
-    {
-      'id': 'LOG-001',
-      'admin': 'Dito Pratama',
-      'role': 'Super Admin',
-      'action': 'Login berhasil',
-      'device': 'Vivo y65',
-      'ip': '182.253.12.8',
-      'time': '5 mnt lalu',
-      'roleColor': const Color(0xFF6D28D9),
-      'status': 'Berhasil',
-    },
-    {
-      'id': 'LOG-002',
-      'admin': 'Rina Wijaya',
-      'role': 'Admin Operasional',
-      'action': 'Login berhasil',
-      'device': 'Vivo y65',
-      'ip': '114.122.45.19',
-      'time': '28 mnt lalu',
-      'roleColor': const Color(0xFF114177),
-      'status': 'Berhasil',
-    },
-    {
-      'id': 'LOG-003',
-      'admin': 'Bambang Sutrisno',
-      'role': 'Admin Finansial',
-      'action': 'Login berhasil',
-      'device': 'Vivo y65',
-      'ip': '180.252.88.74',
-      'time': '2 jam lalu',
-      'roleColor': const Color(0xFF17A18A),
-      'status': 'Berhasil',
-    },
-    {
-      'id': 'LOG-004',
-      'admin': 'Siti Rahma',
-      'role': 'Admin CS & KYC',
-      'action': 'Login berhasil',
-      'device': 'Vivo y65',
-      'ip': '36.85.190.21',
-      'time': '4 jam lalu',
-      'roleColor': const Color(0xFFE07A5F),
-      'status': 'Berhasil',
-    },
-  ];
+  // Log Aktivitas Login Admin (Diperbarui real-time via ClientInfoService)
+  List<Map<String, dynamic>> _adminLogs = [];
+  bool _isLoadingNetworkInfo = false;
+
+  Color _getRoleColor(String role) {
+    final lower = role.toLowerCase();
+    if (lower.contains('super')) return const Color(0xFF6D28D9);
+    if (lower.contains('operasional')) return const Color(0xFF114177);
+    if (lower.contains('finansial')) return const Color(0xFF17A18A);
+    return const Color(0xFFE07A5F);
+  }
+
+  Future<void> _initClientAuditLogs({bool forceNetworkRefresh = false}) async {
+    if (mounted) setState(() => _isLoadingNetworkInfo = true);
+    try {
+      if (forceNetworkRefresh) {
+        await ClientInfoService.instance.fetchClientNetworkInfo(forceRefresh: true);
+        await ClientInfoService.instance.getDeviceModel(forceRefresh: true);
+      }
+
+      // Catat sesi login aktif Super Admin
+      await ClientInfoService.instance.recordAdminLogin(
+        adminName: _superAdminName,
+        role: 'Super Admin',
+        action: 'Login berhasil (Sesi Aktif)',
+      );
+
+      final rawLogs = await ClientInfoService.instance.getStoredLogs();
+
+      if (mounted) {
+        setState(() {
+          _adminLogs = rawLogs.map((log) => {
+            'id': log.id,
+            'admin': log.admin,
+            'role': log.role,
+            'action': log.action,
+            'device': log.device,
+            'ip': log.ip,
+            'location': log.location,
+            'isp': log.isp,
+            'time': log.time,
+            'roleColor': _getRoleColor(log.role),
+            'status': log.status,
+            'isCurrentSession': log.isCurrentSession,
+            'syncedToSupabase': log.syncedToSupabase,
+          }).toList();
+          _isLoadingNetworkInfo = false;
+        });
+      }
+    } catch (_) {
+      if (mounted) setState(() => _isLoadingNetworkInfo = false);
+    }
+  }
 
   void _pruneAuditLogs() {
     showDialog(
@@ -345,20 +398,38 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B))),
           ),
           OutlinedButton(
-            onPressed: () {
-              setState(() {
-                if (_adminLogs.length > 2) {
-                  _adminLogs.removeRange(2, _adminLogs.length);
-                }
-              });
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Log login lama (>7 hari) berhasil dipangkas!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-                  backgroundColor: const Color(0xFF17A18A),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+            onPressed: () async {
+              await ClientInfoService.instance.pruneOldLogs();
+              final rawLogs = await ClientInfoService.instance.getStoredLogs();
+              if (mounted) {
+                setState(() {
+                  _adminLogs = rawLogs.map((log) => {
+                    'id': log.id,
+                    'admin': log.admin,
+                    'role': log.role,
+                    'action': log.action,
+                    'device': log.device,
+                    'ip': log.ip,
+                    'location': log.location,
+                    'isp': log.isp,
+                    'time': log.time,
+                    'roleColor': _getRoleColor(log.role),
+                    'status': log.status,
+                    'isCurrentSession': log.isCurrentSession,
+                    'syncedToSupabase': log.syncedToSupabase,
+                  }).toList();
+                });
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Log login lama (>7 hari) berhasil dipangkas!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color(0xFF17A18A),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             style: OutlinedButton.styleFrom(
               side: const BorderSide(color: Color(0xFF114177)),
@@ -367,18 +438,23 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             child: const Text('Pangkas > 7 Hari', style: TextStyle(color: Color(0xFF114177), fontSize: 12)),
           ),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                _adminLogs.clear();
-              });
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(
-                  content: Text('Seluruh log login admin berhasil dikosongkan!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-                  backgroundColor: const Color(0xFFD94B4B),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
+            onPressed: () async {
+              await ClientInfoService.instance.clearAllLogs();
+              if (mounted) {
+                setState(() {
+                  _adminLogs.clear();
+                });
+              }
+              if (ctx.mounted) Navigator.pop(ctx);
+              if (mounted) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Seluruh log login admin berhasil dikosongkan!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color(0xFFD94B4B),
+                    behavior: SnackBarBehavior.floating,
+                  ),
+                );
+              }
             },
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFD94B4B),
@@ -386,6 +462,207 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             ),
             child: const Text('Hapus Semua', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12)),
           ),
+        ],
+      ),
+    );
+  }
+
+  void _showLogDetailBottomSheet(BuildContext context, Map<String, dynamic> log) {
+    final roleColor = log['roleColor'] as Color? ?? const Color(0xFF6D28D9);
+    final isCurrent = log['isCurrentSession'] == true;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (ctx) => Container(
+        padding: const EdgeInsets.all(22),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE4DFD5),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: roleColor.withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    isCurrent ? Icons.verified_user : Icons.devices_other,
+                    color: roleColor,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Flexible(
+                            child: Text(
+                              log['admin'] ?? 'Admin',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1A1A18),
+                              ),
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          if (isCurrent)
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF17A18A).withValues(alpha: 0.15),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: Text(
+                                'AKTIF SEKARANG',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 9,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF17A18A),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                      Text(
+                        '${log['role']} • ID: ${log['id']}',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                      ),
+                    ],
+                  ),
+                ),
+                IconButton(
+                  onPressed: () => Navigator.pop(ctx),
+                  icon: const Icon(Icons.close, size: 20, color: Color(0xFF76777B)),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            const Divider(height: 1, color: Color(0xFFF1EEE7)),
+            const SizedBox(height: 14),
+
+            // Card IP & Perangkat
+            _buildDetailRow(
+              icon: Icons.public,
+              iconColor: const Color(0xFF114177),
+              title: 'Alamat IP Publik (Real-Time)',
+              value: log['ip'] ?? '127.0.0.1',
+              trailing: IconButton(
+                icon: const Icon(Icons.copy, size: 16, color: Color(0xFF114177)),
+                tooltip: 'Salin IP',
+                visualDensity: VisualDensity.compact,
+                onPressed: () {
+                  Clipboard.setData(ClipboardData(text: log['ip'] ?? ''));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Alamat IP (${log['ip']}) disalin ke clipboard!', style: GoogleFonts.plusJakartaSans(fontSize: 12)),
+                      behavior: SnackBarBehavior.floating,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                },
+              ),
+            ),
+            const SizedBox(height: 10),
+            _buildDetailRow(
+              icon: Icons.computer,
+              iconColor: const Color(0xFF6D28D9),
+              title: 'Model Perangkat (Hardware)',
+              value: log['device'] ?? 'Perangkat',
+            ),
+            const SizedBox(height: 10),
+            _buildDetailRow(
+              icon: Icons.wifi,
+              iconColor: const Color(0xFF17A18A),
+              title: 'Penyedia Jaringan (ISP)',
+              value: log['isp'] ?? 'Jaringan Aktif',
+            ),
+            const SizedBox(height: 10),
+            _buildDetailRow(
+              icon: Icons.location_on_outlined,
+              iconColor: const Color(0xFFE07A5F),
+              title: 'Lokasi Geografis Koneksi',
+              value: log['location'] ?? 'Indonesia',
+            ),
+            const SizedBox(height: 10),
+            _buildDetailRow(
+              icon: Icons.access_time,
+              iconColor: const Color(0xFF76777B),
+              title: 'Waktu Sesi & Status',
+              value: '${log['time']} (${log['status']})',
+            ),
+
+            const SizedBox(height: 20),
+            SizedBox(
+              width: double.infinity,
+              height: 44,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF114177),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text('Tutup', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDetailRow({
+    required IconData icon,
+    required Color iconColor,
+    required String title,
+    required String value,
+    Widget? trailing,
+  }) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      decoration: BoxDecoration(
+        color: const Color(0xFFFAFAF9),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFFF1EEE7)),
+      ),
+      child: Row(
+        children: [
+          Icon(icon, size: 20, color: iconColor),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              ],
+            ),
+          ),
+          if (trailing != null) trailing,
         ],
       ),
     );
@@ -653,11 +930,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ),
             GestureDetector(
-              onTap: () => _scaffoldKey.currentState?.openDrawer(),
-              child: const CircleAvatar(
+              onTap: _showEditProfileDialog,
+              child: CircleAvatar(
                 radius: 18,
-                backgroundColor: Color(0xFF6D28D9),
-                child: Text('D', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14)),
+                backgroundColor: const Color(0xFF6D28D9),
+                backgroundImage: _superAdminAvatarPath != null
+                    ? FileImage(File(_superAdminAvatarPath!))
+                    : null,
+                child: _superAdminAvatarPath == null
+                    ? Text(
+                        _superAdminName.isNotEmpty ? _superAdminName[0].toUpperCase() : 'D',
+                        style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+                      )
+                    : null,
               ),
             ),
             const SizedBox(width: 16),
@@ -678,6 +963,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
             // 🚨 SECTION 2: 1 TOMBOL MENONJOL: AKSES DARURAT DIVISI (EMERGENCY OVERRIDE)
             _buildEmergencyAccessButton(context),
+            const SizedBox(height: 24),
+
+            // 🪪 SECTION: KONFIRMASI PENDAFTARAN KTP (VERIFIKASI KYC IDENTITAS)
+            _buildKycConfirmationSection(context),
             const SizedBox(height: 24),
 
             // ─── SECTION 3: FITUR INTI KHUSUS SUPER ADMIN (BUKAN AKSES DIVISI LAIN) ───
@@ -748,18 +1037,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                       decoration: BoxDecoration(
                         color: const Color(0xFF6D28D9),
                         borderRadius: BorderRadius.circular(14),
+                        image: _superAdminAvatarPath != null
+                            ? DecorationImage(
+                                image: FileImage(File(_superAdminAvatarPath!)),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
-                      child: const Center(
-                        child: Text('D', style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-                      ),
+                      child: _superAdminAvatarPath == null
+                          ? Center(
+                              child: Text(
+                                _superAdminName.isNotEmpty ? _superAdminName[0].toUpperCase() : 'D',
+                                style: const TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
+                              ),
+                            )
+                          : null,
                     ),
                     const SizedBox(width: 14),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text('Dito Pratama', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
-                          Text('dito@parksmart.id', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
+                          Text(_superAdminName, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                          Text(_superAdminEmail, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white70)),
                           const SizedBox(height: 4),
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -776,13 +1076,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                         ],
                       ),
                     ),
+                    IconButton(
+                      tooltip: 'Edit Profil Super Admin',
+                      icon: const Icon(Icons.edit_outlined, color: Colors.white70, size: 20),
+                      onPressed: () {
+                        Navigator.pop(context);
+                        _showEditProfileDialog();
+                      },
+                    ),
                   ],
                 ),
               ],
             ),
           ),
-
-       
 
           const Divider(height: 1, color: Color(0xFFE4DFD5)),
 
@@ -798,6 +1104,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.verified_user_outlined, color: Color(0xFFE07A5F)),
+            title: Text('Konfirmasi Pendaftaran KTP', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
+            trailing: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+              decoration: BoxDecoration(color: const Color(0xFFFDECE7), borderRadius: BorderRadius.circular(6)),
+              child: Text('${_pendingKycList.length} Menunggu', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F))),
+            ),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen()));
             },
           ),
           ListTile(
@@ -919,7 +1238,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 decoration: BoxDecoration(
                   color: const Color(0xFFF1EEE7),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color(0xFFE4DFD5)),
+                  border: Border.all(color: const Color.fromARGB(255, 242, 242, 242)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
@@ -1427,15 +1746,28 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text('Log Aktivitas Login Admin', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                Text('Riwayat sesi masuk & login seluruh administrator platform', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                Text('Audit jejak IP publik & perangkat riil', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
               ],
             ),
-            // Tombol Bersihkan / Prune Log
-            IconButton(
-              onPressed: _pruneAuditLogs,
-              icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFD94B4B)),
-              tooltip: 'Pangkas Log',
-              visualDensity: VisualDensity.compact,
+            Row(
+              children: [
+                // Tombol Refresh IP & Jaringan
+                IconButton(
+                  onPressed: _isLoadingNetworkInfo ? null : () => _initClientAuditLogs(forceNetworkRefresh: true),
+                  icon: _isLoadingNetworkInfo
+                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF114177)))
+                      : const Icon(Icons.refresh, size: 20, color: Color(0xFF114177)),
+                  tooltip: 'Segarkan IP & Jaringan',
+                  visualDensity: VisualDensity.compact,
+                ),
+                // Tombol Bersihkan / Prune Log
+                IconButton(
+                  onPressed: _pruneAuditLogs,
+                  icon: const Icon(Icons.delete_outline, size: 20, color: Color(0xFFD94B4B)),
+                  tooltip: 'Pangkas Log',
+                  visualDensity: VisualDensity.compact,
+                ),
+              ],
             ),
           ],
         ),
@@ -1473,93 +1805,180 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               separatorBuilder: (ctx, i) => const Divider(height: 1, color: Color(0xFFF1EEE7)),
               itemBuilder: (ctx, index) {
                 final log = _adminLogs[index];
-                final roleColor = log['roleColor'] as Color;
+                final roleColor = log['roleColor'] as Color? ?? const Color(0xFF6D28D9);
+                final isCurrent = log['isCurrentSession'] == true;
 
-                return Padding(
-                  padding: const EdgeInsets.all(14),
-                  child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: 38,
-                        height: 38,
-                        decoration: BoxDecoration(
-                          color: roleColor.withValues(alpha: 0.12),
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            Text(
-                              log['admin'][0],
-                              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: roleColor),
-                            ),
-                            Positioned(
-                              right: 2,
-                              bottom: 2,
-                              child: Container(
-                                width: 9,
-                                height: 9,
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF17A18A),
-                                  shape: BoxShape.circle,
-                                  border: Border.all(color: Colors.white, width: 1.5),
-                                ),
+                return InkWell(
+                  onTap: () => _showLogDetailBottomSheet(context, log),
+                  borderRadius: index == 0
+                      ? const BorderRadius.vertical(top: Radius.circular(18))
+                      : index == _adminLogs.length - 1
+                          ? const BorderRadius.vertical(bottom: Radius.circular(18))
+                          : BorderRadius.zero,
+                  child: Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: isCurrent
+                        ? BoxDecoration(
+                            color: const Color(0xFF17A18A).withValues(alpha: 0.04),
+                            borderRadius: index == 0
+                                ? const BorderRadius.vertical(top: Radius.circular(18))
+                                : BorderRadius.zero,
+                          )
+                        : null,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: roleColor.withValues(alpha: 0.12),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              Text(
+                                (log['admin'] != null && (log['admin'] as String).isNotEmpty)
+                                    ? (log['admin'] as String)[0]
+                                    : 'A',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: roleColor),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Text(log['admin'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                                    const SizedBox(width: 6),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
-                                      decoration: BoxDecoration(
-                                        color: roleColor.withValues(alpha: 0.12),
-                                        borderRadius: BorderRadius.circular(4),
-                                      ),
-                                      child: Text(
-                                        log['role'],
-                                        style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.bold, color: roleColor),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                                Text(log['time'], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                              ],
-                            ),
-                            const SizedBox(height: 4),
-                            Row(
-                              children: [
-                                const Icon(Icons.login_rounded, size: 13, color: Color(0xFF17A18A)),
-                                const SizedBox(width: 5),
-                                Expanded(
-                                  child: Text(
-                                    '${log['action']} • ${log['device']}',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF45474A)),
+                              Positioned(
+                                right: 2,
+                                bottom: 2,
+                                child: Container(
+                                  width: 9,
+                                  height: 9,
+                                  decoration: BoxDecoration(
+                                    color: isCurrent ? const Color(0xFF10B981) : const Color(0xFF17A18A),
+                                    shape: BoxShape.circle,
+                                    border: Border.all(color: Colors.white, width: 1.5),
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 2),
-                            Text(
-                              'IP: ${log['ip']} • Status: ${log['status']}',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)),
-                            ),
-                          ],
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      Text(log['admin'] ?? 'Admin', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                      const SizedBox(width: 6),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                                        decoration: BoxDecoration(
+                                          color: roleColor.withValues(alpha: 0.12),
+                                          borderRadius: BorderRadius.circular(4),
+                                        ),
+                                        child: Text(
+                                          log['role'] ?? 'Staff',
+                                          style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.bold, color: roleColor),
+                                        ),
+                                      ),
+                                      if (isCurrent) ...[
+                                        const SizedBox(width: 4),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1),
+                                          decoration: BoxDecoration(
+                                            color: const Color(0xFF17A18A).withValues(alpha: 0.15),
+                                            borderRadius: BorderRadius.circular(4),
+                                          ),
+                                          child: Text(
+                                            'SESI ANDA',
+                                            style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
+                                          ),
+                                        ),
+                                      ],
+                                    ],
+                                  ),
+                                  Text(log['time'] ?? 'Baru saja', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                ],
+                              ),
+                              const SizedBox(height: 5),
+                              // Baris 1: Status Action Login
+                              Row(
+                                children: [
+                                  Icon(Icons.login_rounded, size: 13, color: isCurrent ? const Color(0xFF10B981) : const Color(0xFF17A18A)),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      log['action'] ?? 'Login berhasil',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF45474A)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              // Baris 2: Keterangan Web Browser / Perangkat di bawah Action (tanpa dot)
+                              Row(
+                                children: [
+                                  const Icon(Icons.devices_outlined, size: 12, color: Color(0xFF8C8E92)),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      log['device'] ?? 'Perangkat Web Browser',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF5A5C60)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              // Baris 3: Alamat IP (tanpa dot)
+                              Row(
+                                children: [
+                                  const Icon(Icons.public, size: 12, color: Color(0xFF114177)),
+                                  const SizedBox(width: 5),
+                                  Expanded(
+                                    child: Text(
+                                      'IP: ${log['ip'] ?? "127.0.0.1"}',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.w500, color: const Color(0xFF76777B)),
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 3),
+                              // Baris 4: Lokasi di bawah IP (tanpa dot)
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Expanded(
+                                    child: Row(
+                                      children: [
+                                        const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFFE07A5F)),
+                                        const SizedBox(width: 5),
+                                        Expanded(
+                                          child: Text(
+                                            log['location'] ?? 'Indonesia',
+                                            style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B)),
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const Icon(Icons.chevron_right, size: 14, color: Color(0xFFB0B0AF)),
+                                ],
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -1624,7 +2043,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                               ),
                             ),
                             Text(
-                              'Bypass seluruh otoritas divisi khusus untuk penanganan darurat',
+                              'Akses Langsung Fitur Divisi (Audit Log mencatat Super Admin)',
                               style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
                             ),
                           ],
@@ -1640,7 +2059,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ),
             ),
 
-            // Konten 3 Divisi
+            // Konten 3 Divisi (Langsung Fitur Saja, Tanpa Dashboard)
             Expanded(
               child: ListView(
                 padding: const EdgeInsets.all(20),
@@ -1649,17 +2068,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   _buildEmergencyDivisionGroup(
                     context,
                     title: '1. Divisi Operasional',
-                    roleBadge: 'Admin Operasional',
+                    roleBadge: 'Fitur Operasional',
                     badgeColor: const Color(0xFF114177),
-                    desc: 'Akses bypass titik parkir, master kota, denah slot, dan sensor IoT',
-                    onOpenDashboard: () {
-                      Navigator.pop(ctx);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminOperationsDashboardScreen()));
-                    },
+                    desc: 'Akses langsung titik parkir, master kota, denah slot, dan sensor IoT',
                     items: [
-                      _EmergencyItem('Kelola Titik Parkir', Icons.local_parking, () => const ManageParkingScreen()),
                       _EmergencyItem('Master Lokasi Parkir', Icons.place, () => const LocationsScreen()),
-                      _EmergencyItem('Master Kota Operasional', Icons.location_city, () => const AdminCitiesScreen()),
                       _EmergencyItem('Denah Slot & Sensor IoT', Icons.grid_view, () => const SlotManagementScreen()),
                       _EmergencyItem('Live Kendaraan & Overstay', Icons.car_crash, () => const ActiveUsersScreen()),
                     ],
@@ -1670,13 +2083,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   _buildEmergencyDivisionGroup(
                     context,
                     title: '2. Divisi Finansial',
-                    roleBadge: 'Admin Finansial',
+                    roleBadge: 'Fitur Finansial',
                     badgeColor: const Color(0xFF17A18A),
-                    desc: 'Akses bypass laporan omzet, tarif dinamis, transaksi, dan saldo dompet',
-                    onOpenDashboard: () {
-                      Navigator.pop(ctx);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminFinanceDashboardScreen()));
-                    },
+                    desc: 'Akses langsung laporan omzet, tarif dinamis, transaksi, dan saldo dompet',
                     items: [
                       _EmergencyItem('Laporan Pendapatan & Omzet', Icons.trending_up, () => const RevenueScreen()),
                       _EmergencyItem('Atur Tarif Dinamis', Icons.price_change, () => const PricingScreen()),
@@ -1691,13 +2100,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   _buildEmergencyDivisionGroup(
                     context,
                     title: '3. Divisi CS & KYC',
-                    roleBadge: 'Admin CS & KYC',
+                    roleBadge: 'Fitur CS & KYC',
                     badgeColor: const Color(0xFFE07A5F),
-                    desc: 'Akses bypass verifikasi KTP, blokir pengguna, komplain, dan arcade',
-                    onOpenDashboard: () {
-                      Navigator.pop(ctx);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCsKycDashboardScreen()));
-                    },
+                    desc: 'Akses langsung verifikasi KTP, blokir pengguna, komplain, dan arcade',
                     items: [
                       _EmergencyItem('Verifikasi KTP / KYC Identitas', Icons.verified_user, () => const AdminKycScreen()),
                       _EmergencyItem('Profil Pelanggan CRM', Icons.badge, () => const AdminCustomerProfilesScreen()),
@@ -1723,7 +2128,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     required String roleBadge,
     required Color badgeColor,
     required String desc,
-    required VoidCallback onOpenDashboard,
     required List<_EmergencyItem> items,
   }) {
     return Container(
@@ -1739,56 +2143,814 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A18),
+                ),
+              ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
                 decoration: BoxDecoration(
                   color: badgeColor.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(6),
                 ),
-                child: Text(roleBadge, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: badgeColor)),
+                child: Text(
+                  roleBadge,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                    color: badgeColor,
+                  ),
+                ),
               ),
             ],
           ),
           const SizedBox(height: 4),
           Text(desc, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
 
-          // Tombol Buka Dashboard Utama Divisi Terkait
-          OutlinedButton.icon(
-            onPressed: onOpenDashboard,
-            icon: const Icon(Icons.open_in_new, size: 14),
-            label: Text('Buka Dashboard Utama $roleBadge', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold)),
-            style: OutlinedButton.styleFrom(
-              foregroundColor: badgeColor,
-              side: BorderSide(color: badgeColor),
-              minimumSize: const Size(double.infinity, 36),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-            ),
-          ),
-          const SizedBox(height: 10),
-
-          // Daftar Tombol Shortcut Layar
+          // Daftar Tombol Langsung Fitur Divisi (Tanpa Membuka Dashboard)
           Wrap(
             spacing: 8,
             runSpacing: 8,
             children: items.map((it) {
-              return ActionChip(
-                avatar: Icon(it.icon, size: 14, color: const Color(0xFF1A1A18)),
-                label: Text(it.title, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18))),
-                backgroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                  side: const BorderSide(color: Color(0xFFE4DFD5)),
+              return Material(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                child: InkWell(
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => it.screenBuilder()));
+                  },
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
+                    decoration: BoxDecoration(
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE4DFD5)),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: badgeColor.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Icon(it.icon, size: 14, color: badgeColor),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          it.title,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.w600,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-                onPressed: () {
-                  Navigator.pop(context);
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => it.screenBuilder()));
-                },
               );
             }).toList(),
           ),
         ],
+      ),
+    );
+  }
+
+  // ─── FITUR: EDIT PROFIL SUPER ADMIN (NAMA & FOTO, EMAIL TERKUNCI) ───
+  void _showEditProfileDialog() {
+    final nameController = TextEditingController(text: _superAdminName);
+    String? tempAvatarPath = _superAdminAvatarPath;
+
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          Future<void> pickImage(ImageSource source) async {
+            final messenger = ScaffoldMessenger.of(context);
+            try {
+              final picker = ImagePicker();
+              final picked = await picker.pickImage(source: source, maxWidth: 800, maxHeight: 800, imageQuality: 85);
+              if (picked != null) {
+                setDialogState(() {
+                  tempAvatarPath = picked.path;
+                });
+              }
+            } catch (e) {
+              messenger.showSnackBar(
+                SnackBar(content: Text('Gagal mengambil gambar: $e'), backgroundColor: const Color(0xFFD94B4B)),
+              );
+            }
+          }
+
+          void showSourceSelection() {
+            showModalBottomSheet(
+              context: context,
+              backgroundColor: Colors.white,
+              shape: const RoundedRectangleBorder(
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+              ),
+              builder: (_) => SafeArea(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+                      ),
+                      const SizedBox(height: 16),
+                      Text('Pilih Foto Profil', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 16),
+                      ListTile(
+                        leading: const CircleAvatar(backgroundColor: Color(0xFFEDE9FE), child: Icon(Icons.photo_library, color: Color(0xFF6D28D9))),
+                        title: Text('Pilih dari Galeri', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          pickImage(ImageSource.gallery);
+                        },
+                      ),
+                      ListTile(
+                        leading: const CircleAvatar(backgroundColor: Color(0xFFD1F2EB), child: Icon(Icons.camera_alt, color: Color(0xFF17A18A))),
+                        title: Text('Ambil Foto Kamera', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                        onTap: () {
+                          Navigator.pop(context);
+                          pickImage(ImageSource.camera);
+                        },
+                      ),
+                      if (tempAvatarPath != null)
+                        ListTile(
+                          leading: const CircleAvatar(backgroundColor: Color(0xFFFDE8E4), child: Icon(Icons.delete_outline, color: Color(0xFFD94B4B))),
+                          title: Text('Hapus Foto Profil', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: const Color(0xFFD94B4B))),
+                          onTap: () {
+                            Navigator.pop(context);
+                            setDialogState(() {
+                              tempAvatarPath = null;
+                            });
+                          },
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }
+
+          return Dialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: Colors.white,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.all(22),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Edit Profil Super Admin', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                          Text('Perbarui nama dan foto profil utama', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                        ],
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.close, size: 20, color: Color(0xFF76777B)),
+                        onPressed: () => Navigator.pop(ctx),
+                      ),
+                    ],
+                  ),
+                  const Divider(height: 24, color: Color(0xFFE4DFD5)),
+
+                  // AVATAR PICKER
+                  Center(
+                    child: Stack(
+                      children: [
+                        CircleAvatar(
+                          radius: 46,
+                          backgroundColor: const Color(0xFF6D28D9),
+                          backgroundImage: tempAvatarPath != null
+                              ? FileImage(File(tempAvatarPath!))
+                              : null,
+                          child: tempAvatarPath == null
+                              ? Text(
+                                  nameController.text.isNotEmpty ? nameController.text[0].toUpperCase() : 'S',
+                                  style: const TextStyle(fontSize: 34, fontWeight: FontWeight.bold, color: Colors.white),
+                                )
+                              : null,
+                        ),
+                        Positioned(
+                          bottom: 0,
+                          right: 0,
+                          child: GestureDetector(
+                            onTap: showSourceSelection,
+                            child: Container(
+                              width: 32,
+                              height: 32,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFF1A1A18),
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 2),
+                              ),
+                              child: const Icon(Icons.camera_alt, color: Colors.white, size: 16),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Center(
+                    child: TextButton.icon(
+                      onPressed: showSourceSelection,
+                      icon: const Icon(Icons.edit, size: 14, color: Color(0xFF6D28D9)),
+                      label: Text('Ganti Foto Profil', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF6D28D9))),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // NAMA FIELD
+                  Text('Nama Lengkap', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: nameController,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.person_outline, size: 20, color: Color(0xFF6D28D9)),
+                      hintText: 'Masukkan nama Super Admin',
+                      filled: true,
+                      fillColor: const Color(0xFFF9F9F9),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF6D28D9), width: 1.5)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // EMAIL FIELD (TERKUNCI / READ ONLY)
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('Alamat Email (Permanen)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(color: const Color(0xFFFDE8E4), borderRadius: BorderRadius.circular(4)),
+                        child: Text('Terkunci', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  TextField(
+                    readOnly: true,
+                    enabled: false,
+                    controller: TextEditingController(text: _superAdminEmail),
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B), fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.email_outlined, size: 20, color: Color(0xFF76777B)),
+                      suffixIcon: const Icon(Icons.lock_outline, size: 18, color: Color(0xFFD94B4B)),
+                      filled: true,
+                      fillColor: const Color(0xFFF1EEE7),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      disabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      const Icon(Icons.info_outline, size: 12, color: Color(0xFF76777B)),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          'Email Super Admin terikat dengan otoritas root sistem dan tidak dapat diubah.',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+
+                  // ACTION BUTTONS
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFE4DFD5)),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                          ),
+                          child: Text('Batal', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        ),
+                      ),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () async {
+                            final messenger = ScaffoldMessenger.of(context);
+                            final newName = nameController.text.trim();
+                            if (newName.isEmpty) {
+                              messenger.showSnackBar(
+                                const SnackBar(content: Text('Nama tidak boleh kosong!'), backgroundColor: Color(0xFFD94B4B)),
+                              );
+                              return;
+                            }
+                            setState(() {
+                              _superAdminName = newName;
+                              _superAdminAvatarPath = tempAvatarPath;
+                            });
+                            try {
+                              final prefs = await SharedPreferences.getInstance();
+                              await prefs.setString('super_admin_name', newName);
+                              if (tempAvatarPath != null) {
+                                await prefs.setString('super_admin_avatar', tempAvatarPath!);
+                              } else {
+                                await prefs.remove('super_admin_avatar');
+                              }
+                            } catch (_) {}
+
+                            if (ctx.mounted) Navigator.pop(ctx);
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Profil Super Admin berhasil diperbarui!'),
+                                backgroundColor: Color(0xFF17A18A),
+                              ),
+                            );
+                          },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF6D28D9),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            elevation: 0,
+                          ),
+                          child: Text('Simpan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  // ─── 🪪 FITUR INTI: KONFIRMASI PENDAFTARAN KTP (VERIFIKASI KYC IDENTITAS) ───
+  Widget _buildKycConfirmationSection(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE4DFD5)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE07A5F).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.badge_outlined, color: Color(0xFFE07A5F), size: 24),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Konfirmasi Pendaftaran KTP',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDECE7),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '${_pendingKycList.length} Menunggu',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F)),
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      'Verifikasi berkas identitas KTP pendaftar baru oleh Super Admin',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          if (_pendingKycList.isEmpty)
+            Container(
+              padding: const EdgeInsets.all(20),
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: const Color(0xFFF9F9F9),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE4DFD5)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.check_circle_outline, size: 36, color: Color(0xFF17A18A)),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Semua Berkas KTP Telah Ditinjau!',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tidak ada antrean verifikasi KTP pelanggan yang pending saat ini.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                  ),
+                ],
+              ),
+            )
+          else
+            ListView.separated(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: _pendingKycList.length,
+              separatorBuilder: (ctx, i) => const SizedBox(height: 10),
+              itemBuilder: (context, index) {
+                final kyc = _pendingKycList[index];
+                return _buildKycItemCard(kyc, index);
+              },
+            ),
+
+          const SizedBox(height: 16),
+
+          // Action row: Buka Modul KYC Penuh & Generate Pengajuan Baru
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen()));
+                  },
+                  icon: const Icon(Icons.open_in_new, size: 14, color: Color(0xFF114177)),
+                  label: Text(
+                    'Buka Modul KYC Penuh',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                  ),
+                  style: OutlinedButton.styleFrom(
+                    side: const BorderSide(color: Color(0xFF114177)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: ElevatedButton.icon(
+                  onPressed: _generateMoreKyc,
+                  icon: const Icon(Icons.autorenew, size: 14, color: Colors.white),
+                  label: Text(
+                    'Generate Berkas Baru',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFFE07A5F),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(vertical: 10),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildKycItemCard(Map<String, dynamic> kyc, int index) {
+    final name = kyc['name'] ?? '-';
+    final nik = kyc['nik'] ?? '-';
+    final submittedAt = kyc['submittedAt'] ?? '-';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFE4DFD5)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(14),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [Color(0xFF6D28D9), Color(0xFF8B5CF6)],
+                    ),
+                    borderRadius: BorderRadius.circular(12),
+                    boxShadow: [
+                      BoxShadow(
+                        color: const Color(0xFF6D28D9).withValues(alpha: 0.25),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Center(
+                    child: Text(
+                      name.isNotEmpty ? name[0].toUpperCase() : '?',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              name,
+                              style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFF7ED),
+                              borderRadius: BorderRadius.circular(6),
+                              border: Border.all(color: const Color(0xFFEA580C).withValues(alpha: 0.3)),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                const Icon(Icons.hourglass_top_rounded, size: 10, color: Color(0xFFEA580C)),
+                                const SizedBox(width: 3),
+                                Text(
+                                  kyc['status'] ?? 'Menunggu',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFEA580C),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF1EEE7),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              'NIK: $nik',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF3F3F46)),
+                            ),
+                          ),
+                          const SizedBox(width: 5),
+                          InkWell(
+                            onTap: () {
+                              Clipboard.setData(ClipboardData(text: nik));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(content: Text('NIK ($nik) disalin.'), duration: const Duration(seconds: 2)),
+                              );
+                            },
+                            child: const Icon(Icons.copy_rounded, size: 12, color: Color(0xFF71717A)),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 4),
+                      // Lokasi & Tanggal Lahir (cth: Bandung, Jawa Barat • 15 April 2003)
+                      Row(
+                        children: [
+                          const Icon(Icons.location_on_outlined, size: 12, color: Color(0xFF71717A)),
+                          const SizedBox(width: 4),
+                          Expanded(
+                            child: Text(
+                              '${kyc['city'] ?? ''}${kyc['dob'] != null ? ' • ${kyc['dob']}' : ''}',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF71717A)),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 3),
+                      // Waktu Pengajuan tepat di bawah lokasi
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time_rounded, size: 11, color: Color(0xFF71717A)),
+                          const SizedBox(width: 4),
+                          Text(
+                            submittedAt,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF71717A),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 4),
+          const Divider(height: 1, color: Color(0xFFF1EEE7)),
+
+          // Actions
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              children: [
+                SizedBox(
+                  width: double.infinity,
+                  height: 36,
+                  child: ElevatedButton.icon(
+                    onPressed: () => _showKycDetailDialog(kyc, index),
+                    icon: const Icon(Icons.visibility_outlined, size: 14, color: Colors.white),
+                    label: Text(
+                      'Lihat & Periksa 2 Foto Berkas',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF114177),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      elevation: 0,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Expanded(
+                      child: SizedBox(
+                        height: 34,
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            final reason = await showKycRejectReasonDialog(
+                              context,
+                              applicantName: kyc['name'] ?? 'Pengguna',
+                            );
+                            if (reason != null && reason.isNotEmpty) {
+                              _handleKycAction(index, false, reason);
+                            }
+                          },
+                          icon: const Icon(Icons.close_rounded, size: 13, color: Color(0xFFDC2626)),
+                          label: Text(
+                            'Tolak',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFDC2626)),
+                          ),
+                          style: OutlinedButton.styleFrom(
+                            side: const BorderSide(color: Color(0xFFDC2626)),
+                            backgroundColor: const Color(0xFFFEF2F2),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: SizedBox(
+                        height: 34,
+                        child: ElevatedButton.icon(
+                          onPressed: () => _handleKycAction(index, true),
+                          icon: const Icon(Icons.check_rounded, size: 13, color: Colors.white),
+                          label: Text(
+                            'Terima & Setujui',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFF16A34A),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                            padding: EdgeInsets.zero,
+                            elevation: 0,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleKycAction(int index, bool accepted, [String? rejectReason]) {
+    if (index >= _pendingKycList.length) return;
+    final item = _pendingKycList[index];
+    setState(() {
+      _pendingKycList.removeAt(index);
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          accepted
+              ? 'Pendaftaran KTP ${item['name']} telah disetujui & diverifikasi.'
+              : 'Pendaftaran KTP ${item['name']} telah ditolak. Alasan: ${rejectReason ?? "Tidak memenuhi syarat"}',
+        ),
+        backgroundColor: accepted ? const Color(0xFF17A18A) : const Color(0xFFD94B4B),
+      ),
+    );
+  }
+
+  void _showKycDetailDialog(Map<String, dynamic> kyc, int index) {
+    showKycDetailModal(
+      context,
+      kyc: kyc,
+      onAccept: () => _handleKycAction(index, true),
+      onRejectWithReason: (reason) => _handleKycAction(index, false, reason),
+    );
+  }
+
+  void _generateMoreKyc() {
+    final names = ['Budi Prasetyo', 'Nadia Putri', 'Indra Wicaksono', 'Laras Kusuma', 'Fajar Ramadhan'];
+    final cities = ['Jakarta Selatan, DKI', 'Surabaya, Jatim', 'Denpasar, Bali', 'Medan, Sumut', 'Makassar, Sulsel'];
+    final random = math.Random();
+    final pickedName = names[random.nextInt(names.length)];
+    final pickedCity = cities[random.nextInt(cities.length)];
+    final generatedNik = '31710${random.nextInt(899999) + 100000}000${random.nextInt(9) + 1}';
+
+    setState(() {
+      _pendingKycList.add({
+        'id': 'KYC-00${_pendingKycList.length + 5}',
+        'name': pickedName,
+        'nik': generatedNik,
+        'submittedAt': 'Baru saja',
+        'status': 'Menunggu',
+        'city': pickedCity,
+        'dob': '${random.nextInt(28) + 1} Agustus ${1990 + random.nextInt(15)}',
+        'address': 'Jl. Kenanga Timur No. ${random.nextInt(99) + 1}',
+      });
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Pengajuan pendaftaran KTP baru atas nama $pickedName berhasil dibuat.'),
+        backgroundColor: const Color(0xFFE07A5F),
       ),
     );
   }

@@ -538,7 +538,6 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
         children: [
           _buildSectionTitle(
             'Gateway & Modul Utama',
-            subtitle: 'Kelola pemeliharaan per fitur. Toggle ON = Fitur Maintenance, OFF = Beroperasi Normal',
           ),
           _buildCard(
             child: Column(

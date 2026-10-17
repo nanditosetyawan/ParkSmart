@@ -1,10 +1,10 @@
 import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
 import '../../../theme/app_theme.dart';
+
+import '../../../core/services/ai_config_service.dart';
 
 class AdminAiConfigScreen extends StatefulWidget {
   const AdminAiConfigScreen({super.key});
@@ -18,6 +18,7 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
   final TextEditingController _apiKeyCtrl = TextEditingController();
   bool _obscureKey = true;
   bool _isLoading = true;
+  bool _isSaving = false;
 
   // Status Tes Koneksi
   bool _isTesting = false;
@@ -38,26 +39,16 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
 
   Future<void> _loadSavedApiKey() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final savedKey = prefs.getString('groq_api_key');
-      if (savedKey != null && savedKey.isNotEmpty) {
-        _apiKeyCtrl.text = savedKey;
-      } else {
-        // Cek dari .env jika belum pernah diatur oleh admin di SharedPreferences
-        String? envKey;
-        try {
-          if (dotenv.isInitialized) {
-            envKey = dotenv.env['GROQ_API_KEY'];
-          }
-        } catch (_) {}
-        if (envKey != null && envKey.isNotEmpty) {
-          _apiKeyCtrl.text = envKey;
+      final key = await AiConfigService.instance.loadActiveApiKey();
+      if (mounted) {
+        if (key != null && key.isNotEmpty) {
+          _apiKeyCtrl.text = key;
         } else {
           _apiKeyCtrl.text = '';
         }
       }
     } catch (_) {
-      _apiKeyCtrl.text = '';
+      if (mounted) _apiKeyCtrl.text = '';
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -87,15 +78,27 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
       return;
     }
 
+    setState(() => _isSaving = true);
+
     try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('groq_api_key', key);
+      // Menyimpan dengan aturan Supabase: Hapus yang lama & Insert yang baru (1 Row)
+      final result = await AiConfigService.instance.saveApiKey(
+        apiKey: key,
+        provider: _providerName,
+        modelName: _modelName,
+        updatedBy: 'Super Admin',
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Groq API Key berhasil disimpan & siap digunakan oleh Jarvis AI!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-            backgroundColor: const Color(0xFF17A18A),
+            content: Text(
+              result.message,
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: result.isSuccess ? const Color(0xFF17A18A) : const Color(0xFFD94B4B),
             behavior: SnackBarBehavior.floating,
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -109,6 +112,8 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
           ),
         );
       }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
     }
   }
 
@@ -470,10 +475,16 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
 
           // Tombol Simpan
           ElevatedButton.icon(
-            onPressed: _saveApiKey,
-            icon: const Icon(Icons.save_outlined, size: 18, color: Colors.white),
+            onPressed: _isSaving ? null : _saveApiKey,
+            icon: _isSaving
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                  )
+                : const Icon(Icons.save_outlined, size: 18, color: Colors.white),
             label: Text(
-              'Simpan API Key',
+              _isSaving ? 'Menyimpan ke Database...' : 'Simpan API Key',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,
@@ -482,10 +493,12 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
             ),
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFF1C1D1F),
+              disabledBackgroundColor: const Color(0xFF76777B),
               minimumSize: const Size(double.infinity, 46),
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
           ),
+
         ],
       ),
     );

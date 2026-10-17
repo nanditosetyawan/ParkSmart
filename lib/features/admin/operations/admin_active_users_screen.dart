@@ -154,7 +154,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                 ),
               ],
             ),
-            const Divider(color: Color(0xFFF1EEE7), height: 24),
+            const Divider(color: Color(0xFFF3F4F6), height: 24),
             _buildDetailRow('Lokasi & Slot:', '${session['location']} (${session['slot']})'),
             _buildDetailRow('Kendaraan:', session['vehicle']),
             _buildDetailRow('Jam Check-In:', session['checkIn']),
@@ -243,7 +243,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
           onTap: () => Navigator.pop(context),
           child: Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
             child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
           ),
         ),
@@ -278,7 +278,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                 Container(
                   height: 44,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12)),
                   child: Row(
                     children: [
                       const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
@@ -393,7 +393,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                                   ),
                               ],
                             ),
-                            const Divider(color: Color(0xFFF1EEE7), height: 20),
+                            const Divider(color: Color(0xFFF3F4F6), height: 20),
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
@@ -425,7 +425,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                                   onTap: () => _showActionModal(item),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(8)),
+                                    decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(8)),
                                     child: Text('Aksi', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                                   ),
                                 ),
@@ -466,7 +466,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
         decoration: BoxDecoration(
           color: isSelected
               ? (isWarning ? const Color(0xFFD94B4B) : const Color(0xFF114177))
-              : const Color(0xFFF1EEE7),
+              : const Color(0xFFF3F4F6),
           borderRadius: BorderRadius.circular(20),
         ),
         child: Center(

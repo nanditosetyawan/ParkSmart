@@ -1,7 +1,7 @@
+import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:fl_chart/fl_chart.dart';
 
 class RevenueScreen extends StatefulWidget {
   const RevenueScreen({super.key});
@@ -10,921 +10,904 @@ class RevenueScreen extends StatefulWidget {
   State<RevenueScreen> createState() => _RevenueScreenState();
 }
 
-class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _RevenueScreenState extends State<RevenueScreen> {
+  String _selectedMonth = 'Oktober 2026';
+  final List<String> _months = ['Oktober 2026', 'September 2026', 'Agustus 2026'];
 
-  // Time range selection
-  String _selectedRange = 'Bulan Ini';
-  final List<String> _ranges = ['Hari Ini', 'Minggu Ini', 'Bulan Ini', 'Bulan Lalu', '6 Bulan', 'Tahun Ini', 'Custom'];
+  int? _inspectedRevenueIndex;
+  int? _inspectedExpenseIndex;
 
-  // Mock data for revenue analytics
-  final Map<String, dynamic> _revenueData = {
-    'today': {'revenue': 12500000, 'transactions': 342, 'avgTicket': 36550, 'growth': 12.5},
-    'week': {'revenue': 78500000, 'transactions': 2156, 'avgTicket': 36410, 'growth': 8.3},
-    'month': {'revenue': 312000000, 'transactions': 8420, 'avgTicket': 37055, 'growth': 15.7},
-    'lastMonth': {'revenue': 269000000, 'transactions': 7210, 'avgTicket': 37310, 'growth': 12.1},
-    'last6Months': {'revenue': 1680000000, 'transactions': 42500, 'avgTicket': 39529, 'growth': 18.2},
-    'year': {'revenue': 3240000000, 'transactions': 81200, 'avgTicket': 39901, 'growth': 22.4},
+  // Mock data omzet bulanan, pengeluaran (termasuk inject saldo), dan laba bersih
+  final Map<String, Map<String, dynamic>> _monthlyData = {
+    'Oktober 2026': {
+      'monthLabel': 'Oktober 2026',
+      // 1. Total Omzet
+      'omzetTotal': 'Rp 312.450.000',
+      'omzetGrowth': '+15.7% vs bln lalu',
+      'omzetTrx': '8.420 Transaksi Selesai',
+      'omzetChartData': [0.35, 0.52, 0.48, 0.68, 0.74, 0.88, 0.96],
+      'omzetValues': ['Rp 38.5 jt', 'Rp 42.1 jt', 'Rp 41.0 jt', 'Rp 49.8 jt', 'Rp 53.2 jt', 'Rp 61.5 jt', 'Rp 66.3 jt'],
+      'omzetDates': ['1-4 Okt', '5-8 Okt', '9-12 Okt', '13-16 Okt', '17-20 Okt', '21-24 Okt', '25-31 Okt'],
+      'omzetLabels': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+
+      // 2. Pengeluaran (Beban & Inject Saldo)
+      'expenseTotal': 'Rp 48.200.000',
+      'expenseGrowth': '-4.2% (Terkendali)',
+      'expenseBreakdown': [
+        {'name': 'Injeksi Saldo Dompet', 'amount': 'Rp 28.500.000', 'color': Color(0xFFE07A5F)},
+        {'name': 'Kompensasi & Promo', 'amount': 'Rp 12.000.000', 'color': Color(0xFFD97706)},
+        {'name': 'Biaya Payment Gateway', 'amount': 'Rp 7.700.000', 'color': Color(0xFF76777B)},
+      ],
+      'expenseChartData': [0.55, 0.42, 0.60, 0.38, 0.45, 0.50, 0.35],
+      'expenseValues': ['Rp 8.2 jt', 'Rp 6.1 jt', 'Rp 9.0 jt', 'Rp 5.5 jt', 'Rp 6.8 jt', 'Rp 7.4 jt', 'Rp 5.2 jt'],
+      'expenseDates': ['1-4 Okt', '5-8 Okt', '9-12 Okt', '13-16 Okt', '17-20 Okt', '21-24 Okt', '25-31 Okt'],
+      'expenseLabels': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+
+      // 3. Laba Bersih
+      'netProfitTotal': 'Rp 264.250.000',
+      'netMargin': '84.6%',
+      'profitGrowth': '+19.8% vs bln lalu',
+    },
+    'September 2026': {
+      'monthLabel': 'September 2026',
+      'omzetTotal': 'Rp 269.800.000',
+      'omzetGrowth': '+12.1% vs bln lalu',
+      'omzetTrx': '7.210 Transaksi Selesai',
+      'omzetChartData': [0.30, 0.42, 0.45, 0.58, 0.65, 0.78, 0.85],
+      'omzetValues': ['Rp 32.0 jt', 'Rp 36.5 jt', 'Rp 38.0 jt', 'Rp 43.2 jt', 'Rp 47.1 jt', 'Rp 54.0 jt', 'Rp 59.0 jt'],
+      'omzetDates': ['1-4 Sep', '5-8 Sep', '9-12 Sep', '13-16 Sep', '17-20 Sep', '21-24 Sep', '25-30 Sep'],
+      'omzetLabels': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+
+      'expenseTotal': 'Rp 50.300.000',
+      'expenseGrowth': '+2.5% vs bln lalu',
+      'expenseBreakdown': [
+        {'name': 'Injeksi Saldo Dompet', 'amount': 'Rp 31.000.000', 'color': Color(0xFFE07A5F)},
+        {'name': 'Kompensasi & Promo', 'amount': 'Rp 11.500.000', 'color': Color(0xFFD97706)},
+        {'name': 'Biaya Payment Gateway', 'amount': 'Rp 7.800.000', 'color': Color(0xFF76777B)},
+      ],
+      'expenseChartData': [0.60, 0.48, 0.55, 0.42, 0.52, 0.48, 0.40],
+      'expenseValues': ['Rp 9.1 jt', 'Rp 7.2 jt', 'Rp 8.3 jt', 'Rp 6.4 jt', 'Rp 7.8 jt', 'Rp 7.1 jt', 'Rp 6.0 jt'],
+      'expenseDates': ['1-4 Sep', '5-8 Sep', '9-12 Sep', '13-16 Sep', '17-20 Sep', '21-24 Sep', '25-30 Sep'],
+      'expenseLabels': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+
+      'netProfitTotal': 'Rp 219.500.000',
+      'netMargin': '81.4%',
+      'profitGrowth': '+14.6% vs bln lalu',
+    },
+    'Agustus 2026': {
+      'monthLabel': 'Agustus 2026',
+      'omzetTotal': 'Rp 240.500.000',
+      'omzetGrowth': '+9.4% vs bln lalu',
+      'omzetTrx': '6.650 Transaksi Selesai',
+      'omzetChartData': [0.28, 0.35, 0.40, 0.52, 0.60, 0.70, 0.78],
+      'omzetValues': ['Rp 28.5 jt', 'Rp 32.0 jt', 'Rp 35.1 jt', 'Rp 39.8 jt', 'Rp 43.5 jt', 'Rp 48.6 jt', 'Rp 53.0 jt'],
+      'omzetDates': ['1-4 Agu', '5-8 Agu', '9-12 Agu', '13-16 Agu', '17-20 Agu', '21-24 Agu', '25-31 Agu'],
+      'omzetLabels': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+
+      'expenseTotal': 'Rp 49.100.000',
+      'expenseGrowth': '-1.8% vs bln lalu',
+      'expenseBreakdown': [
+        {'name': 'Injeksi Saldo Dompet', 'amount': 'Rp 29.800.000', 'color': Color(0xFFE07A5F)},
+        {'name': 'Kompensasi & Promo', 'amount': 'Rp 12.100.000', 'color': Color(0xFFD97706)},
+        {'name': 'Biaya Payment Gateway', 'amount': 'Rp 7.200.000', 'color': Color(0xFF76777B)},
+      ],
+      'expenseChartData': [0.50, 0.45, 0.58, 0.40, 0.48, 0.52, 0.44],
+      'expenseValues': ['Rp 7.9 jt', 'Rp 7.1 jt', 'Rp 9.1 jt', 'Rp 6.3 jt', 'Rp 7.5 jt', 'Rp 8.2 jt', 'Rp 7.0 jt'],
+      'expenseDates': ['1-4 Agu', '5-8 Agu', '9-12 Agu', '13-16 Agu', '17-20 Agu', '21-24 Agu', '25-31 Agu'],
+      'expenseLabels': ['W1', 'W2', 'W3', 'W4', 'W5', 'W6', 'W7'],
+
+      'netProfitTotal': 'Rp 191.400.000',
+      'netMargin': '79.6%',
+      'profitGrowth': '+12.7% vs bln lalu',
+    },
   };
 
-  // Daily revenue for charts (last 30 days)
-  final List<Map<String, dynamic>> _dailyRevenue = List.generate(30, (i) {
-    final date = DateTime.now().subtract(Duration(days: 29 - i));
-    final base = 8000000 + (i * 50000) + (i % 7 * 2000000) - (i % 3 * 1000000);
-    return {
-      'date': date,
-      'revenue': base.clamp(5000000, 25000000).toDouble(),
-      'transactions': (base / 37000).round(),
-      'occupancy': (65 + (i % 10) + (i % 5 * 2)).clamp(40, 95).toDouble(),
-    };
-  });
-
-  // Revenue by location
-  final List<Map<String, dynamic>> _locationRevenue = [
-    {'name': 'Grand Indonesia', 'city': 'Jakarta Pusat', 'revenue': 850000000, 'transactions': 21200, 'occupancy': 88, 'slots': 450, 'growth': 22.5},
-    {'name': 'Central Park Mall', 'city': 'Jakarta Barat', 'revenue': 620000000, 'transactions': 15800, 'occupancy': 82, 'slots': 300, 'growth': 18.3},
-    {'name': 'Malioboro Mall', 'city': 'Yogyakarta', 'revenue': 380000000, 'transactions': 10500, 'occupancy': 75, 'slots': 200, 'growth': 15.7},
-    {'name': 'Plaza Senayan', 'city': 'Jakarta Selatan', 'revenue': 340000000, 'transactions': 8900, 'occupancy': 78, 'slots': 250, 'growth': 12.4},
-    {'name': 'Bandung Indah Plaza', 'city': 'Bandung', 'revenue': 280000000, 'transactions': 7200, 'occupancy': 72, 'slots': 180, 'growth': 10.2},
-    {'name': 'Tunjungan Plaza', 'city': 'Surabaya', 'revenue': 250000000, 'transactions': 6800, 'occupancy': 68, 'slots': 220, 'growth': 8.9},
-    {'name': 'Ciputra World', 'city': 'Surabaya', 'revenue': 220000000, 'transactions': 5900, 'occupancy': 65, 'slots': 200, 'growth': 7.5},
-    {'name': 'Paris Van Java', 'city': 'Bandung', 'revenue': 195000000, 'transactions': 5200, 'occupancy': 62, 'slots': 160, 'growth': 5.8},
-  ];
-
-  // Revenue by vehicle type
-  final List<Map<String, dynamic>> _vehicleTypeRevenue = [
-    {'type': 'Mobil', 'revenue': 1850000000, 'percentage': 57.1, 'transactions': 46300, 'avgTicket': 39957, 'color': Color(0xFF45474A)},
-    {'type': 'Motor', 'revenue': 680000000, 'percentage': 21.0, 'transactions': 22400, 'avgTicket': 30357, 'color': Color(0xFF114177)},
-    {'type': 'EV', 'revenue': 420000000, 'percentage': 13.0, 'transactions': 8100, 'avgTicket': 51852, 'color': Color(0xFFE07A5F)},
-    {'type': 'Disabilitas', 'revenue': 290000000, 'percentage': 8.9, 'transactions': 4400, 'avgTicket': 65909, 'color': Color(0xFF9B59B6)},
-  ];
-
-  // Revenue by zone
-  final List<Map<String, dynamic>> _zoneRevenue = [
-    {'zone': 'Jakarta Pusat', 'revenue': 1200000000, 'locations': 3, 'occupancy': 85, 'growth': 20.1},
-    {'zone': 'Jakarta Barat', 'revenue': 620000000, 'locations': 1, 'occupancy': 82, 'growth': 18.3},
-    {'zone': 'Jakarta Selatan', 'revenue': 340000000, 'locations': 1, 'occupancy': 78, 'growth': 12.4},
-    {'zone': 'Yogyakarta', 'revenue': 380000000, 'locations': 1, 'occupancy': 75, 'growth': 15.7},
-    {'zone': 'Bandung', 'revenue': 475000000, 'locations': 2, 'occupancy': 67, 'growth': 8.2},
-    {'zone': 'Surabaya', 'revenue': 470000000, 'locations': 2, 'occupancy': 66, 'growth': 8.2},
-  ];
-
-  // Monthly trend for forecast
-  final List<Map<String, dynamic>> _monthlyTrend = [
-    {'month': 'Jul', 'revenue': 245000000, 'transactions': 6200},
-    {'month': 'Agu', 'revenue': 258000000, 'transactions': 6500},
-    {'month': 'Sep', 'revenue': 272000000, 'transactions': 6800},
-    {'month': 'Okt', 'revenue': 285000000, 'transactions': 7100},
-    {'month': 'Nov', 'revenue': 298000000, 'transactions': 7400},
-    {'month': 'Des', 'revenue': 312000000, 'transactions': 8420},
-  ];
-
-  @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 5, vsync: this);
+  void _onOmzetChartTouch(double localX, double canvasWidth, int pointCount) {
+    const double marginHorizontal = 24.0;
+    final double chartWidth = canvasWidth - (marginHorizontal * 2);
+    final double stepX = chartWidth / (pointCount - 1);
+    final double relativeX = localX - marginHorizontal;
+    int index = (relativeX / stepX).round();
+    if (index < 0) index = 0;
+    if (index >= pointCount) index = pointCount - 1;
+    setState(() => _inspectedRevenueIndex = index);
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
+  void _onExpenseChartTouch(double localX, double canvasWidth, int pointCount) {
+    const double marginHorizontal = 24.0;
+    final double chartWidth = canvasWidth - (marginHorizontal * 2);
+    final double stepX = chartWidth / (pointCount - 1);
+    final double relativeX = localX - marginHorizontal;
+    int index = (relativeX / stepX).round();
+    if (index < 0) index = 0;
+    if (index >= pointCount) index = pointCount - 1;
+    setState(() => _inspectedExpenseIndex = index);
   }
-
-  Map<String, dynamic> get _currentData => _revenueData[_selectedRange.toLowerCase().replaceAll(' ', '')] ?? _revenueData['month']!;
 
   @override
   Widget build(BuildContext context) {
-    final data = _currentData;
+    final data = _monthlyData[_selectedMonth] ?? _monthlyData['Oktober 2026']!;
+    final List<double> omzetChartData = List<double>.from(data['omzetChartData']);
+    final List<String> omzetValues = List<String>.from(data['omzetValues']);
+    final List<String> omzetDates = List<String>.from(data['omzetDates']);
+    final List<String> omzetLabels = List<String>.from(data['omzetLabels']);
+
+    final List<double> expenseChartData = List<double>.from(data['expenseChartData']);
+    final List<String> expenseValues = List<String>.from(data['expenseValues']);
+    final List<String> expenseDates = List<String>.from(data['expenseDates']);
+    final List<String> expenseLabels = List<String>.from(data['expenseLabels']);
+    final List<Map<String, dynamic>> expenseBreakdown = List<Map<String, dynamic>>.from(data['expenseBreakdown']);
 
     return Theme(
       data: AppTheme.light,
       child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(margin: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18))),
-        ),
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Analytics Pendapatan', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            Text('MRR • Occupancy • Forecast', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-          ],
-        ),
-        actions: [
-          PopupMenuButton<String>(
-            initialValue: _selectedRange,
-            onSelected: (v) => setState(() => _selectedRange = v),
-            itemBuilder: (_) => _ranges.map((r) => PopupMenuItem(value: r, child: Text(r))).toList(),
+        backgroundColor: const Color(0xFFF9FAFB),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              margin: const EdgeInsets.only(right: 16),
-              decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(20)),
-              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                const Icon(Icons.calendar_today, size: 16, color: Color(0xFF114177)),
-                const SizedBox(width: 6),
-                Text(_selectedRange, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                const SizedBox(width: 4),
-                const Icon(Icons.keyboard_arrow_down, size: 16, color: Color(0xFF114177)),
-              ]),
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
             ),
           ),
-        ],
-        bottom: TabBar(
-          controller: _tabController,
-          isScrollable: true,
-          labelColor: const Color(0xFF114177),
-          unselectedLabelColor: const Color(0xFF76777B),
-          indicatorColor: const Color(0xFF114177),
-          indicatorWeight: 3,
-          labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500),
-          tabs: const [
-            Tab(text: 'Ringkasan'),
-            Tab(text: 'Trend Harian'),
-            Tab(text: 'Per Lokasi'),
-            Tab(text: 'Per Tipe/Jenis'),
-            Tab(text: 'Forecast'),
-          ],
-        ),
-      ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _buildSummaryTab(data),
-          _buildDailyTrendTab(),
-          _buildLocationTab(),
-          _buildVehicleTypeTab(),
-          _buildForecastTab(),
-        ],
-      ),
-    ));
-  }
-
-  // ============ TAB 1: RINGKASAN ============
-  Widget _buildSummaryTab(Map<String, dynamic> data) {
-      return SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // KPI Cards
-            _buildSectionTitle('KPI Utama', subtitle: 'Periode: $_selectedRange'),
-            _buildCard(
-              padding: const EdgeInsets.all(20),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final isNarrow = constraints.maxWidth < 600;
-                  if (isNarrow) {
-                    return Column(
-                      children: [
-                        _buildKPICard('Total Pendapatan', 'Rp ${_formatNumber(data['revenue'])}', Icons.attach_money, const Color(0xFF114177), growth: data['growth'], growthLabel: 'vs periode sebelumnya'),
-                        const SizedBox(height: 12),
-                        _buildKPICard('Transaksi', _formatNumber(data['transactions']), Icons.receipt_long, const Color(0xFF17A18A), growth: 5.2, growthLabel: 'vs periode sebelumnya'),
-                        const SizedBox(height: 12),
-                        _buildKPICard('Rata-rata/Tiket', 'Rp ${_formatNumber(data['avgTicket'])}', Icons.analytics, const Color(0xFFE07A5F), growth: -2.1, growthLabel: 'vs periode sebelumnya'),
-                        const SizedBox(height: 12),
-                        _buildKPICard('Rata-rata/Hari', 'Rp ${_formatNumber((data['revenue'] / (_selectedRange.contains('Bulan') ? 30 : _selectedRange.contains('Minggu') ? 7 : 1)).round())}', Icons.calendar_today, const Color(0xFF9B59B6)),
-                      ],
-                    );
-                  }
-                  return Row(
-                    children: [
-                      _buildKPICard('Total Pendapatan', 'Rp ${_formatNumber(data['revenue'])}', Icons.attach_money, const Color(0xFF114177), growth: data['growth'], growthLabel: 'vs periode sebelumnya'),
-                      const SizedBox(width: 12),
-                      _buildKPICard('Transaksi', _formatNumber(data['transactions']), Icons.receipt_long, const Color(0xFF17A18A), growth: 5.2, growthLabel: 'vs periode sebelumnya'),
-                      const SizedBox(width: 12),
-                      _buildKPICard('Rata-rata/Tiket', 'Rp ${_formatNumber(data['avgTicket'])}', Icons.analytics, const Color(0xFFE07A5F), growth: -2.1, growthLabel: 'vs periode sebelumnya'),
-                      const SizedBox(width: 12),
-                      _buildKPICard('Rata-rata/Hari', 'Rp ${_formatNumber((data['revenue'] / (_selectedRange.contains('Bulan') ? 30 : _selectedRange.contains('Minggu') ? 7 : 1)).round())}', Icons.calendar_today, const Color(0xFF9B59B6)),
-                    ],
-                  );
-                },
-              ),
-            ),
-
-          // MRR Card
-          _buildSectionTitle('Monthly Recurring Revenue (MRR)'),
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text('MRR Saat Ini', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
-                      Text('Rp ${_formatNumber(312000000)}', style: GoogleFonts.plusJakartaSans(fontSize: 28, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                    ]),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(20)),
-                      child: Row(children: [
-                        const Icon(Icons.trending_up, size: 16, color: Color(0xFF17A18A)),
-                        const SizedBox(width: 4),
-                        Text('+15.7% MoM', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
-                      ]),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 20),
-                SizedBox(
-                  height: 120,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: const Color(0xFFE4DFD5), strokeWidth: 1)),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 50, getTitlesWidget: (v, _) => Text('${(v/1e6).toInt()}M', style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))))),
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
-                          final months = ['Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                          if (v.toInt() >= 0 && v.toInt() < months.length) return Text(months[v.toInt()], style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B)));
-                          return const Text('');
-                        })),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: _monthlyTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['revenue'] / 1e6)).toList(),
-                          isCurved: true,
-                          color: const Color(0xFF114177),
-                          barWidth: 3,
-                          dotData: FlDotData(show: true, getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(radius: 4, color: const Color(0xFF114177), strokeWidth: 2, strokeColor: Colors.white)),
-                          belowBarData: BarAreaData(show: true, color: const Color(0xFF114177).withValues(alpha: 0.1)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Occupancy Overview
-          _buildSectionTitle('Ringkasan Occupancy'),
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 600;
-                if (isNarrow) {
-                  return Column(
-                    children: [
-                      _buildOccupancyCard('Rata-rata Keseluruhan', '78%', const Color(0xFF17A18A), Icons.park),
-                      const SizedBox(height: 12),
-                      _buildOccupancyCard('Peak Hour (18-20)', '92%', const Color(0xFFE07A5F), Icons.schedule),
-                      const SizedBox(height: 12),
-                      _buildOccupancyCard('Off Peak (02-05)', '23%', const Color(0xFF76777B), Icons.nightlight),
-                      const SizedBox(height: 12),
-                      _buildOccupancyCard('Weekend vs Weekday', '+15%', const Color(0xFF9B59B6), Icons.weekend),
-                    ],
-                  );
-                }
-                return Row(
-                  children: [
-                    _buildOccupancyCard('Rata-rata Keseluruhan', '78%', const Color(0xFF17A18A), Icons.park),
-                    const SizedBox(width: 12),
-                    _buildOccupancyCard('Peak Hour (18-20)', '92%', const Color(0xFFE07A5F), Icons.schedule),
-                    const SizedBox(width: 12),
-                    _buildOccupancyCard('Off Peak (02-05)', '23%', const Color(0xFF76777B), Icons.nightlight),
-                    const SizedBox(width: 12),
-                    _buildOccupancyCard('Weekend vs Weekday', '+15%', const Color(0xFF9B59B6), Icons.weekend),
-                  ],
-                );
-              },
-            ),
-          ),
-
-          // Quick Stats
-          _buildSectionTitle('Statistik Cepat'),
-          _buildCard(
-            child: Column(
-              children: [
-                _buildQuickStatRow('Total Slot Tersedia', '1.960', Icons.grid_3x3, const Color(0xFF45474A)),
-                _buildQuickStatRow('Rata-rata Durasi Parkir', '2j 45m', Icons.timer, const Color(0xFF114177)),
-                _buildQuickStatRow('Konversi Booking → Check-in', '94.2%', Icons.check_circle, const Color(0xFF17A18A)),
-                _buildQuickStatRow('Refund Rate', '1.3%', Icons.money_off, const Color(0xFFD94B4B)),
-                _buildQuickStatRow('Top Up Wallet / Bulan', 'Rp 1.2 M', Icons.account_balance_wallet, const Color(0xFFE07A5F)),
-                _buildQuickStatRow('Active Subscribers', '1.240', Icons.subscriptions, const Color(0xFF9B59B6)),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============ TAB 2: TREND HARIAN ============
-  Widget _buildDailyTrendTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('Trend Harian (30 Hari Terakhir)'),
-
-          // Revenue Chart
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Pendapatan Harian', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 220,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: const Color(0xFFE4DFD5), strokeWidth: 1)),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 60, getTitlesWidget: (v, _) => Text('${(v/1e6).toStringAsFixed(1)}M', style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))))),
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 5, getTitlesWidget: (v, _) {
-                          if (v.toInt() >= 0 && v.toInt() < _dailyRevenue.length) return Text(_formatDate(_dailyRevenue[v.toInt()]['date']), style: GoogleFonts.plusJakartaSans(fontSize: 8, color: const Color(0xFF76777B)));
-                          return const Text('');
-                        })),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: _dailyRevenue.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['revenue'] / 1e6)).toList(),
-                          isCurved: true,
-                          color: const Color(0xFF114177),
-                          barWidth: 2,
-                          dotData: FlDotData(show: false),
-                          belowBarData: BarAreaData(show: true, color: const Color(0xFF114177).withValues(alpha: 0.1)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Transactions Chart
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Volume Transaksi Harian', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 180,
-                  child: BarChart(
-                    BarChartData(
-                      gridData: FlGridData(show: false),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text('${(v/1000).toInt()}k', style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))))),
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 5, getTitlesWidget: (v, _) {
-                          if (v.toInt() >= 0 && v.toInt() < _dailyRevenue.length) return Text(_formatDate(_dailyRevenue[v.toInt()]['date']), style: GoogleFonts.plusJakartaSans(fontSize: 8, color: const Color(0xFF76777B)));
-                          return const Text('');
-                        })),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      barGroups: _dailyRevenue.asMap().entries.map((e) => BarChartGroupData(x: e.key, barRods: [
-                        BarChartRodData(toY: e.value['transactions'].toDouble(), color: const Color(0xFF17A18A), width: 10, borderRadius: BorderRadius.circular(4)),
-                      ])).toList(),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-
-          // Occupancy Chart
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Occupancy Rate Harian', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 180,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: const Color(0xFFE4DFD5), strokeWidth: 1)),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 40, getTitlesWidget: (v, _) => Text('${v.toInt()}%', style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))))),
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, interval: 5, getTitlesWidget: (v, _) {
-                          if (v.toInt() >= 0 && v.toInt() < _dailyRevenue.length) return Text(_formatDate(_dailyRevenue[v.toInt()]['date']), style: GoogleFonts.plusJakartaSans(fontSize: 8, color: const Color(0xFF76777B)));
-                          return const Text('');
-                        })),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        LineChartBarData(
-                          spots: _dailyRevenue.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['occupancy'])).toList(),
-                          isCurved: true,
-                          color: const Color(0xFFE07A5F),
-                          barWidth: 2,
-                          dotData: FlDotData(show: false),
-                          belowBarData: BarAreaData(show: true, color: const Color(0xFFE07A5F).withValues(alpha: 0.1)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============ TAB 3: PER LOKASI ============
-  Widget _buildLocationTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('Pendapatan per Lokasi'),
-          _buildCard(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _locationRevenue.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE4DFD5)),
-              itemBuilder: (_, i) {
-                final loc = _locationRevenue[i];
-                return _buildLocationRow(loc, i + 1);
-              },
-            ),
-          ),
-
-          _buildSectionTitle('Pendapatan per Zona/Kota'),
-          _buildCard(
-            child: ListView.separated(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _zoneRevenue.length,
-              separatorBuilder: (_, __) => const Divider(height: 1, color: Color(0xFFE4DFD5)),
-              itemBuilder: (_, i) {
-                final zone = _zoneRevenue[i];
-                return _buildZoneRow(zone);
-              },
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildLocationRow(Map<String, dynamic> loc, int rank) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Container(width: 32, height: 32, decoration: BoxDecoration(color: rank <= 3 ? const Color(0xFFE07A5F).withValues(alpha: 0.1) : const Color(0xFFE4DFD5), borderRadius: BorderRadius.circular(8)), child: Center(child: Text('$rank', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: rank <= 3 ? const Color(0xFFE07A5F) : const Color(0xFF76777B))))),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis),
-              Text(loc['city'], style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
-            ]),
-          ),
-          Flexible(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('Rp ${_formatNumber(loc['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis),
-              Text('${loc['transactions']} txn', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
-            ]),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: _occupancyColor(loc['occupancy']).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('${loc['occupancy']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: _occupancyColor(loc['occupancy'])))),
-              const SizedBox(height: 4),
-              Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text('+${loc['growth']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)))),
-            ]),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildZoneRow(Map<String, dynamic> zone) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 12),
-      child: Row(
-        children: [
-          Container(width: 40, height: 40, decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.location_city, color: Color(0xFF114177), size: 20)),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-              Text(zone['zone'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold), overflow: TextOverflow.ellipsis),
-              Text('${zone['locations']} lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
-            ]),
-          ),
-          Flexible(
-            child: Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-              Text('Rp ${_formatNumber(zone['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis),
-              Text('Occupancy: ${zone['occupancy']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
-            ]),
-          ),
-          const SizedBox(width: 12),
-          Flexible(
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(color: zone['growth'] > 15 ? const Color(0xFF17A18A).withValues(alpha: 0.1) : const Color(0xFFE07A5F).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-              child: Text('+${zone['growth']}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: zone['growth'] > 15 ? const Color(0xFF17A18A) : const Color(0xFFE07A5F))),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============ TAB 4: PER TIPE KENDARAAN ============
-  Widget _buildVehicleTypeTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('Pendapatan per Tipe Kendaraan'),
-          _buildCard(
-            child: Column(
-              children: [
-                // Pie Chart
-                SizedBox(
-                  height: 220,
-                  child: PieChart(
-                    PieChartData(
-                      sections: _vehicleTypeRevenue.asMap().entries.map((e) {
-                        final v = e.value;
-                        return PieChartSectionData(
-                          value: v['percentage'],
-                          title: '${v['percentage']}%',
-                          color: v['color'],
-                          radius: 80,
-                          titleStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-                          badgeWidget: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: v['color'])),
-                          badgePositionPercentageOffset: 1.3,
-                        );
-                      }).toList(),
-                      centerSpaceRadius: 50,
-                      sectionsSpace: 2,
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                // Details
-                ..._vehicleTypeRevenue.map((v) => _buildVehicleTypeRow(v)).toList(),
-              ],
-            ),
-          ),
-
-          _buildSectionTitle('Perbandingan Tarif per Tipe'),
-          _buildCard(
-            child: Column(
-              children: _vehicleTypeRevenue.map((v) => _buildRateComparisonRow(v)).toList(),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildVehicleTypeRow(Map<String, dynamic> v) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: v['color'], shape: BoxShape.circle)),
-          const SizedBox(width: 12),
-          Expanded(child: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
-          Flexible(child: Text('Rp ${_formatNumber(v['revenue'])}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 16),
-          Flexible(child: Text('${v['transactions']} txn', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
-          const SizedBox(width: 12),
-          Flexible(child: Text('Avg: Rp ${_formatNumber(v['avgTicket'])}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildRateComparisonRow(Map<String, dynamic> v) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: v['color'], shape: BoxShape.circle)),
-          const SizedBox(width: 12),
-          Expanded(child: Text(v['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600), overflow: TextOverflow.ellipsis)),
-          Flexible(
-            child: Container(
-              height: 8,
-              width: 120,
-              child: Stack(
-                children: [
-                  Container(height: 8, decoration: BoxDecoration(color: const Color(0xFFE4DFD5), borderRadius: BorderRadius.circular(4))),
-                  FractionallySizedBox(widthFactor: (v['avgTicket'] / 70000).clamp(0.0, 1.0), child: Container(height: 8, decoration: BoxDecoration(color: v['color'], borderRadius: BorderRadius.circular(4)))),
-                ],
-              ),
-            ),
-          ),
-          const SizedBox(width: 12),
-          Flexible(child: Text('Rp ${_formatNumber(v['avgTicket'])}/jam', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis)),
-        ],
-      ),
-    );
-  }
-
-  // ============ TAB 5: FORECAST ============
-  Widget _buildForecastTab() {
-    final nextMonthForecast = _monthlyTrend.last['revenue'] * 1.15;
-    final nextQuarterForecast = _monthlyTrend.last['revenue'] * 3 * 1.12;
-
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('Forecast & Proyeksi', subtitle: 'Berdasarkan trend 6 bulan terakhir (linear regression sederhana)'),
-
-          // Forecast Cards
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: LayoutBuilder(
-              builder: (context, constraints) {
-                final isNarrow = constraints.maxWidth < 600;
-                if (isNarrow) {
-                  return Column(
-                    children: [
-                      _buildForecastCard('Bulan Depan', 'Rp ${_formatNumber(nextMonthForecast.round())}', '+15%', const Color(0xFF114177), Icons.event),
-                      const SizedBox(height: 12),
-                      _buildForecastCard('Triwulan Depan', 'Rp ${_formatNumber(nextQuarterForecast.round())}', '+12%', const Color(0xFF17A18A), Icons.date_range),
-                      const SizedBox(height: 12),
-                      _buildForecastCard('Tahun Depan (Est.)', 'Rp ${_formatNumber((_revenueData['year']!['revenue'] * 1.22).round())}', '+22%', const Color(0xFF9B59B6), Icons.trending_up),
-                    ],
-                  );
-                }
-                return Row(
-                  children: [
-                    _buildForecastCard('Bulan Depan', 'Rp ${_formatNumber(nextMonthForecast.round())}', '+15%', const Color(0xFF114177), Icons.event),
-                    const SizedBox(width: 12),
-                    _buildForecastCard('Triwulan Depan', 'Rp ${_formatNumber(nextQuarterForecast.round())}', '+12%', const Color(0xFF17A18A), Icons.date_range),
-                    const SizedBox(width: 12),
-                    _buildForecastCard('Tahun Depan (Est.)', 'Rp ${_formatNumber((_revenueData['year']!['revenue'] * 1.22).round())}', '+22%', const Color(0xFF9B59B6), Icons.trending_up),
-                  ],
-                );
-              },
-            ),
-          ),
-
-          // Forecast Chart
-          _buildCard(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Proyeksi Pendapatan Bulanan', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
-                const SizedBox(height: 16),
-                SizedBox(
-                  height: 220,
-                  child: LineChart(
-                    LineChartData(
-                      gridData: FlGridData(show: true, drawVerticalLine: false, getDrawingHorizontalLine: (v) => FlLine(color: const Color(0xFFE4DFD5), strokeWidth: 1)),
-                      titlesData: FlTitlesData(
-                        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, reservedSize: 60, getTitlesWidget: (v, _) => Text('${(v/1e6).toInt()}M', style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))))),
-                        bottomTitles: AxisTitles(sideTitles: SideTitles(showTitles: true, getTitlesWidget: (v, _) {
-                          final allMonths = ['Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des', 'Jan\'25', 'Feb\'25', 'Mar\'25'];
-                          if (v.toInt() >= 0 && v.toInt() < allMonths.length) return Text(allMonths[v.toInt()], style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B)));
-                          return const Text('');
-                        })),
-                        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                      ),
-                      borderData: FlBorderData(show: false),
-                      lineBarsData: [
-                        // Actual
-                        LineChartBarData(
-                          spots: _monthlyTrend.asMap().entries.map((e) => FlSpot(e.key.toDouble(), e.value['revenue'] / 1e6)).toList(),
-                          isCurved: true,
-                          color: const Color(0xFF114177),
-                          barWidth: 3,
-                          dotData: FlDotData(show: true, getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(radius: 4, color: const Color(0xFF114177), strokeWidth: 2, strokeColor: Colors.white)),
-                        ),
-                        // Forecast
-                        LineChartBarData(
-                          spots: [
-                            FlSpot(5, _monthlyTrend.last['revenue'] / 1e6),
-                            FlSpot(6, nextMonthForecast / 1e6),
-                            FlSpot(7, (nextMonthForecast * 1.05) / 1e6),
-                            FlSpot(8, (nextMonthForecast * 1.10) / 1e6),
-                          ],
-                          isCurved: true,
-                          color: const Color(0xFFE07A5F),
-                          barWidth: 3,
-                          dashArray: [8, 4],
-                          dotData: FlDotData(show: true, getDotPainter: (_, __, ___, ____) => FlDotCirclePainter(radius: 4, color: const Color(0xFFE07A5F), strokeWidth: 2, strokeColor: Colors.white)),
-                          belowBarData: BarAreaData(show: true, color: const Color(0xFFE07A5F).withValues(alpha: 0.1)),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Row(
-                  children: [
-                    _buildLegendDot('Aktual', const Color(0xFF114177)),
-                    const SizedBox(width: 16),
-                    _buildLegendDot('Forecast', const Color(0xFFE07A5F), dashed: true),
-                  ],
-                ),
-              ],
-            ),
-          ),
-
-          // Assumptions
-          _buildSectionTitle('Asumsi Forecast'),
-          _buildCard(
-            child: Column(
-              children: [
-                _buildAssumptionRow('Pertumbuhan Organik', '15% YoY', 'Berdasarkan trend 6 bulan'),
-                _buildAssumptionRow('Expansi Lokasi Baru', '+2 lokasi/Q1', 'Jakarta Timur & Bekasi'),
-                _buildAssumptionRow('EV Adoption Rate', '+25% per kuartal', 'Insentif pemerintah'),
-                _buildAssumptionRow('Weekend Premium', '+20% revenue', 'Dynamic pricing aktif'),
-                _buildAssumptionRow('Churn Rate', '< 5% bulanan', 'Retensi langganan tinggi'),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // ============ HELPER WIDGETS ============
-  Widget _buildSectionTitle(String title, {String? subtitle}) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-          if (subtitle != null) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCard({required Widget child, EdgeInsets? padding}) {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: padding ?? const EdgeInsets.all(16),
-      decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4DFD5))),
-      child: child,
-    );
-  }
-
-  Widget _buildKPICard(String label, String value, IconData icon, Color color, {double? growth, String? growthLabel}) {
-    return Flexible(
-      fit: FlexFit.tight,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 140),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
-          child: Column(
+          title: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
             children: [
-              Row(
-                children: [
-                  Icon(icon, size: 20, color: color),
-                  const SizedBox(width: 8),
-                  Flexible(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
+              Text('Laporan Omzet & Keuangan', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              Text('Omzet Bulanan • Pengeluaran • Laba Bersih', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+            ],
+          ),
+          actions: [
+            // Dropdown Pilihan Bulan
+            Container(
+              margin: const EdgeInsets.only(right: 14),
+              child: DropdownButtonHideUnderline(
+                child: DropdownButton<String>(
+                  value: _selectedMonth,
+                  icon: const Icon(Icons.keyboard_arrow_down, size: 18, color: Color(0xFF114177)),
+                  borderRadius: BorderRadius.circular(12),
+                  items: _months.map((m) {
+                    return DropdownMenuItem<String>(
+                      value: m,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _selectedMonth == m ? const Color(0xFF114177).withValues(alpha: 0.08) : Colors.transparent,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          m,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: _selectedMonth == m ? FontWeight.bold : FontWeight.w500,
+                            color: const Color(0xFF114177),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                  onChanged: (v) {
+                    if (v != null) {
+                      setState(() {
+                        _selectedMonth = v;
+                        _inspectedRevenueIndex = null;
+                        _inspectedExpenseIndex = null;
+                      });
+                    }
+                  },
+                ),
+              ),
+            ),
+          ],
+        ),
+        body: ListView(
+          padding: const EdgeInsets.all(18),
+          children: [
+            // ==========================================
+            // 1. TOTAL OMZET BULANAN & CHART GUNUNG
+            // ==========================================
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
                 ],
               ),
-              const SizedBox(height: 8),
-              Flexible(child: FittedBox(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: color)))),
-              if (growth != null) ...[
-                const SizedBox(height: 4),
-                Flexible(child: Row(children: [
-                  Icon(growth >= 0 ? Icons.trending_up : Icons.trending_down, size: 12, color: growth >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B)),
-                  const SizedBox(width: 4),
-                  Flexible(child: Text('${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}%', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: growth >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B)), overflow: TextOverflow.ellipsis)),
-                  if (growthLabel != null) ...[const SizedBox(width: 4), Flexible(child: Text(growthLabel, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis))],
-                ])),
-              ],
-            ],
-          ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Card Omzet
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF114177).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.monetization_on_rounded, size: 22, color: Color(0xFF114177)),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'TOTAL OMZET BULANAN',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF76777B),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              Text(
+                                data['monthLabel'],
+                                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF17A18A).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          data['omzetGrowth'],
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Nilai Nominal Besar
+                  Text(
+                    _inspectedRevenueIndex != null && _inspectedRevenueIndex! < omzetValues.length
+                        ? omzetValues[_inspectedRevenueIndex!]
+                        : data['omzetTotal'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF114177),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _inspectedRevenueIndex != null && _inspectedRevenueIndex! < omzetDates.length
+                        ? 'Periode: ${omzetDates[_inspectedRevenueIndex!]} (Sentuh grafik untuk titik lain)'
+                        : '${data['omzetTrx']} • Rata-rata stabil',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ⛰️ Smooth Mountain Chart Omzet (Trading Style)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double canvasWidth = constraints.maxWidth;
+                      const double canvasHeight = 160.0;
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (details) => _onOmzetChartTouch(details.localPosition.dx, canvasWidth, omzetChartData.length),
+                            onPanStart: (details) => _onOmzetChartTouch(details.localPosition.dx, canvasWidth, omzetChartData.length),
+                            onPanUpdate: (details) => _onOmzetChartTouch(details.localPosition.dx, canvasWidth, omzetChartData.length),
+                            child: SizedBox(
+                              width: canvasWidth,
+                              height: canvasHeight,
+                              child: CustomPaint(
+                                painter: _MountainChartPainter(
+                                  data: omzetChartData,
+                                  pointValues: omzetValues,
+                                  pointDates: omzetDates,
+                                  xLabels: omzetLabels,
+                                  inspectedIndex: _inspectedRevenueIndex,
+                                  lineColor: const Color(0xFF114177),
+                                  gradientStart: const Color(0xFF114177).withValues(alpha: 0.35),
+                                  gradientEnd: const Color(0xFF114177).withValues(alpha: 0.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // ==========================================
+            // 2. TOTAL PENGELUARAN (INJECT SALDO) & CHART
+            // ==========================================
+            Container(
+              padding: const EdgeInsets.all(18),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.03),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Header Card Pengeluaran
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFE07A5F).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: const Icon(Icons.outbox_rounded, size: 22, color: Color(0xFFE07A5F)),
+                          ),
+                          const SizedBox(width: 12),
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'TOTAL PENGELUARAN & INJEK SALDO',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF76777B),
+                                  letterSpacing: 0.6,
+                                ),
+                              ),
+                              Text(
+                                'Beban Injeksi Saldo & Operasional',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE07A5F).withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          data['expenseGrowth'],
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 14),
+
+                  // Nilai Nominal Pengeluaran
+                  Text(
+                    _inspectedExpenseIndex != null && _inspectedExpenseIndex! < expenseValues.length
+                        ? expenseValues[_inspectedExpenseIndex!]
+                        : data['expenseTotal'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFE07A5F),
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    _inspectedExpenseIndex != null && _inspectedExpenseIndex! < expenseDates.length
+                        ? 'Periode: ${expenseDates[_inspectedExpenseIndex!]} (Sentuh grafik untuk titik lain)'
+                        : 'Termasuk injeksi saldo dompet pengguna dan biaya merchant',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Rincian Pengeluaran Singkat
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 6,
+                    children: expenseBreakdown.map((b) {
+                      return Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Container(width: 8, height: 8, decoration: BoxDecoration(color: b['color'], shape: BoxShape.circle)),
+                            const SizedBox(width: 6),
+                            Text('${b['name']}: ', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                            Text(b['amount'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                          ],
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // ⛰️ Smooth Mountain Chart Pengeluaran (Trading Style)
+                  LayoutBuilder(
+                    builder: (context, constraints) {
+                      final double canvasWidth = constraints.maxWidth;
+                      const double canvasHeight = 160.0;
+                      return Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE5E7EB)),
+                        ),
+                        child: ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTapDown: (details) => _onExpenseChartTouch(details.localPosition.dx, canvasWidth, expenseChartData.length),
+                            onPanStart: (details) => _onExpenseChartTouch(details.localPosition.dx, canvasWidth, expenseChartData.length),
+                            onPanUpdate: (details) => _onExpenseChartTouch(details.localPosition.dx, canvasWidth, expenseChartData.length),
+                            child: SizedBox(
+                              width: canvasWidth,
+                              height: canvasHeight,
+                              child: CustomPaint(
+                                painter: _MountainChartPainter(
+                                  data: expenseChartData,
+                                  pointValues: expenseValues,
+                                  pointDates: expenseDates,
+                                  xLabels: expenseLabels,
+                                  inspectedIndex: _inspectedExpenseIndex,
+                                  lineColor: const Color(0xFFE07A5F),
+                                  gradientStart: const Color(0xFFE07A5F).withValues(alpha: 0.35),
+                                  gradientEnd: const Color(0xFFE07A5F).withValues(alpha: 0.0),
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      );
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 18),
+
+            // ==========================================
+            // 3. LABA BERSIH (NET PROFIT)
+            // ==========================================
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0xFF114177), Color(0xFF0C2B50)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: const Color(0xFF114177).withValues(alpha: 0.25),
+                    blurRadius: 14,
+                    offset: const Offset(0, 6),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(8),
+                            decoration: BoxDecoration(
+                              color: Colors.white.withValues(alpha: 0.15),
+                              borderRadius: BorderRadius.circular(10),
+                            ),
+                            child: const Icon(Icons.savings_rounded, color: Colors.white, size: 22),
+                          ),
+                          const SizedBox(width: 10),
+                          Text(
+                            'LABA BERSIH (NET PROFIT)',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white.withValues(alpha: 0.85),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF17A18A),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: Text(
+                          'Margin ${data['netMargin']}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+
+                  Text(
+                    data['netProfitTotal'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 30,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      letterSpacing: -0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Row(
+                    children: [
+                      const Icon(Icons.check_circle_rounded, color: Color(0xFF17A18A), size: 16),
+                      const SizedBox(width: 6),
+                      Text(
+                        '${data['profitGrowth']} • Arus Kas Bersih Sehat',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: Colors.white.withValues(alpha: 0.9),
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 18),
+
+                  // Rumus Kalkulasi Bersih
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(color: Colors.white.withValues(alpha: 0.15)),
+                    ),
+                    child: Column(
+                      children: [
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Total Omzet Masuk:', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white.withValues(alpha: 0.8))),
+                            Text(data['omzetTotal'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Beban & Injeksi Saldo:', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFFFFB4A2))),
+                            Text('- ${data['expenseTotal']}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFFB4A2))),
+                          ],
+                        ),
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 8),
+                          child: Divider(color: Colors.white.withValues(alpha: 0.15), height: 1),
+                        ),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('Hasil Laba Bersih Kas:', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                            Text(data['netProfitTotal'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w800, color: const Color(0xFF48CAE4))),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 24),
+          ],
         ),
       ),
     );
   }
+}
 
-  Widget _buildOccupancyCard(String label, String value, Color color, IconData icon) {
-    return Flexible(
-      fit: FlexFit.tight,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 120),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 24, color: color),
-              const SizedBox(height: 8),
-              Flexible(child: FittedBox(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: color)))),
-              Flexible(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: color), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis)),
-            ],
-          ),
+// ─── CUSTOM PAINTER: SMOOTH MOUNTAIN AREA CHART (TRADING STYLE SEPERTI DI SUPER ADMIN) ───
+class _MountainChartPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> pointValues;
+  final List<String> pointDates;
+  final List<String> xLabels;
+  final int? inspectedIndex;
+  final Color lineColor;
+  final Color gradientStart;
+  final Color gradientEnd;
+
+  _MountainChartPainter({
+    required this.data,
+    required this.pointValues,
+    required this.pointDates,
+    required this.xLabels,
+    this.inspectedIndex,
+    required this.lineColor,
+    required this.gradientStart,
+    required this.gradientEnd,
+  });
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset p1,
+    Offset p2,
+    Paint paint, {
+    double dashWidth = 4,
+    double dashSpace = 4,
+  }) {
+    final double dx = p2.dx - p1.dx;
+    final double dy = p2.dy - p1.dy;
+    final double distance = math.sqrt(dx * dx + dy * dy);
+    if (distance == 0) return;
+    final double unitX = dx / distance;
+    final double unitY = dy / distance;
+
+    double current = 0;
+    while (current < distance) {
+      final double start = current;
+      final double end = math.min(current + dashWidth, distance);
+      canvas.drawLine(
+        Offset(p1.dx + unitX * start, p1.dy + unitY * start),
+        Offset(p1.dx + unitX * end, p1.dy + unitY * end),
+        paint,
+      );
+      current += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const double marginHorizontal = 24.0;
+    final double chartWidth = size.width - (marginHorizontal * 2);
+    final double stepX = chartWidth / (data.length - 1);
+    const double topPadding = 24.0;
+    final double baselineY = size.height - 34.0;
+    final double availableHeight = baselineY - topPadding;
+
+    final List<Offset> points = [];
+    for (int i = 0; i < data.length; i++) {
+      final double x = marginHorizontal + (i * stepX);
+      final double y = topPadding + (1.0 - data[i].clamp(0.0, 1.0)) * availableHeight;
+      points.add(Offset(x, y));
+    }
+
+    // Gridlines Horizontal
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE5E7EB).withValues(alpha: 0.8)
+      ..strokeWidth = 1.0;
+
+    for (final double ratio in [0.25, 0.50, 0.75]) {
+      final double yGrid = topPadding + ratio * availableHeight;
+      _drawDashedLine(
+        canvas,
+        Offset(marginHorizontal - 15, yGrid),
+        Offset(size.width - marginHorizontal + 15, yGrid),
+        gridPaint,
+        dashWidth: 4,
+        dashSpace: 4,
+      );
+    }
+
+    // Baseline Axis
+    final baselinePaint = Paint()
+      ..color = const Color(0xFFE5E7EB)
+      ..strokeWidth = 1.2;
+    canvas.drawLine(
+      Offset(marginHorizontal - 15, baselineY),
+      Offset(size.width - marginHorizontal + 15, baselineY),
+      baselinePaint,
+    );
+
+    // Area Gunung Spline
+    final path = Path();
+    path.moveTo(points.first.dx, baselineY);
+    path.lineTo(points.first.dx, points.first.dy);
+
+    const double tension = 0.22;
+    for (int i = 0; i < points.length - 1; i++) {
+      final Offset p0 = i > 0 ? points[i - 1] : points[0];
+      final Offset p1 = points[i];
+      final Offset p2 = points[i + 1];
+      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+
+      final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
+      final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
+
+      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
+    }
+
+    path.lineTo(points.last.dx, baselineY);
+    path.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [gradientStart, gradientEnd],
+      ).createShader(Rect.fromLTWH(0, topPadding, size.width, availableHeight))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(path, fillPaint);
+
+    // Garis Kurva Utama
+    final strokePath = Path();
+    strokePath.moveTo(points.first.dx, points.first.dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final Offset p0 = i > 0 ? points[i - 1] : points[0];
+      final Offset p1 = points[i];
+      final Offset p2 = points[i + 1];
+      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+
+      final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
+      final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
+
+      strokePath.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
+    }
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(strokePath, linePaint);
+
+    // Sumbu X Label Periode
+    for (int i = 0; i < xLabels.length && i < points.length; i++) {
+      final bool isSelected = inspectedIndex == i;
+
+      final labelSpan = TextSpan(
+        text: xLabels[i],
+        style: TextStyle(
+          fontSize: isSelected ? 10 : 9.5,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+          color: isSelected ? lineColor : const Color(0xFF76777B),
         ),
-      ),
-    );
+      );
+      final labelTp = TextPainter(
+        text: labelSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final double labelX = points[i].dx - (labelTp.width / 2);
+      final double labelY = baselineY + 8.0;
+
+      if (isSelected) {
+        final pillRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(labelX - 4, labelY - 2, labelTp.width + 8, labelTp.height + 4),
+          const Radius.circular(4),
+        );
+        canvas.drawRRect(pillRect, Paint()..color = lineColor.withValues(alpha: 0.15));
+      }
+
+      labelTp.paint(canvas, Offset(labelX, labelY));
+    }
+
+    // Kursor Inspeksi Crosshair
+    if (inspectedIndex != null && inspectedIndex! >= 0 && inspectedIndex! < points.length) {
+      final Offset inspectPt = points[inspectedIndex!];
+
+      // Garis vertikal crosshair
+      final crosshairVerticalPaint = Paint()
+        ..color = lineColor.withValues(alpha: 0.7)
+        ..strokeWidth = 1.2;
+      _drawDashedLine(
+        canvas,
+        Offset(inspectPt.dx, topPadding - 10),
+        Offset(inspectPt.dx, baselineY),
+        crosshairVerticalPaint,
+        dashWidth: 3,
+        dashSpace: 3,
+      );
+
+      // Titik fokus dengan halo
+      canvas.drawCircle(
+        inspectPt,
+        9,
+        Paint()..color = lineColor.withValues(alpha: 0.25),
+      );
+      canvas.drawCircle(
+        inspectPt,
+        5,
+        Paint()..color = lineColor,
+      );
+      canvas.drawCircle(
+        inspectPt,
+        2.5,
+        Paint()..color = Colors.white,
+      );
+
+      // Tooltip Box Mengambang
+      if (inspectedIndex! < pointDates.length && inspectedIndex! < pointValues.length) {
+        final tooltipSpan = TextSpan(
+          children: [
+            TextSpan(
+              text: '${pointDates[inspectedIndex!]} • ',
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w500, color: Color(0xFFD1D5DB)),
+            ),
+            TextSpan(
+              text: pointValues[inspectedIndex!],
+              style: const TextStyle(fontSize: 10, fontWeight: FontWeight.w800, color: Colors.white),
+            ),
+          ],
+        );
+        final tp = TextPainter(
+          text: tooltipSpan,
+          textDirection: TextDirection.ltr,
+        )..layout();
+
+        final double boxWidth = tp.width + 16.0;
+        const double boxHeight = 24.0;
+        double boxX = inspectPt.dx - (boxWidth / 2);
+        double boxY = inspectPt.dy - boxHeight - 12.0;
+
+        if (boxX < marginHorizontal) boxX = marginHorizontal;
+        if (boxX + boxWidth > size.width - marginHorizontal) {
+          boxX = size.width - marginHorizontal - boxWidth;
+        }
+        if (boxY < 2) boxY = inspectPt.dy + 12.0;
+
+        final boxRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(boxX, boxY, boxWidth, boxHeight),
+          const Radius.circular(6),
+        );
+
+        canvas.drawRRect(boxRect, Paint()..color = const Color(0xFF1E293B));
+        tp.paint(canvas, Offset(boxX + 8.0, boxY + 5.0));
+      }
+    }
   }
 
-  Widget _buildQuickStatRow(String label, String value, IconData icon, Color color) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Container(width: 36, height: 36, decoration: BoxDecoration(color: color.withValues(alpha: 0.1), borderRadius: BorderRadius.circular(8)), child: Icon(icon, size: 18, color: color)),
-          const SizedBox(width: 12),
-          Expanded(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF45474A)))),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildForecastCard(String label, String value, String growth, Color color, IconData icon) {
-    return Flexible(
-      fit: FlexFit.tight,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(minWidth: 120),
-        child: Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(color: color.withValues(alpha: 0.08), borderRadius: BorderRadius.circular(12), border: Border.all(color: color.withValues(alpha: 0.2))),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(icon, size: 24, color: color),
-              const SizedBox(height: 8),
-              Flexible(child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), textAlign: TextAlign.center, overflow: TextOverflow.ellipsis)),
-              const SizedBox(height: 4),
-              Flexible(child: FittedBox(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: color), textAlign: TextAlign.center))),
-              const SizedBox(height: 4),
-              Flexible(child: Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)), child: Text(growth, style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))))),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLegendDot(String label, Color color, {bool dashed = false}) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(width: 16, height: 4, decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(2))),
-        const SizedBox(width: 6),
-        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-      ],
-    );
-  }
-
-  Widget _buildAssumptionRow(String label, String value, String detail) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 10),
-      child: Row(
-        children: [
-          Expanded(flex: 2, child: Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)), overflow: TextOverflow.ellipsis)),
-          Expanded(child: Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177)), overflow: TextOverflow.ellipsis)),
-          Expanded(flex: 2, child: Text(detail, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
-        ],
-      ),
-    );
-  }
-
-  Color _occupancyColor(double occupancy) {
-    if (occupancy >= 85) return const Color(0xFFD94B4B);
-    if (occupancy >= 70) return const Color(0xFFE07A5F);
-    return const Color(0xFF17A18A);
-  }
-
-  String _formatNumber(int n) {
-    return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day.toString().padLeft(2, '0')}/${date.month.toString().padLeft(2, '0')}';
+  @override
+  bool shouldRepaint(covariant _MountainChartPainter oldDelegate) {
+    return oldDelegate.data != data ||
+        oldDelegate.inspectedIndex != inspectedIndex ||
+        oldDelegate.lineColor != lineColor;
   }
 }

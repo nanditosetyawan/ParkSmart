@@ -81,26 +81,21 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       'vehiclePlate': i < 102 ? 'AB ${2000 + i} CD' : null,
       'pricingOverride': null,
     }),
-    'loc_3': List.generate(450, (i) => {
-      'id': 'slot_${i + 1}',
-      'code': 'B${(i ~/ 112) + 1}-${(i % 112 + 1).toString().padLeft(3, '0')}',
-      'floor': ['B1', 'B2', 'B3', 'B4'][i ~/ 112],
-      'type': i % 12 == 0 ? 'EV' : (i % 18 == 0 ? 'Disabilitas' : (i % 25 == 0 ? 'Motor' : 'Reguler')),
-      'status': i < 415 ? 'Terisi' : 'Tersedia',
-      'vehiclePlate': i < 415 ? 'B ${3000 + i} XYZ' : null,
-      'pricingOverride': null,
+    'loc_3': List.generate(450, (i) {
+      final floorIdx = (i ~/ 113).clamp(0, 3);
+      final floorName = ['B1', 'B2', 'B3', 'B4'][floorIdx];
+      final slotNum = (i % 113 + 1).toString().padLeft(3, '0');
+      return {
+        'id': 'slot_${i + 1}',
+        'code': '$floorName-$slotNum',
+        'floor': floorName,
+        'type': i % 12 == 0 ? 'EV' : (i % 18 == 0 ? 'Disabilitas' : (i % 25 == 0 ? 'Motor' : 'Reguler')),
+        'status': i < 415 ? 'Terisi' : 'Tersedia',
+        'vehiclePlate': i < 415 ? 'B ${3000 + i} XYZ' : null,
+        'pricingOverride': null,
+      };
     }),
   };
-
-  // Mock pricing rules
-  final List<Map<String, dynamic>> _pricingRules = [
-    {'id': 'pr_1', 'name': 'Tarif Standar Mall', 'location': 'Semua Lokasi', 'vehicleType': 'Mobil', 'baseHourly': 5000, 'timeRules': [], 'isActive': true},
-    {'id': 'pr_2', 'name': 'Tarif Motor', 'location': 'Semua Lokasi', 'vehicleType': 'Motor', 'baseHourly': 3000, 'timeRules': [], 'isActive': true},
-    {'id': 'pr_3', 'name': 'Tarif EV Charging', 'location': 'Semua Lokasi', 'vehicleType': 'EV', 'baseHourly': 7000, 'timeRules': [], 'isActive': true},
-    {'id': 'pr_4', 'name': 'Malam Hari (22:00-06:00)', 'location': 'Central Park Mall', 'vehicleType': 'Mobil', 'baseHourly': 3000, 'timeRules': [{'start': '22:00', 'end': '06:00', 'multiplier': 0.6}], 'isActive': true},
-    {'id': 'pr_5', 'name': 'Weekend Peak', 'location': 'Grand Indonesia', 'vehicleType': 'Mobil', 'baseHourly': 10000, 'timeRules': [{'days': ['Sat', 'Sun'], 'start': '10:00', 'end': '20:00', 'multiplier': 1.5}], 'isActive': true},
-    {'id': 'pr_6', 'name': 'Hari Libur Nasional', 'location': 'Semua Lokasi', 'vehicleType': 'Semua', 'baseHourly': 6000, 'timeRules': [{'isHoliday': true, 'multiplier': 1.3}], 'isActive': true},
-  ];
 
   String _selectedLocationId = 'loc_1';
   String _searchQuery = '';
@@ -110,7 +105,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -151,24 +146,49 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   Widget _buildSectionTitle(String title, {String? subtitle, VoidCallback? onAction, String? actionLabel}) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
+      padding: const EdgeInsets.fromLTRB(20, 18, 20, 8),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-              if (subtitle != null) Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-            ],
-          ),
-          if (onAction != null && actionLabel != null)
-            TextButton.icon(
-              onPressed: onAction,
-              icon: const Icon(Icons.add, size: 16),
-              label: Text(actionLabel, style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
-              style: TextButton.styleFrom(foregroundColor: const Color(0xFF114177)),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ],
             ),
+          ),
+          if (onAction != null && actionLabel != null) ...[
+            const SizedBox(width: 8),
+            ElevatedButton.icon(
+              onPressed: onAction,
+              icon: const Icon(Icons.add_rounded, size: 16, color: Colors.white),
+              label: Text(
+                actionLabel,
+                style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF114177),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                visualDensity: VisualDensity.compact,
+              ),
+            ),
+          ],
         ],
       ),
     );
@@ -181,7 +201,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: child,
     );
@@ -194,7 +214,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _buildSectionTitle('Kelola Lokasi Parkir', subtitle: 'Tambah, edit, hapus lokasi parkir & lihat ringkasan kapasitas', onAction: _showAddLocationDialog, actionLabel: 'Tambah Lokasi'),
+          _buildSectionTitle('Kelola Lokasi Parkir', onAction: _showAddLocationDialog, actionLabel: 'Tambah'),
           _buildCard(
             child: Column(
               children: [
@@ -213,7 +233,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 ),
                 const SizedBox(height: 16),
                 // Location list
-                ..._filteredLocations.map((loc) => _buildLocationRow(loc)).toList(),
+                ..._filteredLocations.map((loc) => _buildLocationRow(loc)),
                 if (_filteredLocations.isEmpty)
                   Padding(
                     padding: const EdgeInsets.all(24),
@@ -238,7 +258,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       decoration: BoxDecoration(
         color: const Color(0xFFF9F9F9),
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
       ),
       child: Row(
         children: [
@@ -284,7 +304,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 // Occupancy bar
                 Stack(
                   children: [
-                    Container(height: 6, decoration: BoxDecoration(color: const Color(0xFFE4DFD5), borderRadius: BorderRadius.circular(3))),
+                    Container(height: 6, decoration: BoxDecoration(color: const Color(0xFFE5E7EB), borderRadius: BorderRadius.circular(3))),
                     FractionallySizedBox(
                       widthFactor: occupancy.clamp(0.0, 1.0),
                       child: Container(height: 6, decoration: BoxDecoration(color: isFull ? const Color(0xFFD94B4B) : const Color(0xFF17A18A), borderRadius: BorderRadius.circular(3))),
@@ -308,8 +328,6 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             itemBuilder: (_) => [
               const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
               const PopupMenuItem(value: 'slots', child: Row(children: [Icon(Icons.grid_view, size: 18), SizedBox(width: 8), Text('Kelola Slot')])),
-              const PopupMenuItem(value: 'pricing', child: Row(children: [Icon(Icons.price_change, size: 18), SizedBox(width: 8), Text('Atur Tarif')])),
-              const PopupMenuItem(value: 'duplicate', child: Row(children: [Icon(Icons.content_copy, size: 18), SizedBox(width: 8), Text('Duplikat')])),
               const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Color(0xFFD94B4B)), SizedBox(width: 8), Text('Hapus', style: TextStyle(color: Color(0xFFD94B4B)))])),
             ],
           ),
@@ -328,12 +346,6 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           _selectedLocationId = loc['id'];
           _tabController.animateTo(1);
         });
-        break;
-      case 'pricing':
-        // Navigate to pricing tab filtered for this location
-        break;
-      case 'duplicate':
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Duplikat ${loc['name']}...')));
         break;
       case 'delete':
         _confirmDeleteLocation(loc);
@@ -354,33 +366,68 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final nameCtrl = TextEditingController(text: loc?['name'] ?? '');
     final cityCtrl = TextEditingController(text: loc?['city'] ?? '');
     final addressCtrl = TextEditingController(text: loc?['address'] ?? '');
-    final baseRateCtrl = TextEditingController(text: loc?['baseRate'].toString() ?? '5000');
-    final floorsCtrl = TextEditingController(text: (loc?['floors'] as List?)?.join(', ') ?? 'B1, B2, B3');
-    final hoursCtrl = TextEditingController(text: loc?['operatingHours'] ?? '06:00 - 23:00');
-    String status = loc?['status'] ?? 'Aktif';
+    final slotsCtrl = TextEditingController(text: loc?['totalSlots']?.toString() ?? '100');
+    final baseRateCtrl = TextEditingController(text: loc?['baseRate']?.toString() ?? '5000');
 
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
-        title: Text(isEdit ? 'Edit Lokasi' : 'Tambah Lokasi Baru', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text(isEdit ? 'Edit Lokasi Parkir' : 'Tambah Lokasi Baru', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 17)),
         content: SingleChildScrollView(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              _buildDialogField('Nama Lokasi', nameCtrl, Icons.local_parking),
-              _buildDialogField('Kota', cityCtrl, Icons.location_city),
-              _buildDialogField('Alamat Lengkap', addressCtrl, Icons.map, maxLines: 2),
-              _buildDialogField('Lantai (pisah koma)', floorsCtrl, Icons.layers),
-              _buildDialogField('Jam Operasional', hoursCtrl, Icons.access_time),
-              _buildDialogField('Tarif Dasar/Jam (Rp)', baseRateCtrl, Icons.attach_money, keyboardType: TextInputType.number),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: status,
-                decoration: InputDecoration(labelText: 'Status', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                isExpanded: true,
-                items: ['Aktif', 'Padat', 'Maintenance', 'Nonaktif'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
-                onChanged: (v) => status = v ?? 'Aktif',
+              // 1. Foto Lokasi
+              Container(
+                margin: const EdgeInsets.only(bottom: 12),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF9FAFB),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF114177).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: const Icon(Icons.add_a_photo_outlined, color: Color(0xFF114177), size: 22),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text('Foto Lokasi / Gedung', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                          Text('Unggah foto tampak gerbang parkir', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                        ],
+                      ),
+                    ),
+                    TextButton(
+                      onPressed: () {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Foto gedung berhasil dipilih!'), backgroundColor: Color(0xFF114177), duration: Duration(seconds: 1)),
+                        );
+                      },
+                      child: Text('Pilih Foto', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                    ),
+                  ],
+                ),
               ),
+              // 2. Nama Lokasi
+              _buildDialogField('Nama Gedung / Lokasi', nameCtrl, Icons.business),
+              // 3. Kota & Alamat
+              _buildDialogField('Kota (cth: Jakarta Barat)', cityCtrl, Icons.location_city),
+              _buildDialogField('Alamat Lengkap', addressCtrl, Icons.place, maxLines: 2),
+              // 4. Jumlah Slot
+              _buildDialogField('Jumlah Slot Parkir', slotsCtrl, Icons.local_parking, keyboardType: TextInputType.number),
+              // 5. Tarif Parkir
+              _buildDialogField('Tarif Parkir (Rp/Jam)', baseRateCtrl, Icons.payments_outlined, keyboardType: TextInputType.number),
             ],
           ),
         ),
@@ -388,13 +435,35 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           TextButton(onPressed: () => Navigator.pop(context), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B)))),
           ElevatedButton(
             onPressed: () {
-              if (nameCtrl.text.isNotEmpty && cityCtrl.text.isNotEmpty && addressCtrl.text.isNotEmpty) {
+              if (nameCtrl.text.isNotEmpty && slotsCtrl.text.isNotEmpty) {
+                setState(() {
+                  if (isEdit) {
+                    loc['name'] = nameCtrl.text;
+                    if (cityCtrl.text.isNotEmpty) loc['city'] = cityCtrl.text;
+                    if (addressCtrl.text.isNotEmpty) loc['address'] = addressCtrl.text;
+                    loc['totalSlots'] = int.tryParse(slotsCtrl.text) ?? loc['totalSlots'];
+                    loc['baseRate'] = int.tryParse(baseRateCtrl.text) ?? loc['baseRate'];
+                  } else {
+                    _locations.insert(0, {
+                      'id': 'loc_${_locations.length + 1}',
+                      'name': nameCtrl.text,
+                      'city': cityCtrl.text.isEmpty ? 'Jakarta' : cityCtrl.text,
+                      'address': addressCtrl.text.isEmpty ? 'Jl. Baru' : addressCtrl.text,
+                      'totalSlots': int.tryParse(slotsCtrl.text) ?? 100,
+                      'occupiedSlots': 0,
+                      'baseRate': int.tryParse(baseRateCtrl.text) ?? 5000,
+                      'operatingHours': '24 Jam',
+                      'floors': ['Lantai 1'],
+                      'status': 'Aktif',
+                    });
+                  }
+                });
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isEdit ? 'Lokasi diperbarui' : 'Lokasi ditambahkan'), backgroundColor: const Color(0xFF17A18A)));
+                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isEdit ? 'Lokasi berhasil diperbarui' : 'Lokasi berhasil ditambahkan'), backgroundColor: const Color(0xFF17A18A)));
               }
             },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177)),
-            child: Text(isEdit ? 'Simpan' : 'Tambah', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
+            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+            child: Text(isEdit ? 'Simpan' : 'Tambah', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -812,213 +881,6 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     );
   }
 
-  // ============ TAB 3: PRICING ============
-  Widget _buildPricingTab() {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.only(bottom: 24),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildSectionTitle('Kelola Aturan Tarif', subtitle: 'Tarif dasar, time-based rules, holiday rates, vehicle-type multipliers', onAction: _showAddPricingDialog, actionLabel: 'Tambah Aturan'),
-          _buildCard(
-            child: Column(
-              children: [
-                // Filter by location
-                DropdownButtonFormField<String>(
-                  isExpanded: true,
-                  decoration: InputDecoration(labelText: 'Filter Lokasi', labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
-                  items: [
-                    const DropdownMenuItem<String>(value: 'all', child: Text('Semua Lokasi')),
-                    ..._locations.map((l) => DropdownMenuItem<String>(value: l['id'] as String, child: Text(l['name'] as String))),
-                  ],
-                  onChanged: (v) {},
-                ),
-                const SizedBox(height: 16),
-                // Pricing rules list
-                ..._pricingRules.map((rule) => _buildPricingRuleRow(rule)).toList(),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildPricingRuleRow(Map<String, dynamic> rule) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: rule['isActive'] ? Colors.white : const Color(0xFFF5F5F5),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: rule['isActive'] ? const Color(0xFFE4DFD5) : const Color(0xFFE4DFD5)),
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(color: rule['isActive'] ? const Color(0xFF17A18A).withValues(alpha: 0.1) : const Color(0xFF76777B).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
-            child: Icon(rule['isActive'] ? Icons.attach_money : Icons.attach_money_outlined, color: rule['isActive'] ? const Color(0xFF17A18A) : const Color(0xFF76777B)),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    Expanded(child: Text(rule['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: rule['isActive'] ? const Color(0xFF1A1A18) : const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(color: rule['isActive'] ? const Color(0xFFD1F2EB) : const Color(0xFFF5F5F5), borderRadius: BorderRadius.circular(4)),
-                      child: Text(rule['isActive'] ? 'Aktif' : 'Nonaktif', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: rule['isActive'] ? const Color(0xFF17A18A) : const Color(0xFF76777B))),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text('${rule['location']} • ${rule['vehicleType']}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                const SizedBox(height: 2),
-                Row(
-                  children: [
-                    Text('Rp ${_formatNumber(rule['baseHourly'])}/jam', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                    if (rule['timeRules'].isNotEmpty) ...[
-                      const SizedBox(width: 12),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFFE07A5F).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                        child: Text('Time-based', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F))),
-                      ),
-                    ],
-                  ],
-                ),
-              ],
-            ),
-          ),
-          PopupMenuButton<String>(
-            icon: const Icon(Icons.more_vert, color: Color(0xFF76777B)),
-            onSelected: (value) => _handlePricingAction(value, rule),
-            itemBuilder: (_) => [
-              const PopupMenuItem(value: 'edit', child: Row(children: [Icon(Icons.edit, size: 18), SizedBox(width: 8), Text('Edit')])),
-              PopupMenuItem(value: rule['isActive'] ? 'deactivate' : 'activate', child: Row(children: [Icon(rule['isActive'] ? Icons.pause : Icons.play_arrow, size: 18), SizedBox(width: 8), Text(rule['isActive'] ? 'Nonaktifkan' : 'Aktifkan')])),
-              const PopupMenuItem(value: 'duplicate', child: Row(children: [Icon(Icons.content_copy, size: 18), SizedBox(width: 8), Text('Duplikat')])),
-              const PopupMenuItem(value: 'delete', child: Row(children: [Icon(Icons.delete, size: 18, color: Color(0xFFD94B4B)), SizedBox(width: 8), Text('Hapus', style: TextStyle(color: Color(0xFFD94B4B)))])),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _handlePricingAction(String action, Map<String, dynamic> rule) {
-    switch (action) {
-      case 'edit':
-        _showPricingDialog(rule: rule);
-        break;
-      case 'activate':
-      case 'deactivate':
-        setState(() => rule['isActive'] = !rule['isActive']);
-        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Aturan ${rule['isActive'] ? 'diaktifkan' : 'dinonaktifkan'}'), backgroundColor: rule['isActive'] ? const Color(0xFF17A18A) : const Color(0xFFE07A5F)));
-        break;
-      case 'duplicate':
-        ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Aturan diduplikat...')));
-        break;
-      case 'delete':
-        _confirmDeletePricing(rule);
-        break;
-    }
-  }
-
-  void _showAddPricingDialog() {
-    _showPricingDialog();
-  }
-
-  void _showPricingDialog({Map<String, dynamic>? rule}) {
-    final isEdit = rule != null;
-    final nameCtrl = TextEditingController(text: rule?['name'] ?? '');
-    final baseHourlyCtrl = TextEditingController(text: rule?['baseHourly'].toString() ?? '5000');
-    String location = rule?['location'] ?? 'Semua Lokasi';
-    String vehicleType = rule?['vehicleType'] ?? 'Mobil';
-    bool isActive = rule?['isActive'] ?? true;
-
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text(isEdit ? 'Edit Aturan Tarif' : 'Tambah Aturan Tarif', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              _buildDialogField('Nama Aturan', nameCtrl, Icons.rule),
-              _buildDialogField('Tarif Dasar/Jam (Rp)', baseHourlyCtrl, Icons.attach_money, keyboardType: TextInputType.number),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: location,
-                decoration: InputDecoration(labelText: 'Lokasi', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                isExpanded: true,
-                items: ['Semua Lokasi', ..._locations.map((l) => l['name'] as String)].map<DropdownMenuItem<String>>((l) => DropdownMenuItem<String>(value: l, child: Text(l))).toList(),
-                onChanged: (v) => location = v ?? 'Semua Lokasi',
-              ),
-              const SizedBox(height: 12),
-              DropdownButtonFormField<String>(
-                initialValue: vehicleType,
-                decoration: InputDecoration(labelText: 'Tipe Kendaraan', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
-                isExpanded: true,
-                items: ['Mobil', 'Motor', 'EV', 'Semua'].map((v) => DropdownMenuItem(value: v, child: Text(v))).toList(),
-                onChanged: (v) => vehicleType = v ?? 'Mobil',
-              ),
-              const SizedBox(height: 12),
-              SwitchListTile(
-                contentPadding: EdgeInsets.zero,
-                title: Text('Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
-                value: isActive,
-                activeThumbColor: const Color(0xFF17A18A),
-                onChanged: (v) => isActive = v,
-              ),
-              const SizedBox(height: 8),
-              Text('Time-based & Holiday rules: konfigurasi detail di halaman Pricing terpisah', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B)))),
-          ElevatedButton(
-            onPressed: () {
-              if (nameCtrl.text.isNotEmpty && baseHourlyCtrl.text.isNotEmpty) {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(isEdit ? 'Aturan diperbarui' : 'Aturan ditambahkan'), backgroundColor: const Color(0xFF17A18A)));
-              }
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177)),
-            child: Text(isEdit ? 'Simpan' : 'Tambah', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _confirmDeletePricing(Map<String, dynamic> rule) {
-    showDialog(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: Text('Hapus Aturan Tarif', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
-        content: Text('Hapus "${rule['name']}"?', style: GoogleFonts.plusJakartaSans()),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B)))),
-          ElevatedButton(
-            onPressed: () {
-              Navigator.pop(context);
-              setState(() => _pricingRules.remove(rule));
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Aturan dihapus'), backgroundColor: const Color(0xFFD94B4B)));
-            },
-            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
-            child: Text('Hapus', style: GoogleFonts.plusJakartaSans(color: Colors.white)),
-          ),
-        ],
-      ),
-    );
-  }
-
   // ============ HELPERS ============
   Widget _buildDialogField(String label, TextEditingController ctrl, IconData icon, {int maxLines = 1, TextInputType? keyboardType}) {
     return Padding(
@@ -1059,13 +921,13 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         elevation: 0,
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: Container(margin: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18))),
+          child: Container(margin: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18))),
         ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Kelola Parkir Terpadu', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            Text('Lokasi • Slot • Tarif', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+            Text('Lokasi • Denah Slot', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
           ],
         ),
         actions: [
@@ -1082,12 +944,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           unselectedLabelColor: const Color(0xFF76777B),
           indicatorColor: const Color(0xFF114177),
           indicatorWeight: 3,
-          labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
-          unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500),
+          indicatorSize: TabBarIndicatorSize.label,
+          labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+          unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
           tabs: const [
             Tab(text: 'Lokasi'),
-            Tab(text: 'Slot'),
-            Tab(text: 'Tarif'),
+            Tab(text: 'Denah Slot'),
           ],
         ),
       ),
@@ -1096,7 +958,6 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         children: [
           _buildLocationsTab(),
           _buildSlotsTab(),
-          _buildPricingTab(),
         ],
       ),
     ));

@@ -9,11 +9,11 @@ class AdminTransactionsScreen extends StatefulWidget {
   State<AdminTransactionsScreen> createState() => _AdminTransactionsScreenState();
 }
 
-class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with SingleTickerProviderStateMixin {
-  late TabController _tabController;
+class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   String _selectedTypeFilter = 'Semua';
   String _selectedStatusFilter = 'Semua';
+  String _selectedDirectionFilter = 'Semua'; // 'Semua', 'Masuk', 'Keluar'
   DateTimeRange? _dateRange;
 
   final List<String> _typeFilters = ['Semua', 'Parkir', 'Top-up Wallet', 'Refund', 'Cashback', 'Penalty', 'Injeksi Admin'];
@@ -164,17 +164,12 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
   ];
 
   @override
-  void initState() {
-    super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-  }
-
-  @override
   void dispose() {
-    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
+
+  bool _isIncome(String type) => type == 'Parkir' || type == 'Top-up Wallet' || type == 'Penalty';
 
   List<Map<String, dynamic>> get _filteredTransactions {
     final q = _searchController.text.toLowerCase();
@@ -190,6 +185,9 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
       final matchesType = _selectedTypeFilter == 'Semua' || t['type'] == _selectedTypeFilter;
       final matchesStatus = _selectedStatusFilter == 'Semua' || t['status'] == _selectedStatusFilter;
 
+      if (_selectedDirectionFilter == 'Masuk' && !_isIncome(t['type'])) return false;
+      if (_selectedDirectionFilter == 'Keluar' && _isIncome(t['type'])) return false;
+
       if (_dateRange != null) {
         try {
           final created = DateTime.parse(t['createdAt']);
@@ -203,13 +201,21 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
     }).toList();
   }
 
-  Map<String, List<Map<String, dynamic>>> get _groupedByUser {
-    final groups = <String, List<Map<String, dynamic>>>{};
-    for (var t in _filteredTransactions) {
-      final userId = t['user']['name'];
-      groups.putIfAbsent(userId, () => []).add(t);
-    }
-    return groups;
+  bool get _hasActiveFilters =>
+      _selectedTypeFilter != 'Semua' ||
+      _selectedStatusFilter != 'Semua' ||
+      _selectedDirectionFilter != 'Semua' ||
+      _dateRange != null ||
+      _searchController.text.isNotEmpty;
+
+  void _resetAllFilters() {
+    setState(() {
+      _selectedTypeFilter = 'Semua';
+      _selectedStatusFilter = 'Semua';
+      _selectedDirectionFilter = 'Semua';
+      _dateRange = null;
+      _searchController.clear();
+    });
   }
 
   Color _getTypeColor(String type) {
@@ -246,7 +252,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
       case 'Injeksi Admin':
         return const Color(0xFFFDECE7);
       default:
-        return const Color(0xFFF1EEE7);
+        return const Color(0xFFF3F4F6);
     }
   }
 
@@ -274,9 +280,9 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
       case 'Gagal':
         return const Color(0xFFFDE8E4);
       case 'Dibatalkan':
-        return const Color(0xFFF1EEE7);
+        return const Color(0xFFF3F4F6);
       default:
-        return const Color(0xFFF1EEE7);
+        return const Color(0xFFF3F4F6);
     }
   }
 
@@ -300,6 +306,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
   }
 
   void _showTransactionDetail(Map<String, dynamic> txn) {
+    final isIncome = _isIncome(txn['type']);
     final typeColor = _getTypeColor(txn['type']);
     final typeBg = _getTypeBg(txn['type']);
     final statusColor = _getStatusColor(txn['status']);
@@ -330,99 +337,99 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
                       ],
                     ),
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
                       child: Text(txn['status'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const Divider(color: Color(0xFFF1EEE7), height: 1),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 16),
 
                 // User
                 Row(
                   children: [
-                    Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(14)), child: Center(child: Text(txn['user']['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF114177))))),
+                    Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(txn['user']['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF114177))))),
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(txn['user']['name'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      Text(txn['user']['name'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                       Text(txn['user']['phone'], style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
                     ])),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const Divider(color: Color(0xFFF1EEE7), height: 1),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 16),
 
                 // Amount
                 Row(
                   children: [
                     Container(
-                      width: 56,
-                      height: 56,
-                      decoration: BoxDecoration(color: typeBg, borderRadius: BorderRadius.circular(16)),
-                      child: Icon(_getTypeIcon(txn['type']), size: 28, color: typeColor),
+                      width: 50,
+                      height: 50,
+                      decoration: BoxDecoration(color: typeBg, borderRadius: BorderRadius.circular(14)),
+                      child: Icon(_getTypeIcon(txn['type']), size: 24, color: typeColor),
                     ),
-                    const SizedBox(width: 16),
+                    const SizedBox(width: 14),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(txn['type'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: typeColor)),
-                      Text(txn['description'], style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+                      Text(txn['type'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: typeColor)),
+                      Text(txn['description'], style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B))),
                     ])),
                     Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text(txn['amount'] >= 0 ? '+Rp ${_formatNumber(txn['amount'])}' : '-Rp ${_formatNumber(txn['amount'].abs())}', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: txn['amount'] >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B))),
+                      Text('${isIncome ? '+' : '-'}Rp ${_formatNumber(txn['amount'])}', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: isIncome ? const Color(0xFF17A18A) : const Color(0xFFD94B4B))),
                       Text(txn['paymentMethod'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                     ]),
                   ],
                 ),
-                const SizedBox(height: 20),
-                const Divider(color: Color(0xFFF1EEE7), height: 1),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 16),
 
                 // Details
-                _buildSectionTitle('Detail Transaksi'),
-                const SizedBox(height: 12),
+                _buildSectionTitle('Informasi Lengkap'),
+                const SizedBox(height: 10),
                 if (txn['location'] != '-') _buildInfoRow('Lokasi', txn['location']),
                 if (txn['slot'] != '-') _buildInfoRow('Slot', txn['slot']),
                 _buildInfoRow('Metode Bayar', txn['paymentMethod']),
                 _buildInfoRow('Dibuat', _formatDateTime(txn['createdAt'])),
                 if (txn['completedAt'] != null) _buildInfoRow('Diselesaikan', _formatDateTime(txn['completedAt'])),
                 if (txn['adminNote'] != null) _buildInfoRow('Catatan Admin', txn['adminNote']),
-                const SizedBox(height: 20),
-                const Divider(color: Color(0xFFF1EEE7), height: 1),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 16),
 
                 // Blockchain
                 _buildSectionTitle('Verifikasi Blockchain'),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(children: [
-                        const Icon(Icons.verified, size: 18, color: Color(0xFF17A18A)),
+                        const Icon(Icons.verified, size: 16, color: Color(0xFF17A18A)),
                         const SizedBox(width: 8),
-                        Text('Hash Transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        Text('Hash Transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                       ]),
-                      const SizedBox(height: 8),
+                      const SizedBox(height: 6),
                       SelectableText(
                         txn['blockchainHash'],
-                        style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF45474A), fontFeatures: [FontFeature.tabularFigures()]),
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF45474A), fontFeatures: [const FontFeature.tabularFigures()]),
                       ),
                       if (txn['blockchainHash'] != '-') ...[
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 10),
                         Row(children: [
-                          Expanded(child: OutlinedButton.icon(onPressed: () => _copyToClipboard(txn['blockchainHash']), icon: const Icon(Icons.copy, size: 16), label: Text('Salin Hash', style: GoogleFonts.plusJakartaSans(fontSize: 12)))),
+                          Expanded(child: OutlinedButton.icon(onPressed: () => _copyToClipboard(txn['blockchainHash']), icon: const Icon(Icons.copy, size: 14), label: Text('Salin Hash', style: GoogleFonts.plusJakartaSans(fontSize: 11.5)))),
                           const SizedBox(width: 8),
-                          Expanded(child: OutlinedButton.icon(onPressed: () => _verifyOnExplorer(txn['blockchainHash']), icon: const Icon(Icons.open_in_new, size: 16), label: Text('Verifikasi', style: GoogleFonts.plusJakartaSans(fontSize: 12)))),
+                          Expanded(child: OutlinedButton.icon(onPressed: () => _verifyOnExplorer(txn['blockchainHash']), icon: const Icon(Icons.open_in_new, size: 14), label: Text('Verifikasi', style: GoogleFonts.plusJakartaSans(fontSize: 11.5)))),
                         ]),
                       ],
                     ],
                   ),
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 16),
 
                 // Actions for admin
                 if (txn['status'] == 'Pending') ...[
@@ -434,26 +441,25 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
                             Navigator.pop(ctx);
                             _markAsFailed(txn);
                           },
-                          icon: const Icon(Icons.close, size: 18, color: Color(0xFFD94B4B)),
-                          label: Text('Tandai Gagal', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
-                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD94B4B)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                          icon: const Icon(Icons.close, size: 16, color: Color(0xFFD94B4B)),
+                          label: Text('Tandai Gagal', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
+                          style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD94B4B)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 12)),
                         ),
                       ),
-                      const SizedBox(width: 12),
+                      const SizedBox(width: 10),
                       Expanded(
                         child: ElevatedButton.icon(
                           onPressed: () {
                             Navigator.pop(ctx);
                             _markAsSuccess(txn);
                           },
-                          icon: const Icon(Icons.check, size: 18, color: Colors.white),
-                          label: Text('Tandai Berhasil', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                          icon: const Icon(Icons.check, size: 16, color: Colors.white),
+                          label: Text('Tandai Berhasil', style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white)),
+                          style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)), padding: const EdgeInsets.symmetric(vertical: 12)),
                         ),
                       ),
                     ],
                   ),
-                  const SizedBox(height: 10),
                 ],
               ],
             ),
@@ -506,11 +512,11 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
 
   void _clearDateRange() => setState(() => _dateRange = null);
 
-  Widget _buildSectionTitle(String title) => Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)));
+  Widget _buildSectionTitle(String title) => Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)));
 
   Widget _buildInfoRow(String label, String value, {Color? valueColor}) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.only(bottom: 8),
       child: Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
         Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
         Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: valueColor ?? const Color(0xFF1A1A18))),
@@ -531,325 +537,294 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
     return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
-  @override
-  Widget build(BuildContext context) {
-    final totalIncome = _transactions.where((t) => t['amount'] > 0 && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int));
-    final totalExpense = _transactions.where((t) => t['amount'] < 0 && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int).abs());
-    final totalPending = _transactions.where((t) => t['status'] == 'Pending').length;
-    final totalFailed = _transactions.where((t) => t['status'] == 'Gagal').length;
-
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        leading: GestureDetector(onTap: () => Navigator.pop(context), child: Container(margin: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)))),
-        title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-          Text('Manajemen Transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-          Text('Riwayat Lengkap & Verifikasi Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-        ]),
-        actions: [
-          IconButton(icon: const Icon(Icons.download_outlined, color: Color(0xFF114177)), onPressed: _exportCSV, tooltip: 'Export CSV'),
-          const SizedBox(width: 8),
-        ],
+  Widget _buildFilterDropdown({
+    required String label,
+    required IconData icon,
+    required bool isActive,
+    required List<String> items,
+    required ValueChanged<String> onSelected,
+  }) {
+    return PopupMenuButton<String>(
+      onSelected: onSelected,
+      itemBuilder: (_) => items.map((item) {
+        return PopupMenuItem<String>(
+          value: item,
+          child: Text(item, style: GoogleFonts.plusJakartaSans(fontSize: 12.5)),
+        );
+      }).toList(),
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+        decoration: BoxDecoration(
+          color: isActive ? const Color(0xFF114177).withValues(alpha: 0.1) : const Color(0xFFF9FAFB),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isActive ? const Color(0xFF114177) : const Color(0xFFE5E7EB),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon, size: 13, color: isActive ? const Color(0xFF114177) : const Color(0xFF76777B)),
+            const SizedBox(width: 6),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 11.5,
+                fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+                color: isActive ? const Color(0xFF114177) : const Color(0xFF1A1A18),
+              ),
+            ),
+            const SizedBox(width: 4),
+            Icon(Icons.keyboard_arrow_down, size: 14, color: isActive ? const Color(0xFF114177) : const Color(0xFF76777B)),
+          ],
+        ),
       ),
-      body: Column(
-        children: [
-          // Stat overview
-          Container(
-            color: Colors.white,
-            padding: const EdgeInsets.fromLTRB(20, 16, 20, 16),
-            child: Column(
-              children: [
-                Row(
-                  children: [
-                    _buildStatCard('Total Masuk', 'Rp ${_formatNumber(totalIncome)}', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
-                    const SizedBox(width: 10),
-                    _buildStatCard('Total Keluar', 'Rp ${_formatNumber(totalExpense)}', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
-                    const SizedBox(width: 10),
-                    _buildStatCard('Netto', 'Rp ${_formatNumber(totalIncome - totalExpense)}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
-                  ],
-                ),
-                const SizedBox(height: 14),
-                Container(
-                  height: 44,
-                  padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
-                    const SizedBox(width: 10),
-                    Expanded(child: TextField(controller: _searchController, onChanged: (_) => setState(() {}), style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)), decoration: InputDecoration(hintText: 'Cari ID, nama, lokasi, deskripsi...', hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)), border: InputBorder.none, isDense: true))),
-                  ]),
-                ),
-              ],
+    );
+  }
+
+  Widget _buildStatCard({
+    required String label,
+    required String value,
+    required IconData icon,
+    required Color color,
+    required Color bg,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return Expanded(
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 200),
+          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          decoration: BoxDecoration(
+            color: isSelected ? bg : Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(
+              color: isSelected ? color : const Color(0xFFE5E7EB),
+              width: isSelected ? 1.5 : 1.0,
             ),
           ),
-
-          // Filters
-          Container(
-            height: 48,
-            color: Colors.white,
-            child: ListView.separated(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), itemCount: _typeFilters.length, separatorBuilder: (_, __) => const SizedBox(width: 8), itemBuilder: (_, i) {
-              final f = _typeFilters[i];
-              final sel = _selectedTypeFilter == f;
-              return GestureDetector(onTap: () => setState(() => _selectedTypeFilter = f), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: sel ? _getTypeColor(f) : const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(20)), child: Center(child: Text(f, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: sel ? FontWeight.bold : FontWeight.w500, color: sel ? Colors.white : const Color(0xFF45474A))))));
-            }),
-          ),
-          Container(
-            height: 48,
-            color: Colors.white,
-            child: ListView.separated(scrollDirection: Axis.horizontal, padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8), itemCount: _statusFilters.length, separatorBuilder: (_, __) => const SizedBox(width: 8), itemBuilder: (_, i) {
-              final f = _statusFilters[i];
-              final sel = _selectedStatusFilter == f;
-              return GestureDetector(onTap: () => setState(() => _selectedStatusFilter = f), child: Container(padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6), decoration: BoxDecoration(color: sel ? _getStatusColor(f) : const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(20)), child: Center(child: Text(f, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: sel ? FontWeight.bold : FontWeight.w500, color: sel ? Colors.white : const Color(0xFF45474A))))));
-            }),
-          ),
-          // Date range
-          Container(
-            height: 48,
-            color: Colors.white,
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-            child: Row(
-              children: [
-                GestureDetector(
-                  onTap: _pickDateRange,
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(20)),
-                    child: Row(mainAxisSize: MainAxisSize.min, children: [
-                      Icon(Icons.calendar_today, size: 14, color: _dateRange != null ? Colors.white : const Color(0xFF76777B)),
-                      const SizedBox(width: 6),
-                      Text(_dateRange != null ? '${_dateRange!.start.day}/${_dateRange!.start.month} - ${_dateRange!.end.day}/${_dateRange!.end.month}' : 'Rentang Tanggal', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: _dateRange != null ? FontWeight.bold : FontWeight.w500, color: _dateRange != null ? Colors.white : const Color(0xFF45474A))),
-                    ]),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 22,
+                    height: 22,
+                    decoration: BoxDecoration(
+                      color: color.withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Icon(icon, size: 13, color: color),
+                  ),
+                  const SizedBox(width: 5),
+                  Expanded(
+                    child: Text(
+                      label,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF76777B),
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 6),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  value,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13.5,
+                    fontWeight: FontWeight.w800,
+                    color: color,
                   ),
                 ),
-                if (_dateRange != null) ...[
-                  const SizedBox(width: 8),
-                  GestureDetector(onTap: _clearDateRange, child: Container(padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4), decoration: BoxDecoration(color: const Color(0xFFFDE8E4), borderRadius: BorderRadius.circular(20)), child: Text('Hapus', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))))),
-                ],
-              ],
-            ),
+              ),
+            ],
           ),
-          const Divider(height: 1, color: Color(0xFFE4DFD5)),
-
-          // Tab bar
-          Container(
-            color: Colors.white,
-            child: TabBar(
-              controller: _tabController,
-              labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
-              unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 12),
-              labelColor: const Color(0xFF114177),
-              unselectedLabelColor: const Color(0xFF76777B),
-              indicatorColor: const Color(0xFF114177),
-              indicatorWeight: 2,
-              tabs: const [Tab(text: 'Semua Transaksi'), Tab(text: 'Per User')],
-            ),
-          ),
-          const Divider(height: 1, color: Color(0xFFE4DFD5)),
-
-          // Content
-          Expanded(
-            child: TabBarView(
-              controller: _tabController,
-              children: [
-                _buildTransactionList(_filteredTransactions),
-                _buildGroupedByUserList(),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
-    ));
+    );
   }
 
-  Widget _buildTransactionList(List<Map<String, dynamic>> txns) {
-    if (txns.isEmpty) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.receipt_long, size: 48, color: Color(0xFF76777B)), const SizedBox(height: 12), Text('Tidak ada transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF76777B)))]));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: txns.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) {
-        final t = txns[i];
-        final typeColor = _getTypeColor(t['type']);
-        final typeBg = _getTypeBg(t['type']);
-        final statusColor = _getStatusColor(t['status']);
-        final statusBg = _getStatusBg(t['status']);
+  Widget _buildTransactionCard(Map<String, dynamic> t) {
+    final isIncome = _isIncome(t['type']);
+    final amountColor = isIncome ? const Color(0xFF17A18A) : const Color(0xFFD94B4B);
+    final typeColor = _getTypeColor(t['type']);
+    final typeBg = _getTypeBg(t['type']);
+    final statusColor = _getStatusColor(t['status']);
+    final statusBg = _getStatusBg(t['status']);
 
-        return GestureDetector(
-          onTap: () => _showTransactionDetail(t),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4DFD5))),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+    return GestureDetector(
+      onTap: () => _showTransactionDetail(t),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 6,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Top Row: Type Icon + Type & ID Badge + Amount & Status
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Row(
-                  children: [
-                    Container(width: 44, height: 44, decoration: BoxDecoration(color: typeBg, borderRadius: BorderRadius.circular(12)), child: Icon(_getTypeIcon(t['type']), size: 22, color: typeColor)),
-                    const SizedBox(width: 12),
-                    Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                      Text(t['type'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      Text(t['description'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                    ])),
-                    Column(crossAxisAlignment: CrossAxisAlignment.end, children: [
-                      Text('${t['amount'] >= 0 ? '+' : '-'}Rp ${_formatNumber(t['amount'].abs())}', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: t['amount'] >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B))),
-                      Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(6)), child: Text(t['status'], style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor))),
-                    ]),
-                  ],
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: typeBg,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Icon(_getTypeIcon(t['type']), size: 20, color: typeColor),
                 ),
-                const SizedBox(height: 10),
-                Row(children: [
-                  if (t['location'] != '-') Expanded(child: Text('📍 ${t['location']} • Slot ${t['slot']}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis)),
-                  const SizedBox(width: 8),
-                  Text(_formatDateTime(t['createdAt']), style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                  const SizedBox(width: 12),
-                  Text(t['user']['name'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                ]),
-                const SizedBox(height: 8),
-                Row(children: [
-                  Text('Hash: ${t['blockchainHash']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B), fontFeatures: [FontFeature.tabularFigures()]), overflow: TextOverflow.ellipsis),
-                  const Spacer(),
-                  if (t['status'] == 'Pending') Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3), decoration: BoxDecoration(color: const Color(0xFFFDECE7), borderRadius: BorderRadius.circular(6)), child: Text('Perlu Tindakan', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F)))),
-                ]),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  Widget _buildGroupedByUserList() {
-    final grouped = _groupedByUser;
-    if (grouped.isEmpty) {
-      return Center(child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [const Icon(Icons.people_outline, size: 48, color: Color(0xFF76777B)), const SizedBox(height: 12), Text('Tidak ada data user', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF76777B)))]));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: grouped.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (_, i) {
-        final entry = grouped.entries.elementAt(i);
-        final userName = entry.key;
-        final userTxns = entry.value;
-        final user = userTxns.first['user'];
-        final totalAmount = userTxns.fold<int>(0, (sum, t) => sum + (t['amount'] as int));
-        final successCount = userTxns.where((t) => t['status'] == 'Berhasil').length;
-
-        return GestureDetector(
-          onTap: () => _showUserTransactionsDetail(userName, userTxns),
-          child: Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(color: Colors.white, borderRadius: BorderRadius.circular(16), border: Border.all(color: const Color(0xFFE4DFD5))),
-            child: Row(
-              children: [
-                Container(width: 48, height: 48, decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(14)), child: Center(child: Text(user['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF114177))))),
-                const SizedBox(width: 14),
-                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Text(userName, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  Text(user['phone'], style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                  const SizedBox(height: 4),
-                  Row(children: [
-                    Container(padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2), decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(6)), child: Text('$successCount/${userTxns.length} sukses', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)))),
-                    const SizedBox(width: 8),
-                    Text('Total: ${totalAmount >= 0 ? '+' : '-'}Rp ${_formatNumber(totalAmount.abs())}', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: totalAmount >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B))),
-                  ]),
-                ])),
-                const Icon(Icons.chevron_right, color: Color(0xFF76777B)),
-              ],
-            ),
-          ),
-        );
-      },
-    );
-  }
-
-  void _showUserTransactionsDetail(String userName, List<Map<String, dynamic>> txns) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.white,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
-      builder: (ctx) => Padding(
-        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
-        child: SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Transaksi: $userName', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 20),
-                ListView.separated(
-                  shrinkWrap: true,
-                  physics: const NeverScrollableScrollPhysics(),
-                  itemCount: txns.length,
-                  separatorBuilder: (_, __) => const SizedBox(height: 12),
-                  itemBuilder: (_, i) {
-                    final t = txns[i];
-                    final typeColor = _getTypeColor(t['type']);
-                    final typeBg = _getTypeBg(t['type']);
-                    final statusColor = _getStatusColor(t['status']);
-                    final statusBg = _getStatusBg(t['status']);
-                    return GestureDetector(
-                      onTap: () {
-                        Navigator.pop(ctx);
-                        _showTransactionDetail(t);
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(14),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFFE4DFD5)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(color: typeBg, borderRadius: BorderRadius.circular(10)),
-                              child: Icon(_getTypeIcon(t['type']), size: 20, color: typeColor),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        children: [
+                          Text(
+                            t['type'],
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 13.5,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1A1A18),
                             ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(t['type'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                                  Text('${t['location']} • ${t['slot']}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                                ],
+                          ),
+                          const SizedBox(width: 6),
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                            decoration: BoxDecoration(
+                              color: isIncome
+                                  ? const Color(0xFF17A18A).withValues(alpha: 0.1)
+                                  : const Color(0xFFD94B4B).withValues(alpha: 0.1),
+                              borderRadius: BorderRadius.circular(4),
+                            ),
+                            child: Text(
+                              isIncome ? 'MASUK' : 'KELUAR',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w800,
+                                color: amountColor,
                               ),
                             ),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(
-                                  '${t['amount'] >= 0 ? '+' : '-'}Rp ${_formatNumber(t['amount'].abs())}',
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: t['amount'] >= 0 ? const Color(0xFF17A18A) : const Color(0xFFD94B4B)),
-                                ),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                                  decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(6)),
-                                  child: Text(t['status'], style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
-                                ),
-                              ],
-                            ),
-                          ],
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        t['id'],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5,
+                          color: const Color(0xFF76777B),
+                          fontFeatures: [const FontFeature.tabularFigures()],
                         ),
                       ),
-                    );
-                  },
+                    ],
+                  ),
+                ),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      '${isIncome ? '+' : '-'}Rp ${_formatNumber(t['amount'])}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w800,
+                        color: amountColor,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                      decoration: BoxDecoration(
+                        color: statusBg,
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      child: Text(
+                        t['status'],
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: statusColor,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ],
             ),
-          ),
+            const SizedBox(height: 10),
+            const Divider(color: Color(0xFFF3F4F6), height: 1),
+            const SizedBox(height: 10),
+
+            // Bottom Row: User name, location / method, and date
+            Row(
+              children: [
+                CircleAvatar(
+                  radius: 10,
+                  backgroundColor: const Color(0xFFE3EEFF),
+                  child: Text(
+                    t['user']['avatar'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 9.5,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF114177),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 6),
+                Flexible(
+                  child: Text(
+                    t['user']['name'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF1A1A18),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text('•', style: TextStyle(color: Colors.grey.shade400, fontSize: 10)),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    t['location'] != '-' ? t['location'] : t['paymentMethod'],
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      color: const Color(0xFF76777B),
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                Text(
+                  _formatDateTime(t['createdAt']),
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 10.5,
+                    color: const Color(0xFF76777B),
+                  ),
+                ),
+              ],
+            ),
+          ],
         ),
       ),
     );
@@ -859,7 +834,338 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> with 
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export CSV transaksi (${_filteredTransactions.length} records)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF114177), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
   }
 
-  Widget _buildStatCard(String label, String value, Color color, Color bg) {
-    return Expanded(child: Container(padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10), decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(12)), child: Column(children: [Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: color)), const SizedBox(height: 2), Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: color))])));
+  @override
+  Widget build(BuildContext context) {
+    final totalIncome = _transactions.where((t) => _isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int));
+    final totalExpense = _transactions.where((t) => !_isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int).abs());
+    final netto = totalIncome - totalExpense;
+
+    final txns = _filteredTransactions;
+
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF9FAFB),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+            ),
+          ),
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('Manajemen Transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              Text('Riwayat Lengkap & Verifikasi Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+            ],
+          ),
+          actions: [
+            IconButton(icon: const Icon(Icons.download_outlined, color: Color(0xFF114177)), onPressed: _exportCSV, tooltip: 'Export CSV'),
+            const SizedBox(width: 8),
+          ],
+        ),
+        body: Column(
+          children: [
+            // ==========================================
+            // 1. KOTAK RINGKASAN MASUK / KELUAR / NETTO
+            // ==========================================
+            Container(
+              color: Colors.white,
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      _buildStatCard(
+                        label: 'Total Masuk',
+                        value: 'Rp ${_formatNumber(totalIncome)}',
+                        icon: Icons.arrow_downward_rounded,
+                        color: const Color(0xFF17A18A),
+                        bg: const Color(0xFFE8F7F3),
+                        isSelected: _selectedDirectionFilter == 'Masuk',
+                        onTap: () {
+                          setState(() {
+                            _selectedDirectionFilter = _selectedDirectionFilter == 'Masuk' ? 'Semua' : 'Masuk';
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatCard(
+                        label: 'Total Keluar',
+                        value: 'Rp ${_formatNumber(totalExpense)}',
+                        icon: Icons.arrow_upward_rounded,
+                        color: const Color(0xFFD94B4B),
+                        bg: const Color(0xFFFDE8E4),
+                        isSelected: _selectedDirectionFilter == 'Keluar',
+                        onTap: () {
+                          setState(() {
+                            _selectedDirectionFilter = _selectedDirectionFilter == 'Keluar' ? 'Semua' : 'Keluar';
+                          });
+                        },
+                      ),
+                      const SizedBox(width: 8),
+                      _buildStatCard(
+                        label: 'Kas Bersih',
+                        value: '${netto >= 0 ? '+' : '-'}Rp ${_formatNumber(netto.abs())}',
+                        icon: Icons.account_balance_wallet_rounded,
+                        color: const Color(0xFF114177),
+                        bg: const Color(0xFFE3EEFF),
+                        isSelected: _selectedDirectionFilter == 'Semua',
+                        onTap: () {
+                          setState(() {
+                            _selectedDirectionFilter = 'Semua';
+                          });
+                        },
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Search Bar
+                  Container(
+                    height: 42,
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF9FAFB),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFFE5E7EB)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.search, size: 18, color: Color(0xFF76777B)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: TextField(
+                            controller: _searchController,
+                            onChanged: (_) => setState(() {}),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, color: const Color(0xFF1A1A18)),
+                            decoration: InputDecoration(
+                              hintText: 'Cari ID, user, lokasi, atau deskripsi...',
+                              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                              border: InputBorder.none,
+                              isDense: true,
+                              contentPadding: EdgeInsets.zero,
+                            ),
+                          ),
+                        ),
+                        if (_searchController.text.isNotEmpty)
+                          GestureDetector(
+                            onTap: () => setState(() => _searchController.clear()),
+                            child: const Icon(Icons.clear, size: 16, color: Color(0xFF76777B)),
+                          ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // ==========================================
+            // 2. SEDERHANA: SINGLE BAR FILTER BUBBLES
+            // ==========================================
+            Container(
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+              ),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                child: Row(
+                  children: [
+                    // Segment Arah Transaksi
+                    Row(
+                      children: ['Semua', 'Masuk', 'Keluar'].map((dir) {
+                        final isSel = _selectedDirectionFilter == dir;
+                        Color selColor = const Color(0xFF114177);
+                        if (dir == 'Masuk') selColor = const Color(0xFF17A18A);
+                        if (dir == 'Keluar') selColor = const Color(0xFFD94B4B);
+
+                        return Padding(
+                          padding: const EdgeInsets.only(right: 6),
+                          child: GestureDetector(
+                            onTap: () => setState(() => _selectedDirectionFilter = dir),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              decoration: BoxDecoration(
+                                color: isSel ? selColor : const Color(0xFFF9FAFB),
+                                borderRadius: BorderRadius.circular(8),
+                                border: Border.all(
+                                  color: isSel ? selColor : const Color(0xFFE5E7EB),
+                                ),
+                              ),
+                              child: Text(
+                                dir == 'Semua' ? 'Semua' : (dir == 'Masuk' ? 'Uang Masuk (+)' : 'Uang Keluar (-)'),
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
+                                  color: isSel ? Colors.white : const Color(0xFF45474A),
+                                ),
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(width: 4),
+
+                    // Dropdown Tipe Transaksi
+                    _buildFilterDropdown(
+                      label: _selectedTypeFilter == 'Semua' ? 'Tipe' : _selectedTypeFilter,
+                      icon: Icons.category_outlined,
+                      isActive: _selectedTypeFilter != 'Semua',
+                      items: _typeFilters,
+                      onSelected: (val) => setState(() => _selectedTypeFilter = val),
+                    ),
+                    const SizedBox(width: 6),
+
+                    // Dropdown Status
+                    _buildFilterDropdown(
+                      label: _selectedStatusFilter == 'Semua' ? 'Status' : _selectedStatusFilter,
+                      icon: Icons.filter_alt_outlined,
+                      isActive: _selectedStatusFilter != 'Semua',
+                      items: _statusFilters,
+                      onSelected: (val) => setState(() => _selectedStatusFilter = val),
+                    ),
+                    const SizedBox(width: 6),
+
+                    // Date Range Picker
+                    GestureDetector(
+                      onTap: _pickDateRange,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: _dateRange != null ? const Color(0xFF114177).withValues(alpha: 0.1) : const Color(0xFFF9FAFB),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFFE5E7EB),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(Icons.calendar_today_outlined, size: 13, color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFF76777B)),
+                            const SizedBox(width: 6),
+                            Text(
+                              _dateRange != null
+                                  ? '${_dateRange!.start.day}/${_dateRange!.start.month} - ${_dateRange!.end.day}/${_dateRange!.end.month}'
+                                  : 'Tanggal',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: _dateRange != null ? FontWeight.bold : FontWeight.w500,
+                                color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFF1A1A18),
+                              ),
+                            ),
+                            if (_dateRange != null) ...[
+                              const SizedBox(width: 4),
+                              GestureDetector(
+                                onTap: _clearDateRange,
+                                child: const Icon(Icons.close, size: 14, color: Color(0xFF114177)),
+                              ),
+                            ],
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    // Clear all filters if any active
+                    if (_hasActiveFilters) ...[
+                      const SizedBox(width: 6),
+                      GestureDetector(
+                        onTap: _resetAllFilters,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFFDE8E4),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.refresh, size: 12, color: Color(0xFFD94B4B)),
+                              const SizedBox(width: 4),
+                              Text('Reset', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+
+            // Info baris jumlah hasil
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Menampilkan ${txns.length} transaksi',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B), fontWeight: FontWeight.w500),
+                  ),
+                  if (_hasActiveFilters)
+                    Text(
+                      'Filter Aktif',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF114177), fontWeight: FontWeight.bold),
+                    ),
+                ],
+              ),
+            ),
+
+            // ==========================================
+            // 3. KOTAK TABEL TRANSAKSI MASUK KELUAR
+            // ==========================================
+            Expanded(
+              child: txns.isEmpty
+                  ? Center(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFF3F4F6),
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                            child: const Icon(Icons.receipt_long_outlined, size: 30, color: Color(0xFF76777B)),
+                          ),
+                          const SizedBox(height: 12),
+                          Text('Tidak ada transaksi ditemukan', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                          const SizedBox(height: 4),
+                          Text('Coba ubah kata kunci atau reset filter', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+                          if (_hasActiveFilters) ...[
+                            const SizedBox(height: 12),
+                            ElevatedButton(
+                              onPressed: _resetAllFilters,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: const Color(0xFF114177),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                elevation: 0,
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                              ),
+                              child: Text('Reset Semua Filter', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                            ),
+                          ],
+                        ],
+                      ),
+                    )
+                  : ListView.separated(
+                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                      itemCount: txns.length,
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
+                      itemBuilder: (_, i) => _buildTransactionCard(txns[i]),
+                    ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 }

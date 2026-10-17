@@ -868,7 +868,6 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
   Widget build(BuildContext context) {
     final activeCount = _customers.where((c) => c['status'] == 'Aktif').length;
     final verifiedCount = _customers.where((c) => c['kycStatus'] == 'Terverifikasi').length;
-    final _pendingCount = _customers.where((c) => c['kycStatus'] == 'Pending').length;
 
     return Theme(
       data: AppTheme.light,
