@@ -535,7 +535,15 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
         elevation: 0,
         leading: GestureDetector(
           onTap: () => Navigator.pop(context),
-          child: Container(margin: const EdgeInsets.all(8), decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)), child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18))),
+          child: Container(
+            margin: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
+            child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+          ),
         ),
         title: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
           Text('Manajemen Booking', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
@@ -577,7 +585,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
                     _buildStatCard('Mendatang', '${stats['Mendatang']}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
                     const SizedBox(width: 10),
                     _buildStatCard('Aktif', '${stats['Aktif']}', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
-                    const SizedBox(width: 10),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
                     _buildStatCard('Selesai', '${stats['Selesai']}', const Color(0xFF76777B), const Color(0xFFF3F4F6)),
                     const SizedBox(width: 10),
                     _buildStatCard('Dibatalkan', '${stats['Dibatalkan']}', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
@@ -585,14 +597,48 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
                 ),
                 const SizedBox(height: 14),
                 Container(
-                  height: 44,
+                  height: 46,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12)),
-                  child: Row(children: [
-                    const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
-                    const SizedBox(width: 10),
-                    Expanded(child: TextField(controller: _searchController, onChanged: (_) => setState(() {}), style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)), decoration: InputDecoration(hintText: 'Cari ID, nama, lokasi, plat...', hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)), border: InputBorder.none, isDense: true))),
-                  ]),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: TextField(
+                          controller: _searchController,
+                          onChanged: (_) => setState(() {}),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
+                          decoration: InputDecoration(
+                            hintText: 'Cari ID, nama, lokasi, plat...',
+                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
+                            border: InputBorder.none,
+                            isDense: true,
+                            contentPadding: EdgeInsets.zero,
+                          ),
+                        ),
+                      ),
+                      if (_searchController.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                          child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                        ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -606,7 +652,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               itemCount: _locationFilters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (_, i) {
                 final f = _locationFilters[i];
                 final sel = _selectedLocationFilter == f;
@@ -621,7 +667,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
               scrollDirection: Axis.horizontal,
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
               itemCount: _vehicleFilters.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 8),
+              separatorBuilder: (context, index) => const SizedBox(width: 8),
               itemBuilder: (_, i) {
                 final f = _vehicleFilters[i];
                 final sel = _selectedVehicleFilter == f;
@@ -655,7 +701,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
     return ListView.separated(
       padding: const EdgeInsets.all(20),
       itemCount: bookings.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
+      separatorBuilder: (context, index) => const SizedBox(height: 12),
       itemBuilder: (_, i) {
         final b = bookings[i];
         final statusColor = _getStatusColor(b['status']);
@@ -682,8 +728,18 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
                   ],
                 ),
                 const SizedBox(height: 12),
+                Row(
+                  children: [
+                    const Icon(Icons.access_time, size: 14, color: Color(0xFF76777B)),
+                    const SizedBox(width: 6),
+                    Text(
+                      '${_formatTime(b['startTime'])} - ${_formatTime(b['endTime'])}',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
                 Row(children: [
-                  Expanded(child: _buildDetailChip(Icons.access_time, '${_formatTime(b['startTime'])} - ${_formatTime(b['endTime'])}')),
                   Expanded(child: _buildDetailChip(Icons.local_parking, 'Slot ${b['slot']} (${b['floor']})')),
                   Expanded(child: _buildDetailChip(_getVehicleIcon(b['vehicle']['type']), b['vehicle']['plate'], iconColor: vehicleColor)),
                   Expanded(child: _buildDetailChip(Icons.attach_money, 'Rp ${_formatNumber(b['totalPrice'])}')),

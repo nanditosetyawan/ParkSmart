@@ -136,8 +136,9 @@ class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
                 height: 40,
                 margin: const EdgeInsets.only(right: 12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: const Icon(Icons.notifications_none, size: 20, color: Color(0xFF1A1A18)),
               ),

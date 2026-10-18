@@ -243,7 +243,11 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
           onTap: () => Navigator.pop(context),
           child: Container(
             margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(10),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+            ),
             child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
           ),
         ),
@@ -268,20 +272,35 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                     _buildStatCard('Total Parkir', '${_sessions.length}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
                     const SizedBox(width: 10),
                     _buildStatCard('Overstay', '$overstayCount', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
-                    const SizedBox(width: 10),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
                     _buildStatCard('EV Charging', '$evCount', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
                   ],
                 ),
                 const SizedBox(height: 14),
 
-                // Search box
+                // Search box (Google-style pill)
                 Container(
-                  height: 44,
+                  height: 46,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
+                      const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
@@ -290,12 +309,21 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                           style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
                           decoration: InputDecoration(
                             hintText: 'Cari plat nomor, nama user, lokasi...',
-                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                             border: InputBorder.none,
                             isDense: true,
+                            contentPadding: EdgeInsets.zero,
                           ),
                         ),
                       ),
+                      if (_searchController.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                          child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                        ),
                     ],
                   ),
                 ),
@@ -400,6 +428,14 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                                 Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
+                                    Text('Jam Masuk', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                    const SizedBox(height: 2),
+                                    Text(item['checkIn'] ?? '-', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                  ],
+                                ),
+                                Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
                                     Text('Durasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
                                     const SizedBox(height: 2),
                                     Text(item['duration'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
@@ -421,15 +457,31 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                                     Text(item['location'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF114177))),
                                   ],
                                 ),
-                                GestureDetector(
-                                  onTap: () => _showActionModal(item),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(8)),
-                                    child: Text('Aksi', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                              ],
+                            ),
+                            const SizedBox(height: 12),
+                            InkWell(
+                              onTap: () => _showActionModal(item),
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFF3F4F6),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                                ),
+                                child: Center(
+                                  child: Text(
+                                    'Aksi',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1A1A18),
+                                    ),
                                   ),
                                 ),
-                              ],
+                              ),
                             ),
                           ],
                         ),

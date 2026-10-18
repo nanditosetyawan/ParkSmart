@@ -152,8 +152,9 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                 height: 40,
                 margin: const EdgeInsets.only(right: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: Stack(
                   alignment: Alignment.center,

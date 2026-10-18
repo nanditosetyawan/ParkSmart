@@ -358,14 +358,25 @@ class _LocationsScreenState extends State<LocationsScreen> {
                 ),
                 const SizedBox(height: 14),
 
-                // Search Box
+                // Search Box (Google Style)
                 Container(
-                  height: 44,
+                  height: 46,
                   padding: const EdgeInsets.symmetric(horizontal: 14),
-                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(12)),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(24),
+                    border: Border.all(color: const Color(0xFFE2E8F0)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.03),
+                        blurRadius: 6,
+                        offset: const Offset(0, 2),
+                      ),
+                    ],
+                  ),
                   child: Row(
                     children: [
-                      const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
+                      const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
                       const SizedBox(width: 10),
                       Expanded(
                         child: TextField(
@@ -374,12 +385,21 @@ class _LocationsScreenState extends State<LocationsScreen> {
                           style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
                           decoration: InputDecoration(
                             hintText: 'Cari gedung atau alamat...',
-                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                            hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                             border: InputBorder.none,
                             isDense: true,
+                            contentPadding: EdgeInsets.zero,
                           ),
                         ),
                       ),
+                      if (_searchController.text.isNotEmpty)
+                        GestureDetector(
+                          onTap: () {
+                            _searchController.clear();
+                            setState(() {});
+                          },
+                          child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                        ),
                     ],
                   ),
                 ),

@@ -24,6 +24,15 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   int _currentTabIndex = 0;
   int _selectedChartCityIndex = 0;
   String _selectedStatusFilter = 'Semua';
+  String _selectedParkedMonth = 'Okt 2026';
+  final List<String> _parkedMonths = [
+    'Okt 2026',
+    'Sep 2026',
+    'Agu 2026',
+    'Jul 2026',
+    'Jun 2026',
+    'Mei 2026',
+  ];
 
   // 📈 Kursor Crosshair Inspeksi Chart Gunung Kendaraan Parkir
   int? _inspectedParkedPointIndex;
@@ -374,8 +383,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 height: 40,
                 margin: const EdgeInsets.only(right: 14),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF3F4F6),
+                  color: Colors.white,
                   borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
                 ),
                 child: Stack(
                   alignment: Alignment.center,
@@ -1219,10 +1229,69 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   // ⛰️ KARTU CHART GUNUNG KENDARAAN PARKIR (TEKAN & GESER TITIKNYA)
   Widget _buildParkedVehiclesMountainChart() {
     const Color accentColor = Color(0xFF17A18A); // Emerald green
-    final List<double> chartData = [0.38, 0.48, 0.62, 0.82, 0.76, 0.88, 0.96];
-    final List<String> pointValues = ['720 Unit', '765 Unit', '815 Unit', '890 Unit', '860 Unit', '910 Unit', '$_totalParkedVehicles Unit'];
-    final List<String> pointDates = ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini (31 Okt)'];
-    final List<String> xLabels = ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini'];
+
+    final Map<String, Map<String, dynamic>> monthDataMap = {
+      'Okt 2026': {
+        'total': '$_totalParkedVehicles Unit',
+        'subtitle': 'Hari Ini (31 Okt)',
+        'chartData': [0.38, 0.48, 0.62, 0.82, 0.76, 0.88, 0.96],
+        'pointValues': ['720 Unit', '765 Unit', '815 Unit', '890 Unit', '860 Unit', '910 Unit', '$_totalParkedVehicles Unit'],
+        'pointDates': ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini (31 Okt)'],
+        'xLabels': ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini'],
+        'trend': '+14.8% Akumulasi Bulan Ini',
+      },
+      'Sep 2026': {
+        'total': '885 Unit',
+        'subtitle': 'Akhir Bulan (30 Sep)',
+        'chartData': [0.32, 0.42, 0.55, 0.70, 0.68, 0.80, 0.88],
+        'pointValues': ['680 Unit', '710 Unit', '750 Unit', '820 Unit', '805 Unit', '860 Unit', '885 Unit'],
+        'pointDates': ['1 Sep', '6 Sep', '11 Sep', '16 Sep', '21 Sep', '26 Sep', '30 Sep'],
+        'xLabels': ['1 Sep', '6 Sep', '11 Sep', '16 Sep', '21 Sep', '26 Sep', '30 Sep'],
+        'trend': '+11.2% Akumulasi Sep',
+      },
+      'Agu 2026': {
+        'total': '840 Unit',
+        'subtitle': 'Akhir Bulan (31 Agu)',
+        'chartData': [0.28, 0.38, 0.50, 0.65, 0.60, 0.75, 0.84],
+        'pointValues': ['620 Unit', '660 Unit', '710 Unit', '780 Unit', '760 Unit', '815 Unit', '840 Unit'],
+        'pointDates': ['1 Agu', '6 Agu', '11 Agu', '16 Agu', '21 Agu', '26 Agu', '31 Agu'],
+        'xLabels': ['1 Agu', '6 Agu', '11 Agu', '16 Agu', '21 Agu', '26 Agu', '31 Agu'],
+        'trend': '+8.5% Akumulasi Agu',
+      },
+      'Jul 2026': {
+        'total': '820 Unit',
+        'subtitle': 'Akhir Bulan (31 Jul)',
+        'chartData': [0.30, 0.40, 0.48, 0.62, 0.58, 0.72, 0.82],
+        'pointValues': ['640 Unit', '680 Unit', '720 Unit', '760 Unit', '745 Unit', '790 Unit', '820 Unit'],
+        'pointDates': ['1 Jul', '6 Jul', '11 Jul', '16 Jul', '21 Jul', '26 Jul', '31 Jul'],
+        'xLabels': ['1 Jul', '6 Jul', '11 Jul', '16 Jul', '21 Jul', '26 Jul', '31 Jul'],
+        'trend': '+9.1% Akumulasi Jul',
+      },
+      'Jun 2026': {
+        'total': '795 Unit',
+        'subtitle': 'Akhir Bulan (30 Jun)',
+        'chartData': [0.25, 0.35, 0.45, 0.58, 0.55, 0.68, 0.78],
+        'pointValues': ['610 Unit', '650 Unit', '695 Unit', '740 Unit', '730 Unit', '770 Unit', '795 Unit'],
+        'pointDates': ['1 Jun', '6 Jun', '11 Jun', '16 Jun', '21 Jun', '26 Jun', '30 Jun'],
+        'xLabels': ['1 Jun', '6 Jun', '11 Jun', '16 Jun', '21 Jun', '26 Jun', '30 Jun'],
+        'trend': '+7.3% Akumulasi Jun',
+      },
+      'Mei 2026': {
+        'total': '760 Unit',
+        'subtitle': 'Akhir Bulan (31 Mei)',
+        'chartData': [0.22, 0.30, 0.40, 0.52, 0.50, 0.64, 0.74],
+        'pointValues': ['580 Unit', '620 Unit', '660 Unit', '705 Unit', '690 Unit', '735 Unit', '760 Unit'],
+        'pointDates': ['1 Mei', '6 Mei', '11 Mei', '16 Mei', '21 Mei', '26 Mei', '31 Mei'],
+        'xLabels': ['1 Mei', '6 Mei', '11 Mei', '16 Mei', '21 Mei', '26 Mei', '31 Mei'],
+        'trend': '+6.8% Akumulasi Mei',
+      },
+    };
+
+    final activeData = monthDataMap[_selectedParkedMonth] ?? monthDataMap['Okt 2026']!;
+    final List<double> chartData = List<double>.from(activeData['chartData']);
+    final List<String> pointValues = List<String>.from(activeData['pointValues']);
+    final List<String> pointDates = List<String>.from(activeData['pointDates']);
+    final List<String> xLabels = List<String>.from(activeData['xLabels']);
     final int pointCount = chartData.length;
 
     final bool isInspecting = _inspectedParkedPointIndex != null &&
@@ -1231,11 +1300,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
     final String displayValue = isInspecting
         ? pointValues[_inspectedParkedPointIndex!]
-        : '$_totalParkedVehicles Unit';
+        : (activeData['total'] as String);
 
     final String displaySubtitle = isInspecting
         ? pointDates[_inspectedParkedPointIndex!]
-        : 'Total 4 Titik Pantauan Lapangan';
+        : (activeData['subtitle'] as String);
 
     return Container(
       decoration: BoxDecoration(
@@ -1254,7 +1323,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header: Icon + Info Metrik + Periode Bulan Langsung
+          // Header: Icon + Info Metrik + Dropdown Pilihan Bulan
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -1294,28 +1363,70 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                   ),
                 ],
               ),
-              // Keterangan Bulan Langsung tanpa tombol filter bertumpuk
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
-                  borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
+              // Dropdown Pilihan Bulan (Background Putih + Outline Tipis Hitam)
+              PopupMenuButton<String>(
+                initialValue: _selectedParkedMonth,
+                onSelected: (String month) {
+                  setState(() {
+                    _selectedParkedMonth = month;
+                    _inspectedParkedPointIndex = null;
+                  });
+                },
+                elevation: 4,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(Icons.calendar_month_rounded, size: 12, color: Color(0xFF17A18A)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Bulan Ini (Okt 2026)',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF3F3F46),
-                      ),
+                itemBuilder: (context) => _parkedMonths.map((m) {
+                  final isSelected = m == _selectedParkedMonth;
+                  final label = m == 'Okt 2026' ? 'Bulan Ini ($m)' : m;
+                  return PopupMenuItem<String>(
+                    value: m,
+                    height: 38,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Text(
+                          label,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                            color: isSelected ? const Color(0xFF17A18A) : const Color(0xFF1A1A18),
+                          ),
+                        ),
+                        if (isSelected)
+                          const Icon(Icons.check_rounded, size: 16, color: Color(0xFF17A18A)),
+                      ],
                     ),
-                  ],
+                  );
+                }).toList(),
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF1A1A18), width: 0.9),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_month_rounded, size: 12, color: Color(0xFF1A1A18)),
+                      const SizedBox(width: 5),
+                      Text(
+                        _selectedParkedMonth == 'Okt 2026'
+                            ? 'Bulan Ini ($_selectedParkedMonth)'
+                            : _selectedParkedMonth,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: Color(0xFF1A1A18)),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -1367,7 +1478,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    '+14.8% Akumulasi Bulan Ini',
+                    activeData['trend'] as String,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.bold,

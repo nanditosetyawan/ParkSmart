@@ -13,7 +13,7 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
   String _selectedLocation = 'Central Park Mall';
   int _selectedFloor = 0; // 0=B1, 1=B2, 2=Outdoor
 
-  final List<String> _floors = ['Basement 1 (Mobil)', 'Basement 2 (EV & VIP)', 'Outdoor (Motor)'];
+  final List<String> _floors = ['Basement 1', 'Basement 2', 'Outdoor'];
 
   late List<Map<String, dynamic>> _slots;
 
@@ -224,14 +224,18 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+            ),
           ),
-        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -316,15 +320,23 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
           Container(
             color: Colors.white,
             padding: const EdgeInsets.fromLTRB(20, 0, 20, 14),
-            child: Row(
+            child: Column(
               children: [
-                _buildMiniStat('Total', '$total', const Color(0xFF45474A), const Color(0xFFF3F4F6)),
-                const SizedBox(width: 8),
-                _buildMiniStat('Tersedia', '$available', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
-                const SizedBox(width: 8),
-                _buildMiniStat('Terisi', '$occupied', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
-                const SizedBox(width: 8),
-                _buildMiniStat('Reserved', '$reserved', const Color(0xFF114177), const Color(0xFFE3EEFF)),
+                Row(
+                  children: [
+                    _buildMiniStat('Total', '$total', const Color(0xFF45474A), const Color(0xFFF3F4F6)),
+                    const SizedBox(width: 8),
+                    _buildMiniStat('Tersedia', '$available', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    _buildMiniStat('Terisi', '$occupied', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
+                    const SizedBox(width: 8),
+                    _buildMiniStat('Reserved', '$reserved', const Color(0xFF114177), const Color(0xFFE3EEFF)),
+                  ],
+                ),
               ],
             ),
           ),

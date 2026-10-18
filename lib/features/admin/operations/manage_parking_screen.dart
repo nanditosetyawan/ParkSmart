@@ -187,7 +187,11 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             onTap: () => Navigator.pop(context),
             child: Container(
               margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
               child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
             ),
           ),
@@ -237,55 +241,70 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        // 1. Search Bar & Tombol Tambah Lokasi Baru
-        Row(
-          children: [
-            Expanded(
-              child: Container(
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                ),
+        // 1. Search Bar (Google Style)
+        Container(
+          height: 46,
+          padding: const EdgeInsets.symmetric(horizontal: 14),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 6,
+                offset: const Offset(0, 2),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
+              const SizedBox(width: 10),
+              Expanded(
                 child: TextField(
                   controller: _searchController,
                   onChanged: (v) => setState(() => _searchQuery = v),
-                  style: GoogleFonts.plusJakartaSans(fontSize: 13),
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
                   decoration: InputDecoration(
                     hintText: 'Cari nama gedung, kota, atau alamat...',
-                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
-                    prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
-                    suffixIcon: _searchQuery.isNotEmpty
-                        ? IconButton(
-                            icon: const Icon(Icons.clear, size: 16),
-                            onPressed: () {
-                              _searchController.clear();
-                              setState(() => _searchQuery = '');
-                            },
-                          )
-                        : null,
+                    hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                     border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    isDense: true,
+                    contentPadding: EdgeInsets.zero,
                   ),
                 ),
               ),
+              if (_searchQuery.isNotEmpty)
+                GestureDetector(
+                  onTap: () {
+                    _searchController.clear();
+                    setState(() => _searchQuery = '');
+                  },
+                  child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
+                ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+
+        // Tombol Tambah Lokasi Baru (Full Width mengisi kekosongan)
+        SizedBox(
+          width: double.infinity,
+          height: 44,
+          child: ElevatedButton.icon(
+            onPressed: _showAddLocationDialog,
+            icon: const Icon(Icons.add_location_alt_rounded, size: 18, color: Colors.white),
+            label: Text(
+              'Tambah Lokasi',
+              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
             ),
-            const SizedBox(width: 10),
-            ElevatedButton.icon(
-              onPressed: _showAddLocationDialog,
-              icon: const Icon(Icons.add_location_alt_rounded, size: 18, color: Colors.white),
-              label: Text(
-                'Tambah Lokasi',
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF114177),
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF114177),
+              elevation: 0,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
             ),
-          ],
+          ),
         ),
         const SizedBox(height: 12),
 
