@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -7,6 +8,7 @@ import 'admin_locations_screen.dart';
 import 'admin_slot_management_screen.dart';
 import 'admin_active_users_screen.dart';
 import 'admin_bookings_screen.dart';
+import 'manage_parking_screen.dart';
 import '../../sitemap_screen.dart';
 
 class AdminOperationsDashboardScreen extends StatefulWidget {
@@ -22,6 +24,26 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   int _currentTabIndex = 0;
   int _selectedChartCityIndex = 0;
   String _selectedStatusFilter = 'Semua';
+
+  // 📈 Kursor Crosshair Inspeksi Chart Gunung Kendaraan Parkir
+  int? _inspectedParkedPointIndex;
+
+  void _onParkedChartTouch(double touchX, double canvasWidth, int pointCount) {
+    if (pointCount <= 1 || canvasWidth <= 0) return;
+    const double marginHorizontal = 24.0;
+    final double chartWidth = canvasWidth - (marginHorizontal * 2);
+    if (chartWidth <= 0) return;
+
+    final double stepX = chartWidth / (pointCount - 1);
+    final double relativeX = (touchX - marginHorizontal).clamp(0.0, chartWidth);
+    final int closestIndex = (relativeX / stepX).round().clamp(0, pointCount - 1);
+
+    if (_inspectedParkedPointIndex != closestIndex) {
+      setState(() {
+        _inspectedParkedPointIndex = closestIndex;
+      });
+    }
+  }
 
   final List<Map<String, dynamic>> _cityDensityList = [
     {
@@ -141,17 +163,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     return sum;
   }
 
-  int get _totalCapacity {
-    int sum = 0;
-    for (var l in _operationalLocations) {
-      sum += (l['total'] as int);
-    }
-    return sum;
-  }
 
-  int get _totalAvailableSlots => _totalCapacity - _totalParkedVehicles;
-
-  double get _occupancyPercentage => _totalCapacity > 0 ? (_totalParkedVehicles / _totalCapacity) * 100 : 0.0;
 
   List<Map<String, dynamic>> get _filteredLocations {
     if (_selectedStatusFilter == 'Semua') return _operationalLocations;
@@ -165,6 +177,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       'id': 'SES-9901',
       'plate': 'B 1234 SKP',
       'user': 'Nanda Setiawan',
+      'phone': '0812-3456-7890',
       'type': 'Mobil',
       'vehicle': 'Honda CR-V Hitam',
       'location': 'Central Park Mall',
@@ -179,6 +192,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       'id': 'SES-9902',
       'plate': 'B 5532 PLM',
       'user': 'Rafi Maulana',
+      'phone': '0856-7890-1234',
       'type': 'Mobil',
       'vehicle': 'Toyota Fortuner Putih',
       'location': 'Central Park Mall',
@@ -194,6 +208,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       'id': 'SES-9903',
       'plate': 'B 1111 ION',
       'user': 'Dewi Lestari',
+      'phone': '0878-1234-5678',
       'type': 'EV Mobil',
       'vehicle': 'Hyundai Ioniq 5',
       'location': 'Central Park Mall',
@@ -208,6 +223,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       'id': 'SES-9904',
       'plate': 'D 8888 ABC',
       'user': 'Fajar Ramadhan',
+      'phone': '0896-2345-6789',
       'type': 'Motor',
       'vehicle': 'Yamaha NMAX Hitam',
       'location': 'Paris Van Java',
@@ -222,6 +238,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       'id': 'SES-9905',
       'plate': 'L 7777 WRT',
       'user': 'Siti Rahma',
+      'phone': '0813-9876-5432',
       'type': 'Mobil',
       'vehicle': 'Toyota Innova Zenix',
       'location': 'Grand Indonesia',
@@ -236,40 +253,52 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   final List<Map<String, dynamic>> _liveBookings = [
     {
-      'id': 'BK-8821',
+      'id': 'BKG-2024-002',
       'code': 'PRK-8821',
       'name': 'Rafi Maulana',
       'phone': '0812-3456-7890',
       'location': 'Central Park Mall',
       'slot': 'B2 / A-03',
+      'floor': 'B2',
       'vehicleType': 'Mobil',
       'plate': 'B 1234 ABC',
       'time': '13:00 - 15:00 WIB',
+      'duration': '2 jam',
       'status': 'Dikonfirmasi',
+      'totalPrice': 'Rp 28.000',
+      'paymentStatus': 'Dibayar',
     },
     {
-      'id': 'BK-8822',
+      'id': 'BKG-2024-003',
       'code': 'PRK-8822',
       'name': 'Siti Rahma',
       'phone': '0813-9876-5432',
       'location': 'Grand Indonesia',
       'slot': 'B1 / VIP-01',
+      'floor': 'B1',
       'vehicleType': 'EV Mobil',
       'plate': 'B 9999 EV',
       'time': '14:30 - 17:30 WIB',
+      'duration': '3 jam',
       'status': 'Menunggu',
+      'totalPrice': 'Rp 35.000',
+      'paymentStatus': 'Pending',
     },
     {
-      'id': 'BK-8823',
+      'id': 'BKG-2024-004',
       'code': 'PRK-8823',
       'name': 'Budi Santoso',
       'phone': '0857-1122-3344',
       'location': 'Paris Van Java',
       'slot': 'Lt 1 / C-12',
+      'floor': 'Lantai 1',
       'vehicleType': 'Motor',
       'plate': 'D 4321 XYZ',
       'time': '15:00 - 18:00 WIB',
+      'duration': '3 jam',
       'status': 'Dikonfirmasi',
+      'totalPrice': 'Rp 12.000',
+      'paymentStatus': 'Dibayar',
     },
   ];
 
@@ -594,41 +623,17 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          crossAxisAlignment: CrossAxisAlignment.end,
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Aktivitas Lapangan Real-Time',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  'Monitoring sesi kendaraan aktif & reservasi hari ini',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
-                ),
-              ],
+            Text(
+              'Aktivitas Lapangan Real-Time',
+              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
             ),
-            TextButton.icon(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (_) => _activitySubTab == 0 ? const ActiveUsersScreen() : const AdminBookingsScreen()),
-                );
-              },
-              icon: const Icon(Icons.fullscreen_rounded, size: 15, color: Color(0xFF114177)),
-              label: Text(
-                _activitySubTab == 0 ? 'Monitor Lengkap' : 'Booking Lengkap',
-                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
-              ),
-              style: TextButton.styleFrom(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                minimumSize: Size.zero,
-                tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-              ),
+            const SizedBox(height: 2),
+            Text(
+              'Monitoring sesi kendaraan aktif & reservasi hari ini',
+              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
             ),
           ],
         ),
@@ -742,12 +747,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const ActiveUsersScreen()),
-                    );
-                  },
+                  onTap: () => _showActiveVehicleActionModal(s),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
@@ -847,12 +847,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 color: Colors.transparent,
                 child: InkWell(
                   borderRadius: BorderRadius.circular(14),
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(builder: (_) => const AdminBookingsScreen()),
-                    );
-                  },
+                  onTap: () => _showBookingDetailModal(b),
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Column(
@@ -923,116 +918,669 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     );
   }
 
-  // ==================== WIDGETS: KPI METRICS (4 CARDS) ====================
-  Widget _buildRealtimeKpiSection() {
-    return Column(
-      children: [
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                title: 'Kendaraan Parkir',
-                value: '$_totalParkedVehicles Unit',
-                subtitle: 'Total 4 Titik Pantauan',
-                icon: Icons.directions_car,
-                accentColor: const Color(0xFF17A18A),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildMetricCard(
-                title: 'Sisa Slot Kosong',
-                value: '$_totalAvailableSlots Slot',
-                subtitle: 'Siap Digunakan',
-                icon: Icons.local_parking_rounded,
-                accentColor: const Color(0xFF114177),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: _buildMetricCard(
-                title: 'Rata-rata Okupansi',
-                value: '${_occupancyPercentage.toStringAsFixed(1)}%',
-                subtitle: 'Kapasitas Terisi',
-                icon: Icons.pie_chart_outline_rounded,
-                accentColor: const Color(0xFFD97706),
-                onTap: () => setState(() => _currentTabIndex = 1),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: _buildMetricCard(
-                title: 'Overstay Alert',
-                value: '3 Kendaraan',
-                subtitle: 'Melebihi Kuota Waktu',
-                icon: Icons.warning_amber_rounded,
-                accentColor: const Color(0xFFD94B4B),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
-              ),
-            ),
-          ],
-        ),
-      ],
-    );
-  }
-
-  Widget _buildMetricCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color accentColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(14),
-      child: Container(
-        padding: const EdgeInsets.all(12),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(14),
-          border: Border.all(color: const Color(0xFFE4DFD5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
+  // 🚗 MODAL AKSI KENDARAAN AKTIF (KIRIM PENGINGAT & FORCE CHECK-OUT)
+  void _showActiveVehicleActionModal(Map<String, dynamic> session) {
+    final bool isOverstay = session['isOverstay'] == true;
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.all(20),
         child: Column(
+          mainAxisSize: MainAxisSize.min,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      session['plate'],
+                      style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                    ),
+                    Text(
+                      '${session['user']} • ${session['phone'] ?? '0812-3456-7890'}',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                    ),
+                  ],
+                ),
                 Container(
-                  width: 32,
-                  height: 32,
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: accentColor.withValues(alpha: 0.12),
+                    color: isOverstay ? const Color(0xFFFDE8E4) : const Color(0xFFD1F2EB),
                     borderRadius: BorderRadius.circular(8),
                   ),
-                  child: Icon(icon, color: accentColor, size: 18),
+                  child: Text(
+                    isOverstay ? 'Overstay' : 'Normal',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isOverstay ? const Color(0xFFD94B4B) : const Color(0xFF17A18A),
+                    ),
+                  ),
                 ),
-                Icon(Icons.arrow_forward_ios_rounded, size: 10, color: const Color(0xFF76777B).withValues(alpha: 0.5)),
               ],
             ),
-            const SizedBox(height: 8),
-            Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-            const SizedBox(height: 2),
-            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            const SizedBox(height: 2),
-            Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 9, color: const Color(0xFF76777B))),
+            const Divider(color: Color(0xFFF3F4F6), height: 24),
+            _buildActionDetailRow('Lokasi & Slot:', '${session['location']} (${session['slot']})'),
+            _buildActionDetailRow('Kendaraan:', session['vehicle']),
+            _buildActionDetailRow('Jam Check-In:', session['checkIn']),
+            _buildActionDetailRow('Durasi Berjalan:', session['duration']),
+            _buildActionDetailRow('Akumulasi Biaya:', session['fee']),
+            const SizedBox(height: 20),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    onPressed: () {
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Notifikasi peringatan berhasil dikirimkan ke ${session['user']}!'),
+                          behavior: SnackBarBehavior.floating,
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.notifications_active_outlined, size: 16, color: Color(0xFF114177)),
+                    label: Text(
+                      'Kirim Pengingat',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      side: const BorderSide(color: Color(0xFFE5E7EB)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: ElevatedButton.icon(
+                    onPressed: () {
+                      setState(() {
+                        _liveSessions.removeWhere((s) => s['id'] == session['id']);
+                      });
+                      Navigator.pop(ctx);
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          backgroundColor: const Color(0xFF17A18A),
+                          behavior: SnackBarBehavior.floating,
+                          content: Text('Kendaraan ${session['plate']} berhasil di-checkout manual!'),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.exit_to_app, size: 16, color: Colors.white),
+                    label: Text(
+                      'Force Check-Out',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFFD94B4B),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 10),
           ],
         ),
+      ),
+    );
+  }
+
+  // 📋 MODAL DETAIL BOOKING LENGKAP (BKG-2024-002 RAFI MAULANA DLL)
+  void _showBookingDetailModal(Map<String, dynamic> booking) {
+    final bool isConfirmed = booking['status'] == 'Dikonfirmasi';
+    final Color statusColor = isConfirmed ? const Color(0xFF17A18A) : const Color(0xFFD97706);
+    final Color statusBg = isConfirmed ? const Color(0xFFD1F2EB) : const Color(0xFFFEF3C7);
+    final String avatarInitial = (booking['name'] as String).isNotEmpty ? (booking['name'] as String)[0].toUpperCase() : 'B';
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.white,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
+      builder: (ctx) => Padding(
+        padding: EdgeInsets.only(bottom: MediaQuery.of(ctx).viewInsets.bottom),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Detail Booking', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                        Text('${booking['id']} • ${booking['code']}', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(10)),
+                      child: Text(booking['status'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 18),
+
+                // User Info
+                Row(
+                  children: [
+                    Container(
+                      width: 48,
+                      height: 48,
+                      decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(14)),
+                      child: Center(
+                        child: Text(
+                          avatarInitial,
+                          style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(booking['name'], style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                          Text(booking['phone'] ?? '-', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 18),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 18),
+
+                // Informasi Booking
+                Text(
+                  'Informasi Booking',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                ),
+                const SizedBox(height: 10),
+                _buildActionDetailRow('Tipe Booking:', 'Reservasi'),
+                _buildActionDetailRow('Lokasi:', '${booking['location']} (${booking['floor'] ?? 'B2'})'),
+                _buildActionDetailRow('Slot Parkir:', booking['slot']),
+                _buildActionDetailRow('Kendaraan:', '${booking['plate']} (${booking['vehicleType']})'),
+                _buildActionDetailRow('Jadwal Waktu:', booking['time']),
+                _buildActionDetailRow('Durasi Reservasi:', booking['duration'] ?? '2 jam'),
+                const SizedBox(height: 18),
+                const Divider(color: Color(0xFFF3F4F6), height: 1),
+                const SizedBox(height: 18),
+
+                // Pembayaran
+                Text(
+                  'Pembayaran',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                ),
+                const SizedBox(height: 10),
+                _buildActionDetailRow('Total Biaya:', booking['totalPrice'] ?? 'Rp 28.000'),
+                _buildActionDetailRow('Status Bayar:', booking['paymentStatus'] ?? 'Dibayar'),
+                const SizedBox(height: 22),
+
+                // Action Buttons
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Booking ${booking['code']} telah dibatalkan.'),
+                              backgroundColor: const Color(0xFFD94B4B),
+                              behavior: SnackBarBehavior.floating,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.cancel_outlined, size: 16, color: Color(0xFFD94B4B)),
+                        label: Text('Batalkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
+                        style: OutlinedButton.styleFrom(
+                          side: const BorderSide(color: Color(0xFFD94B4B)),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          Navigator.pop(ctx);
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              backgroundColor: const Color(0xFF17A18A),
+                              behavior: SnackBarBehavior.floating,
+                              content: Text('Sesi parkir untuk ${booking['name']} (${booking['plate']}) telah dimulai!'),
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
+                        label: Text('Mulai Sesi', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF17A18A),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionDetailRow(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
+          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+        ],
+      ),
+    );
+  }
+
+  // ==================== WIDGETS: KPI METRICS (CHART GUNUNG & OVERSTAY ALERT) ====================
+  Widget _buildRealtimeKpiSection() {
+    return Column(
+      children: [
+        // 1. Chart Gunung Kendaraan Parkir 937 Unit (Bulan Ini)
+        _buildParkedVehiclesMountainChart(),
+        const SizedBox(height: 12),
+        // 2. Overstay Alert Card Menarik di bawahnya
+        _buildOverstayAlertCard(),
+      ],
+    );
+  }
+
+  // ⛰️ KARTU CHART GUNUNG KENDARAAN PARKIR (TEKAN & GESER TITIKNYA)
+  Widget _buildParkedVehiclesMountainChart() {
+    const Color accentColor = Color(0xFF17A18A); // Emerald green
+    final List<double> chartData = [0.38, 0.48, 0.62, 0.82, 0.76, 0.88, 0.96];
+    final List<String> pointValues = ['720 Unit', '765 Unit', '815 Unit', '890 Unit', '860 Unit', '910 Unit', '$_totalParkedVehicles Unit'];
+    final List<String> pointDates = ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini (31 Okt)'];
+    final List<String> xLabels = ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini'];
+    final int pointCount = chartData.length;
+
+    final bool isInspecting = _inspectedParkedPointIndex != null &&
+        _inspectedParkedPointIndex! >= 0 &&
+        _inspectedParkedPointIndex! < pointCount;
+
+    final String displayValue = isInspecting
+        ? pointValues[_inspectedParkedPointIndex!]
+        : '$_totalParkedVehicles Unit';
+
+    final String displaySubtitle = isInspecting
+        ? pointDates[_inspectedParkedPointIndex!]
+        : 'Total 4 Titik Pantauan Lapangan';
+
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header: Icon + Info Metrik + Periode Bulan Langsung
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.directions_car_rounded, size: 22, color: accentColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kendaraan Parkir',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18),
+                        ),
+                      ),
+                      Text(
+                        displaySubtitle,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          color: isInspecting ? accentColor : const Color(0xFF76777B),
+                          fontWeight: isInspecting ? FontWeight.bold : FontWeight.normal,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Keterangan Bulan Langsung tanpa tombol filter bertumpuk
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF1EEE7),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.calendar_month_rounded, size: 12, color: Color(0xFF17A18A)),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Bulan Ini (Okt 2026)',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF3F3F46),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // Nilai Angka Besar + Status Keterangan
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.baseline,
+            textBaseline: TextBaseline.alphabetic,
+            children: [
+              Text(
+                displayValue,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF1A1A18),
+                  letterSpacing: -0.5,
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (isInspecting)
+                InkWell(
+                  onTap: () {
+                    setState(() => _inspectedParkedPointIndex = null);
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1EEE7),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                    child: Text(
+                      'Reset',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF71717A),
+                      ),
+                    ),
+                  ),
+                )
+              else
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE8F7F4),
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '+14.8% Akumulasi Bulan Ini',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF17A18A),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+
+          const SizedBox(height: 12),
+
+          // ⛰️ Chart Gunung Area (Tekan & Geser Titik Crosshair Langsung)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double canvasWidth = constraints.maxWidth;
+              const double canvasHeight = 160.0;
+
+              return Container(
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAF9),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFEFECE6)),
+                ),
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(14),
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTapDown: (details) {
+                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                    },
+                    onPanStart: (details) {
+                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                    },
+                    onPanUpdate: (details) {
+                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                    },
+                    child: SizedBox(
+                      width: canvasWidth,
+                      height: canvasHeight,
+                      child: CustomPaint(
+                        painter: _MountainChartPainter(
+                          data: chartData,
+                          pointValues: pointValues,
+                          pointDates: pointDates,
+                          xLabels: xLabels,
+                          inspectedIndex: _inspectedParkedPointIndex,
+                          lineColor: accentColor,
+                          gradientStart: accentColor.withValues(alpha: 0.35),
+                          gradientEnd: accentColor.withValues(alpha: 0.0),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: 10),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Geser titik grafik untuk inspeksi data',
+                style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)),
+              ),
+              InkWell(
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text(
+                      'Buka Monitoring Sesi',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                    ),
+                    const SizedBox(width: 2),
+                    const Icon(Icons.arrow_forward_rounded, size: 12, color: Color(0xFF114177)),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 🚨 KARTU OVERSTAY ALERT MENARIK & EYE-CATCHING DI BAWAH CHART
+  Widget _buildOverstayAlertCard() {
+    return Container(
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFFFFF5F5), Color(0xFFFEE2E2)],
+        ),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFFECACA), width: 1.2),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFDC2626).withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFEF4444), Color(0xFFDC2626)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFDC2626).withValues(alpha: 0.3),
+                      blurRadius: 6,
+                      offset: const Offset(0, 2),
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 22),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Text(
+                          'Overstay Alert',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF991B1B),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFDC2626),
+                            borderRadius: BorderRadius.circular(6),
+                          ),
+                          child: Text(
+                            '3 KENDARAAN',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '3 kendaraan melebihi batas kuota waktu parkir maksimal di lapangan',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: const Color(0xFF7F1D1D),
+                        height: 1.2,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // Tombol Aksi Menarik (Perbaiki tombol Overstay Alert kurang menarik)
+          SizedBox(
+            width: double.infinity,
+            height: 42,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
+              icon: const Icon(Icons.shield_outlined, size: 16, color: Colors.white),
+              label: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Tindak Lanjuti & Cek Plat Kendaraan',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  const Icon(Icons.arrow_forward_rounded, size: 14, color: Colors.white),
+                ],
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFDC2626),
+                foregroundColor: Colors.white,
+                elevation: 2,
+                shadowColor: const Color(0xFFDC2626).withValues(alpha: 0.4),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1510,11 +2058,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     ),
                   ),
                   _buildDrawerItem(
-                    icon: Icons.business_outlined,
-                    label: 'Kelola Lokasi Parkir',
+                    icon: Icons.local_parking_rounded,
+                    label: 'Kelola Parkir dan Aturan Tarif',
                     onTap: () {
                       Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen()));
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageParkingScreen()));
                     },
                   ),
 
@@ -1570,5 +2118,339 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
       onTap: onTap,
     );
+  }
+}
+
+// ⛰️ CUSTOM PAINTER CHART GUNUNG DENGAN TITIK KURSOR INSPEKSI SILANG (CROSSHAIR)
+class _MountainChartPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> pointValues;
+  final List<String> pointDates;
+  final List<String> xLabels;
+  final int? inspectedIndex;
+  final Color lineColor;
+  final Color gradientStart;
+  final Color gradientEnd;
+
+  _MountainChartPainter({
+    required this.data,
+    required this.pointValues,
+    required this.pointDates,
+    required this.xLabels,
+    this.inspectedIndex,
+    required this.lineColor,
+    required this.gradientStart,
+    required this.gradientEnd,
+  });
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset p1,
+    Offset p2,
+    Paint paint, {
+    double dashWidth = 4,
+    double dashSpace = 4,
+  }) {
+    final double dx = p2.dx - p1.dx;
+    final double dy = p2.dy - p1.dy;
+    final double distance = math.sqrt(dx * dx + dy * dy);
+    if (distance == 0) return;
+    final double unitX = dx / distance;
+    final double unitY = dy / distance;
+
+    double current = 0;
+    while (current < distance) {
+      final double start = current;
+      final double end = math.min(current + dashWidth, distance);
+      canvas.drawLine(
+        Offset(p1.dx + unitX * start, p1.dy + unitY * start),
+        Offset(p1.dx + unitX * end, p1.dy + unitY * end),
+        paint,
+      );
+      current += dashWidth + dashSpace;
+    }
+  }
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const double marginHorizontal = 24.0;
+    final double chartWidth = size.width - (marginHorizontal * 2);
+    final double stepX = chartWidth / (data.length - 1);
+    const double topPadding = 24.0;
+    final double baselineY = size.height - 36.0;
+    final double availableHeight = baselineY - topPadding;
+
+    final List<Offset> points = [];
+    for (int i = 0; i < data.length; i++) {
+      final double x = marginHorizontal + (i * stepX);
+      final double y = topPadding + (1.0 - data[i].clamp(0.0, 1.0)) * availableHeight;
+      points.add(Offset(x, y));
+    }
+
+    final gridPaint = Paint()
+      ..color = const Color(0xFFE5E7EB).withValues(alpha: 0.7)
+      ..strokeWidth = 1.0;
+
+    for (final double ratio in [0.25, 0.50, 0.75]) {
+      final double yGrid = topPadding + ratio * availableHeight;
+      _drawDashedLine(
+        canvas,
+        Offset(marginHorizontal - 15, yGrid),
+        Offset(size.width - marginHorizontal + 15, yGrid),
+        gridPaint,
+        dashWidth: 4,
+        dashSpace: 4,
+      );
+    }
+
+    final baselinePaint = Paint()
+      ..color = const Color(0xFFE5E7EB)
+      ..strokeWidth = 1.2;
+    canvas.drawLine(
+      Offset(marginHorizontal - 15, baselineY),
+      Offset(size.width - marginHorizontal + 15, baselineY),
+      baselinePaint,
+    );
+
+    final path = Path();
+    path.moveTo(points.first.dx, baselineY);
+    path.lineTo(points.first.dx, points.first.dy);
+
+    const double tension = 0.22;
+    for (int i = 0; i < points.length - 1; i++) {
+      final Offset p0 = i > 0 ? points[i - 1] : points[0];
+      final Offset p1 = points[i];
+      final Offset p2 = points[i + 1];
+      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+
+      final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
+      final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
+
+      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
+    }
+
+    path.lineTo(points.last.dx, baselineY);
+    path.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [gradientStart, gradientEnd],
+      ).createShader(Rect.fromLTWH(0, topPadding, size.width, availableHeight))
+      ..style = PaintingStyle.fill;
+
+    canvas.drawPath(path, fillPaint);
+
+    final strokePath = Path();
+    strokePath.moveTo(points.first.dx, points.first.dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final Offset p0 = i > 0 ? points[i - 1] : points[0];
+      final Offset p1 = points[i];
+      final Offset p2 = points[i + 1];
+      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+
+      final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
+      final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
+
+      strokePath.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
+    }
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 3.0
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(strokePath, linePaint);
+
+    final int labelStep = xLabels.length > 8 ? (xLabels.length / 5).ceil() : 1;
+    for (int i = 0; i < xLabels.length && i < points.length; i++) {
+      final bool isSelected = inspectedIndex == i;
+      final bool shouldDraw = isSelected || (i % labelStep == 0) || (i == xLabels.length - 1);
+      if (!shouldDraw) continue;
+
+      final labelSpan = TextSpan(
+        text: xLabels[i],
+        style: TextStyle(
+          fontSize: isSelected ? 10 : 9,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          color: isSelected ? lineColor : const Color(0xFF76777B),
+        ),
+      );
+      final labelTp = TextPainter(
+        text: labelSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final double labelX = points[i].dx - (labelTp.width / 2);
+      final double labelY = baselineY + 8.0;
+
+      if (isSelected) {
+        final pillRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(labelX - 4, labelY - 2, labelTp.width + 8, labelTp.height + 4),
+          const Radius.circular(4),
+        );
+        canvas.drawRRect(pillRect, Paint()..color = lineColor.withValues(alpha: 0.15));
+      }
+
+      labelTp.paint(canvas, Offset(labelX, labelY));
+    }
+
+    if (inspectedIndex != null && inspectedIndex! >= 0 && inspectedIndex! < points.length) {
+      final Offset inspectPt = points[inspectedIndex!];
+
+      final crosshairVerticalPaint = Paint()
+        ..color = lineColor.withValues(alpha: 0.7)
+        ..strokeWidth = 1.2;
+      _drawDashedLine(
+        canvas,
+        Offset(inspectPt.dx, topPadding - 10),
+        Offset(inspectPt.dx, baselineY),
+        crosshairVerticalPaint,
+        dashWidth: 3,
+        dashSpace: 3,
+      );
+
+      final crosshairHorizontalPaint = Paint()
+        ..color = lineColor.withValues(alpha: 0.35)
+        ..strokeWidth = 1.0;
+      _drawDashedLine(
+        canvas,
+        Offset(marginHorizontal - 15, inspectPt.dy),
+        Offset(size.width - marginHorizontal + 15, inspectPt.dy),
+        crosshairHorizontalPaint,
+        dashWidth: 3,
+        dashSpace: 3,
+      );
+
+      canvas.drawCircle(
+        inspectPt,
+        9,
+        Paint()..color = lineColor.withValues(alpha: 0.25),
+      );
+      canvas.drawCircle(
+        inspectPt,
+        5,
+        Paint()..color = lineColor,
+      );
+      canvas.drawCircle(
+        inspectPt,
+        2.5,
+        Paint()..color = Colors.white,
+      );
+
+      if (inspectedIndex! < pointDates.length && inspectedIndex! < pointValues.length) {
+        final tooltipSpan = TextSpan(
+          children: [
+            TextSpan(
+              text: '${pointDates[inspectedIndex!]}  •  ',
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w500,
+                color: Color(0xFFD1D5DB),
+              ),
+            ),
+            TextSpan(
+              text: pointValues[inspectedIndex!],
+              style: const TextStyle(
+                fontSize: 10,
+                fontWeight: FontWeight.w800,
+                color: Colors.white,
+              ),
+            ),
+          ],
+        );
+        final tp = TextPainter(
+          text: tooltipSpan,
+          textDirection: TextDirection.ltr,
+        )..layout();
+
+        const double padH = 8.0;
+        const double padV = 5.0;
+        final double boxW = tp.width + (padH * 2);
+        final double boxH = tp.height + (padV * 2);
+
+        double boxX = inspectPt.dx - (boxW / 2);
+        boxX = boxX.clamp(6.0, size.width - boxW - 6.0);
+
+        double boxY = inspectPt.dy - boxH - 10.0;
+        bool isAbove = true;
+        if (boxY < 2.0) {
+          boxY = inspectPt.dy + 12.0;
+          isAbove = false;
+        }
+
+        final boxRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(boxX, boxY, boxW, boxH),
+          const Radius.circular(6),
+        );
+
+        canvas.drawRRect(
+          boxRect,
+          Paint()
+            ..color = Colors.black.withValues(alpha: 0.3)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 4),
+        );
+
+        canvas.drawRRect(
+          boxRect,
+          Paint()..color = const Color(0xFF1C1D1F),
+        );
+
+        canvas.drawRRect(
+          boxRect,
+          Paint()
+            ..color = lineColor.withValues(alpha: 0.6)
+            ..style = PaintingStyle.stroke
+            ..strokeWidth = 1.0,
+        );
+
+        final pointerPath = Path();
+        final double targetX = inspectPt.dx.clamp(boxX + 6.0, boxX + boxW - 6.0);
+        if (isAbove) {
+          pointerPath.moveTo(targetX - 4, boxY + boxH);
+          pointerPath.lineTo(targetX + 4, boxY + boxH);
+          pointerPath.lineTo(targetX, boxY + boxH + 4);
+        } else {
+          pointerPath.moveTo(targetX - 4, boxY);
+          pointerPath.lineTo(targetX + 4, boxY);
+          pointerPath.lineTo(targetX, boxY - 4);
+        }
+        pointerPath.close();
+        canvas.drawPath(pointerPath, Paint()..color = const Color(0xFF1C1D1F));
+
+        tp.paint(canvas, Offset(boxX + padH, boxY + padV));
+      }
+    } else {
+      int peakIndex = 0;
+      double maxVal = data[0];
+      for (int i = 1; i < data.length; i++) {
+        if (data[i] > maxVal) {
+          maxVal = data[i];
+          peakIndex = i;
+        }
+      }
+      final peakPoint = points[peakIndex];
+      canvas.drawCircle(peakPoint, 7, Paint()..color = lineColor.withValues(alpha: 0.2));
+      canvas.drawCircle(peakPoint, 4, Paint()..color = lineColor);
+      canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
+
+      final livePoint = points.last;
+      canvas.drawCircle(livePoint, 8, Paint()..color = lineColor.withValues(alpha: 0.3));
+      canvas.drawCircle(livePoint, 4.5, Paint()..color = lineColor);
+      canvas.drawCircle(livePoint, 2.2, Paint()..color = Colors.white);
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _MountainChartPainter oldDelegate) {
+    return oldDelegate.data != data ||
+        oldDelegate.lineColor != lineColor ||
+        oldDelegate.inspectedIndex != inspectedIndex;
   }
 }

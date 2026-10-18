@@ -291,13 +291,27 @@ class _KycDetailModalContent extends StatelessWidget {
                         color: const Color(0xFF1A1A18),
                       ),
                     ),
-                    const SizedBox(height: 2),
                     Text(
-                      'ID Registrasi: $id • Diajukan $submittedAt',
+                      'ID Registrasi: $id',
                       style: GoogleFonts.plusJakartaSans(
-                        fontSize: 11,
-                        color: const Color(0xFF76777B),
+                        fontSize: 11.5,
+                        fontWeight: FontWeight.w600,
+                        color: const Color(0xFF3F3F46),
                       ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF76777B)),
+                        const SizedBox(width: 4),
+                        Text(
+                          'Diajukan $submittedAt',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            color: const Color(0xFF76777B),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),

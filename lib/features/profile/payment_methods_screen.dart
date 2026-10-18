@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../history/history_screen.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
@@ -22,8 +23,18 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   @override
   void initState() {
     super.initState();
+    _loadBalance();
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
+  }
+
+  Future<void> _loadBalance() async {
+    final prefs = await SharedPreferences.getInstance();
+    if (mounted) {
+      setState(() {
+        _balance = prefs.getInt('user_wallet_balance') ?? 145000;
+      });
+    }
   }
 
   void _onCurrencyChanged() {
@@ -142,6 +153,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                         Navigator.pop(ctx);
                         setState(() {
                           _balance += selectedAmount;
+                        });
+                        SharedPreferences.getInstance().then((prefs) {
+                          prefs.setInt('user_wallet_balance', _balance);
                         });
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(

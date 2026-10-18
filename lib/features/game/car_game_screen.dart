@@ -459,6 +459,10 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
       if (_score > currentBest) {
         await prefs.setInt('parking_high_score', _score);
       }
+      if (_score > 0) {
+        final currentPoints = prefs.getInt('user_arcade_points') ?? 25000;
+        await prefs.setInt('user_arcade_points', currentPoints + _score);
+      }
     } catch (e) {
       debugPrint('[CarGame] Error saving high score: $e');
     }

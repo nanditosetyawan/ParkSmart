@@ -10,6 +10,7 @@ import 'vehicle_screen.dart' as vehicle;
 import 'payment_methods_screen.dart';
 import 'settings_screen.dart' as settings;
 import 'feedback_screen.dart' as feedback;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class ProfileScreen extends StatelessWidget {
   const ProfileScreen({super.key});
@@ -58,34 +59,8 @@ class ProfileScreen extends StatelessWidget {
       );
     }
 
-    // Default: PLATINUM
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Color(0xFFA2AAB3), // Platinum darker edge
-            Color(0xFFE0E5E9), // White light effect
-            Color(0xFF8B95A1), // Platinum darker edge
-          ],
-          stops: [0.0, 0.4, 1.0],
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(color: const Color(0xFFE0E5E9).withValues(alpha: 0.6), blurRadius: 8, spreadRadius: 1),
-        ],
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
-          const SizedBox(width: 6),
-          Text('MEMBER PLATINUM', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-        ],
-      ),
-    );
+    // Default: PLATINUM dengan animasi kilau dari kiri ke kanan
+    return const _PlatinumShimmerBadge();
   }
 
   @override
@@ -188,16 +163,6 @@ class ProfileScreen extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Container(width: 1, height: 40, color: ThemeService.instance.divider),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Text('PARKSMART PTS', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
-                              const SizedBox(height: 2),
-                              Text('1.450 Poin', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
-                            ],
-                          ),
-                        ),
                       ],
                     ),
                   ),
@@ -211,11 +176,17 @@ class ProfileScreen extends StatelessWidget {
                   const SizedBox(height: 12),
                   ListenableBuilder(
                     listenable: CurrencyService.instance,
-                    builder: (context, _) => _MenuItem(
-                      icon: Icons.account_balance_wallet,
-                      subtitle: 'METODE PEMBAYARAN',
-                      title: 'ParkSmart Pay (${CurrencyService.instance.format(145000)})',
-                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
+                    builder: (context, _) => FutureBuilder<SharedPreferences>(
+                      future: SharedPreferences.getInstance(),
+                      builder: (context, snapshot) {
+                        final balance = snapshot.data?.getInt('user_wallet_balance') ?? 145000;
+                        return _MenuItem(
+                          icon: Icons.account_balance_wallet,
+                          subtitle: 'METODE PEMBAYARAN',
+                          title: 'ParkSmart Pay (${CurrencyService.instance.format(balance)})',
+                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
+                        );
+                      },
                     ),
                   ),
                   const SizedBox(height: 12),
@@ -510,6 +481,121 @@ class _MenuItem extends StatelessWidget {
               ),
             ),
             Icon(Icons.chevron_right, size: 20, color: theme.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ─── LENCANA MEMBER PLATINUM DENGAN EFEK KILAU BERGERAK KIRI KE KANAN ───
+class _PlatinumShimmerBadge extends StatefulWidget {
+  const _PlatinumShimmerBadge();
+
+  @override
+  State<_PlatinumShimmerBadge> createState() => _PlatinumShimmerBadgeState();
+}
+
+class _PlatinumShimmerBadgeState extends State<_PlatinumShimmerBadge>
+    with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _shimmerAnim;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2400),
+    )..repeat();
+    _shimmerAnim = Tween<double>(begin: -2.5, end: 2.5).animate(
+      CurvedAnimation(parent: _controller, curve: Curves.easeInOutSine),
+    );
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFFE0E5E9).withValues(alpha: 0.6),
+            blurRadius: 8,
+            spreadRadius: 1,
+          ),
+        ],
+      ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(20),
+        child: Stack(
+          children: [
+            // Latar Asli Platinum dengan tipografi
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    Color(0xFFA2AAB3), // Platinum darker edge
+                    Color(0xFFD4D8DD), // Platinum body
+                    Color(0xFF8B95A1), // Platinum darker edge
+                  ],
+                  stops: [0.0, 0.5, 1.0],
+                ),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
+                  const SizedBox(width: 6),
+                  Text(
+                    'MEMBER PLATINUM',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Efek Kilau / Shimmer Meluncur dari Kiri ke Kanan
+            Positioned.fill(
+              child: AnimatedBuilder(
+                animation: _shimmerAnim,
+                builder: (context, _) {
+                  final double x = _shimmerAnim.value;
+                  return IgnorePointer(
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment(x - 0.6, -0.8),
+                          end: Alignment(x + 0.6, 0.8),
+                          colors: [
+                            Colors.transparent,
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.white.withValues(alpha: 0.70),
+                            Colors.white.withValues(alpha: 0.15),
+                            Colors.transparent,
+                          ],
+                          stops: const [0.0, 0.35, 0.5, 0.65, 1.0],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
+            ),
           ],
         ),
       ),

@@ -28,10 +28,9 @@ import '../finance/admin_bookings_screen.dart';
 
 import '../cs_kyc/admin_kyc_screen.dart';
 import '../cs_kyc/admin_customer_profiles_screen.dart';
-import '../cs_kyc/manage_users_screen.dart';
 import '../cs_kyc/admin_feedback_screen.dart';
-import '../cs_kyc/admin_arcade_screen.dart';
 import '../cs_kyc/admin_kyc_detail_modal.dart';
+import 'admin_arcade_screen.dart';
 
 import '../../sitemap_screen.dart';
 
@@ -662,7 +661,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               ],
             ),
           ),
-          if (trailing != null) trailing,
+          ?trailing,
         ],
       ),
     );
@@ -1109,11 +1108,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ListTile(
             leading: const Icon(Icons.verified_user_outlined, color: Color(0xFFE07A5F)),
             title: Text('Konfirmasi Pendaftaran KTP', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
-            trailing: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-              decoration: BoxDecoration(color: const Color(0xFFFDECE7), borderRadius: BorderRadius.circular(6)),
-              child: Text('${_pendingKycList.length} Menunggu', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F))),
-            ),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen()));
@@ -1133,6 +1127,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminAiConfigScreen()));
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.videogame_asset_outlined, color: Color(0xFF0D9488)),
+            title: Text('Pengaturan Poin, Arcade & Hadiah', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
+            onTap: () {
+              Navigator.pop(context);
+              Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen()));
             },
           ),
           ListTile(
@@ -1692,29 +1694,18 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           const SizedBox(height: 12),
           Container(
             padding: const EdgeInsets.all(12),
+            width: double.infinity,
             decoration: BoxDecoration(
               color: const Color(0xFFF9F9F9),
               borderRadius: BorderRadius.circular(10),
-              border: Border.all(color: const Color(0xFFE4DFD5)),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
             ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Model Aktif:', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                    Text('Qwen 2.5 (qwen/qwen3.8-27b)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFF55036))),
-                  ],
-                ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF55036).withValues(alpha: 0.1),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text('LPU™ 500+ tok/s', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFF55036))),
-                ),
+                Text('Model Aktif:', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                const SizedBox(height: 2),
+                Text('Qwen 2.5 (qwen/qwen3.8-27b)', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFF55036))),
               ],
             ),
           ),
@@ -2102,14 +2093,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     title: '3. Divisi CS & KYC',
                     roleBadge: 'Fitur CS & KYC',
                     badgeColor: const Color(0xFFE07A5F),
-                    desc: 'Akses langsung verifikasi KTP, blokir pengguna, komplain, dan arcade',
+                    desc: 'Akses langsung verifikasi KTP, profil pelanggan, komplain, dan promo',
                     items: [
                       _EmergencyItem('Verifikasi KTP / KYC Identitas', Icons.verified_user, () => const AdminKycScreen()),
                       _EmergencyItem('Profil Pelanggan CRM', Icons.badge, () => const AdminCustomerProfilesScreen()),
-                      _EmergencyItem('Blokir / Buka Pengguna', Icons.person_off, () => const ManageUsersScreen()),
                       _EmergencyItem('Komplain & Feedback Pengguna', Icons.feedback, () => const FeedbackAdminScreen()),
                       _EmergencyItem('Broadcast Notifikasi Promo', Icons.campaign, () => const AdminNotificationsScreen()),
-                      _EmergencyItem('Pengaturan Mini-Game Arcade', Icons.videogame_asset, () => const ArcadeAdminScreen()),
                     ],
                   ),
                   const SizedBox(height: 20),
@@ -2537,26 +2526,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Row(
-                      children: [
-                        Text(
-                          'Konfirmasi Pendaftaran KTP',
-                          style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                        ),
-                        const SizedBox(width: 8),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                          decoration: BoxDecoration(
-                            color: const Color(0xFFFDECE7),
-                            borderRadius: BorderRadius.circular(6),
-                          ),
-                          child: Text(
-                            '${_pendingKycList.length} Menunggu',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFFE07A5F)),
-                          ),
-                        ),
-                      ],
+                    Text(
+                      'Konfirmasi Pendaftaran KTP',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
                     ),
+                    const SizedBox(height: 2),
                     Text(
                       'Verifikasi berkas identitas KTP pendaftar baru oleh Super Admin',
                       style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),

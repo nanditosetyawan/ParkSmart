@@ -551,6 +551,11 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                               child: Icon(Icons.copy_rounded, size: 13, color: Color(0xFF71717A)),
                             ),
                           ),
+                          const Spacer(),
+                          Text(
+                            'ID: ${item['id']}',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFFA1A1AA), fontWeight: FontWeight.bold),
+                          ),
                         ],
                       ),
                       const SizedBox(height: 4),
@@ -570,28 +575,26 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 3),
+
+                      // Waktu Pengajuan tepat di bawah daerah
+                      Row(
+                        children: [
+                          const Icon(Icons.access_time_rounded, size: 11, color: Color(0xFF71717A)),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Diajukan: $submittedAt',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF71717A),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
                   ),
                 ),
-              ],
-            ),
-          ),
-
-
-          // Waktu Pengajuan
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.access_time_rounded, size: 12, color: Color(0xFF71717A)),
-                    const SizedBox(width: 4),
-                    Text('Diajukan: $submittedAt', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF71717A))),
-                  ],
-                ),
-                Text('ID: ${item['id']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFFA1A1AA), fontWeight: FontWeight.bold)),
               ],
             ),
           ),

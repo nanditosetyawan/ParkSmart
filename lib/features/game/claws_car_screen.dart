@@ -55,7 +55,8 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   bool _isOperating = false;
   int _score = 0;
   int _highScore = 0;
-  int _credits = 5;
+  int _userPoints = 25000; // Poin akumulasi dari game Parking Challenge
+  int _credits = 5; // Koin capit untuk bermain
 
   @override
   void initState() {
@@ -67,7 +68,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     ]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-    _loadHighScore();
+    _loadUserData();
 
     // Controller turun & naik capit
     _dropController = AnimationController(
@@ -157,13 +158,313 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     });
   }
 
-  Future<void> _loadHighScore() async {
+  Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
         _highScore = prefs.getInt('claws_car_high_score') ?? 0;
+        _userPoints = prefs.getInt('user_arcade_points') ?? 25000;
+        _credits = prefs.getInt('claws_car_coins') ?? 5;
       });
     }
+  }
+
+  void _showCoinConversionDialog() {
+    int exchangeCoins = 1;
+    showDialog(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (context, setDialogState) {
+          final int requiredPoints = exchangeCoins * 10000;
+          final bool canAfford = _userPoints >= requiredPoints;
+
+          return AlertDialog(
+            backgroundColor: const Color(0xFF0F172A),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(20),
+              side: const BorderSide(color: Color(0xFF334155), width: 1.5),
+            ),
+            title: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(Icons.currency_exchange_rounded, color: Color(0xFF10B981), size: 22),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tukar Poin Jadi Koin Capit',
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      Text(
+                        '10.000 Poin = 1 Koin Capit',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          color: const Color(0xFF94A3B8),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Info saldo poin & koin saat ini
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF1E293B),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFF334155)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                    children: [
+                      Column(
+                        children: [
+                          Text('Poin Tersedia', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8))),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 14),
+                              const SizedBox(width: 3),
+                              Text(
+                                '${_formatNumber(_userPoints)} Pts',
+                                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFF59E0B)),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                      Container(width: 1, height: 28, color: const Color(0xFF334155)),
+                      Column(
+                        children: [
+                          Text('Koin Saat Ini', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF94A3B8))),
+                          const SizedBox(height: 2),
+                          Row(
+                            children: [
+                              const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 14),
+                              const SizedBox(width: 3),
+                              Text(
+                                '$_credits Koin',
+                                style: GoogleFonts.inter(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 16),
+
+                // Selector jumlah koin yang ingin ditukar
+                Text(
+                  'Jumlah Koin yang Ingin Ditukar:',
+                  style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE2E8F0)),
+                ),
+                const SizedBox(height: 8),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    IconButton(
+                      onPressed: exchangeCoins > 1
+                          ? () => setDialogState(() => exchangeCoins--)
+                          : null,
+                      icon: const Icon(Icons.remove_circle_outline, color: Colors.white70),
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF10B981)),
+                      ),
+                      child: Text(
+                        '$exchangeCoins Koin',
+                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                    ),
+                    IconButton(
+                      onPressed: (_userPoints >= (exchangeCoins + 1) * 10000)
+                          ? () => setDialogState(() => exchangeCoins++)
+                          : null,
+                      icon: const Icon(Icons.add_circle_outline, color: Color(0xFF10B981)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+
+                // Kebutuhan poin
+                Text(
+                  'Membutuhkan ${_formatNumber(requiredPoints)} Poin',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: canAfford ? const Color(0xFF38BDF8) : const Color(0xFFEF4444),
+                  ),
+                ),
+                if (!canAfford) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    'Poin kurang ${_formatNumber(requiredPoints - _userPoints)} Pts. Kumpulkan poin di game Parking Challenge!',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(fontSize: 10.5, color: const Color(0xFFF87171)),
+                  ),
+                ],
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: Text('Tutup', style: GoogleFonts.inter(color: const Color(0xFF94A3B8))),
+              ),
+              ElevatedButton(
+                onPressed: canAfford
+                    ? () {
+                        final messenger = ScaffoldMessenger.of(context);
+                        Navigator.pop(ctx);
+                        setState(() {
+                          _userPoints -= requiredPoints;
+                          _credits += exchangeCoins;
+                        });
+                        SharedPreferences.getInstance().then((prefs) {
+                          prefs.setInt('user_arcade_points', _userPoints);
+                          prefs.setInt('claws_car_coins', _credits);
+                        });
+                        messenger.showSnackBar(
+                          SnackBar(
+                            content: Text('🎉 Berhasil menukar $exchangeCoins koin capit!'),
+                            backgroundColor: const Color(0xFF10B981),
+                            behavior: SnackBarBehavior.floating,
+                          ),
+                        );
+                      }
+                    : null,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  disabledBackgroundColor: const Color(0xFF334155),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Tukar Koin', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+              ),
+            ],
+          );
+        },
+      ),
+    );
+  }
+
+  void _showPrizeWonModal(int amount, int newWallet) {
+    showDialog(
+      context: context,
+      barrierDismissible: true,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFF10B981), width: 2),
+        ),
+        contentPadding: const EdgeInsets.all(20),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFF10B981), width: 2),
+              ),
+              child: const Icon(Icons.attach_money_rounded, color: Color(0xFF10B981), size: 34),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'HADIAH UANG TERCAPIT!',
+              style: GoogleFonts.inter(
+                color: Colors.white,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+                letterSpacing: 0.5,
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Selamat! Anda berhasil mencapit hadiah tunai:',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
+            ),
+            const SizedBox(height: 10),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+              decoration: BoxDecoration(
+                color: const Color(0xFF064E3B),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF10B981)),
+              ),
+              child: Text(
+                'Rp ${_formatNumber(amount)}',
+                style: GoogleFonts.inter(
+                  fontSize: 22,
+                  fontWeight: FontWeight.w900,
+                  color: const Color(0xFF34D399),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF38BDF8), size: 16),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Uang langsung masuk ke saldo ParkSmart Pay Anda: Rp ${_formatNumber(newWallet)}',
+                      style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFFE2E8F0)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.pop(ctx),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF10B981),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                ),
+                child: Text('Ambil & Lanjutkan', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Future<void> _saveHighScoreIfBest() async {
@@ -222,12 +523,18 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   // 9. Rel kembali ke tengah dan capit kembali menguncup normal
   // ============================================================
   Future<void> _triggerClawAction() async {
-    if (_isOperating || _credits <= 0) return;
+    if (_isOperating) return;
+    if (_credits <= 0) {
+      _showCoinConversionDialog();
+      return;
+    }
 
     setState(() {
       _isOperating = true;
       _credits--;
     });
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt('claws_car_coins', _credits);
     HapticFeedback.heavyImpact();
 
     // 1. Dari posisi awal "menguncup normal", MEMBUKA KUNCUP CAPITAN DULU
@@ -259,13 +566,25 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     // 7. Tutup lubang hadiah berayun buka-tutup secara natural
     _flapController.forward(from: 0.0);
 
-    // Tambah skor & simpan high score
+    // Hadiah Uang Tunai Random: Rp 300, Rp 500, atau Rp 1.000 (langsung masuk ke saldo user)
+    final randomOptions = [300, 500, 1000];
+    final wonCash = randomOptions[math.Random().nextInt(randomOptions.length)];
+
+    final currentWallet = prefs.getInt('user_wallet_balance') ?? 145000;
+    final updatedWallet = currentWallet + wonCash;
+    await prefs.setInt('user_wallet_balance', updatedWallet);
+
     setState(() {
-      _score += 1500;
+      _score += wonCash * 2;
     });
     _saveHighScoreIfBest();
 
-    await Future.delayed(const Duration(milliseconds: 800));
+    await Future.delayed(const Duration(milliseconds: 500));
+    if (mounted) {
+      _showPrizeWonModal(wonCash, updatedWallet);
+    }
+
+    await Future.delayed(const Duration(milliseconds: 500));
 
     // 8. Rel bergerak kembali ke posisi tengah santai, dan capit kembali MENGUNCUP NORMAL
     _chuteStartCraneX = _craneX;
@@ -447,10 +766,14 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                     ),
                     onPressed: () {
                       Navigator.pop(ctx);
-                      _restartGame();
+                      if (_credits <= 0) {
+                        _showCoinConversionDialog();
+                      } else {
+                        _restartGame();
+                      }
                     },
                     child: Text(
-                      'Main Lagi (5 Koin)',
+                      _credits > 0 ? 'Main Lagi ($_credits Koin Tersisa)' : 'Tukar 10.000 Poin Jadi Koin Capit',
                       style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
                     ),
                   ),
@@ -566,8 +889,9 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                   ),
                   Row(
                     children: [
+                      // Poin dari Game Parking Challenge
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
                         decoration: BoxDecoration(
                           color: const Color(0xFF1E293B),
                           borderRadius: BorderRadius.circular(8),
@@ -575,12 +899,12 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                         ),
                         child: Row(
                           children: [
-                            const Icon(Icons.star_rounded, color: Color(0xFFF59E0B), size: 16),
+                            const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 16),
                             const SizedBox(width: 4),
                             Text(
-                              _formatNumber(_score),
+                              '${_formatNumber(_userPoints)} Pts',
                               style: GoogleFonts.inter(
-                                fontSize: 13,
+                                fontSize: 12,
                                 fontWeight: FontWeight.bold,
                                 color: const Color(0xFFF59E0B),
                               ),
@@ -589,26 +913,47 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                         ),
                       ),
                       const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFEC4899)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.monetization_on_rounded, color: Color(0xFFEC4899), size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              '$_credits',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.white,
+
+                      // Tombol Koin Capit (Gambar Dolar) - Klik untuk Tukar Poin
+                      GestureDetector(
+                        onTap: _showCoinConversionDialog,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1E293B),
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: const Color(0xFF10B981), width: 1.2),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '$_credits Koin',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12.5,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
+                              const SizedBox(width: 4),
+                              Container(
+                                padding: const EdgeInsets.all(2),
+                                decoration: const BoxDecoration(
+                                  color: Color(0xFF10B981),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.add, size: 9, color: Colors.white),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -1082,29 +1427,38 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       Paint()..color = const Color(0xFF334155),
     );
 
-    // Kumpulan barang hadiah (capsule & mini arcade cars) di dasar lantai kaca
-    final prizeColors = [
-      const Color(0xFFEF4444),
-      const Color(0xFF3B82F6),
-      const Color(0xFF10B981),
-      const Color(0xFFF59E0B),
-      const Color(0xFFEC4899),
+    // Kumpulan barang hadiah uang tunai rupiah (Uang Kertas Rp 1.000, Rp 500, Rp 300) di dasar lantai
+    final cashColors = [
+      const Color(0xFF059669), // Hijau Rp 1.000
+      const Color(0xFF0284C7), // Biru Rp 500
+      const Color(0xFFD97706), // Emas Rp 300
+      const Color(0xFF059669), // Hijau Rp 1.000
+      const Color(0xFF0284C7), // Biru Rp 500
+      const Color(0xFFD97706), // Emas Rp 300
     ];
-    for (int i = 0; i < prizeColors.length; i++) {
-      final double px = boxLeft + 24.0 + i * ((boxW - 48.0) / (prizeColors.length - 1));
-      final double py = bodyTop - 6.0 + (i % 2 == 0 ? -3.0 : 2.0);
-      final prizeRect = Rect.fromCenter(center: Offset(px, py), width: 22, height: 16);
+    for (int i = 0; i < cashColors.length; i++) {
+      final double px = boxLeft + 22.0 + i * ((boxW - 44.0) / (cashColors.length - 1));
+      final double py = bodyTop - 7.0 + (i % 2 == 0 ? -3.0 : 2.0);
+      final cashRect = Rect.fromCenter(center: Offset(px, py), width: 24, height: 14);
+
+      // Banknote body
       canvas.drawRRect(
-        RRect.fromRectAndRadius(prizeRect, const Radius.circular(6)),
-        Paint()..color = prizeColors[i],
+        RRect.fromRectAndRadius(cashRect, const Radius.circular(3)),
+        Paint()..color = cashColors[i],
       );
-      // Highlight kilau kapsul hadiah
+      // Border
       canvas.drawRRect(
-        RRect.fromRectAndRadius(
-          Rect.fromLTWH(prizeRect.left + 3, prizeRect.top + 2, 7, 5),
-          const Radius.circular(3),
-        ),
-        Paint()..color = Colors.white.withValues(alpha: 0.6),
+        RRect.fromRectAndRadius(cashRect, const Radius.circular(3)),
+        Paint()
+          ..color = Colors.white.withValues(alpha: 0.6)
+          ..style = PaintingStyle.stroke
+          ..strokeWidth = 0.9,
+      );
+      // Center Rp emblem circle
+      canvas.drawCircle(
+        Offset(px, py),
+        3.5,
+        Paint()..color = Colors.white.withValues(alpha: 0.7),
       );
     }
 

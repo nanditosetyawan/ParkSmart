@@ -17,7 +17,7 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
   }
 
   @override
@@ -102,7 +102,6 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
               indicatorWeight: 2,
               tabs: const [
                 Tab(text: 'Semua'),
-                Tab(text: 'Peringatan & Isu'),
                 Tab(text: 'Aktivitas Sistem'),
               ],
             ),
@@ -113,7 +112,6 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
         controller: _tabController,
         children: [
           _buildNotificationList(_allNotifications),
-          _buildNotificationList(_alertNotifications),
           _buildNotificationList(_systemNotifications),
         ],
       ),
@@ -223,7 +221,6 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
     _NotifItem(icon: Icons.payments, iconColor: Color(0xFF17A18A), bgColor: Color(0xFFD1F2EB), title: 'Pencapaian Omzet Harian', body: 'Total pendapatan parkir hari ini mencapai Rp 4.2 Jt (12% melebihi estimasi target).', time: '6 jam lalu', isRead: true),
   ];
 
-  List<_NotifItem> get _alertNotifications => _allNotifications.where((n) => n.iconColor == const Color(0xFFD94B4B) || n.iconColor == const Color(0xFFE07A5F)).toList();
   List<_NotifItem> get _systemNotifications => _allNotifications.where((n) => n.iconColor == const Color(0xFF45474A) || n.iconColor == const Color(0xFF17A18A)).toList();
 }
 

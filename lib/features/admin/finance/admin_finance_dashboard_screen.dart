@@ -3,10 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'admin_finance_notifications_screen.dart';
-import 'admin_pricing_screen.dart';
 import 'admin_wallet_screen.dart';
 import 'admin_transactions_screen.dart';
 import 'revenue_screen.dart';
+import 'all_locations_revenue_screen.dart';
 import '../../sitemap_screen.dart';
 
 class AdminFinanceDashboardScreen extends StatefulWidget {
@@ -66,7 +66,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 3, vsync: this);
+    _tabController = TabController(length: 2, vsync: this);
     _tabController.addListener(() {
       if (!_tabController.indexIsChanging && mounted) {
         setState(() {});
@@ -179,14 +179,13 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
           children: [
             _buildTabCashflowAndSummary(context),
             _buildTabRevenueAnalytics(context),
-            _buildTabFinancialLedgers(context),
           ],
         ),
-        // Navigasi Bar Tab di Bawah Layar (Menempel sisi bawah layar, tidak melayang)
+        // Navigasi Bar Tab di Bawah Layar (2 Tab: Arus Kas & Pendapatan)
         bottomNavigationBar: Container(
           decoration: const BoxDecoration(
             color: Colors.white,
-            border: Border(top: BorderSide(color: Color(0xFFE4DFD5), width: 1)),
+            border: Border(top: BorderSide(color: Color(0xFFE5E7EB), width: 1)),
           ),
           child: SafeArea(
             child: SizedBox(
@@ -198,19 +197,13 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                     icon: Icons.account_balance_wallet_rounded,
                     label: 'Arus Kas',
                     index: 0,
-                    activeColor: const Color(0xFFD97706),
+                    activeColor: const Color(0xFF114177),
                   ),
                   _buildBottomNavItem(
                     icon: Icons.insights_rounded,
                     label: 'Pendapatan',
                     index: 1,
-                    activeColor: const Color(0xFFD97706),
-                  ),
-                  _buildBottomNavItem(
-                    icon: Icons.account_balance_rounded,
-                    label: 'Buku Besar',
-                    index: 2,
-                    activeColor: const Color(0xFFD97706),
+                    activeColor: const Color(0xFF114177),
                   ),
                 ],
               ),
@@ -348,16 +341,8 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                     },
                   ),
                   _buildDrawerItem(
-                    icon: Icons.price_change_outlined,
-                    label: 'Konfigurasi Tarif Parkir',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const PricingScreen()));
-                    },
-                  ),
-                  _buildDrawerItem(
                     icon: Icons.notifications_active_outlined,
-                    label: 'Notifikasi & Settlement Masuk',
+                    label: 'Notifikasi Injeksi Saldo',
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminFinanceNotificationsScreen()));
@@ -410,97 +395,22 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
     return ListView(
       padding: const EdgeInsets.all(18),
       children: [
-        // Ringkasan Tiga Kartu Finansial Utama
-        Row(
-          children: [
-            Expanded(
-              child: _buildSummaryMetricCard(
-                title: 'Total Omzet Hari Ini',
-                value: 'Rp 4.480.000',
-                subtitle: '+14.2% vs Kemarin',
-                icon: Icons.monetization_on_outlined,
-                accentColor: const Color(0xFF17A18A),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueScreen())),
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: _buildSummaryMetricCard(
-                title: 'Transaksi Sukses',
-                value: '842 Trx',
-                subtitle: 'Settlement 100% Valid',
-                icon: Icons.receipt_long_rounded,
-                accentColor: const Color(0xFF114177),
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-              ),
-            ),
-          ],
-        ),
+        // 1. Total Omzet dengan Mountain Chart Bulanan
+        _buildMountainOmzetCard(context),
         const SizedBox(height: 12),
 
-        // Kartu Deposit Dompet User
-        _buildSummaryWideCard(
-          title: 'Total Deposit Saldo Dompet',
-          value: 'Rp 18.500.000',
-          subtitle: 'Akumulasi saldo e-wallet pengguna siap pakai transaksi',
-          icon: Icons.account_balance_wallet_outlined,
-          accentColor: const Color(0xFFD97706),
-          buttonText: 'Kelola Injeksi Saldo',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
-        ),
+        // 2. Transaksi Sukses Card dengan Button
+        _buildBetterSuccessTrxCard(context),
+        const SizedBox(height: 12),
+
+        // 3. Total Deposit Dompet Card dengan Button
+        _buildBetterDepositCard(context),
         const SizedBox(height: 20),
 
-        // Tombol Aksi Cepat Finansial
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text('Aksi Cepat Finansial', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            Text('Tindakan Administrasi', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-          ],
-        ),
-        const SizedBox(height: 12),
-        Row(
-          children: [
-            _buildQuickActionButton(
-              icon: Icons.price_change_outlined,
-              label: 'Konfigurasi\nTarif Parkir',
-              color: const Color(0xFF114177),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PricingScreen())),
-            ),
-            const SizedBox(width: 10),
-            _buildQuickActionButton(
-              icon: Icons.account_balance_wallet_rounded,
-              label: 'Injeksi Saldo\nDompet',
-              color: const Color(0xFFD97706),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
-            ),
-            const SizedBox(width: 10),
-            _buildQuickActionButton(
-              icon: Icons.receipt_long_rounded,
-              label: 'Riwayat &\nMutasi',
-              color: const Color(0xFF17A18A),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-            ),
-          ],
-        ),
-        const SizedBox(height: 24),
-
         // Transaksi Finansial Terkini
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Aktivitas Transaksi Terkini', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                Text('Arus pembayaran parkir real-time dari gerbang & app', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-              ],
-            ),
-            TextButton(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-              child: Text('Buka Semua', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-            ),
-          ],
+        Text(
+          'Aktivitas Transaksi Terkini',
+          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
         ),
         const SizedBox(height: 8),
 
@@ -803,7 +713,10 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(18),
-            border: Border.all(color: const Color(0xFFE4DFD5)),
+            border: Border.all(color: const Color(0xFFE5E7EB)),
+            boxShadow: [
+              BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 6, offset: const Offset(0, 2)),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -811,14 +724,21 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Kontribusi Omzet per Gedung', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  TextButton(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueScreen())),
-                    child: Text('Detail Lengkap', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('Kontribusi Omzet per Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      Text('4 Lokasi Teratas • Real-time', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                    ],
+                  ),
+                  TextButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllLocationsRevenueScreen())),
+                    icon: const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF114177)),
+                    label: Text('Selengkapnya', style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
                   ),
                 ],
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
               _buildLocationContributionRow('Central Park Mall', 'Jakarta Barat', 'Rp 1.950.000', 0.85),
               const SizedBox(height: 10),
               _buildLocationContributionRow('Grand Indonesia', 'Jakarta Pusat', 'Rp 1.620.000', 0.72),
@@ -826,6 +746,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
               _buildLocationContributionRow('Malioboro Mall', 'Yogyakarta', 'Rp 580.000', 0.40),
               const SizedBox(height: 10),
               _buildLocationContributionRow('Galaxy Mall Surabaya', 'Surabaya', 'Rp 330.000', 0.25),
+
             ],
           ),
         ),
@@ -834,223 +755,322 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
     );
   }
 
-  // ==================== TAB 3: BUKU BESAR & MODUL ====================
-  Widget _buildTabFinancialLedgers(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        Text('Pusat Buku Besar Finansial', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-        Text('Akses lengkap riwayat mutasi transaksi, audit dompet dan struktur tarif', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-        const SizedBox(height: 16),
 
-        // Riwayat & Mutasi Transaksi (Audit Transaksi)
-        _buildHubActionCard(
-          context,
-          icon: Icons.receipt_long_rounded,
-          iconColor: const Color(0xFF114177),
-          title: 'Riwayat & Mutasi Transaksi',
-          subtitle: 'Audit buku besar transaksi, settlement gerbang, log Midtrans & cetak tanda terima',
-          actionText: 'Buka Mutasi Transaksi',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-        ),
-        const SizedBox(height: 12),
-
-        // Injeksi Saldo & Wallet Admin
-        _buildHubActionCard(
-          context,
-          icon: Icons.account_balance_wallet_rounded,
-          iconColor: const Color(0xFFD97706),
-          title: 'Injeksi Saldo & Wallet Admin',
-          subtitle: 'Pengisian saldo manual pengguna, verifikasi refund dan monitoring saldo mengendap',
-          actionText: 'Kelola Saldo Dompet',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
-        ),
-        const SizedBox(height: 12),
-
-        // Konfigurasi Tarif Parkir
-        _buildHubActionCard(
-          context,
-          icon: Icons.price_change_outlined,
-          iconColor: const Color(0xFF17A18A),
-          title: 'Konfigurasi Tarif Parkir',
-          subtitle: 'Penetapan tarif dasar per jam, tarif flat malam hari dan aturan penalti keterlambatan',
-          actionText: 'Atur Struktur Tarif',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PricingScreen())),
-        ),
-        const SizedBox(height: 12),
-
-        // Laporan Pendapatan & MRR
-        _buildHubActionCard(
-          context,
-          icon: Icons.analytics_outlined,
-          iconColor: const Color(0xFF6D28D9),
-          title: 'Laporan Pendapatan & Revenue Analytics',
-          subtitle: 'Analisis laba bersih, rekonsiliasi bulanan, proyeksi omzet dan pertumbuhan tahunan',
-          actionText: 'Buka Analitik Penuh',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueScreen())),
-        ),
-        const SizedBox(height: 30),
-      ],
-    );
-  }
 
   // ==================== WIDGET HELPERS ====================
-  Widget _buildSummaryMetricCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color accentColor,
-    required VoidCallback onTap,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE4DFD5)),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.02),
-              blurRadius: 6,
-              offset: const Offset(0, 2),
-            ),
-          ],
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 36,
-              height: 36,
-              decoration: BoxDecoration(
-                color: accentColor.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Icon(icon, color: accentColor, size: 20),
-            ),
-            const SizedBox(height: 10),
-            Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-            const SizedBox(height: 2),
-            Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            const SizedBox(height: 4),
-            Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-          ],
-        ),
-      ),
-    );
-  }
+  // ==================== WIDGET HELPERS: 3 KARTU UTAMA KE KEUANGAN ====================
+  Widget _buildMountainOmzetCard(BuildContext context) {
+    const chartData = [0.42, 0.48, 0.55, 0.68, 0.82, 0.96];
+    const xLabels = ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'];
 
-  Widget _buildSummaryWideCard({
-    required String title,
-    required String value,
-    required String subtitle,
-    required IconData icon,
-    required Color accentColor,
-    required String buttonText,
-    required VoidCallback onTap,
-  }) {
     return Container(
-      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: accentColor, size: 22),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
+      child: Material(
+        color: Colors.transparent,
+        borderRadius: BorderRadius.circular(18),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(18),
+          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const RevenueScreen())),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 2),
-                Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                const SizedBox(height: 10),
-                OutlinedButton.icon(
-                  onPressed: onTap,
-                  icon: const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF114177)),
-                  label: Text(buttonText, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                  style: OutlinedButton.styleFrom(
-                    side: const BorderSide(color: Color(0xFF114177)),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        Container(
+                          width: 38,
+                          height: 38,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF114177).withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          child: const Icon(Icons.monetization_on_rounded, size: 20, color: Color(0xFF114177)),
+                        ),
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              'TOTAL OMZET BULANAN',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF76777B),
+                                letterSpacing: 0.5,
+                              ),
+                            ),
+                            Text(
+                              'Tren Pendapatan 6 Bulan Terakhir',
+                              style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF9CA3AF)),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF17A18A).withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        '+15.7% vs bln lalu',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  'Rp 312.450.000',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF114177),
+                    letterSpacing: -0.5,
                   ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  'Oktober 2026 • 8.420 Transaksi Selesai',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B)),
+                ),
+                const SizedBox(height: 12),
+
+                // Mountain Chart Area
+                SizedBox(
+                  height: 90,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: _SimpleMountainPainter(
+                      data: chartData,
+                      xLabels: xLabels,
+                      lineColor: const Color(0xFF114177),
+                      gradientStart: const Color(0xFF114177).withValues(alpha: 0.3),
+                      gradientEnd: const Color(0xFF114177).withValues(alpha: 0.0),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    Text(
+                      'Buka Analitik Pendapatan',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                    ),
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_forward_rounded, size: 14, color: Color(0xFF114177)),
+                  ],
                 ),
               ],
             ),
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBetterSuccessTrxCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF114177).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.receipt_long_rounded, size: 20, color: Color(0xFF114177)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Transaksi Sukses',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                      ),
+                      Text(
+                        'Settlement Real-time 100% Valid',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF114177).withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '842 Trx Hari Ini',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            'Rp 28.450.000',
+            style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Total volume pembayaran parkir & settlement per hari ini',
+            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
+              icon: const Icon(Icons.receipt_long, size: 16, color: Colors.white),
+              label: Text(
+                'Lihat Manajemen Transaksi',
+                style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF114177),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickActionButton({
-    required IconData icon,
-    required String label,
-    required Color color,
-    required VoidCallback onTap,
-  }) {
-    return Expanded(
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(14),
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 14),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFE4DFD5)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.02),
-                blurRadius: 4,
-                offset: const Offset(0, 1),
-              ),
-            ],
+  Widget _buildBetterDepositCard(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, size: 20, color: color),
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.account_balance_wallet_rounded, size: 20, color: Color(0xFFD97706)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Total Deposit Saldo Dompet',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                      ),
+                      Text(
+                        'Akumulasi saldo kas e-wallet pengguna siap pakai',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B)),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18), height: 1.2),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  '1.240 User',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)),
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 12),
+          Text(
+            'Rp 18.500.000',
+            style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            'Dana deposit pengguna yang mengendap dalam ekosistem',
+            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
+              icon: const Icon(Icons.account_balance_wallet, size: 16, color: Colors.white),
+              label: Text(
+                'Kelola Injeksi Saldo & Kas',
+                style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD97706),
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 11),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -1156,67 +1176,112 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
       ],
     );
   }
-
-  Widget _buildHubActionCard(
-    BuildContext context, {
-    required IconData icon,
-    required Color iconColor,
-    required String title,
-    required String subtitle,
-    required String actionText,
-    required VoidCallback onTap,
-  }) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.02),
-            blurRadius: 6,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            width: 44,
-            height: 44,
-            decoration: BoxDecoration(
-              color: iconColor.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: Icon(icon, color: iconColor, size: 24),
-          ),
-          const SizedBox(width: 14),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 4),
-                Text(subtitle, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B), height: 1.3)),
-                const SizedBox(height: 10),
-                ElevatedButton.icon(
-                  onPressed: onTap,
-                  icon: const Icon(Icons.arrow_forward, size: 14, color: Colors.white),
-                  label: Text(actionText, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white)),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF114177),
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                    elevation: 0,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 }
+
+class _SimpleMountainPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> xLabels;
+  final Color lineColor;
+  final Color gradientStart;
+  final Color gradientEnd;
+
+  _SimpleMountainPainter({
+    required this.data,
+    required this.xLabels,
+    required this.lineColor,
+    required this.gradientStart,
+    required this.gradientEnd,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const double marginHorizontal = 12.0;
+    final double chartWidth = size.width - (marginHorizontal * 2);
+    final double stepX = chartWidth / (data.length - 1);
+    const double topPadding = 10.0;
+    final double baselineY = size.height - 22.0;
+    final double availableHeight = baselineY - topPadding;
+
+    final List<Offset> points = [];
+    for (int i = 0; i < data.length; i++) {
+      final double x = marginHorizontal + (i * stepX);
+      final double y = topPadding + (1.0 - data[i].clamp(0.0, 1.0)) * availableHeight;
+      points.add(Offset(x, y));
+    }
+
+    final Path linePath = Path();
+    linePath.moveTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p0 = points[i];
+      final p1 = points[i + 1];
+      final controlX = (p0.dx + p1.dx) / 2;
+      linePath.cubicTo(controlX, p0.dy, controlX, p1.dy, p1.dx, p1.dy);
+    }
+
+    final Path fillPath = Path.from(linePath);
+    fillPath.lineTo(points.last.dx, baselineY);
+    fillPath.lineTo(points.first.dx, baselineY);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [gradientStart, gradientEnd],
+      ).createShader(Rect.fromLTRB(0, topPadding, 0, baselineY));
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2.2
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(linePath, linePaint);
+
+    for (int i = 0; i < points.length; i++) {
+      final p = points[i];
+      final isLast = i == points.length - 1;
+
+      if (isLast) {
+        final glowPaint = Paint()..color = lineColor.withValues(alpha: 0.2);
+        canvas.drawCircle(p, 8.0, glowPaint);
+        final outerDot = Paint()..color = Colors.white;
+        canvas.drawCircle(p, 4.0, outerDot);
+        final innerDot = Paint()..color = lineColor;
+        canvas.drawCircle(p, 2.8, innerDot);
+      } else {
+        final dotPaint = Paint()..color = lineColor;
+        canvas.drawCircle(p, 2.0, dotPaint);
+      }
+
+      if (i < xLabels.length) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: xLabels[i],
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9.5,
+              fontWeight: isLast ? FontWeight.bold : FontWeight.w500,
+              color: isLast ? lineColor : const Color(0xFF76777B),
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        )..layout();
+
+        textPainter.paint(
+          canvas,
+          Offset(p.dx - (textPainter.width / 2), baselineY + 5),
+        );
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _SimpleMountainPainter oldDelegate) => false;
+}
+

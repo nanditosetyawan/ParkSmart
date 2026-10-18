@@ -148,20 +148,7 @@ class _AdminOperationsNotificationsScreenState extends State<AdminOperationsNoti
               Row(
                 children: [
                   Text('Notifikasi Operasional', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  if (unreadCount > 0) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD94B4B),
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      child: Text(
-                        '$unreadCount baru',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
-                    ),
-                  ],
+               
                 ],
               ),
               Text('Peringatan Lapangan, Kapasitas & Palang Gerbang', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),

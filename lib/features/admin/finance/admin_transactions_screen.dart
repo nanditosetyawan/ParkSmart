@@ -16,7 +16,6 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
   String _selectedDirectionFilter = 'Semua'; // 'Semua', 'Masuk', 'Keluar'
   DateTimeRange? _dateRange;
 
-  final List<String> _typeFilters = ['Semua', 'Parkir', 'Top-up Wallet', 'Refund', 'Cashback', 'Penalty', 'Injeksi Admin'];
   final List<String> _statusFilters = ['Semua', 'Berhasil', 'Pending', 'Gagal', 'Dibatalkan'];
 
   final List<Map<String, dynamic>> _transactions = [
@@ -399,37 +398,6 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                 const Divider(color: Color(0xFFF3F4F6), height: 1),
                 const SizedBox(height: 16),
 
-                // Blockchain
-                _buildSectionTitle('Verifikasi Blockchain'),
-                const SizedBox(height: 10),
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(color: const Color(0xFFF9FAFB), borderRadius: BorderRadius.circular(12), border: Border.all(color: const Color(0xFFE5E7EB))),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(children: [
-                        const Icon(Icons.verified, size: 16, color: Color(0xFF17A18A)),
-                        const SizedBox(width: 8),
-                        Text('Hash Transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      ]),
-                      const SizedBox(height: 6),
-                      SelectableText(
-                        txn['blockchainHash'],
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF45474A), fontFeatures: [const FontFeature.tabularFigures()]),
-                      ),
-                      if (txn['blockchainHash'] != '-') ...[
-                        const SizedBox(height: 10),
-                        Row(children: [
-                          Expanded(child: OutlinedButton.icon(onPressed: () => _copyToClipboard(txn['blockchainHash']), icon: const Icon(Icons.copy, size: 14), label: Text('Salin Hash', style: GoogleFonts.plusJakartaSans(fontSize: 11.5)))),
-                          const SizedBox(width: 8),
-                          Expanded(child: OutlinedButton.icon(onPressed: () => _verifyOnExplorer(txn['blockchainHash']), icon: const Icon(Icons.open_in_new, size: 14), label: Text('Verifikasi', style: GoogleFonts.plusJakartaSans(fontSize: 11.5)))),
-                        ]),
-                      ],
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 16),
 
                 // Actions for admin
                 if (txn['status'] == 'Pending') ...[
@@ -489,14 +457,6 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       }
     });
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaksi ditandai gagal', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFFD94B4B), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
-  }
-
-  void _copyToClipboard(String text) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Hash disalin: $text', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF114177), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
-  }
-
-  void _verifyOnExplorer(String hash) {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Membuka explorer untuk: $hash', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF114177), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
   }
 
   void _pickDateRange() async {
@@ -596,10 +556,11 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
         onTap: onTap,
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+          constraints: const BoxConstraints(minHeight: 76),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
           decoration: BoxDecoration(
             color: isSelected ? bg : Colors.white,
-            borderRadius: BorderRadius.circular(12),
+            borderRadius: BorderRadius.circular(14),
             border: Border.all(
               color: isSelected ? color : const Color(0xFFE5E7EB),
               width: isSelected ? 1.5 : 1.0,
@@ -830,15 +791,10 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
     );
   }
 
-  void _exportCSV() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Export CSV transaksi (${_filteredTransactions.length} records)', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF114177), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
-  }
-
   @override
   Widget build(BuildContext context) {
     final totalIncome = _transactions.where((t) => _isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int));
     final totalExpense = _transactions.where((t) => !_isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int).abs());
-    final netto = totalIncome - totalExpense;
 
     final txns = _filteredTransactions;
 
@@ -861,12 +817,11 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text('Manajemen Transaksi', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-              Text('Riwayat Lengkap & Verifikasi Blockchain', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+              Text('Riwayat Transaksi Finansial Masuk & Keluar', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
             ],
           ),
-          actions: [
-            IconButton(icon: const Icon(Icons.download_outlined, color: Color(0xFF114177)), onPressed: _exportCSV, tooltip: 'Export CSV'),
-            const SizedBox(width: 8),
+          actions: const [
+            SizedBox(width: 8),
           ],
         ),
         body: Column(
@@ -894,7 +849,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                           });
                         },
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       _buildStatCard(
                         label: 'Total Keluar',
                         value: 'Rp ${_formatNumber(totalExpense)}',
@@ -905,20 +860,6 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                         onTap: () {
                           setState(() {
                             _selectedDirectionFilter = _selectedDirectionFilter == 'Keluar' ? 'Semua' : 'Keluar';
-                          });
-                        },
-                      ),
-                      const SizedBox(width: 8),
-                      _buildStatCard(
-                        label: 'Kas Bersih',
-                        value: '${netto >= 0 ? '+' : '-'}Rp ${_formatNumber(netto.abs())}',
-                        icon: Icons.account_balance_wallet_rounded,
-                        color: const Color(0xFF114177),
-                        bg: const Color(0xFFE3EEFF),
-                        isSelected: _selectedDirectionFilter == 'Semua',
-                        onTap: () {
-                          setState(() {
-                            _selectedDirectionFilter = 'Semua';
                           });
                         },
                       ),
@@ -991,10 +932,10 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                           child: GestureDetector(
                             onTap: () => setState(() => _selectedDirectionFilter = dir),
                             child: Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                              padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 7),
                               decoration: BoxDecoration(
                                 color: isSel ? selColor : const Color(0xFFF9FAFB),
-                                borderRadius: BorderRadius.circular(8),
+                                borderRadius: BorderRadius.circular(10),
                                 border: Border.all(
                                   color: isSel ? selColor : const Color(0xFFE5E7EB),
                                 ),
@@ -1002,7 +943,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                               child: Text(
                                 dir == 'Semua' ? 'Semua' : (dir == 'Masuk' ? 'Uang Masuk (+)' : 'Uang Keluar (-)'),
                                 style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 11,
+                                  fontSize: 11.5,
                                   fontWeight: isSel ? FontWeight.bold : FontWeight.w500,
                                   color: isSel ? Colors.white : const Color(0xFF45474A),
                                 ),
@@ -1011,16 +952,6 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                           ),
                         );
                       }).toList(),
-                    ),
-                    const SizedBox(width: 4),
-
-                    // Dropdown Tipe Transaksi
-                    _buildFilterDropdown(
-                      label: _selectedTypeFilter == 'Semua' ? 'Tipe' : _selectedTypeFilter,
-                      icon: Icons.category_outlined,
-                      isActive: _selectedTypeFilter != 'Semua',
-                      items: _typeFilters,
-                      onSelected: (val) => setState(() => _selectedTypeFilter = val),
                     ),
                     const SizedBox(width: 6),
 
@@ -1034,27 +965,32 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                     ),
                     const SizedBox(width: 6),
 
-                    // Date Range Picker
+                    // Modern Styled Date Range Picker
                     GestureDetector(
                       onTap: _pickDateRange,
                       child: Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                         decoration: BoxDecoration(
                           color: _dateRange != null ? const Color(0xFF114177).withValues(alpha: 0.1) : const Color(0xFFF9FAFB),
-                          borderRadius: BorderRadius.circular(8),
+                          borderRadius: BorderRadius.circular(10),
                           border: Border.all(
                             color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFFE5E7EB),
+                            width: _dateRange != null ? 1.5 : 1.0,
                           ),
                         ),
                         child: Row(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(Icons.calendar_today_outlined, size: 13, color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFF76777B)),
+                            Icon(
+                              Icons.calendar_today_rounded,
+                              size: 13,
+                              color: _dateRange != null ? const Color(0xFF114177) : const Color(0xFF76777B),
+                            ),
                             const SizedBox(width: 6),
                             Text(
                               _dateRange != null
                                   ? '${_dateRange!.start.day}/${_dateRange!.start.month} - ${_dateRange!.end.day}/${_dateRange!.end.month}'
-                                  : 'Tanggal',
+                                  : 'Rentang Tanggal',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11.5,
                                 fontWeight: _dateRange != null ? FontWeight.bold : FontWeight.w500,
@@ -1062,10 +998,10 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                               ),
                             ),
                             if (_dateRange != null) ...[
-                              const SizedBox(width: 4),
+                              const SizedBox(width: 6),
                               GestureDetector(
                                 onTap: _clearDateRange,
-                                child: const Icon(Icons.close, size: 14, color: Color(0xFF114177)),
+                                child: const Icon(Icons.close_rounded, size: 14, color: Color(0xFF114177)),
                               ),
                             ],
                           ],

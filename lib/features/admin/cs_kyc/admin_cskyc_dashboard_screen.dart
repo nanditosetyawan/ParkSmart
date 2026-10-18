@@ -4,9 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'admin_notifications_screen.dart';
 import 'admin_kyc_screen.dart';
 import 'admin_customer_profiles_screen.dart';
-import 'manage_users_screen.dart';
 import 'admin_feedback_screen.dart';
-import 'admin_arcade_screen.dart';
 import 'admin_kyc_detail_modal.dart';
 
 class AdminCsKycDashboardScreen extends StatefulWidget {
@@ -19,6 +17,26 @@ class AdminCsKycDashboardScreen extends StatefulWidget {
 class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
   int _currentTabIndex = 0;
   String _selectedKycFilter = 'Menunggu';
+  int _selectedKycMonthIndex = 5;
+  int _selectedUserMonthIndex = 5;
+
+  final List<Map<String, dynamic>> _kycMonthlyData = [
+    {'month': 'Mei', 'total': 42, 'approved': 38, 'pending': 2, 'rejected': 2},
+    {'month': 'Jun', 'total': 58, 'approved': 52, 'pending': 3, 'rejected': 3},
+    {'month': 'Jul', 'total': 75, 'approved': 68, 'pending': 4, 'rejected': 3},
+    {'month': 'Agu', 'total': 94, 'approved': 86, 'pending': 5, 'rejected': 3},
+    {'month': 'Sep', 'total': 128, 'approved': 118, 'pending': 7, 'rejected': 3},
+    {'month': 'Okt', 'total': 164, 'approved': 150, 'pending': 11, 'rejected': 3},
+  ];
+
+  final List<Map<String, dynamic>> _userGrowthMonthlyData = [
+    {'month': 'Mei', 'joined': 110, 'cumulative': 480, 'growth': '+12%'},
+    {'month': 'Jun', 'joined': 145, 'cumulative': 625, 'growth': '+15%'},
+    {'month': 'Jul', 'joined': 180, 'cumulative': 805, 'growth': '+18%'},
+    {'month': 'Agu', 'joined': 210, 'cumulative': 1015, 'growth': '+20%'},
+    {'month': 'Sep', 'joined': 225, 'cumulative': 1240, 'growth': '+22%'},
+    {'month': 'Okt', 'joined': 268, 'cumulative': 1508, 'growth': '+27%'},
+  ];
 
   final List<Map<String, dynamic>> _kycPendingList = [
     {
@@ -227,162 +245,17 @@ class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
             Text('Verifikasi KYC, Manajemen Pengguna & CRM', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
           ],
         ),
-        const SizedBox(height: 12),
-
-        // Restricted Division Badge
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-          decoration: BoxDecoration(
-            color: const Color(0xFFF0FDFA),
-            borderRadius: BorderRadius.circular(10),
-            border: Border.all(color: const Color(0xFF14B8A6).withValues(alpha: 0.3)),
-          ),
-          child: Row(
-            children: [
-              const Icon(Icons.lock_outline, size: 16, color: Color(0xFF0F766E)),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Akses Terbatas: Hanya berwenang mengelola Layanan Pengguna & Verifikasi KYC.',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF0F766E)),
-                ),
-              ),
-            ],
-          ),
-        ),
         const SizedBox(height: 14),
 
-        // KPI Khusus CS & KYC
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => setState(() => _currentTabIndex = 1),
-                child: _buildKpiCard('Antrean KYC', '5 Berkas', Icons.badge_outlined, const Color(0xFFE07A5F), 'Menunggu Review'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackAdminScreen())),
-                child: _buildKpiCard('Feedback Rating', '4.8 ★', Icons.star_rate_rounded, const Color(0xFFD97706), '18 Ulasan Baru'),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageUsersScreen())),
-                child: _buildKpiCard('Customer Aktif', '1.240 User', Icons.people_outline, const Color(0xFF114177), 'Terverifikasi'),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen())),
-                child: _buildKpiCard('Hadiah Arcade', '64 Ditukar', Icons.card_giftcard, const Color(0xFF17A18A), 'Klaim Poin'),
-              ),
-            ),
-          ],
-        ),
+        // 1. Chart Riwayat Permintaan KYC per Bulan
+        _buildKycMonthlyChartCard(context),
+        const SizedBox(height: 14),
+
+        // 2. Chart Pertumbuhan User Aktif yang Bergabung per Bulan
+        _buildUserGrowthChartCard(context),
         const SizedBox(height: 18),
 
-        // Aksi Cepat CS & KYC
-        Text('Aksi Layanan Cepat', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-        const SizedBox(height: 10),
-        Row(
-          children: [
-            _buildQuickAction(
-              context,
-              icon: Icons.verified_user_outlined,
-              label: 'Verifikasi\nKTP (KYC)',
-              color: const Color(0xFF0D9488),
-              onTap: () => setState(() => _currentTabIndex = 1),
-            ),
-            const SizedBox(width: 8),
-            _buildQuickAction(
-              context,
-              icon: Icons.person_search,
-              label: 'Profil User\n(CRM)',
-              color: const Color(0xFF114177),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen())),
-            ),
-            const SizedBox(width: 8),
-            _buildQuickAction(
-              context,
-              icon: Icons.manage_accounts_outlined,
-              label: 'Kelola\nStatus User',
-              color: const Color(0xFFE07A5F),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageUsersScreen())),
-            ),
-            const SizedBox(width: 8),
-            _buildQuickAction(
-              context,
-              icon: Icons.rate_review_outlined,
-              label: 'Ulasan &\nFeedback',
-              color: const Color(0xFFD97706),
-              onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackAdminScreen())),
-            ),
-          ],
-        ),
-        const SizedBox(height: 12),
 
-        // Secondary Quick Actions
-        Row(
-          children: [
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen())),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE4DFD5)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.campaign_outlined, color: Color(0xFF114177), size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text('Broadcast Masal', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      ),
-                      const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF76777B)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(width: 10),
-            Expanded(
-              child: GestureDetector(
-                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen())),
-                child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE4DFD5)),
-                  ),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.videogame_asset_outlined, color: Color(0xFF0D9488), size: 18),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text('Arcade & Hadiah', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      ),
-                      const Icon(Icons.arrow_forward_ios, size: 10, color: Color(0xFF76777B)),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: 18),
 
         // Antrean Verifikasi KTP Terkini
         Row(
@@ -692,7 +565,7 @@ class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
       padding: const EdgeInsets.all(18),
       children: [
         Text('Pusat Pengguna & Hubungan Pelanggan (CRM)', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-        Text('Kelola database customer, ulasan rating, dan program poin arcade', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+        Text('Kelola database customer dan ulasan rating pengguna', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
         const SizedBox(height: 16),
 
         _buildCrmHubCard(
@@ -706,42 +579,12 @@ class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
         const SizedBox(height: 10),
 
         _buildCrmHubCard(
-          icon: Icons.manage_accounts_rounded,
-          color: const Color(0xFFE07A5F),
-          title: 'Manajemen Status Akun User',
-          subtitle: 'Blokir akun bermasalah, reset PIN keamanan, dan verifikasi manual',
-          actionText: 'Kelola Akun',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageUsersScreen())),
-        ),
-        const SizedBox(height: 10),
-
-        _buildCrmHubCard(
           icon: Icons.rate_review_rounded,
           color: const Color(0xFFD97706),
           title: 'Ulasan & Feedback Pelanggan',
           subtitle: 'Rating bintang, saran perbaikan fasilitas, dan tanggapan customer',
           actionText: 'Kelola Ulasan',
           onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackAdminScreen())),
-        ),
-        const SizedBox(height: 10),
-
-        _buildCrmHubCard(
-          icon: Icons.videogame_asset_rounded,
-          color: const Color(0xFF0D9488),
-          title: 'Program Hadiah Arcade & Poin',
-          subtitle: 'Klaim hadiah pengguna, voucher parkir diskon, dan saldo reward',
-          actionText: 'Kelola Arcade',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen())),
-        ),
-        const SizedBox(height: 10),
-
-        _buildCrmHubCard(
-          icon: Icons.campaign_rounded,
-          color: const Color(0xFF6D28D9),
-          title: 'Pusat Broadcast Pengumuman',
-          subtitle: 'Kirim notifikasi pesan push ke seluruh aplikasi pelanggan',
-          actionText: 'Kirim Broadcast',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen())),
         ),
         const SizedBox(height: 24),
       ],
@@ -855,67 +698,410 @@ class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
     );
   }
 
-  Widget _buildKpiCard(String title, String value, IconData icon, Color color, String sub) {
+  // ==================== CHART 1: RIWAYAT PERMINTAAN KYC (PER BULAN) ====================
+  Widget _buildKycMonthlyChartCard(BuildContext context) {
+    final selectedData = _kycMonthlyData[_selectedKycMonthIndex];
+    final int maxVal = _kycMonthlyData.map<int>((e) => e['total'] as int).reduce((a, b) => a > b ? a : b);
+
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Header
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(title, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-              Icon(icon, size: 16, color: color),
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.badge_outlined, size: 20, color: Color(0xFF0D9488)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Riwayat Permintaan KYC',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                      ),
+                      Text(
+                        'Histori pengajuan verifikasi identitas per bulan',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () => setState(() => _currentTabIndex = 1),
+                icon: const Icon(Icons.arrow_forward, size: 13, color: Color(0xFF0D9488)),
+                label: Text('Verifikasi', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0D9488))),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 6),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-          const SizedBox(height: 2),
-          Text(sub, style: GoogleFonts.plusJakartaSans(fontSize: 10, color: color)),
+          const SizedBox(height: 14),
+
+          // Monthly Highlight Stats
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF0FDFA),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFCCFBF1)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Bulan ${selectedData['month']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF0F766E), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('${selectedData['total']} Pengajuan', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF0F766E))),
+                  ],
+                ),
+                Container(width: 1, height: 28, color: const Color(0xFF99F6E4)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total 6 Bulan', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                    const SizedBox(height: 2),
+                    Text('561 Berkas', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  ],
+                ),
+                Container(width: 1, height: 28, color: const Color(0xFF99F6E4)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Pertumbuhan', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.trending_up, size: 14, color: Color(0xFF0D9488)),
+                        const SizedBox(width: 2),
+                        Text('+28.1%', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF0D9488))),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Bar Chart: Jumlah Permintaan KYC per Bulan
+          SizedBox(
+            height: 125,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: List.generate(_kycMonthlyData.length, (index) {
+                final item = _kycMonthlyData[index];
+                final isSelected = index == _selectedKycMonthIndex;
+                final total = item['total'] as int;
+                final heightRatio = total / maxVal;
+                final barHeight = (heightRatio * 76).clamp(18.0, 76.0);
+
+                return Expanded(
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: () => setState(() => _selectedKycMonthIndex = index),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.end,
+                      children: [
+                        // Label jumlah di atas bar
+                        Text(
+                          '$total',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 10,
+                            fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                            color: isSelected ? const Color(0xFF0D9488) : const Color(0xFF76777B),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        // Bar kolom
+                        AnimatedContainer(
+                          duration: const Duration(milliseconds: 250),
+                          width: isSelected ? 26 : 22,
+                          height: barHeight,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: isSelected
+                                  ? [const Color(0xFF0D9488), const Color(0xFF14B8A6)]
+                                  : [const Color(0xFF0D9488).withValues(alpha: 0.35), const Color(0xFF14B8A6).withValues(alpha: 0.20)],
+                            ),
+                            borderRadius: const BorderRadius.vertical(top: Radius.circular(6)),
+                            boxShadow: isSelected
+                                ? [
+                                    BoxShadow(
+                                      color: const Color(0xFF0D9488).withValues(alpha: 0.25),
+                                      blurRadius: 6,
+                                      offset: const Offset(0, 2),
+                                    ),
+                                  ]
+                                : null,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        // Label bulan
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: isSelected ? const Color(0xFF0D9488).withValues(alpha: 0.12) : Colors.transparent,
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text(
+                            item['month'] as String,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                              color: isSelected ? const Color(0xFF0D9488) : const Color(0xFF76777B),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+          const SizedBox(height: 10),
+          const Divider(height: 1, color: Color(0xFFF1EEE7)),
+          const SizedBox(height: 10),
+
+          // Detail Status Bulan Terpilih
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _buildKycStatusPill('Disetujui', '${selectedData['approved']}', const Color(0xFF17A18A)),
+              _buildKycStatusPill('Menunggu', '${selectedData['pending']}', const Color(0xFFD97706)),
+              _buildKycStatusPill('Ditolak', '${selectedData['rejected']}', const Color(0xFFD94B4B)),
+            ],
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildQuickAction(BuildContext context, {required IconData icon, required String label, required Color color, required VoidCallback onTap}) {
-    return Expanded(
-      child: GestureDetector(
-        onTap: onTap,
-        child: Container(
-          padding: const EdgeInsets.symmetric(vertical: 12),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            border: Border.all(color: const Color(0xFFE4DFD5)),
+  // ==================== CHART 2: PERTUMBUHAN USER AKTIF (PER BULAN) ====================
+  Widget _buildUserGrowthChartCard(BuildContext context) {
+    final selectedData = _userGrowthMonthlyData[_selectedUserMonthIndex];
+    final chartValues = _userGrowthMonthlyData.map<double>((e) {
+      final joined = (e['joined'] as int).toDouble();
+      return (joined / 280.0).clamp(0.1, 1.0);
+    }).toList();
+    final labels = _userGrowthMonthlyData.map<String>((e) => e['month'] as String).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
           ),
-          child: Column(
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 18),
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF114177).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.people_outline_rounded, size: 20, color: Color(0xFF114177)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pertumbuhan Customer Aktif',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                      ),
+                      Text(
+                        'Peningkatan pengguna baru yang bergabung per bulan',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B)),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              const SizedBox(height: 6),
-              Text(
-                label,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18), height: 1.2),
+              TextButton.icon(
+                onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen())),
+                icon: const Icon(Icons.arrow_forward, size: 13, color: Color(0xFF114177)),
+                label: Text('Lihat Profil', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
               ),
             ],
           ),
-        ),
+          const SizedBox(height: 14),
+
+          // User Stats Highlight
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Join Bulan ${selectedData['month']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF114177), fontWeight: FontWeight.w600)),
+                    const SizedBox(height: 2),
+                    Text('+${selectedData['joined']} User', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                  ],
+                ),
+                Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Total User Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                    const SizedBox(height: 2),
+                    Text('${selectedData['cumulative']} User', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  ],
+                ),
+                Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('Laju Pertumbuhan', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.trending_up, size: 14, color: Color(0xFF17A18A)),
+                        const SizedBox(width: 2),
+                        Text('${selectedData['growth']}', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Mountain Area Chart: Pertumbuhan User Join
+          SizedBox(
+            height: 120,
+            width: double.infinity,
+            child: CustomPaint(
+              painter: _UserGrowthMountainPainter(
+                data: chartValues,
+                xLabels: labels,
+                selectedIndex: _selectedUserMonthIndex,
+                lineColor: const Color(0xFF114177),
+                gradientStart: const Color(0xFF114177).withValues(alpha: 0.28),
+                gradientEnd: const Color(0xFF114177).withValues(alpha: 0.01),
+              ),
+            ),
+          ),
+          const SizedBox(height: 8),
+
+          // Interactive Selector Buttons per Bulan
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            child: Row(
+              children: List.generate(_userGrowthMonthlyData.length, (idx) {
+                final d = _userGrowthMonthlyData[idx];
+                final isSelected = idx == _selectedUserMonthIndex;
+
+                return Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: InkWell(
+                    onTap: () => setState(() => _selectedUserMonthIndex = idx),
+                    borderRadius: BorderRadius.circular(8),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                      decoration: BoxDecoration(
+                        color: isSelected ? const Color(0xFF114177) : const Color(0xFFF1F5F9),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: isSelected ? const Color(0xFF114177) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Text(
+                        '${d['month']}: +${d['joined']}',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                          color: isSelected ? Colors.white : const Color(0xFF45474A),
+                        ),
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ),
+          ),
+        ],
       ),
     );
   }
+
+  Widget _buildKycStatusPill(String label, String count, Color color) {
+    return Row(
+      children: [
+        Container(
+          width: 8,
+          height: 8,
+          decoration: BoxDecoration(color: color, shape: BoxShape.circle),
+        ),
+        const SizedBox(width: 5),
+        Text('$label: ', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+        Text(count, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+      ],
+    );
+  }
+
 
   Widget _buildKycQueueCard({required String name, required String nik, required String time, required String status, required VoidCallback onTap}) {
     return GestureDetector(
@@ -960,5 +1146,115 @@ class _AdminCsKycDashboardScreenState extends State<AdminCsKycDashboardScreen> {
         ),
       ),
     );
+  }
+}
+
+class _UserGrowthMountainPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> xLabels;
+  final int selectedIndex;
+  final Color lineColor;
+  final Color gradientStart;
+  final Color gradientEnd;
+
+  _UserGrowthMountainPainter({
+    required this.data,
+    required this.xLabels,
+    required this.selectedIndex,
+    required this.lineColor,
+    required this.gradientStart,
+    required this.gradientEnd,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const double marginHorizontal = 16.0;
+    final double chartWidth = size.width - (marginHorizontal * 2);
+    final double stepX = chartWidth / (data.length - 1);
+    const double topPadding = 12.0;
+    final double baselineY = size.height - 22.0;
+    final double availableHeight = baselineY - topPadding;
+
+    final List<Offset> points = [];
+    for (int i = 0; i < data.length; i++) {
+      final double x = marginHorizontal + (i * stepX);
+      final double y = topPadding + (1.0 - data[i].clamp(0.0, 1.0)) * availableHeight;
+      points.add(Offset(x, y));
+    }
+
+    final Path linePath = Path();
+    linePath.moveTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p0 = points[i];
+      final p1 = points[i + 1];
+      final controlX = (p0.dx + p1.dx) / 2;
+      linePath.cubicTo(controlX, p0.dy, controlX, p1.dy, p1.dx, p1.dy);
+    }
+
+    final Path fillPath = Path.from(linePath);
+    fillPath.lineTo(points.last.dx, baselineY);
+    fillPath.lineTo(points.first.dx, baselineY);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [gradientStart, gradientEnd],
+      ).createShader(Rect.fromLTRB(0, topPadding, 0, baselineY));
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(linePath, linePaint);
+
+    for (int i = 0; i < points.length; i++) {
+      final p = points[i];
+      final isSelected = i == selectedIndex;
+
+      if (isSelected) {
+        final glowPaint = Paint()..color = lineColor.withValues(alpha: 0.25);
+        canvas.drawCircle(p, 9.0, glowPaint);
+        final outerDot = Paint()..color = Colors.white;
+        canvas.drawCircle(p, 4.5, outerDot);
+        final innerDot = Paint()..color = lineColor;
+        canvas.drawCircle(p, 3.0, innerDot);
+      } else {
+        final dotPaint = Paint()..color = lineColor.withValues(alpha: 0.6);
+        canvas.drawCircle(p, 2.5, dotPaint);
+      }
+
+      if (i < xLabels.length) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: xLabels[i],
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9.5,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? lineColor : const Color(0xFF76777B),
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final textX = p.dx - (textPainter.width / 2);
+        final textY = baselineY + 4.0;
+        textPainter.paint(canvas, Offset(textX, textY));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _UserGrowthMountainPainter oldDelegate) {
+    return oldDelegate.selectedIndex != selectedIndex || oldDelegate.data != data;
   }
 }

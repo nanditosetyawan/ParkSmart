@@ -507,11 +507,11 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
   // 3. KARTU UJI KONEKSI REALISTIS
   Widget _buildConnectionTestCard() {
     return Container(
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 18),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE4DFD5)),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.03),
@@ -524,38 +524,35 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Uji Status Endpoint Groq',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1A1A18),
-                    ),
+              Expanded(
+                child: Text(
+                  'Uji Status Endpoint Groq',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1A18),
                   ),
-                  Text(
-                    'Verifikasi apakah API Key aktif merespon',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
-                  ),
-                ],
-              ),
-              ElevatedButton.icon(
-                onPressed: _isTesting ? null : _testAiConnection,
-                icon: _isTesting
-                    ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
-                    : const Icon(Icons.play_arrow, size: 16, color: Colors.white),
-                label: Text(
-                  _isTesting ? 'Menguji...' : 'Uji Koneksi',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                 ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF114177),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+              ),
+              const SizedBox(width: 8),
+              Padding(
+                padding: const EdgeInsets.only(right: 4),
+                child: ElevatedButton.icon(
+                  onPressed: _isTesting ? null : _testAiConnection,
+                  icon: _isTesting
+                      ? const SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                      : const Icon(Icons.play_arrow, size: 16, color: Colors.white),
+                  label: Text(
+                    _isTesting ? 'Menguji...' : 'Uji Koneksi',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF114177),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    elevation: 0,
+                  ),
                 ),
               ),
             ],

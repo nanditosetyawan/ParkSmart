@@ -16,6 +16,8 @@ class GameListScreen extends StatefulWidget {
 class _GameListScreenState extends State<GameListScreen> {
   int _parkingHighScore = 0;
   int _clawsHighScore = 0;
+  bool _isParkingActive = true;
+  bool _isClawsActive = true;
 
   @override
   void initState() {
@@ -29,6 +31,8 @@ class _GameListScreenState extends State<GameListScreen> {
       setState(() {
         _parkingHighScore = prefs.getInt('parking_high_score') ?? 0;
         _clawsHighScore = prefs.getInt('claws_car_high_score') ?? 0;
+        _isParkingActive = prefs.getBool('arcade_parking_active') ?? true;
+        _isClawsActive = prefs.getBool('arcade_claws_active') ?? true;
       });
     }
   }
@@ -42,6 +46,16 @@ class _GameListScreenState extends State<GameListScreen> {
   }
 
   Future<void> _openParkingGame() async {
+    if (!_isParkingActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Game Parking Challenge sedang dinonaktifkan oleh administrator.'),
+          backgroundColor: Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const CarGameScreen()),
@@ -55,6 +69,16 @@ class _GameListScreenState extends State<GameListScreen> {
   }
 
   Future<void> _openClawsGame() async {
+    if (!_isClawsActive) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Game Claws Car sedang dinonaktifkan oleh administrator.'),
+          backgroundColor: Color(0xFFDC2626),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
     await Navigator.push(
       context,
       MaterialPageRoute(builder: (context) => const ClawsCarScreen()),
@@ -123,7 +147,7 @@ class _GameListScreenState extends State<GameListScreen> {
                         context: context,
                         icon: Icons.directions_car_rounded,
                         name: 'Parking Challenge',
-                        lastScore: _formatScore(_parkingHighScore),
+                        lastScore: _isParkingActive ? _formatScore(_parkingHighScore) : 'Nonaktif',
                         color1: const Color(0xFF114177),
                         color2: const Color(0xFF17A18A),
                         onTap: _openParkingGame,
@@ -133,7 +157,7 @@ class _GameListScreenState extends State<GameListScreen> {
                         context: context,
                         icon: Icons.precision_manufacturing_rounded,
                         name: 'Claws Car',
-                        lastScore: _formatScore(_clawsHighScore),
+                        lastScore: _isClawsActive ? _formatScore(_clawsHighScore) : 'Nonaktif',
                         color1: const Color(0xFF7E22CE),
                         color2: const Color(0xFFEC4899),
                         onTap: _openClawsGame,
