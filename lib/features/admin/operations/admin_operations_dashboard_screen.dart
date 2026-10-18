@@ -726,16 +726,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         const SizedBox(height: 10),
 
         // Hint interaktif
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              _activitySubTab == 0 ? 'Ketuk kartu untuk monitor & kendali lengkap' : 'Ketuk reservasi untuk manajemen booking',
-              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)),
-            ),
-            Icon(Icons.touch_app_rounded, size: 14, color: const Color(0xFF114177).withValues(alpha: 0.6)),
-          ],
-        ),
+       
         const SizedBox(height: 10),
 
         if (_activitySubTab == 0) ...[
