@@ -15,6 +15,8 @@ import 'admin/operations/admin_slot_management_screen.dart';
 import 'admin/operations/admin_active_users_screen.dart';
 
 import 'admin/operations/admin_bookings_screen.dart';
+import 'admin/operations/manage_parking_screen.dart';
+import 'admin/operations/admin_operations_notifications_screen.dart';
 
 // Admin - Finance
 import 'admin/finance/admin_finance_dashboard_screen.dart';
@@ -22,8 +24,10 @@ import 'admin/finance/admin_pricing_screen.dart';
 import 'admin/finance/admin_wallet_screen.dart';
 import 'admin/finance/admin_transactions_screen.dart';
 import 'admin/finance/revenue_screen.dart';
+import 'admin/finance/all_locations_revenue_screen.dart';
+import 'admin/finance/admin_finance_notifications_screen.dart';
 
-// Admin - CS & KYC
+// Admin - CS & Super Admin KYC
 import 'admin/cs/admin_cs_dashboard_screen.dart';
 import 'admin/super_admin/admin_kyc_screen.dart';
 import 'admin/cs/admin_customer_profiles_screen.dart';
@@ -222,7 +226,7 @@ class SitemapScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           _buildRoleLegendBadge('Finance', isDark),
                           const SizedBox(width: 8),
-                          _buildRoleLegendBadge('CS & KYC', isDark),
+                          _buildRoleLegendBadge('CS', isDark),
                         ],
                       ),
                     ),
@@ -241,7 +245,7 @@ class SitemapScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Konsep RBAC: Super Admin memiliki Emergency Master Access ke semua fitur. Admin divisi (Operasional, Finansial, CS & KYC) terisolasi ketat hanya pada fiturnya sendiri.',
+                              'Konsep RBAC: Super Admin memiliki Emergency Master Access ke semua fitur termasuk Verifikasi KTP. Admin divisi (Operasional, Finansial, CS) terisolasi ketat pada fiturnya sendiri.',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 height: 1.4,
@@ -270,9 +274,11 @@ class SitemapScreen extends StatelessWidget {
               _buildCategory('11. Admin: Operasional & Fasilitas Parkir', [
                 _Item('Dashboard Khusus Operasional', 'operations/admin_operations_dashboard_screen.dart', (c) => const AdminOperationsDashboardScreen(), role: 'Operations', isNew: true),
                 _Item('Kelola Master Lokasi Parkir', 'operations/admin_locations_screen.dart', (c) => const LocationsScreen(), role: 'Operations'),
+                _Item('Kelola Denah Lantai & Tarif Parkir', 'operations/manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
                 _Item('Manajemen Slot & Sensor IoT', 'operations/admin_slot_management_screen.dart', (c) => const SlotManagementScreen(), role: 'Operations'),
                 _Item('Monitoring Kendaraan Aktif & Overstay', 'operations/admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
                 _Item('Manajemen Data Reservasi & Booking', 'operations/admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Operations'),
+                _Item('Pusat Notifikasi Operasional', 'operations/admin_operations_notifications_screen.dart', (c) => const AdminOperationsNotificationsScreen(), role: 'Operations'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 3: FINANSIAL & TRANSAKSI ───
@@ -282,6 +288,8 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Injeksi Saldo & Wallet Admin', 'finance/admin_wallet_screen.dart', (c) => const AdminWalletScreen(), role: 'Finance'),
                 _Item('Riwayat & Mutasi Transaksi', 'finance/admin_transactions_screen.dart', (c) => const AdminTransactionsScreen(), role: 'Finance'),
                 _Item('Laporan Pendapatan & Revenue Analytics', 'finance/revenue_screen.dart', (c) => const RevenueScreen(), role: 'Finance'),
+                _Item('Detail Omzet Seluruh Lokasi', 'finance/all_locations_revenue_screen.dart', (c) => const AllLocationsRevenueScreen(), role: 'Finance'),
+                _Item('Pusat Notifikasi Finansial', 'finance/admin_finance_notifications_screen.dart', (c) => const AdminFinanceNotificationsScreen(), role: 'Finance'),
               ], isDark, theme),
 
               // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN (CS) ───
@@ -458,6 +466,7 @@ class SitemapScreen extends StatelessWidget {
         return isDark ? const Color(0xFF1E3A8A).withValues(alpha: 0.3) : const Color(0xFFDBEAFE);
       case 'Finance':
         return isDark ? const Color(0xFF78350F).withValues(alpha: 0.3) : const Color(0xFFFEF3C7);
+      case 'CS':
       case 'CS & KYC':
         return isDark ? const Color(0xFF134E4A).withValues(alpha: 0.3) : const Color(0xFFCCFBF1);
       default:
@@ -473,6 +482,7 @@ class SitemapScreen extends StatelessWidget {
         return const Color(0xFF3B82F6);
       case 'Finance':
         return const Color(0xFFF59E0B);
+      case 'CS':
       case 'CS & KYC':
         return const Color(0xFF14B8A6);
       default:
@@ -488,6 +498,7 @@ class SitemapScreen extends StatelessWidget {
         return isDark ? const Color(0xFF60A5FA) : const Color(0xFF1D4ED8);
       case 'Finance':
         return isDark ? const Color(0xFFFBBF24) : const Color(0xFFB45309);
+      case 'CS':
       case 'CS & KYC':
         return isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E);
       default:
