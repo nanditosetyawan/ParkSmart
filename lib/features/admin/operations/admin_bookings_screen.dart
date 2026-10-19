@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_bookings_backend.dart';
 
 class AdminBookingsScreen extends StatefulWidget {
   const AdminBookingsScreen({super.key});
@@ -18,143 +19,13 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
   final List<String> _locationFilters = ['Semua', 'Central Park Mall', 'Grand Indonesia', 'Pacific Place SCBD', 'Malioboro Mall', 'Tunjungan Plaza 6', 'Senayan City'];
   final List<String> _vehicleFilters = ['Semua', 'Mobil', 'Motor', 'EV'];
 
-  final List<Map<String, dynamic>> _bookings = [
-    {
-      'id': 'BKG-20240315-001',
-      'user': {'name': 'Nanda Setiawan', 'phone': '+62 812-3456-7890', 'avatar': 'N'},
-      'location': 'Central Park Mall',
-      'slot': 'A-05',
-      'floor': 'B1',
-      'vehicle': {'plate': 'B 1234 ABC', 'type': 'Mobil'},
-      'startTime': '2024-03-15 08:30',
-      'endTime': '2024-03-15 12:30',
-      'durationHours': 4,
-      'status': 'Mendatang',
-      'bookingType': 'Reservasi',
-      'totalPrice': 28000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-14 20:15',
-    },
-    {
-      'id': 'BKG-20240315-002',
-      'user': {'name': 'Rafi Maulana', 'phone': '+62 856-7890-1234', 'avatar': 'R'},
-      'location': 'Grand Indonesia',
-      'slot': 'B-12',
-      'floor': 'B2',
-      'vehicle': {'plate': 'B 9012 GHI', 'type': 'Mobil'},
-      'startTime': '2024-03-15 10:00',
-      'endTime': '2024-03-15 14:00',
-      'durationHours': 4,
-      'status': 'Aktif',
-      'bookingType': 'Langsung',
-      'totalPrice': 32000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-15 09:45',
-    },
-    {
-      'id': 'BKG-20240315-003',
-      'user': {'name': 'Siti Rahayu', 'phone': '+62 878-1122-3344', 'avatar': 'S'},
-      'location': 'Pacific Place SCBD',
-      'slot': 'EV-03',
-      'floor': 'B1',
-      'vehicle': {'plate': 'D 7890 MNO', 'type': 'EV'},
-      'startTime': '2024-03-15 13:00',
-      'endTime': '2024-03-15 17:00',
-      'durationHours': 4,
-      'status': 'Mendatang',
-      'bookingType': 'Reservasi',
-      'totalPrice': 40000,
-      'paymentStatus': 'Menunggu',
-      'createdAt': '2024-03-15 11:30',
-    },
-    {
-      'id': 'BKG-20240314-004',
-      'user': {'name': 'Budi Santoso', 'phone': '+62 813-9988-7766', 'avatar': 'B'},
-      'location': 'Malioboro Mall',
-      'slot': 'M-08',
-      'floor': 'B1',
-      'vehicle': {'plate': 'B 1111 AAA', 'type': 'Motor'},
-      'startTime': '2024-03-14 09:00',
-      'endTime': '2024-03-14 13:00',
-      'durationHours': 4,
-      'status': 'Selesai',
-      'bookingType': 'Langsung',
-      'totalPrice': 12000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-14 08:50',
-    },
-    {
-      'id': 'BKG-20240314-005',
-      'user': {'name': 'Dewi Lestari', 'phone': '+62 821-4455-6677', 'avatar': 'D'},
-      'location': 'Tunjungan Plaza 6',
-      'slot': 'A-01',
-      'floor': 'B2',
-      'vehicle': {'plate': 'S 5555 BBB', 'type': 'Mobil'},
-      'startTime': '2024-03-14 14:00',
-      'endTime': '2024-03-14 18:00',
-      'durationHours': 4,
-      'status': 'Dibatalkan',
-      'bookingType': 'Reservasi',
-      'totalPrice': 25000,
-      'paymentStatus': 'Dibayar',
-      'cancelReason': 'Perubahan jadwal',
-      'createdAt': '2024-03-14 13:20',
-    },
-    {
-      'id': 'BKG-20240313-006',
-      'user': {'name': 'Andi Wijaya', 'phone': '+62 812-1111-2222', 'avatar': 'A'},
-      'location': 'Senayan City',
-      'slot': 'C-07',
-      'floor': 'B3',
-      'vehicle': {'plate': 'B 3333 CCC', 'type': 'Motor'},
-      'startTime': '2024-03-13 07:00',
-      'endTime': '2024-03-13 11:00',
-      'durationHours': 4,
-      'status': 'Selesai',
-      'bookingType': 'Langsung',
-      'totalPrice': 10000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-13 06:45',
-    },
-    {
-      'id': 'BKG-20240313-007',
-      'user': {'name': 'Maya Sari', 'phone': '+62 856-3333-4444', 'avatar': 'M'},
-      'location': 'Central Park Mall',
-      'slot': 'A-02',
-      'floor': 'B1',
-      'vehicle': {'plate': 'B 4444 DDD', 'type': 'Mobil'},
-      'startTime': '2024-03-13 15:00',
-      'endTime': '2024-03-13 19:00',
-      'durationHours': 4,
-      'status': 'Selesai',
-      'bookingType': 'Reservasi',
-      'totalPrice': 28000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-13 14:30',
-    },
-    {
-      'id': 'BKG-20240312-008',
-      'user': {'name': 'Rizki Pratama', 'phone': '+62 878-5555-6666', 'avatar': 'R'},
-      'location': 'Grand Indonesia',
-      'slot': 'EV-01',
-      'floor': 'B2',
-      'vehicle': {'plate': 'B 6666 EEE', 'type': 'EV'},
-      'startTime': '2024-03-12 10:00',
-      'endTime': '2024-03-12 14:00',
-      'durationHours': 4,
-      'status': 'Dibatalkan',
-      'bookingType': 'Reservasi',
-      'totalPrice': 45000,
-      'paymentStatus': 'Dibayar',
-      'cancelReason': 'Kendaraan rusak',
-      'createdAt': '2024-03-12 09:00',
-    },
-  ];
+  List<Map<String, dynamic>> get _bookings => AdminBookingsBackend.instance.bookings;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this);
+    AdminBookingsBackend.instance.fetchBookings();
   }
 
   @override
@@ -412,17 +283,14 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B), fontWeight: FontWeight.bold))),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (reasonCtrl.text.isNotEmpty) {
-                setState(() {
-                  final idx = _bookings.indexWhere((b) => b['id'] == booking['id']);
-                  if (idx != -1) {
-                    _bookings[idx]['status'] = 'Dibatalkan';
-                    _bookings[idx]['cancelReason'] = reasonCtrl.text;
-                  }
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Booking dibatalkan', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFFD94B4B), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+                final nav = Navigator.of(context);
+                final sm = ScaffoldMessenger.of(context);
+                await AdminBookingsBackend.instance.cancelBooking(booking['id'].toString(), reasonCtrl.text);
+                if (!mounted) return;
+                nav.pop();
+                sm.showSnackBar(SnackBar(content: Text('Booking dibatalkan', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFFD94B4B), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
@@ -519,17 +387,20 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    final stats = {
-      'Mendatang': _bookings.where((b) => b['status'] == 'Mendatang').length,
-      'Aktif': _bookings.where((b) => b['status'] == 'Aktif').length,
-      'Selesai': _bookings.where((b) => b['status'] == 'Selesai').length,
-      'Dibatalkan': _bookings.where((b) => b['status'] == 'Dibatalkan').length,
-    };
+    return ListenableBuilder(
+      listenable: AdminBookingsBackend.instance,
+      builder: (context, _) {
+        final stats = {
+          'Mendatang': _bookings.where((b) => b['status'] == 'Mendatang').length,
+          'Aktif': _bookings.where((b) => b['status'] == 'Aktif').length,
+          'Selesai': _bookings.where((b) => b['status'] == 'Selesai').length,
+          'Dibatalkan': _bookings.where((b) => b['status'] == 'Dibatalkan').length,
+        };
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -697,8 +568,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
           ),
         ],
       ),
-    ));
-  }
+    ),
+  );
+},
+);
+}
 
   Widget _buildBookingList(List<Map<String, dynamic>> bookings) {
     if (bookings.isEmpty) {

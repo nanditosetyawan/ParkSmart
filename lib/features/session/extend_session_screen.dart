@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../pin/pin_screen.dart';
 import '../session/active_session_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/extend_session_backend.dart';
 
 class ExtendSessionScreen extends StatefulWidget {
   const ExtendSessionScreen({super.key});
@@ -15,19 +16,20 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
   int _selectedIndex = 1;
   String _selectedPaymentMethod = 'ParkSmart Wallet';
 
-  final List<Map<String, dynamic>> _options = [
-    {'title': '+30 Menit', 'cost': 'Rp 3.000', 'time': 'Hingga 16:32 WIB', 'popular': false},
-    {'title': '+1 Jam', 'cost': 'Rp 5.000', 'time': 'Hingga 17:02 WIB', 'popular': true},
-    {'title': '+2 Jam', 'cost': 'Rp 9.000', 'time': 'Hingga 18:02 WIB', 'popular': false},
-    {'title': '+3 Jam', 'cost': 'Rp 13.000', 'time': 'Hingga 19:02 WIB', 'popular': false},
-  ];
+  @override
+  void initState() {
+    super.initState();
+    ExtendSessionBackend.instance.fetchActiveSessionForExtend();
+  }
+
+  List<Map<String, dynamic>> get _options => ExtendSessionBackend.instance.options;
 
   @override
   Widget build(BuildContext context) {
     final selectedOption = _options[_selectedIndex];
 
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, ExtendSessionBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -107,7 +109,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Slot A-05',
+                              ExtendSessionBackend.instance.slotCode,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -115,7 +117,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                               ),
                             ),
                             Text(
-                              'Lantai B2 • Pilar 14',
+                              ExtendSessionBackend.instance.floorInfo,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
@@ -161,7 +163,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                 ),
                               ),
                               Text(
-                                '01:41:19',
+                                ExtendSessionBackend.instance.remainingTimeFormatted,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 32,
                                   fontWeight: FontWeight.bold,
@@ -190,7 +192,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                '16:02 WIB',
+                                ExtendSessionBackend.instance.currentDeadline,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -591,16 +593,22 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () {
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const PinScreen(
-                          nextScreen: ActiveSessionScreen(),
-                          transactionType: 'perpanjangan parkir',
-                        ),
-                      ),
+                  onPressed: () async {
+                    await ExtendSessionBackend.instance.extendSession(
+                      optionIndex: _selectedIndex,
+                      paymentMethod: _selectedPaymentMethod,
                     );
+                    if (context.mounted) {
+                      Navigator.pushReplacement(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const PinScreen(
+                            nextScreen: ActiveSessionScreen(),
+                            transactionType: 'perpanjangan parkir',
+                          ),
+                        ),
+                      );
+                    }
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? Colors.white : const Color(0xFF020304),

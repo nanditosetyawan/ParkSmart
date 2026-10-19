@@ -3,13 +3,26 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../vehicle/add_vehicle_screen.dart';
 import '../history/verified_parking_sessions_screen.dart';
+import 'backend/vehicle_backend.dart';
 
-class VehicleScreen extends StatelessWidget {
+class VehicleScreen extends StatefulWidget {
   const VehicleScreen({super.key});
 
-  void _showDeleteVehiclePopup(BuildContext context) {
+  @override
+  State<VehicleScreen> createState() => _VehicleScreenState();
+}
+
+class _VehicleScreenState extends State<VehicleScreen> {
+  @override
+  void initState() {
+    super.initState();
+    VehicleBackend.instance.fetchVehicles();
+  }
+
+  void _showDeleteVehiclePopup(BuildContext context, [String? vehicleId]) {
     final theme = ThemeService.instance;
     final isDark = theme.isDarkMode;
+    final targetId = vehicleId ?? VehicleBackend.instance.defaultVehicle?.id ?? '';
 
     showModalBottomSheet(
       context: context,
@@ -69,8 +82,16 @@ class VehicleScreen extends StatelessWidget {
                 const SizedBox(width: 12),
                 Expanded(
                   child: GestureDetector(
-                    onTap: () {
+                    onTap: () async {
                       Navigator.pop(context);
+                      if (targetId.isNotEmpty) {
+                        await VehicleBackend.instance.deleteVehicle(targetId);
+                      }
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Kendaraan berhasil dihapus')),
+                        );
+                      }
                     },
                     child: Container(
                       height: 52,
@@ -102,7 +123,7 @@ class VehicleScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, VehicleBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -253,7 +274,7 @@ class VehicleScreen extends StatelessWidget {
                                 ),
                               ),
                               GestureDetector(
-                                onTap: () => _showDeleteVehiclePopup(context),
+                                onTap: () => _showDeleteVehiclePopup(context, VehicleBackend.instance.defaultVehicle?.id),
                                 child: Container(
                                   width: 32,
                                   height: 32,
@@ -292,7 +313,12 @@ class VehicleScreen extends StatelessWidget {
                                   children: [
                                     const Icon(Icons.directions_car, size: 14, color: Colors.white),
                                     const SizedBox(width: 4),
-                                    Text('Toyota Raize', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
+                                    Text(
+                                      VehicleBackend.instance.defaultVehicle != null
+                                          ? '${VehicleBackend.instance.defaultVehicle!.brand} ${VehicleBackend.instance.defaultVehicle!.model}'
+                                          : 'Toyota Raize',
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
+                                    ),
                                   ],
                                 ),
                               ),
@@ -307,7 +333,7 @@ class VehicleScreen extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'B 1234 XYZ',
+                                    VehicleBackend.instance.defaultVehicle?.plateNumber ?? 'B 8899 DTO',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 18,
                                       fontWeight: FontWeight.bold,
@@ -315,7 +341,7 @@ class VehicleScreen extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    'Putih Pearl • Milik Pribadi',
+                                    '${VehicleBackend.instance.defaultVehicle?.color ?? 'Abu-Abu Metalik'} • Milik Pribadi',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       color: theme.textSecondary,

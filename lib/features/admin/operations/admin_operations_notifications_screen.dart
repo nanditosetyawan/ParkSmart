@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'admin_active_users_screen.dart';
 import 'admin_slot_management_screen.dart';
 import 'admin_locations_screen.dart';
+import 'backend/admin_operations_notifications_backend.dart';
 
 class OperationNotificationItem {
   final String id;
@@ -41,76 +42,16 @@ class AdminOperationsNotificationsScreen extends StatefulWidget {
 }
 
 class _AdminOperationsNotificationsScreenState extends State<AdminOperationsNotificationsScreen> {
-  final List<OperationNotificationItem> _notifications = [
-    OperationNotificationItem(
-      id: 'NOTIF-OP-001',
-      title: 'Peringatan Overstay: 3 Kendaraan Melebihi Batas',
-      description: 'Central Park Mall (Basement B2). Kendaraan B 1234 ABC telah parkir > 8 jam melampaui batas toleransi tiket.',
-      time: '2 mnt lalu',
-      category: 'Kritis',
-      icon: Icons.warning_amber_rounded,
-      iconColor: const Color(0xFFD94B4B),
-      bgColor: const Color(0xFFFDE8E4),
-      actionLabel: 'Cek Kendaraan',
-      actionTarget: 'active_users',
-      isRead: false,
-    ),
-    OperationNotificationItem(
-      id: 'NOTIF-OP-002',
-      title: 'Kapasitas Kritis: Grand Indonesia 92%',
-      description: 'Okupansi slot mencapai 415 dari 450 slot total. Rekomendasikan pengalihan ke zona parkir cadangan B4.',
-      time: '15 mnt lalu',
-      category: 'Kritis',
-      icon: Icons.error_outline_rounded,
-      iconColor: const Color(0xFFE07A5F),
-      bgColor: const Color(0xFFFDECE7),
-      actionLabel: 'Buka Denah Slot',
-      actionTarget: 'slot_mgmt',
-      isRead: false,
-    ),
-    OperationNotificationItem(
-      id: 'NOTIF-OP-003',
-      title: 'Palang Gerbang (Boom Gate) Masuk Gate 2',
-      description: 'Malioboro Mall · Sensor inframerah palang pintu mendeteksi jeda respon. Disarankan inspeksi rutin petugas gerbang.',
-      time: '34 mnt lalu',
-      category: 'Gerbang',
-      icon: Icons.fence_rounded,
-      iconColor: const Color(0xFF114177),
-      bgColor: const Color(0xFFEBF2FA),
-      actionLabel: 'Periksa Titik Gerbang',
-      actionTarget: 'locations',
-      isRead: false,
-    ),
-    OperationNotificationItem(
-      id: 'NOTIF-OP-004',
-      title: 'Kepadatan Arus Masuk Kendaraan',
-      description: 'Antrean kendaraan masuk di Gerbang Utama Central Park Mall meningkat saat jam operasional puncak.',
-      time: '1 jam lalu',
-      category: 'Gerbang',
-      icon: Icons.traffic_rounded,
-      iconColor: const Color(0xFF17A18A),
-      bgColor: const Color(0xFFE8F6F4),
-      actionLabel: 'Pantau Lalu Lintas',
-      actionTarget: 'active_users',
-      isRead: true,
-    ),
-    OperationNotificationItem(
-      id: 'NOTIF-OP-005',
-      title: 'Laporan Parkir Diluar Marka Lapangan',
-      description: 'Petugas lapangan melaporkan satu kendaraan terparkir menutup akses koridor darurat lantai B1.',
-      time: '3 jam lalu',
-      category: 'Kritis',
-      icon: Icons.report_problem_outlined,
-      iconColor: const Color(0xFFD94B4B),
-      bgColor: const Color(0xFFFDE8E4),
-      actionLabel: 'Tinjau Denah Lantai',
-      actionTarget: 'slot_mgmt',
-      isRead: true,
-    ),
-  ];
+  List<OperationNotificationItem> get _notifications => AdminOperationsNotificationsBackend.instance.notifications;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminOperationsNotificationsBackend.instance.fetchNotifications();
+  }
 
   void _handleAction(OperationNotificationItem item) {
-    setState(() => item.isRead = true);
+    AdminOperationsNotificationsBackend.instance.markAsRead(item.id);
     if (item.actionTarget == 'active_users') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen()));
     } else if (item.actionTarget == 'slot_mgmt') {
@@ -122,58 +63,58 @@ class _AdminOperationsNotificationsScreenState extends State<AdminOperationsNoti
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
+    return ListenableBuilder(
+      listenable: AdminOperationsNotificationsBackend.instance,
+      builder: (context, _) => Theme(
+        data: AppTheme.light,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF9F9F9),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFF3F4F6),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
               ),
-              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
             ),
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Text('Notifikasi Operasional', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-               
-                ],
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Text('Notifikasi Operasional', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  ],
+                ),
+                Text('Peringatan Lapangan, Kapasitas & Palang Gerbang', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+              ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  for (var n in _notifications) {
+                    AdminOperationsNotificationsBackend.instance.markAsRead(n.id);
+                  }
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Semua notifikasi operasional ditandai telah dibaca.', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                      backgroundColor: const Color(0xFF114177),
+                      behavior: SnackBarBehavior.floating,
+                    ),
+                  );
+                },
+                child: Text('Tandai Dibaca', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF114177), fontWeight: FontWeight.bold)),
               ),
-              Text('Peringatan Lapangan, Kapasitas & Palang Gerbang', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+              const SizedBox(width: 8),
             ],
           ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var n in _notifications) {
-                    n.isRead = true;
-                  }
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Semua notifikasi operasional ditandai telah dibaca.', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
-                    backgroundColor: const Color(0xFF114177),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
-              },
-              child: Text('Tandai Dibaca', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF114177), fontWeight: FontWeight.bold)),
-            ),
-            const SizedBox(width: 8),
-          ],
+          body: _buildNotificationList(),
         ),
-        body: _buildNotificationList(),
       ),
     );
   }

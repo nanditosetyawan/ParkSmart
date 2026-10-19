@@ -10,10 +10,23 @@ import 'vehicle_screen.dart' as vehicle;
 import 'payment_methods_screen.dart';
 import 'settings_screen.dart' as settings;
 import 'feedback_screen.dart' as feedback;
-import 'package:shared_preferences/shared_preferences.dart';
 
-class ProfileScreen extends StatelessWidget {
+import 'edit_profile_screen.dart' as edit_profile;
+import 'backend/profile_backend.dart';
+
+class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
+
+  @override
+  State<ProfileScreen> createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  @override
+  void initState() {
+    super.initState();
+    ProfileBackend.instance.fetchProfile();
+  }
 
   Widget _buildMemberBadge(String tier) {
     if (tier == 'GOLD') {
@@ -66,9 +79,10 @@ class ProfileScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, ProfileBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
+        final profile = ProfileBackend.instance;
         return Scaffold(
           backgroundColor: theme.bg,
       body: Stack(
@@ -106,30 +120,42 @@ class ProfileScreen extends StatelessWidget {
                 padding: const EdgeInsets.fromLTRB(20, 20, 20, 140),
                 children: [
                   // Profile Card
-                  Container(
-                    padding: const EdgeInsets.all(24),
-                    decoration: BoxDecoration(
-                      color: ThemeService.instance.card, borderRadius: BorderRadius.circular(24),
-                      border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.6)),
-                      boxShadow: [BoxShadow(color: ThemeService.instance.isDarkMode ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4))],
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 96, height: 96,
-                          padding: const EdgeInsets.all(4),
-                          decoration: BoxDecoration(color: ThemeService.instance.chipBg, shape: BoxShape.circle, border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.8))),
-                          child: const CircleAvatar(
-                            backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
-                          ),
+                  GestureDetector(
+                    onTap: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => edit_profile.EditProfileScreen(
+                          initialName: profile.name,
+                          initialEmail: profile.email,
+                          initialPhone: profile.phone,
                         ),
-                        const SizedBox(height: 16),
-                        Text('Sarah Pramudita', style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
-                        const SizedBox(height: 4),
-                        Text('sarah.pramudita@email.com\n+62 812-3456-7890', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, height: 1.5)),
-                        const SizedBox(height: 16),
-                        _buildMemberBadge('PLATINUM'),
-                      ],
+                      ),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: ThemeService.instance.card, borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.6)),
+                        boxShadow: [BoxShadow(color: ThemeService.instance.isDarkMode ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.03), blurRadius: 20, offset: const Offset(0, 4))],
+                      ),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 96, height: 96,
+                            padding: const EdgeInsets.all(4),
+                            decoration: BoxDecoration(color: ThemeService.instance.chipBg, shape: BoxShape.circle, border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.8))),
+                            child: const CircleAvatar(
+                              backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(profile.name, style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
+                          const SizedBox(height: 4),
+                          Text('${profile.email}\n${profile.phone}', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, height: 1.5)),
+                          const SizedBox(height: 16),
+                          _buildMemberBadge(profile.memberTier),
+                        ],
+                      ),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -149,7 +175,7 @@ class ProfileScreen extends StatelessWidget {
                             children: [
                               Text('TOTAL PARKIR', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
-                              Text('48 Kali', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
+                              Text('${profile.totalParking} Kali', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
                             ],
                           ),
                         ),
@@ -159,7 +185,7 @@ class ProfileScreen extends StatelessWidget {
                             children: [
                               Text('PENGHEMATAN', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
-                              Text('Rp 124.000', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFFC05621))),
+                              Text(CurrencyService.instance.format(profile.totalSavings), style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFFC05621))),
                             ],
                           ),
                         ),
@@ -170,23 +196,17 @@ class ProfileScreen extends StatelessWidget {
                   
                   // Menu Items
                   _MenuItem(
-                    icon: Icons.directions_car, subtitle: 'KENDARAAN TERDAFTAR', title: 'Toyota Raize (B 1234 XYZ)',
+                    icon: Icons.directions_car, subtitle: 'KENDARAAN TERDAFTAR', title: profile.primaryVehicle,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const vehicle.VehicleScreen())),
                   ),
                   const SizedBox(height: 12),
                   ListenableBuilder(
                     listenable: CurrencyService.instance,
-                    builder: (context, _) => FutureBuilder<SharedPreferences>(
-                      future: SharedPreferences.getInstance(),
-                      builder: (context, snapshot) {
-                        final balance = snapshot.data?.getInt('user_wallet_balance') ?? 145000;
-                        return _MenuItem(
-                          icon: Icons.account_balance_wallet,
-                          subtitle: 'METODE PEMBAYARAN',
-                          title: 'ParkSmart Pay (${CurrencyService.instance.format(balance)})',
-                          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
-                        );
-                      },
+                    builder: (context, _) => _MenuItem(
+                      icon: Icons.account_balance_wallet,
+                      subtitle: 'METODE PEMBAYARAN',
+                      title: 'ParkSmart Pay (${CurrencyService.instance.format(profile.walletBalance)})',
+                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
                     ),
                   ),
                   const SizedBox(height: 12),

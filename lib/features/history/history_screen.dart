@@ -1,8 +1,9 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import 'history_detail_screen.dart' as history_detail;
+import 'backend/history_backend.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -12,15 +13,20 @@ class HistoryScreen extends StatefulWidget {
 }
 
 class _HistoryScreenState extends State<HistoryScreen> {
-  String _selectedFilter = 'all';
+  @override
+  void initState() {
+    super.initState();
+    HistoryBackend.instance.fetchHistory();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, HistoryBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
+        final backend = HistoryBackend.instance;
 
         return Scaffold(
           backgroundColor: isDark ? theme.bg : const Color(0xFFFAF7F2),
@@ -70,7 +76,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Halo, Sarah',
+                                'Riwayat Parkir',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -103,76 +109,69 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               children: [
                                 _FilterChip(
                                   label: 'Semua',
-                                  count: '12',
-                                  isSelected: _selectedFilter == 'all',
+                                  count: '${backend.items.length}',
+                                  isSelected: backend.selectedFilter == 'all',
                                   isDark: isDark,
-                                  onTap: () => setState(() => _selectedFilter = 'all'),
+                                  onTap: () => backend.setFilter('all'),
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
                                   label: 'Selesai',
-                                  isSelected: _selectedFilter == 'selesai',
+                                  isSelected: backend.selectedFilter == 'completed',
                                   isDark: isDark,
-                                  onTap: () => setState(() => _selectedFilter = 'selesai'),
+                                  onTap: () => backend.setFilter('completed'),
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
-                                  label: 'Sedang Berjalan',
-                                  isSelected: _selectedFilter == 'berjalan',
+                                  label: 'Aktif',
+                                  isSelected: backend.selectedFilter == 'active',
                                   isDark: isDark,
-                                  onTap: () => setState(() => _selectedFilter = 'berjalan'),
-                                ),
-                                const SizedBox(width: 8),
-                                _FilterChip(
-                                  label: 'Dibatalkan',
-                                  isSelected: _selectedFilter == 'dibatalkan',
-                                  isDark: isDark,
-                                  onTap: () => setState(() => _selectedFilter = 'dibatalkan'),
+                                  onTap: () => backend.setFilter('active'),
                                 ),
                               ],
                             ),
                           ),
                           const SizedBox(height: 16),
-                          
-                          // Cards
-                          if (_selectedFilter == 'all' || _selectedFilter == 'selesai') ...[
-                            _HistoryCard(
-                              mallName: 'Central Park Mall',
-                              date: 'Hari Ini, 24 Okt • 14:02',
-                              status: 'Lunas',
-                              statusColor: const Color(0xFF059669),
-                              duration: '1 Jam 48 Mnt',
-                              slot: 'Slot A-05',
-                              price: 'Rp 9.000',
-                              icon: Icons.local_parking,
-                              isDark: isDark,
-                            ),
-                            const SizedBox(height: 16),
-                            _HistoryCard(
-                              mallName: 'Grand Indonesia',
-                              date: '21 Okt 2026 • 18:30',
-                              status: 'Selesai',
-                              statusColor: const Color(0xFF059669),
-                              duration: '3 Jam',
-                              slot: 'Slot C-14',
-                              price: 'Rp 18.000',
-                              icon: Icons.garage,
-                              isDark: isDark,
-                            ),
-                            const SizedBox(height: 16),
-                            _HistoryCard(
-                              mallName: 'Pacific Place SCBD',
-                              date: '18 Okt 2026 • 10:15',
-                              status: 'Selesai',
-                              statusColor: const Color(0xFF059669),
-                              duration: '1 Jam',
-                              slot: 'Slot B-02 (EV)',
-                              price: 'Rp 15.000',
-                              icon: Icons.electric_car,
-                              isEv: true,
-                              isDark: isDark,
-                            ),
-                          ],
+
+                          // Loading state
+                          if (backend.isLoading)
+                            const Center(child: Padding(
+                              padding: EdgeInsets.all(32),
+                              child: CircularProgressIndicator(),
+                            ))
+                          else if (backend.items.isEmpty)
+                            Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(32),
+                                child: Text(
+                                  'Belum ada riwayat parkir.',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
+                                  ),
+                                ),
+                              ),
+                            )
+                          else
+                            ...backend.items.asMap().entries.map((e) {
+                              final item = e.value;
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 16),
+                                child: _HistoryCard(
+                                  id: item.id,
+                                  mallName: item.mallName,
+                                  date: item.date,
+                                  status: item.status,
+                                  statusColor: item.statusColor,
+                                  duration: item.duration,
+                                  slot: item.slot,
+                                  price: item.price,
+                                  icon: item.icon,
+                                  isEv: item.isEv,
+                                  isDark: isDark,
+                                ),
+                              );
+                            }),
                         ],
                       ),
                     ),
@@ -272,6 +271,7 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _HistoryCard extends StatelessWidget {
+  final String id;
   final String mallName;
   final String date;
   final String status;
@@ -284,6 +284,7 @@ class _HistoryCard extends StatelessWidget {
   final bool isDark;
 
   const _HistoryCard({
+    required this.id,
     required this.mallName,
     required this.date,
     required this.status,
@@ -309,7 +310,7 @@ class _HistoryCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
-        Navigator.push(context, MaterialPageRoute(builder: (_) => const history_detail.HistoryDetailScreen()));
+        Navigator.push(context, MaterialPageRoute(builder: (_) => history_detail.HistoryDetailScreen(id: id)));
       },
       child: Container(
         padding: const EdgeInsets.all(20),

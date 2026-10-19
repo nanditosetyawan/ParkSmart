@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/theme_service.dart';
+import 'backend/edit_profile_backend.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String initialName;
@@ -80,6 +81,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await prefs.setString('user_profile_gender', _selectedGender);
       await prefs.setString('user_profile_address', _addressController.text.trim());
       await prefs.setString('user_profile_birthdate', _birthDateController.text.trim());
+
+      await EditProfileBackend.instance.updateProfile(
+        fullName: name,
+        email: email,
+        phone: phone,
+        gender: _selectedGender,
+        address: _addressController.text.trim(),
+        birthDate: _birthDateController.text.trim(),
+      );
 
       if (!mounted) return;
 

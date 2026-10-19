@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import 'custom_camera_screen.dart';
+import 'backend/add_vehicle_backend.dart';
 
 class AddVehicleScreen extends StatefulWidget {
   const AddVehicleScreen({super.key});
@@ -13,11 +14,27 @@ class AddVehicleScreen extends StatefulWidget {
 class _AddVehicleScreenState extends State<AddVehicleScreen> {
   String _selectedCategory = 'suv';
   String _selectedColor = 'Abu-Abu Metalik';
+  late final TextEditingController _plateController;
+  late final TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    _plateController = TextEditingController(text: 'B 5678 KLM');
+    _nameController = TextEditingController(text: 'Honda HR-V Special Edition');
+  }
+
+  @override
+  void dispose() {
+    _plateController.dispose();
+    _nameController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, AddVehicleBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -305,13 +322,19 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    Text(
-                                      'B 5678 KLM',
+                                    TextField(
+                                      controller: _plateController,
+                                      textCapitalization: TextCapitalization.characters,
                                       style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 24,
+                                        fontSize: 22,
                                         fontWeight: FontWeight.w900,
                                         color: Colors.white,
                                         letterSpacing: 4,
+                                      ),
+                                      decoration: const InputDecoration(
+                                        border: InputBorder.none,
+                                        isDense: true,
+                                        contentPadding: EdgeInsets.zero,
                                       ),
                                     ),
                                     Text(
@@ -403,7 +426,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                         ),
                         const SizedBox(height: 12),
                         TextField(
-                          controller: TextEditingController(text: 'Honda HR-V Special Edition'),
+                          controller: _nameController,
                           decoration: InputDecoration(
                             prefixIcon: Icon(Icons.directions_car, color: theme.textMuted),
                             suffixIcon: Icon(Icons.edit, color: theme.textMuted),
@@ -522,26 +545,59 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   child: SizedBox(
                     height: 48,
                     child: ElevatedButton(
-                      onPressed: () {},
+                      onPressed: AddVehicleBackend.instance.isLoading
+                          ? null
+                          : () async {
+                              final success = await AddVehicleBackend.instance.saveVehicle(
+                                plateNumber: _plateController.text,
+                                vehicleName: _nameController.text,
+                                category: _selectedCategory,
+                                color: _selectedColor,
+                              );
+                              if (context.mounted) {
+                                if (success) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                      content: Text('Kendaraan berhasil disimpan!'),
+                                      backgroundColor: Color(0xFF10B981),
+                                    ),
+                                  );
+                                  Navigator.pop(context);
+                                } else {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(
+                                      content: Text(AddVehicleBackend.instance.errorMessage ?? 'Gagal menyimpan kendaraan'),
+                                      backgroundColor: Colors.red,
+                                    ),
+                                  );
+                                }
+                              }
+                            },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF141518),
                         foregroundColor: isDark ? Colors.black : Colors.white,
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                       ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Icon(Icons.check_circle, size: 20),
-                          const SizedBox(width: 8),
-                          Text(
-                            'Simpan Kendaraan',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 15,
-                              fontWeight: FontWeight.bold,
+                      child: AddVehicleBackend.instance.isLoading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(strokeWidth: 2),
+                            )
+                          : Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.check_circle, size: 20),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Simpan Kendaraan',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                              ],
                             ),
-                          ),
-                        ],
-                      ),
                     ),
                   ),
                 ),

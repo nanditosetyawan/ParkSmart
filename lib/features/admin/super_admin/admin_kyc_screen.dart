@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_kyc_detail_modal.dart';
+import 'backend/admin_kyc_backend.dart';
 
 class AdminKycScreen extends StatefulWidget {
   const AdminKycScreen({super.key});
@@ -15,113 +16,13 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
   int _selectedTab = 0; // 0=Menunggu, 1=Disetujui, 2=Ditolak
   final TextEditingController _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> _kycList = [
-    {
-      'id': 'KYC-001',
-      'name': 'Rafi Maulana',
-      'nik': '3273011504030001',
-      'submittedAt': '15 mnt lalu',
-      'status': 'Menunggu',
-      'city': 'Bandung, Jawa Barat',
-      'dob': '15 April 2003',
-      'address': 'Jl. Dago Asri No. 12, Coblong',
-      'gender': 'LAKI-LAKI',
-      'religion': 'ISLAM',
-      'occupation': 'MAHASISWA / KARYAWAN',
-    },
-    {
-      'id': 'KYC-002',
-      'name': 'Siti Rahayu',
-      'nik': '3578024507980002',
-      'submittedAt': '1 jam lalu',
-      'status': 'Menunggu',
-      'city': 'Surabaya, Jawa Timur',
-      'dob': '25 Juli 1998',
-      'address': 'Jl. Darmo Permai III No. 8',
-      'gender': 'PEREMPUAN',
-      'religion': 'ISLAM',
-      'occupation': 'WIRAUSAHA',
-    },
-    {
-      'id': 'KYC-003',
-      'name': 'Agus Pratama',
-      'nik': '3501031806950003',
-      'submittedAt': '2 jam lalu',
-      'status': 'Menunggu',
-      'city': 'Yogyakarta, D.I.Y',
-      'dob': '18 Juni 1995',
-      'address': 'Jl. Gejayan No. 45, Sleman',
-      'gender': 'LAKI-LAKI',
-      'religion': 'ISLAM',
-      'occupation': 'KARYAWAN SWASTA',
-    },
-    {
-      'id': 'KYC-004',
-      'name': 'Dewi Lestari',
-      'nik': '3374056210010004',
-      'submittedAt': '3 jam lalu',
-      'status': 'Menunggu',
-      'city': 'Semarang, Jawa Tengah',
-      'dob': '22 Oktober 2001',
-      'address': 'Jl. Pandanaran No. 70',
-      'gender': 'PEREMPUAN',
-      'religion': 'ISLAM',
-      'occupation': 'PEGAWAI SWASTA',
-    },
-    {
-      'id': 'KYC-005',
-      'name': 'Budi Santoso',
-      'nik': '3212012805880005',
-      'submittedAt': '5 jam lalu',
-      'status': 'Menunggu',
-      'city': 'Cirebon, Jawa Barat',
-      'dob': '28 Mei 1988',
-      'address': 'Jl. Kartini No. 22',
-      'gender': 'LAKI-LAKI',
-      'religion': 'ISLAM',
-      'occupation': 'PNS',
-    },
-    {
-      'id': 'KYC-006',
-      'name': 'Nanda Setiawan',
-      'nik': '3273011504900006',
-      'submittedAt': 'Kemarin 14:30',
-      'status': 'Disetujui',
-      'city': 'Bandung, Jawa Barat',
-      'dob': '15 April 1990',
-      'address': 'Jl. Riau No. 88',
-      'gender': 'LAKI-LAKI',
-      'religion': 'ISLAM',
-      'occupation': 'SOFTWARE ENGINEER',
-    },
-    {
-      'id': 'KYC-007',
-      'name': 'Hana Aulia',
-      'nik': '3578024507970007',
-      'submittedAt': '2 hari lalu',
-      'status': 'Disetujui',
-      'city': 'Surabaya, Jawa Timur',
-      'dob': '25 Juli 1997',
-      'address': 'Jl. Mayjen Sungkono No. 12',
-      'gender': 'PEREMPUAN',
-      'religion': 'ISLAM',
-      'occupation': 'DOKTER GIGI',
-    },
-    {
-      'id': 'KYC-008',
-      'name': 'Joko Widarto',
-      'nik': '3501031806800008',
-      'submittedAt': '1 minggu lalu',
-      'status': 'Ditolak',
-      'rejectReason': 'Foto KTP buram & foto selfie tidak memegang fisik KTP',
-      'city': 'Solo, Jawa Tengah',
-      'dob': '18 Juni 1980',
-      'address': 'Jl. Slamet Riyadi No. 14',
-      'gender': 'LAKI-LAKI',
-      'religion': 'ISLAM',
-      'occupation': 'PEDAGANG',
-    },
-  ];
+  List<Map<String, dynamic>> get _kycList => AdminKycBackend.instance.kycList;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminKycBackend.instance.fetchKycList();
+  }
 
   @override
   void dispose() {
@@ -138,6 +39,12 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             : (item['rejectReason'] ?? 'Dokumen tidak memenuhi standar kejelasan atau biometrik');
       }
     });
+
+    if (isApproved) {
+      AdminKycBackend.instance.approveKyc(item['id']);
+    } else {
+      AdminKycBackend.instance.rejectKyc(item['id'], item['rejectReason'] ?? 'Ditolak oleh admin');
+    }
 
     final actionText = isApproved ? 'disetujui & diverifikasi' : 'ditolak';
     ScaffoldMessenger.of(context).showSnackBar(
@@ -162,7 +69,10 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final pendingCount = _kycList.where((k) => k['status'] == 'Menunggu').length;
+    return ListenableBuilder(
+      listenable: AdminKycBackend.instance,
+      builder: (context, _) {
+        final pendingCount = _kycList.where((k) => k['status'] == 'Menunggu').length;
     final approvedCount = _kycList.where((k) => k['status'] == 'Disetujui').length;
     final rejectedCount = _kycList.where((k) => k['status'] == 'Ditolak').length;
 
@@ -366,7 +276,9 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
         ),
       ),
     );
-  }
+  },
+);
+}
 
   // ==================== KONSISTEN PARKSMART TAB ITEM ====================
   Widget _buildTabItem(String label, int index) {

@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_active_users_backend.dart';
 
 class ActiveUsersScreen extends StatefulWidget {
   const ActiveUsersScreen({super.key});
@@ -13,86 +14,13 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0; // 0=Semua, 1=Normal, 2=Overstay, 3=EV
 
-  final List<Map<String, dynamic>> _sessions = [
-    {
-      'id': 'SES-9901',
-      'plate': 'B 1234 SKP',
-      'user': 'Nanda Setiawan',
-      'phone': '+62 812-3456-7890',
-      'type': 'Mobil',
-      'vehicle': 'Honda CR-V Hitam',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / A-01',
-      'checkIn': '10:30 WIB',
-      'duration': '2j 15m',
-      'fee': 'Rp 13.000',
-      'isOverstay': false,
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9902',
-      'plate': 'B 5532 PLM',
-      'user': 'Rafi Maulana',
-      'phone': '+62 856-7890-1234',
-      'type': 'Mobil',
-      'vehicle': 'Toyota Fortuner Putih',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / C-01',
-      'checkIn': '08:00 WIB',
-      'duration': '4j 45m',
-      'fee': 'Rp 29.000',
-      'isOverstay': true,
-      'overstayDuration': '45 mnt',
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9903',
-      'plate': 'B 1111 ION',
-      'user': 'Dewi Lestari',
-      'phone': '+62 813-9988-7766',
-      'type': 'EV Mobil',
-      'vehicle': 'Hyundai Ioniq 5',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / B-01 (EV Fast)',
-      'checkIn': '11:15 WIB',
-      'duration': '1j 30m',
-      'fee': 'Rp 22.500',
-      'isOverstay': false,
-      'isEv': true,
-      'battery': '85%',
-    },
-    {
-      'id': 'SES-9904',
-      'plate': 'AB 8899 DTO',
-      'user': 'Agus Pratama',
-      'phone': '+62 878-1122-3344',
-      'type': 'Motor',
-      'vehicle': 'Yamaha NMAX Hitam',
-      'location': 'Malioboro Mall',
-      'slot': 'Outdoor / M-12',
-      'checkIn': '11:45 WIB',
-      'duration': '1j 00m',
-      'fee': 'Rp 2.000',
-      'isOverstay': false,
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9905',
-      'plate': 'D 4412 XYZ',
-      'user': 'Siti Rahayu',
-      'phone': '+62 821-4455-6677',
-      'type': 'Mobil',
-      'vehicle': 'Mazda CX-5 Merah',
-      'location': 'Grand Indonesia',
-      'slot': 'B1 / E-04',
-      'checkIn': '09:10 WIB',
-      'duration': '3j 35m',
-      'fee': 'Rp 21.000',
-      'isOverstay': true,
-      'overstayDuration': '35 mnt',
-      'isEv': false,
-    },
-  ];
+  List<Map<String, dynamic>> get _sessions => AdminActiveUsersBackend.instance.sessions;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminActiveUsersBackend.instance.fetchActiveSessions();
+  }
 
   @override
   void dispose() {
@@ -183,12 +111,13 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _sessions.removeWhere((s) => s['id'] == session['id']);
-                      });
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      final sm = ScaffoldMessenger.of(context);
+                      await AdminActiveUsersBackend.instance.forceCheckout(session['id'].toString());
+                      if (!mounted) return;
+                      nav.pop();
+                      sm.showSnackBar(
                         SnackBar(
                           backgroundColor: const Color(0xFF17A18A),
                           content: Text('Kendaraan ${session['plate']} berhasil check-out manual!'),
@@ -229,13 +158,16 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final overstayCount = _sessions.where((s) => s['isOverstay'] == true).length;
-    final evCount = _sessions.where((s) => s['isEv'] == true).length;
+    return ListenableBuilder(
+      listenable: AdminActiveUsersBackend.instance,
+      builder: (context, _) {
+        final overstayCount = _sessions.where((s) => s['isOverstay'] == true).length;
+        final evCount = _sessions.where((s) => s['isEv'] == true).length;
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -497,8 +429,11 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
           ),
         ],
       ),
-    ));
-  }
+    ),
+  );
+},
+);
+}
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {
     return Expanded(

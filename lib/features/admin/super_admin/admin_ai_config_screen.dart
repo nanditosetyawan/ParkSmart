@@ -5,6 +5,7 @@ import 'package:http/http.dart' as http;
 import '../../../theme/app_theme.dart';
 
 import '../../../core/services/ai_config_service.dart';
+import 'backend/admin_ai_config_backend.dart';
 
 class AdminAiConfigScreen extends StatefulWidget {
   const AdminAiConfigScreen({super.key});
@@ -39,7 +40,11 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
 
   Future<void> _loadSavedApiKey() async {
     try {
-      final key = await AiConfigService.instance.loadActiveApiKey();
+      await AdminAiConfigBackend.instance.loadConfig();
+      final key = AdminAiConfigBackend.instance.apiKey.isNotEmpty 
+          ? AdminAiConfigBackend.instance.apiKey
+          : await AiConfigService.instance.loadActiveApiKey();
+
       if (mounted) {
         if (key != null && key.isNotEmpty) {
           _apiKeyCtrl.text = key;
@@ -88,6 +93,8 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
         modelName: _modelName,
         updatedBy: 'Super Admin',
       );
+
+      await AdminAiConfigBackend.instance.saveConfig(newApiKey: key);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(

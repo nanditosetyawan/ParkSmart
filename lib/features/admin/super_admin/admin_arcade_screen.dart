@@ -2,6 +2,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'backend/admin_arcade_backend.dart';
 
 class ArcadeAdminScreen extends StatefulWidget {
   const ArcadeAdminScreen({super.key});
@@ -22,19 +23,21 @@ class _ArcadeAdminScreenState extends State<ArcadeAdminScreen> {
   }
 
   Future<void> _loadSettings() async {
+    await AdminArcadeBackend.instance.loadArcadeSettings();
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
       setState(() {
-        _isParkingGameActive = prefs.getBool('arcade_parking_active') ?? true;
-        _isClawsGameActive = prefs.getBool('arcade_claws_active') ?? true;
+        _isParkingGameActive = prefs.getBool('arcade_parking_active') ?? AdminArcadeBackend.instance.isParkingGameActive;
+        _isClawsGameActive = prefs.getBool('arcade_claws_active') ?? AdminArcadeBackend.instance.isClawsGameActive;
       });
     }
   }
 
   Future<void> _saveArcadeSettings() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('arcade_parking_active', _isParkingGameActive);
-    await prefs.setBool('arcade_claws_active', _isClawsGameActive);
+    await AdminArcadeBackend.instance.saveArcadeSettings(
+      isParkingActive: _isParkingGameActive,
+      isClawsActive: _isClawsGameActive,
+    );
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -49,9 +52,12 @@ class _ArcadeAdminScreenState extends State<ArcadeAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
+    return ListenableBuilder(
+      listenable: AdminArcadeBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
         backgroundColor: const Color(0xFFF8FAFC),
         appBar: AppBar(
           backgroundColor: Colors.white,
@@ -197,7 +203,9 @@ class _ArcadeAdminScreenState extends State<ArcadeAdminScreen> {
         ),
       ),
     );
-  }
+  },
+);
+}
 
   Widget _buildGameCard({
     required String title,

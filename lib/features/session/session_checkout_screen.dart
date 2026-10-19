@@ -2,15 +2,28 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../profile/feedback_screen.dart' as feedback;
+import 'backend/session_checkout_backend.dart';
 
-class SessionCheckoutScreen extends StatelessWidget {
+class SessionCheckoutScreen extends StatefulWidget {
   const SessionCheckoutScreen({super.key});
+
+  @override
+  State<SessionCheckoutScreen> createState() => _SessionCheckoutScreenState();
+}
+
+class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
+  @override
+  void initState() {
+    super.initState();
+    SessionCheckoutBackend.instance.fetchCheckoutDetails();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, SessionCheckoutBackend.instance]),
       builder: (context, _) {
+        final backend = SessionCheckoutBackend.instance;
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
 
@@ -115,7 +128,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    'Gate Exit 02 • Siap Keluar',
+                                    '${backend.gateExitName} • Siap Keluar',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -128,7 +141,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Terima Kasih, Sarah.',
+                              'Terima Kasih, ${backend.userName}.',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -139,7 +152,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Sesi parkir Anda telah selesai. Palang keluar akan terbuka otomatis saat mendekati Gate Exit 02.',
+                              'Sesi parkir Anda telah selesai. Palang keluar akan terbuka otomatis saat mendekati ${backend.gateExitName}.',
                               textAlign: TextAlign.center,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
@@ -192,7 +205,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Toyota Raize',
+                                            backend.vehicleName,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 15,
                                               fontWeight: FontWeight.bold,
@@ -200,7 +213,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                             ),
                                           ),
                                           Text(
-                                            'B 1234 XYZ',
+                                            backend.plateNumber,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 13,
                                               color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -218,7 +231,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                       border: isDark ? Border.all(color: const Color(0xFF2D3542)) : null,
                                     ),
                                     child: Text(
-                                      'Basement B2',
+                                      backend.floorName,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -272,7 +285,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Text(
-                                          '1 Jam 48 Menit',
+                                          backend.totalDuration,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -280,7 +293,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                           ),
                                         ),
                                         Text(
-                                          '14:02 - 15:50',
+                                          backend.timeRange,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
@@ -305,7 +318,7 @@ class SessionCheckoutScreen extends StatelessWidget {
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Slot A-05 • Central Park Mall',
+                                          '${backend.slotCode} • ${backend.locationName}',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF45474A),
@@ -473,12 +486,15 @@ class SessionCheckoutScreen extends StatelessWidget {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushAndRemoveUntil(
-                                context,
-                                MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen()),
-                                (route) => false,
-                              );
+                            onPressed: () async {
+                              await backend.completeSessionCheckout();
+                              if (context.mounted) {
+                                Navigator.pushAndRemoveUntil(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen()),
+                                  (route) => false,
+                                );
+                              }
                             },
                             style: ElevatedButton.styleFrom(
                               backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),

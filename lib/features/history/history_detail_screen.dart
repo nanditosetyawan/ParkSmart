@@ -1,17 +1,31 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import 'backend/history_detail_backend.dart';
 
-class HistoryDetailScreen extends StatelessWidget {
-  const HistoryDetailScreen({super.key});
+class HistoryDetailScreen extends StatefulWidget {
+  final String? id;
+  const HistoryDetailScreen({super.key, this.id});
+
+  @override
+  State<HistoryDetailScreen> createState() => _HistoryDetailScreenState();
+}
+
+class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
+  @override
+  void initState() {
+    super.initState();
+    HistoryDetailBackend.instance.fetchDetail(widget.id);
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, HistoryDetailBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
+        final backend = HistoryDetailBackend.instance;
 
         final bg = isDark ? theme.bg : const Color(0xFFFCF9F2);
         final cardBg = isDark ? theme.card : Colors.white;
@@ -85,7 +99,7 @@ class HistoryDetailScreen extends StatelessWidget {
                           children: [
                             const TextSpan(text: 'Detail Transaksi\n'),
                             TextSpan(
-                              text: '#PS-88210',
+                              text: '#${backend.transactionCode}',
                               style: TextStyle(
                                 color: terracotta,
                                 fontWeight: FontWeight.w600,
@@ -122,7 +136,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    'Central Park Mall',
+                                    backend.locationName,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 22,
                                       fontWeight: FontWeight.bold,
@@ -137,7 +151,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                       const SizedBox(width: 4),
                                       Expanded(
                                         child: Text(
-                                          'South Lobby, Basement B2, Slot A-05',
+                                          backend.locationDetail,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13,
                                             color: isDark ? theme.textMuted : const Color(0xFF45474A),
@@ -170,7 +184,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                         Row(
                                           children: [
                                             Text(
-                                              'Rp 9.000',
+                                              'Rp ${backend.totalAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.w800,
@@ -189,7 +203,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                                   const Icon(Icons.check_circle, size: 13, color: Color(0xFF17A18A)),
                                                   const SizedBox(width: 4),
                                                   Text(
-                                                    'Lunas',
+                                                    backend.status,
                                                     style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 11,
                                                       fontWeight: FontWeight.w600,
@@ -224,7 +238,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                           style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                         ),
                                         Text(
-                                          '14:02 - 15:50 WIB',
+                                          '${backend.checkInTime} - ${backend.checkOutTime}',
                                           style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                         ),
                                       ],
@@ -235,18 +249,9 @@ class HistoryDetailScreen extends StatelessWidget {
                                     icon: Icons.directions_car,
                                     label: 'Kendaraan',
                                     isDark: isDark,
-                                    valueWidget: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          'Toyota Raize',
-                                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: textMain),
-                                        ),
-                                        Text(
-                                          'B 1234 XYZ',
-                                          style: TextStyle(fontSize: 12, color: textSub, fontFamily: 'monospace'),
-                                        ),
-                                      ],
+                                    valueWidget: Text(
+                                      backend.vehicleInfo,
+                                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: textMain),
                                     ),
                                   ),
                                   Divider(color: divider, height: 1),
@@ -266,7 +271,7 @@ class HistoryDetailScreen extends StatelessWidget {
                                           Icon(Icons.payments, size: 15, color: terracotta),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'ParkSmart Pay',
+                                            backend.paymentMethod,
                                             style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                           ),
                                         ],

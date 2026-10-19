@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_transactions_backend.dart';
 
 class AdminTransactionsScreen extends StatefulWidget {
   const AdminTransactionsScreen({super.key});
@@ -18,149 +19,15 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
 
   final List<String> _statusFilters = ['Semua', 'Berhasil', 'Pending', 'Gagal', 'Dibatalkan'];
 
-  final List<Map<String, dynamic>> _transactions = [
-    {
-      'id': 'TXN-20240315-001',
-      'user': {'name': 'Nanda Setiawan', 'phone': '+62 812-3456-7890', 'avatar': 'N'},
-      'type': 'Parkir',
-      'location': 'Central Park Mall',
-      'slot': 'A-05',
-      'amount': 28000,
-      'paymentMethod': 'Wallet',
-      'status': 'Berhasil',
-      'blockchainHash': '0x7a3f...9b2c',
-      'description': 'Parkir 4 jam (Mobil)',
-      'createdAt': '2024-03-15 12:30',
-      'completedAt': '2024-03-15 12:30',
-    },
-    {
-      'id': 'TXN-20240315-002',
-      'user': {'name': 'Rafi Maulana', 'phone': '+62 856-7890-1234', 'avatar': 'R'},
-      'type': 'Top-up Wallet',
-      'location': '-',
-      'slot': '-',
-      'amount': 100000,
-      'paymentMethod': 'Virtual Account BCA',
-      'status': 'Berhasil',
-      'blockchainHash': '0x4e8b...1f7a',
-      'description': 'Top-up saldo via VA BCA',
-      'createdAt': '2024-03-15 10:15',
-      'completedAt': '2024-03-15 10:16',
-    },
-    {
-      'id': 'TXN-20240315-003',
-      'user': {'name': 'Siti Rahayu', 'phone': '+62 878-1122-3344', 'avatar': 'S'},
-      'type': 'Parkir',
-      'location': 'Pacific Place SCBD',
-      'slot': 'EV-03',
-      'amount': 40000,
-      'paymentMethod': 'Wallet',
-      'status': 'Berhasil',
-      'blockchainHash': '0x9d2e...5c4f',
-      'description': 'Parkir 4 jam (EV) + Charging',
-      'createdAt': '2024-03-15 17:00',
-      'completedAt': '2024-03-15 17:00',
-    },
-    {
-      'id': 'TXN-20240315-004',
-      'user': {'name': 'Budi Santoso', 'phone': '+62 813-9988-7766', 'avatar': 'B'},
-      'type': 'Refund',
-      'location': 'Malioboro Mall',
-      'slot': 'M-08',
-      'amount': 12000,
-      'paymentMethod': 'Wallet (Refund)',
-      'status': 'Berhasil',
-      'blockchainHash': '0x1f5a...8e3b',
-      'description': 'Refund pembatalan booking BKG-20240314-005',
-      'createdAt': '2024-03-15 14:20',
-      'completedAt': '2024-03-15 14:21',
-    },
-    {
-      'id': 'TXN-20240314-005',
-      'user': {'name': 'Dewi Lestari', 'phone': '+62 821-4455-6677', 'avatar': 'D'},
-      'type': 'Cashback',
-      'location': 'Tunjungan Plaza 6',
-      'slot': '-',
-      'amount': 15000,
-      'paymentMethod': 'Wallet (Cashback)',
-      'status': 'Berhasil',
-      'blockchainHash': '0x3c7d...2f9e',
-      'description': 'Cashback member Gold 5%',
-      'createdAt': '2024-03-14 18:30',
-      'completedAt': '2024-03-14 18:30',
-    },
-    {
-      'id': 'TXN-20240314-006',
-      'user': {'name': 'Andi Wijaya', 'phone': '+62 812-1111-2222', 'avatar': 'A'},
-      'type': 'Injeksi Admin',
-      'location': '-',
-      'slot': '-',
-      'amount': 500000,
-      'paymentMethod': 'Admin Manual',
-      'status': 'Berhasil',
-      'blockchainHash': '0x8b2e...4a1d',
-      'description': 'Injeksi saldo kompensasi error sistem',
-      'createdAt': '2024-03-14 11:00',
-      'completedAt': '2024-03-14 11:00',
-      'adminNote': 'Ditinjau oleh Super Admin: Dito Pratama',
-    },
-    {
-      'id': 'TXN-20240313-007',
-      'user': {'name': 'Maya Sari', 'phone': '+62 856-3333-4444', 'avatar': 'M'},
-      'type': 'Parkir',
-      'location': 'Central Park Mall',
-      'slot': 'A-02',
-      'amount': 28000,
-      'paymentMethod': 'QRIS',
-      'status': 'Berhasil',
-      'blockchainHash': '0x5f9a...7c3e',
-      'description': 'Parkir 4 jam (Mobil)',
-      'createdAt': '2024-03-13 19:00',
-      'completedAt': '2024-03-13 19:01',
-    },
-    {
-      'id': 'TXN-20240313-008',
-      'user': {'name': 'Rizki Pratama', 'phone': '+62 878-5555-6666', 'avatar': 'R'},
-      'type': 'Penalty',
-      'location': 'Grand Indonesia',
-      'slot': 'EV-01',
-      'amount': 75000,
-      'paymentMethod': 'Wallet',
-      'status': 'Berhasil',
-      'blockchainHash': '0x2d8e...6b1f',
-      'description': 'Denda overstay 2.5 jam (Rp 30.000/jam)',
-      'createdAt': '2024-03-13 14:30',
-      'completedAt': '2024-03-13 14:30',
-    },
-    {
-      'id': 'TXN-20240312-009',
-      'user': {'name': 'Siti Rahayu', 'phone': '+62 878-1122-3344', 'avatar': 'S'},
-      'type': 'Top-up Wallet',
-      'location': '-',
-      'slot': '-',
-      'amount': 250000,
-      'paymentMethod': 'Credit Card (Visa)',
-      'status': 'Pending',
-      'blockchainHash': '-',
-      'description': 'Top-up saldo menunggu verifikasi bank',
-      'createdAt': '2024-03-12 16:45',
-      'completedAt': null,
-    },
-    {
-      'id': 'TXN-20240312-010',
-      'user': {'name': 'Budi Santoso', 'phone': '+62 813-9988-7766', 'avatar': 'B'},
-      'type': 'Parkir',
-      'location': 'Malioboro Mall',
-      'slot': 'M-08',
-      'amount': 12000,
-      'paymentMethod': 'Wallet',
-      'status': 'Gagal',
-      'blockchainHash': '-',
-      'description': 'Saldo tidak mencukupi saat check-out',
-      'createdAt': '2024-03-12 13:00',
-      'completedAt': null,
-    },
-  ];
+  List<Map<String, dynamic>> get _transactions =>
+      AdminTransactionsBackend.instance.transactions;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminTransactionsBackend.instance.fetchTransactions();
+  }
+
 
   @override
   void dispose() {
@@ -438,26 +305,15 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
   }
 
   void _markAsSuccess(Map<String, dynamic> txn) {
-    setState(() {
-      final idx = _transactions.indexWhere((t) => t['id'] == txn['id']);
-      if (idx != -1) {
-        _transactions[idx]['status'] = 'Berhasil';
-        _transactions[idx]['completedAt'] = DateTime.now().toString().split('.')[0];
-        _transactions[idx]['blockchainHash'] = '0x${DateTime.now().millisecondsSinceEpoch.toRadixString(16)}...${DateTime.now().microsecond.toRadixString(16).padLeft(4, '0')}';
-      }
-    });
+    AdminTransactionsBackend.instance.updateStatus(txn['id'], 'Berhasil');
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaksi ditandai berhasil', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF17A18A), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
   }
 
   void _markAsFailed(Map<String, dynamic> txn) {
-    setState(() {
-      final idx = _transactions.indexWhere((t) => t['id'] == txn['id']);
-      if (idx != -1) {
-        _transactions[idx]['status'] = 'Gagal';
-      }
-    });
+    AdminTransactionsBackend.instance.updateStatus(txn['id'], 'Gagal');
     ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Transaksi ditandai gagal', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFFD94B4B), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
   }
+
 
   void _pickDateRange() async {
     final range = await showDateRangePicker(
@@ -793,15 +649,18 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalIncome = _transactions.where((t) => _isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int));
-    final totalExpense = _transactions.where((t) => !_isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int).abs());
+    return ListenableBuilder(
+      listenable: AdminTransactionsBackend.instance,
+      builder: (context, _) {
+        final totalIncome = _transactions.where((t) => _isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int));
+        final totalExpense = _transactions.where((t) => !_isIncome(t['type']) && t['status'] == 'Berhasil').fold<int>(0, (sum, t) => sum + (t['amount'] as int).abs());
 
-    final txns = _filteredTransactions;
+        final txns = _filteredTransactions;
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB),
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
         appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
@@ -1112,6 +971,8 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
           ],
         ),
       ),
+    );
+      },
     );
   }
 }

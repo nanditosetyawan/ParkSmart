@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_slot_management_backend.dart';
 
 class SlotManagementScreen extends StatefulWidget {
   const SlotManagementScreen({super.key});
@@ -15,33 +16,12 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
 
   final List<String> _floors = ['Basement 1', 'Basement 2', 'Outdoor'];
 
-  late List<Map<String, dynamic>> _slots;
+  List<Map<String, dynamic>> get _slots => AdminSlotManagementBackend.instance.slots;
 
   @override
   void initState() {
     super.initState();
-    _initSlots();
-  }
-
-  void _initSlots() {
-    _slots = [
-      {'id': 'A-01', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'B 1234 SKP', 'duration': '1j 45m'},
-      {'id': 'A-02', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'A-03', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'A-04', 'type': 'Mobil', 'status': 'Reserved', 'plate': 'B 8899 DTO', 'duration': 'Booking 14:00'},
-      {'id': 'A-05', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'B 4412 XYZ', 'duration': '42m'},
-      {'id': 'A-06', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'B-01', 'type': 'EV Charging', 'status': 'Terisi', 'plate': 'B 1111 ION', 'duration': '2j 10m (85%)'},
-      {'id': 'B-02', 'type': 'EV Charging', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'B-03', 'type': 'VIP', 'status': 'Reserved', 'plate': 'RI 1', 'duration': 'Khusus Tamu'},
-      {'id': 'B-04', 'type': 'Disabilitas', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'B-05', 'type': 'Mobil', 'status': 'Maintenance', 'plate': null, 'duration': 'Perbaikan Marka'},
-      {'id': 'B-06', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'C-01', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'B 5532 PLM', 'duration': '3j 15m (Overstay)'},
-      {'id': 'C-02', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-      {'id': 'C-03', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'D 9901 AB', 'duration': '55m'},
-      {'id': 'C-04', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    ];
+    AdminSlotManagementBackend.instance.fetchSlots();
   }
 
   Color _getStatusColor(String status) {
@@ -153,11 +133,8 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
                     Expanded(
                       child: OutlinedButton(
                         onPressed: () {
-                          setState(() {
-                            slot['status'] = slot['status'] == 'Maintenance' ? 'Tersedia' : 'Maintenance';
-                            slot['plate'] = null;
-                            slot['duration'] = null;
-                          });
+                          final newStatus = slot['status'] == 'Maintenance' ? 'Tersedia' : 'Maintenance';
+                          AdminSlotManagementBackend.instance.updateSlotStatus(slot['id'].toString(), newStatus);
                           Navigator.pop(ctx);
                         },
                         style: OutlinedButton.styleFrom(
@@ -175,16 +152,8 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
                     Expanded(
                       child: ElevatedButton(
                         onPressed: () {
-                          setState(() {
-                            slot['status'] = slot['status'] == 'Tersedia' ? 'Terisi' : 'Tersedia';
-                            if (slot['status'] == 'Tersedia') {
-                              slot['plate'] = null;
-                              slot['duration'] = null;
-                            } else {
-                              slot['plate'] = 'B 0000 NEW';
-                              slot['duration'] = 'Baru Masuk';
-                            }
-                          });
+                          final newStatus = slot['status'] == 'Tersedia' ? 'Terisi' : 'Tersedia';
+                          AdminSlotManagementBackend.instance.updateSlotStatus(slot['id'].toString(), newStatus);
                           Navigator.pop(ctx);
                         },
                         style: ElevatedButton.styleFrom(
@@ -212,15 +181,18 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final total = _slots.length;
-    final available = _slots.where((s) => s['status'] == 'Tersedia').length;
-    final occupied = _slots.where((s) => s['status'] == 'Terisi').length;
-    final reserved = _slots.where((s) => s['status'] == 'Reserved').length;
+    return ListenableBuilder(
+      listenable: AdminSlotManagementBackend.instance,
+      builder: (context, _) {
+        final total = _slots.length;
+        final available = _slots.where((s) => s['status'] == 'Tersedia').length;
+        final occupied = _slots.where((s) => s['status'] == 'Terisi').length;
+        final reserved = _slots.where((s) => s['status'] == 'Reserved').length;
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -405,8 +377,11 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
           ),
         ],
       ),
-    ));
-  }
+    ),
+  );
+},
+);
+}
 
   Widget _buildMiniStat(String label, String value, Color color, Color bg) {
     return Expanded(

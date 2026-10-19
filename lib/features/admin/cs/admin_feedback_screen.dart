@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_feedback_backend.dart';
 
 class FeedbackAdminScreen extends StatefulWidget {
   const FeedbackAdminScreen({super.key});
@@ -13,63 +14,15 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0; // 0=Semua, 1=Bintang 5, 2=Bintang 4, 3=Keluhan
 
-  final List<Map<String, dynamic>> _feedbacks = [
-    {
-      'id': 'FDB-001',
-      'user': 'Rafi Maulana',
-      'avatar': 'R',
-      'rating': 5,
-      'location': 'Central Park Mall (B2)',
-      'date': 'Hari ini, 11:20',
-      'comment': 'Sensor gate dan QR ticket sangat cepat! Tidak perlu antre lama di pos keluar.',
-      'adminReply': 'Terima kasih atas apresiasinya Kak Rafi! Kami terus berupaya menjaga kecepatan sistem.',
-      'isResolved': true,
-    },
-    {
-      'id': 'FDB-002',
-      'user': 'Hana Aulia',
-      'avatar': 'H',
-      'rating': 2,
-      'location': 'Grand Indonesia',
-      'date': 'Kemarin, 19:45',
-      'comment': 'Marka slot nomor C-05 agak pudar jadi sempat salah parkir di slot booking orang lain.',
-      'adminReply': null,
-      'isResolved': false,
-    },
-    {
-      'id': 'FDB-003',
-      'user': 'Budi Santoso',
-      'avatar': 'B',
-      'rating': 4,
-      'location': 'Malioboro Mall',
-      'date': '2 hari lalu',
-      'comment': 'Fitur perpanjang timer tiket parkir sangat membantu pas lagi meeting mendadak.',
-      'adminReply': 'Senang mendengar fitur extend timer bermanfaat untuk Kak Budi!',
-      'isResolved': true,
-    },
-    {
-      'id': 'FDB-004',
-      'user': 'Dewi Lestari',
-      'avatar': 'D',
-      'rating': 5,
-      'location': 'Pacific Place SCBD',
-      'date': '3 hari lalu',
-      'comment': 'Slot EV Fast Charger berfungsi sangat baik, daya masuk stabil 22 kW.',
-      'adminReply': null,
-      'isResolved': true,
-    },
-    {
-      'id': 'FDB-005',
-      'user': 'Joko Widarto',
-      'avatar': 'J',
-      'rating': 1,
-      'location': 'Central Park Mall',
-      'date': '1 minggu lalu',
-      'comment': 'Barrier gate sempat macet 5 menit sebelum sensor terbuka otomatis.',
-      'adminReply': 'Mohon maaf atas kendalanya. Kami telah melakukan kompensasi saldo dompet Rp 50.000 ke akun Bapak.',
-      'isResolved': true,
-    },
-  ];
+  List<Map<String, dynamic>> get _feedbacks =>
+      AdminFeedbackBackend.instance.feedbacks;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminFeedbackBackend.instance.fetchFeedbacks();
+  }
+
 
   @override
   void dispose() {
@@ -201,14 +154,14 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
             ),
           ),
           ElevatedButton(
-            onPressed: () {
+            onPressed: () async {
               if (replyCtrl.text.trim().isNotEmpty) {
-                setState(() {
-                  feedback['adminReply'] = replyCtrl.text.trim();
-                  feedback['isResolved'] = true;
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
+                final nav = Navigator.of(ctx);
+                final sm = ScaffoldMessenger.of(context);
+                final replyText = replyCtrl.text.trim();
+                await AdminFeedbackBackend.instance.submitReply(feedback['id'], replyText);
+                nav.pop();
+                sm.showSnackBar(
                   const SnackBar(
                     content: Text('Tanggapan berhasil disimpan!'),
                     backgroundColor: Color(0xFF0F172A),
@@ -238,16 +191,19 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final unresolvedCount = _feedbacks.where((f) => f['isResolved'] == false).length;
+    return ListenableBuilder(
+      listenable: AdminFeedbackBackend.instance,
+      builder: (context, _) {
+        final unresolvedCount = _feedbacks.where((f) => f['isResolved'] == false).length;
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF8FAFC),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          surfaceTintColor: Colors.transparent,
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF8FAFC),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              surfaceTintColor: Colors.transparent,
           leading: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -444,7 +400,10 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
         ),
       ),
     );
+      },
+    );
   }
+
 
   Widget _buildStatCard(String label, String value, {Widget? extra, bool isAlert = false}) {
     return Expanded(

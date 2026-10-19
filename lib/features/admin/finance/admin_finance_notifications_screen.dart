@@ -2,6 +2,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_wallet_screen.dart';
+import 'backend/admin_finance_notifications_backend.dart';
 
 class FinanceNotificationItem {
   final String id;
@@ -40,74 +41,14 @@ class _AdminFinanceNotificationsScreenState
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
-  // Notifikasi Finansial HANYA khusus untuk Injeksi Saldo (Berhasil atau Gagal)
-  final List<FinanceNotificationItem> _notifications = [
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-001',
-      title: 'Injeksi Saldo Berhasil • Rp 250.000',
-      userName: 'Budi Santoso',
-      userId: 'usr-001',
-      amount: 'Rp 250.000',
-      description:
-          'Saldo sebesar Rp 250.000 berhasil dikreditkan ke dompet akun Budi Santoso (usr-001). Buku kas dompet telah terupdate.',
-      status: 'Berhasil',
-      time: '12 mnt lalu',
-      isRead: false,
-    ),
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-002',
-      title: 'Injeksi Saldo Gagal • Rp 500.000',
-      userName: 'Andi Wijaya',
-      userId: 'usr-006',
-      amount: 'Rp 500.000',
-      description:
-          'Gagal menginjeksi saldo ke akun Andi Wijaya (usr-006): Melebihi batas pagu limit injeksi tunggal harian per pengguna.',
-      status: 'Gagal',
-      time: '40 mnt lalu',
-      isRead: false,
-    ),
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-003',
-      title: 'Injeksi Saldo Berhasil • Rp 100.000',
-      userName: 'Siti Rahayu',
-      userId: 'usr-003',
-      amount: 'Rp 100.000',
-      description:
-          'Injeksi kompensasi kendala scan QR gerbang untuk Siti Rahayu (usr-003) sebesar Rp 100.000 telah berhasil diselesaikan.',
-      status: 'Berhasil',
-      time: '2 jam lalu',
-      isRead: true,
-    ),
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-004',
-      title: 'Injeksi Saldo Gagal • Rp 50.000',
-      userName: 'Maya Sari',
-      userId: 'usr-007',
-      amount: 'Rp 50.000',
-      description:
-          'Injeksi saldo ke akun Maya Sari (usr-007) gagal: ID akun pengguna tidak valid atau status akun sedang dibekukan.',
-      status: 'Gagal',
-      time: '4 jam lalu',
-      isRead: true,
-    ),
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-005',
-      title: 'Injeksi Saldo Berhasil • Rp 50.000',
-      userName: 'Rafi Maulana',
-      userId: 'usr-002',
-      amount: 'Rp 50.000',
-      description:
-          'Injeksi saldo promo voucher cashback sebesar Rp 50.000 untuk Rafi Maulana (usr-002) berhasil dikreditkan.',
-      status: 'Berhasil',
-      time: '1 hari lalu',
-      isRead: true,
-    ),
-  ];
+  List<FinanceNotificationItem> get _notifications =>
+      AdminFinanceNotificationsBackend.instance.notifications;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    AdminFinanceNotificationsBackend.instance.fetchNotifications();
   }
 
   @override
@@ -117,7 +58,7 @@ class _AdminFinanceNotificationsScreenState
   }
 
   void _handleAction(FinanceNotificationItem item) {
-    setState(() => item.isRead = true);
+    AdminFinanceNotificationsBackend.instance.markAsRead(item.id);
     Navigator.push(
       context,
       MaterialPageRoute(builder: (_) => const AdminWalletScreen()),
@@ -133,136 +74,141 @@ class _AdminFinanceNotificationsScreenState
     return _notifications;
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: const Color(0xFFF3F4F6),
-                borderRadius: BorderRadius.circular(10),
+    return ListenableBuilder(
+      listenable: AdminFinanceNotificationsBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF3F4F6),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.arrow_back,
+                    size: 20,
+                    color: Color(0xFF1A1A18),
+                  ),
+                ),
               ),
-              child: const Icon(
-                Icons.arrow_back,
-                size: 20,
-                color: Color(0xFF1A1A18),
-              ),
-            ),
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    'Notifikasi Injeksi Saldo',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF1A1A18),
-                    ),
-                  ),
-                ],
-              ),
-              Text(
-                'Status Riwayat Injeksi Saldo Dompet Admin',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 11,
-                  color: const Color(0xFF76777B),
-                ),
-              ),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  for (var n in _notifications) {
-                    n.isRead = true;
-                  }
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Semua notifikasi injeksi saldo ditandai telah dibaca.',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontWeight: FontWeight.w600,
+                  Row(
+                    children: [
+                      Text(
+                        'Notifikasi Injeksi Saldo',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18),
+                        ),
                       ),
-                    ),
-                    backgroundColor: const Color(0xFF114177),
-                    behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
+                    ],
                   ),
-                );
-              },
-              child: Text(
-                'Tandai Dibaca',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: const Color(0xFF114177),
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-          ],
-          bottom: PreferredSize(
-            preferredSize: const Size.fromHeight(48),
-            child: Container(
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
-              ),
-              child: TabBar(
-                controller: _tabController,
-                labelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.bold,
-                ),
-                unselectedLabelStyle: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w500,
-                ),
-                labelColor: const Color(0xFF114177),
-                unselectedLabelColor: const Color(0xFF76777B),
-                indicatorColor: const Color(0xFF114177),
-                indicatorWeight: 3,
-                tabs: [
-                  Tab(text: 'Semua (${_notifications.length})'),
-                  Tab(
-                    text:
-                        'Berhasil (${_notifications.where((n) => n.status == "Berhasil").length})',
-                  ),
-                  Tab(
-                    text:
-                        'Gagal (${_notifications.where((n) => n.status == "Gagal").length})',
+                  Text(
+                    'Status Riwayat Injeksi Saldo Dompet Admin',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      color: const Color(0xFF76777B),
+                    ),
                   ),
                 ],
               ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    for (var n in _notifications) {
+                      AdminFinanceNotificationsBackend.instance.markAsRead(n.id);
+                    }
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'Semua notifikasi injeksi saldo ditandai telah dibaca.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        backgroundColor: const Color(0xFF114177),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Tandai Dibaca',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: const Color(0xFF114177),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 8),
+              ],
+              bottom: PreferredSize(
+                preferredSize: const Size.fromHeight(48),
+                child: Container(
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+                  ),
+                  child: TabBar(
+                    controller: _tabController,
+                    labelStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                    ),
+                    unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                    labelColor: const Color(0xFF114177),
+                    unselectedLabelColor: const Color(0xFF76777B),
+                    indicatorColor: const Color(0xFF114177),
+                    indicatorWeight: 3,
+                    tabs: [
+                      Tab(text: 'Semua (${_notifications.length})'),
+                      Tab(
+                        text:
+                            'Berhasil (${_notifications.where((n) => n.status == "Berhasil").length})',
+                      ),
+                      Tab(
+                        text:
+                            'Gagal (${_notifications.where((n) => n.status == "Gagal").length})',
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildNotificationList(0),
+                _buildNotificationList(1),
+                _buildNotificationList(2),
+              ],
             ),
           ),
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildNotificationList(0),
-            _buildNotificationList(1),
-            _buildNotificationList(2),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
+
 
   Widget _buildNotificationList(int tabIndex) {
     final list = _getFilteredNotifications(tabIndex);

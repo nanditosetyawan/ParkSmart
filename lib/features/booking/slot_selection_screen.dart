@@ -8,6 +8,8 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../checkout/checkout_screen.dart';
 import '../../core/services/maintenance_service.dart';
+import 'backend/slot_selection_backend.dart';
+import '../checkout/backend/checkout_backend.dart';
 
 // Stitch Material3 slot colors
 const _kSecondary = Color(0xFF9A442D);
@@ -46,12 +48,15 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
         }
       });
     }
+
+    // Ambil data slot parkir aktual dari backend Supabase
+    SlotSelectionBackend.instance.fetchSlots(floorName: _floors[_selectedFloor]);
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, SlotSelectionBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -107,7 +112,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                       const Icon(Icons.location_on, size: 18, color: Color(0xFFFB923C)),
                                       const SizedBox(width: 6),
                                       Text(
-                                        'Central Park Mall • 350m',
+                                        '${SlotSelectionBackend.instance.currentLocation?['name'] ?? 'Central Park Mall'} • 350m',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
@@ -128,17 +133,23 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                   Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        '28 Slot',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: -0.5,
-                                          color: isDark ? Colors.white : Colors.black,
-                                        ),
+                                      ListenableBuilder(
+                                        listenable: SlotSelectionBackend.instance,
+                                        builder: (context, _) {
+                                          final count = SlotSelectionBackend.instance.availableCount;
+                                          return Text(
+                                            '$count Slot',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: -0.5,
+                                              color: isDark ? Colors.white : Colors.black,
+                                            ),
+                                          );
+                                        },
                                       ),
                                       Text(
-                                        'Siap pakai di Basement B2',
+                                        'Siap pakai di ${_floors[_selectedFloor]}',
                                         style: AppTypography.bodySm(
                                           color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                         ),
@@ -207,6 +218,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 onTap: () => setState(() {
                                   _selectedFloor = i;
                                   _selectedSlot = null;
+                                  SlotSelectionBackend.instance.fetchSlots(floorName: _floors[i]);
                                 }),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -277,7 +289,11 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                           child: Column(
                             children: [
                               // Zone A
-                              _ZoneLabel(label: 'Zona A', count: '3 Tersedia', isDark: isDark),
+                              _ZoneLabel(
+                                label: 'Zona A',
+                                count: '${['A-03', 'A-04', 'A-05', 'A-06'].where((s) => SlotSelectionBackend.instance.isSlotAvailable(s)).length} Tersedia',
+                                isDark: isDark,
+                              ),
                               const SizedBox(height: 8),
                               GridView.count(
                                 crossAxisCount: 4,
@@ -287,10 +303,10 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 children: [
-                                  _buildSlot('A-03', true, isDark: isDark),
-                                  _buildSlot('A-04', false, isDark: isDark),
-                                  _buildSlot('A-05', true, isSelected: _selectedSlot == 'A-05', isDark: isDark),
-                                  _buildSlot('A-06', false, isDark: isDark),
+                                  _buildSlot('A-03', SlotSelectionBackend.instance.isSlotAvailable('A-03'), isSelected: _selectedSlot == 'A-03', isDark: isDark),
+                                  _buildSlot('A-04', SlotSelectionBackend.instance.isSlotAvailable('A-04'), isSelected: _selectedSlot == 'A-04', isDark: isDark),
+                                  _buildSlot('A-05', SlotSelectionBackend.instance.isSlotAvailable('A-05'), isSelected: _selectedSlot == 'A-05', isDark: isDark),
+                                  _buildSlot('A-06', SlotSelectionBackend.instance.isSlotAvailable('A-06'), isSelected: _selectedSlot == 'A-06', isDark: isDark),
                                 ],
                               ),
 
@@ -337,7 +353,11 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                               const SizedBox(height: 12),
 
                               // Zone B
-                              _ZoneLabel(label: 'Zona B', count: '2 Tersedia', isDark: isDark),
+                              _ZoneLabel(
+                                label: 'Zona B',
+                                count: '${['B-01', 'B-02', 'B-03', 'B-04'].where((s) => SlotSelectionBackend.instance.isSlotAvailable(s)).length} Tersedia',
+                                isDark: isDark,
+                              ),
                               const SizedBox(height: 8),
                               GridView.count(
                                 crossAxisCount: 4,
@@ -347,10 +367,10 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 shrinkWrap: true,
                                 physics: const NeverScrollableScrollPhysics(),
                                 children: [
-                                  _buildSlot('B-01', false, isDark: isDark),
-                                  _buildSlot('B-02', true, isSelected: _selectedSlot == 'B-02', isDark: isDark),
-                                  _buildSlot('B-03', false, isEV: true, isDark: isDark),
-                                  _buildSlot('B-04', true, isEV: true, isSelected: _selectedSlot == 'B-04', isDark: isDark),
+                                  _buildSlot('B-01', SlotSelectionBackend.instance.isSlotAvailable('B-01'), isSelected: _selectedSlot == 'B-01', isDark: isDark),
+                                  _buildSlot('B-02', SlotSelectionBackend.instance.isSlotAvailable('B-02'), isSelected: _selectedSlot == 'B-02', isDark: isDark),
+                                  _buildSlot('B-03', SlotSelectionBackend.instance.isSlotAvailable('B-03'), isEV: true, isSelected: _selectedSlot == 'B-03', isDark: isDark),
+                                  _buildSlot('B-04', SlotSelectionBackend.instance.isSlotAvailable('B-04'), isEV: true, isSelected: _selectedSlot == 'B-04', isDark: isDark),
                                 ],
                               ),
 
@@ -503,10 +523,16 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                           ),
                         ),
                         GestureDetector(
-                          onTap: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const CheckoutScreen()),
-                          ),
+                          onTap: () {
+                            CheckoutBackend.instance.setBookingDetails(
+                              slotCode: _selectedSlot ?? 'A-05',
+                              floorName: _floors[_selectedFloor],
+                            );
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(builder: (_) => const CheckoutScreen()),
+                            );
+                          },
                           child: Container(
                             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                             decoration: BoxDecoration(

@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_wallet_backend.dart';
 
 class AdminWalletScreen extends StatefulWidget {
   const AdminWalletScreen({super.key});
@@ -19,108 +20,24 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
   Map<String, dynamic>? _selectedUser;
   String _userSearchQuery = '';
 
-  final List<Map<String, dynamic>> _users = [
-    {
-      'id': 'usr-001',
-      'name': 'Nanda Setiawan',
-      'email': 'nanda.setiawan@gmail.com',
-      'phone': '+62 812-3456-7890',
-      'balance': 45000,
-      'avatar': 'N',
-    },
-    {
-      'id': 'usr-002',
-      'name': 'Rafi Maulana',
-      'email': 'rafi.maulana@gmail.com',
-      'phone': '+62 856-7890-1234',
-      'balance': 120000,
-      'avatar': 'R',
-    },
-    {
-      'id': 'usr-003',
-      'name': 'Siti Rahayu',
-      'email': 'siti.rahayu@gmail.com',
-      'phone': '+62 878-1122-3344',
-      'balance': 15000,
-      'avatar': 'S',
-    },
-    {
-      'id': 'usr-004',
-      'name': 'Dewi Lestari',
-      'email': 'dewi.lestari@gmail.com',
-      'phone': '+62 813-9988-7766',
-      'balance': 230000,
-      'avatar': 'D',
-    },
-    {
-      'id': 'usr-005',
-      'name': 'Budi Santoso',
-      'email': 'budi.santoso@gmail.com',
-      'phone': '+62 821-4455-6677',
-      'balance': 0,
-      'avatar': 'B',
-    },
-    {
-      'id': 'usr-006',
-      'name': 'Ahmad Fauzi',
-      'email': 'ahmad.fauzi@gmail.com',
-      'phone': '+62 812-9911-2233',
-      'balance': 85000,
-      'avatar': 'A',
-    },
-    {
-      'id': 'usr-007',
-      'name': 'Linda Wijaya',
-      'email': 'linda.wijaya@gmail.com',
-      'phone': '+62 818-4455-6677',
-      'balance': 310000,
-      'avatar': 'L',
-    },
-    {
-      'id': 'usr-008',
-      'name': 'Rizky Pratama',
-      'email': 'rizky.pratama@gmail.com',
-      'phone': '+62 877-3322-1100',
-      'balance': 12500,
-      'avatar': 'R',
-    },
-  ];
-
-  final List<Map<String, dynamic>> _recentInjections = [
-    {
-      'userName': 'Nanda Setiawan',
-      'userEmail': 'nanda.setiawan@gmail.com',
-      'amount': 500000,
-      'reason': 'Kompensasi kendala barrier gate B2',
-      'time': '1 jam lalu',
-      'admin': 'Admin Pusat (Dito)',
-      'status': 'Berhasil',
-    },
-    {
-      'userName': 'Siti Rahayu',
-      'userEmail': 'siti.rahayu@gmail.com',
-      'amount': 50000,
-      'reason': 'Bonus KYC KTP Terverifikasi',
-      'time': '3 jam lalu',
-      'admin': 'Sistem Otomatis',
-      'status': 'Berhasil',
-    },
-    {
-      'userName': 'Rafi Maulana',
-      'userEmail': 'rafi.maulana@gmail.com',
-      'amount': 100000,
-      'reason': 'Top-up Manual Kasir Kantor Parkir',
-      'time': 'Kemarin, 16:40',
-      'admin': 'Admin Lokasi (Central Park)',
-      'status': 'Berhasil',
-    },
-  ];
+  List<Map<String, dynamic>> get _users => AdminWalletBackend.instance.users;
+  List<Map<String, dynamic>> get _recentInjections => AdminWalletBackend.instance.recentInjections;
 
   @override
   void initState() {
     super.initState();
-    _selectedUser = _users.first;
-    _userIdSearchController.text = _selectedUser!['id'].toString().toUpperCase();
+    AdminWalletBackend.instance.fetchUsers().then((_) {
+      if (mounted && _users.isNotEmpty) {
+        setState(() {
+          _selectedUser = _users.first;
+          _userIdSearchController.text = _selectedUser!['id'].toString().toUpperCase();
+        });
+      }
+    });
+    if (_users.isNotEmpty) {
+      _selectedUser = _users.first;
+      _userIdSearchController.text = _selectedUser!['id'].toString().toUpperCase();
+    }
   }
 
   @override
@@ -466,27 +383,29 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
             child: Text('Batal', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
           ),
           ElevatedButton(
-            onPressed: () {
-              Navigator.pop(ctx);
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              final sm = ScaffoldMessenger.of(context);
+              final userName = _selectedUser!['name'];
+              final userId = _selectedUser!['id'].toString();
+              final reason = _noteController.text.isEmpty ? 'Injeksi Saldo Manual Admin' : _noteController.text;
+
+              await AdminWalletBackend.instance.injectBalance(
+                userId: userId,
+                amount: amount,
+                reason: reason,
+              );
+              if (!mounted) return;
+              nav.pop();
               setState(() {
-                _selectedUser!['balance'] = (_selectedUser!['balance'] as int) + amount;
-                _recentInjections.insert(0, {
-                  'userName': _selectedUser!['name'],
-                  'userEmail': _selectedUser!['email'],
-                  'amount': amount,
-                  'reason': _noteController.text.isEmpty ? 'Injeksi Saldo Manual Admin' : _noteController.text,
-                  'time': 'Baru saja',
-                  'admin': 'Admin Dito',
-                  'status': 'Berhasil',
-                });
                 _noteController.clear();
               });
-              ScaffoldMessenger.of(context).showSnackBar(
+              sm.showSnackBar(
                 SnackBar(
                   backgroundColor: const Color(0xFF17A18A),
                   behavior: SnackBarBehavior.floating,
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                  content: Text('Berhasil menginjeksi ${_formatRupiah(amount)} ke ${_selectedUser!['name']}!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                  content: Text('Berhasil menginjeksi ${_formatRupiah(amount)} ke $userName!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
                 ),
               );
             },
@@ -504,10 +423,12 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+    return ListenableBuilder(
+      listenable: AdminWalletBackend.instance,
+      builder: (context, _) => Theme(
+        data: AppTheme.light,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -1041,6 +962,9 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
           )),
         ],
       ),
-    ));
+        ),
+      ),
+    );
   }
 }
+

@@ -10,6 +10,8 @@ import '../../theme/app_shadows.dart';
 import '../booking/slot_selection_screen.dart';
 import '../../core/services/maintenance_service.dart';
 import 'backend/parking_detail_backend.dart';
+import '../checkout/backend/checkout_backend.dart';
+import '../booking/backend/slot_selection_backend.dart';
 
 class ParkingDetailScreen extends StatefulWidget {
   final String? locationId;
@@ -537,6 +539,15 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                     icon: Icons.event_busy,
                                   );
                                   return;
+                                }
+                                final loc = ParkingDetailBackend.instance.locationDetail;
+                                if (loc != null) {
+                                  CheckoutBackend.instance.setBookingDetails(
+                                    locationId: loc['id']?.toString(),
+                                    locationName: loc['name']?.toString() ?? 'Central Park Mall',
+                                    hourlyRate: (loc['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0,
+                                  );
+                                  SlotSelectionBackend.instance.fetchSlots(locationId: loc['id']?.toString());
                                 }
                                 Navigator.push(
                                   context,

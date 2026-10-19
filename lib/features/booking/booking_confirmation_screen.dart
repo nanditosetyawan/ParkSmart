@@ -7,14 +7,26 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../home/home_screen.dart' as home;
 import '../session/checkin_screen.dart';
+import 'backend/booking_confirmation_backend.dart';
 
-class BookingConfirmationScreen extends StatelessWidget {
+class BookingConfirmationScreen extends StatefulWidget {
   const BookingConfirmationScreen({super.key});
+
+  @override
+  State<BookingConfirmationScreen> createState() => _BookingConfirmationScreenState();
+}
+
+class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
+  @override
+  void initState() {
+    super.initState();
+    BookingConfirmationBackend.instance.fetchLatestBooking();
+  }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -153,7 +165,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                   border: isDark ? null : Border.all(color: const Color(0xFFE5E2DB)),
                                 ),
                                 child: Text(
-                                  '#PS-88210-CP',
+                                  BookingConfirmationBackend.instance.bookingCode,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w700,
@@ -187,7 +199,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'Central Park Mall',
+                                        BookingConfirmationBackend.instance.locationName,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -196,7 +208,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'South Lobby, Basement B2',
+                                        BookingConfirmationBackend.instance.locationSub,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
@@ -227,7 +239,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                           ),
                                         ),
                                         Text(
-                                          'A-05',
+                                          BookingConfirmationBackend.instance.slotCode,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 20,
                                             fontWeight: FontWeight.w800,
@@ -246,8 +258,8 @@ class BookingConfirmationScreen extends StatelessWidget {
                                     child: _InfoBox(
                                       icon: Icons.directions_car,
                                       label: 'Kendaraan',
-                                      title: 'Toyota Raize',
-                                      subtitle: 'B 1234 XYZ',
+                                      title: BookingConfirmationBackend.instance.vehicleName,
+                                      subtitle: BookingConfirmationBackend.instance.plateNumber,
                                       subtitleColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
                                     ),
                                   ),
@@ -256,7 +268,7 @@ class BookingConfirmationScreen extends StatelessWidget {
                                     child: _InfoBox(
                                       icon: Icons.schedule,
                                       label: 'Waktu Valid',
-                                      title: '14:00 - 16:00',
+                                      title: BookingConfirmationBackend.instance.validTime,
                                       subtitle: 'Toleransi +15 mnt',
                                     ),
                                   ),

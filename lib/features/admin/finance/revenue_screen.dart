@@ -3,6 +3,7 @@ import 'all_locations_revenue_screen.dart';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/revenue_backend.dart';
 
 class RevenueScreen extends StatefulWidget {
   const RevenueScreen({super.key});
@@ -16,32 +17,12 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
 
   // State untuk Tab 1: Ringkasan (Pendapatan Bulanan)
   int? _inspectedMonthlyIndex;
-  final List<double> _monthlyChartData = [0.42, 0.48, 0.55, 0.68, 0.82, 0.96];
-  final List<String> _monthlyValues = [
-    'Rp 210.500.000',
-    'Rp 225.800.000',
-    'Rp 240.500.000',
-    'Rp 269.800.000',
-    'Rp 295.400.000',
-    'Rp 312.450.000',
-  ];
-  final List<String> _monthlyDates = [
-    'Mei 2026',
-    'Juni 2026',
-    'Juli 2026',
-    'Agustus 2026',
-    'September 2026',
-    'Oktober 2026',
-  ];
-  final List<String> _monthlyGrowths = [
-    '+5.8%',
-    '+7.2%',
-    '+6.5%',
-    '+12.1%',
-    '+10.4%',
-    '+15.7%',
-  ];
-  final List<String> _monthlyXLabels = ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'];
+  List<double> get _monthlyChartData => RevenueBackend.instance.monthlyChartData;
+  List<String> get _monthlyValues => RevenueBackend.instance.monthlyValues;
+  List<String> get _monthlyDates => RevenueBackend.instance.monthlyDates;
+  List<String> get _monthlyGrowths => RevenueBackend.instance.monthlyGrowths;
+  List<String> get _monthlyXLabels => RevenueBackend.instance.monthlyXLabels;
+
 
   // State untuk Tab 2: Per Lokasi
   String _selectedLocation = 'Central Park Mall';
@@ -141,6 +122,7 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     _tabController = TabController(length: 3, vsync: this);
+    RevenueBackend.instance.fetchRevenueData();
   }
 
   @override
@@ -173,61 +155,67 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+    return ListenableBuilder(
+      listenable: RevenueBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+                ),
+              ),
+              // Judul Utuh tanpa titik-titik & tanpa deskripsi di bawahnya
+              title: Text(
+                'Analitik Pendapatan',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A18),
+                ),
+              ),
+              // Tanpa tombol 'Bulan Ini' di kanan atas sesuai instruksi
+              actions: const [
+                SizedBox(width: 8),
+              ],
+              bottom: TabBar(
+                controller: _tabController,
+                labelColor: const Color(0xFF114177),
+                unselectedLabelColor: const Color(0xFF76777B),
+                indicatorColor: const Color(0xFF114177),
+                indicatorWeight: 3,
+                indicatorSize: TabBarIndicatorSize.tab,
+                labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
+                unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
+                tabs: const [
+                  Tab(text: 'Ringkasan'),
+                  Tab(text: 'Per Lokasi'),
+                  Tab(text: 'Jenis'),
+                ],
+              ),
+            ),
+            body: TabBarView(
+              controller: _tabController,
+              children: [
+                _buildSummaryTab(),
+                _buildPerLocationTab(),
+                _buildVehicleTypeTab(),
+              ],
             ),
           ),
-          // Judul Utuh tanpa titik-titik & tanpa deskripsi di bawahnya
-          title: Text(
-            'Analitik Pendapatan',
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: const Color(0xFF1A1A18),
-            ),
-          ),
-          // Tanpa tombol 'Bulan Ini' di kanan atas sesuai instruksi
-          actions: const [
-            SizedBox(width: 8),
-          ],
-          bottom: TabBar(
-            controller: _tabController,
-            labelColor: const Color(0xFF114177),
-            unselectedLabelColor: const Color(0xFF76777B),
-            indicatorColor: const Color(0xFF114177),
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold),
-            unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500),
-            tabs: const [
-              Tab(text: 'Ringkasan'),
-              Tab(text: 'Per Lokasi'),
-              Tab(text: 'Jenis'),
-            ],
-          ),
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildSummaryTab(),
-            _buildPerLocationTab(),
-            _buildVehicleTypeTab(),
-          ],
-        ),
-      ),
+        );
+      },
     );
   }
+
 
   // ==================== TAB 1: RINGKASAN (PENDAPATAN PER BULAN) ====================
   Widget _buildSummaryTab() {

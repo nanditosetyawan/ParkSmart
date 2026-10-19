@@ -7,6 +7,8 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'backend/admin_dashboard_backend.dart';
+
 // Screens for Super Admin Core Governance
 import 'admin_user_management_screen.dart';
 import 'admin_app_settings_screen.dart';
@@ -60,30 +62,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   final String _superAdminEmail = 'dito@parksmart.id';
   String? _superAdminAvatarPath;
 
-  // 🪪 Daftar Permintaan Konfirmasi Pendaftaran KTP (KYC) Baru
-  final List<Map<String, dynamic>> _pendingKycList = [
-    {
-      'id': 'KYC-001',
-      'name': 'Rafi Maulana',
-      'nik': '3273011504030001',
-      'submittedAt': '15 mnt lalu',
-      'status': 'Menunggu',
-      'city': 'Bandung, Jawa Barat',
-      'dob': '15 April 2003',
-      'address': 'Jl. Dago Asri No. 12, Coblong',
-    },
-    {
-      'id': 'KYC-002',
-      'name': 'Siti Rahayu',
-      'nik': '3578024507980002',
-      'submittedAt': '1 jam lalu',
-      'status': 'Menunggu',
-      'city': 'Surabaya, Jawa Timur',
-      'dob': '25 Juli 1998',
-      'address': 'Jl. Darmo Permai III No. 8',
-    },
-   
-  ];
+  // 🪪 Daftar Permintaan Konfirmasi Pendaftaran KTP (KYC) Baru dari Supabase
+  List<Map<String, dynamic>> get _pendingKycList => AdminDashboardBackend.instance.pendingKycList;
 
   @override
   void initState() {
@@ -91,6 +71,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _isMaintenanceActive = MaintenanceService.instance.isGlobalMaintenance;
     _loadSuperAdminProfile();
     _initClientAuditLogs();
+    AdminDashboardBackend.instance.fetchDashboardMetrics();
   }
 
   Future<void> _loadSuperAdminProfile() async {
@@ -818,11 +799,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final currentMetric = _divisionalMetrics[_selectedMetricIndex < _divisionalMetrics.length ? _selectedMetricIndex : 0];
+    return ListenableBuilder(
+      listenable: AdminDashboardBackend.instance,
+      builder: (context, _) {
+        final currentMetric = _divisionalMetrics[_selectedMetricIndex < _divisionalMetrics.length ? _selectedMetricIndex : 0];
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: const Color(0xFFF9F9F9),
 
@@ -1012,7 +996,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ),
       ),
     );
-  }
+  },
+);
+}
 
   // ─── DRAWER / BURGER BAR DENGAN RINGKASAN GLOBAL ───
   Widget _buildBurgerDrawer(BuildContext context) {

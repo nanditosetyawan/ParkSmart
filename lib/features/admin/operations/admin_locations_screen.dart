@@ -2,6 +2,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_slot_management_screen.dart';
+import 'backend/admin_locations_backend.dart';
 
 class LocationsScreen extends StatefulWidget {
   const LocationsScreen({super.key});
@@ -16,83 +17,13 @@ class _LocationsScreenState extends State<LocationsScreen> {
 
   final List<String> _cities = ['Semua', 'Jakarta Barat', 'Jakarta Pusat', 'Jakarta Selatan', 'Yogyakarta', 'Surabaya', 'Bandung'];
 
-  final List<Map<String, dynamic>> _locations = [
-    {
-      'id': 'LOC-001',
-      'name': 'Central Park Mall',
-      'city': 'Jakarta Barat',
-      'address': 'Jl. Letjen S. Parman No. 28, Tanjung Duren',
-      'floors': 'Basement (B1 - B3)',
-      'capacity': 300,
-      'occupied': 240,
-      'carSlots': 220,
-      'motorSlots': 60,
-      'evSlots': 20,
-      'hourlyRate': 5000,
-      'status': 'Aktif Normal',
-      'statusColor': const Color(0xFF17A18A),
-    },
-    {
-      'id': 'LOC-002',
-      'name': 'Grand Indonesia',
-      'city': 'Jakarta Pusat',
-      'address': 'Jl. M.H. Thamrin No. 1, Menteng',
-      'floors': 'East & West Mall (B1 - B2)',
-      'capacity': 450,
-      'occupied': 415,
-      'carSlots': 350,
-      'motorSlots': 80,
-      'evSlots': 20,
-      'hourlyRate': 6000,
-      'status': 'Padat',
-      'statusColor': const Color(0xFFE07A5F),
-    },
-    {
-      'id': 'LOC-003',
-      'name': 'Pacific Place SCBD',
-      'city': 'Jakarta Selatan',
-      'address': 'Jl. Jend. Sudirman Kav. 52-53, SCBD',
-      'floors': 'Basement P1 - P3',
-      'capacity': 200,
-      'occupied': 200,
-      'carSlots': 160,
-      'motorSlots': 25,
-      'evSlots': 15,
-      'hourlyRate': 8000,
-      'status': 'Penuh',
-      'statusColor': const Color(0xFFD94B4B),
-    },
-    {
-      'id': 'LOC-004',
-      'name': 'Malioboro Mall',
-      'city': 'Yogyakarta',
-      'address': 'Jl. Malioboro No. 52-58, Danurejan',
-      'floors': 'Outdoor & Basement',
-      'capacity': 200,
-      'occupied': 102,
-      'carSlots': 120,
-      'motorSlots': 70,
-      'evSlots': 10,
-      'hourlyRate': 4000,
-      'status': 'Aktif Normal',
-      'statusColor': const Color(0xFF17A18A),
-    },
-    {
-      'id': 'LOC-005',
-      'name': 'Tunjungan Plaza 6',
-      'city': 'Surabaya',
-      'address': 'Jl. Embong Malang No. 21-31, Tegalsari',
-      'floors': 'Multi-storey P1 - P5',
-      'capacity': 350,
-      'occupied': 180,
-      'carSlots': 250,
-      'motorSlots': 80,
-      'evSlots': 20,
-      'hourlyRate': 5000,
-      'status': 'Aktif Normal',
-      'statusColor': const Color(0xFF17A18A),
-    },
-  ];
+  List<Map<String, dynamic>> get _locations => AdminLocationsBackend.instance.locations;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminLocationsBackend.instance.fetchLocations();
+  }
 
   @override
   void dispose() {
@@ -250,35 +181,39 @@ class _LocationsScreenState extends State<LocationsScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
+                  onPressed: () async {
                     if (nameCtrl.text.isNotEmpty && capacityCtrl.text.isNotEmpty) {
-                      setState(() {
-                        if (isEdit) {
-                          loc['name'] = nameCtrl.text;
-                          loc['city'] = cityVal;
-                          loc['address'] = addressCtrl.text.isEmpty ? loc['address'] : addressCtrl.text;
-                          loc['capacity'] = int.tryParse(capacityCtrl.text) ?? loc['capacity'];
-                          loc['hourlyRate'] = int.tryParse(rateCtrl.text) ?? loc['hourlyRate'];
-                        } else {
-                          _locations.insert(0, {
-                            'id': 'LOC-00${_locations.length + 1}',
-                            'name': nameCtrl.text,
-                            'city': cityVal,
-                            'address': addressCtrl.text.isEmpty ? 'Alamat belum diatur' : addressCtrl.text,
-                            'floors': 'Lantai Utama',
-                            'capacity': int.tryParse(capacityCtrl.text) ?? 100,
-                            'occupied': 0,
-                            'carSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.7).round(),
-                            'motorSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.2).round(),
-                            'evSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.1).round(),
-                            'hourlyRate': int.tryParse(rateCtrl.text) ?? 5000,
-                            'status': 'Aktif Normal',
-                            'statusColor': const Color(0xFF17A18A),
-                          });
-                        }
-                      });
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      final nav = Navigator.of(context);
+                      final sm = ScaffoldMessenger.of(context);
+                      if (isEdit) {
+                        final updated = Map<String, dynamic>.from(loc);
+                        updated['name'] = nameCtrl.text;
+                        updated['city'] = cityVal;
+                        updated['address'] = addressCtrl.text.isEmpty ? loc['address'] : addressCtrl.text;
+                        updated['capacity'] = int.tryParse(capacityCtrl.text) ?? loc['capacity'];
+                        updated['hourlyRate'] = int.tryParse(rateCtrl.text) ?? loc['hourlyRate'];
+                        await AdminLocationsBackend.instance.updateLocation(loc['id'].toString(), updated);
+                      } else {
+                        final newLoc = {
+                          'id': 'LOC-00${_locations.length + 1}',
+                          'name': nameCtrl.text,
+                          'city': cityVal,
+                          'address': addressCtrl.text.isEmpty ? 'Alamat belum diatur' : addressCtrl.text,
+                          'floors': 'Lantai Utama',
+                          'capacity': int.tryParse(capacityCtrl.text) ?? 100,
+                          'occupied': 0,
+                          'carSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.7).round(),
+                          'motorSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.2).round(),
+                          'evSlots': ((int.tryParse(capacityCtrl.text) ?? 100) * 0.1).round(),
+                          'hourlyRate': int.tryParse(rateCtrl.text) ?? 5000,
+                          'status': 'Aktif Normal',
+                          'statusColor': const Color(0xFF17A18A),
+                        };
+                        await AdminLocationsBackend.instance.addLocation(newLoc);
+                      }
+                      if (!mounted) return;
+                      nav.pop();
+                      sm.showSnackBar(
                         SnackBar(
                           content: Text(isEdit ? 'Lokasi ${nameCtrl.text} berhasil diperbarui!' : 'Lokasi ${nameCtrl.text} berhasil ditambahkan!'),
                           backgroundColor: const Color(0xFF17A18A),
@@ -304,14 +239,17 @@ class _LocationsScreenState extends State<LocationsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final totalCap = _locations.fold<int>(0, (sum, l) => sum + (l['capacity'] as int));
-    final totalOcc = _locations.fold<int>(0, (sum, l) => sum + (l['occupied'] as int));
-    final occPercent = (totalOcc / (totalCap == 0 ? 1 : totalCap) * 100).toStringAsFixed(1);
+    return ListenableBuilder(
+      listenable: AdminLocationsBackend.instance,
+      builder: (context, _) {
+        final totalCap = _locations.fold<int>(0, (sum, l) => sum + (l['capacity'] as int));
+        final totalOcc = _locations.fold<int>(0, (sum, l) => sum + (l['occupied'] as int));
+        final occPercent = (totalOcc / (totalCap == 0 ? 1 : totalCap) * 100).toStringAsFixed(1);
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -475,8 +413,11 @@ class _LocationsScreenState extends State<LocationsScreen> {
           ),
         ],
       ),
-    ));
-  }
+    ),
+  );
+},
+);
+}
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {
     return Expanded(

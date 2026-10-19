@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import 'active_session_screen.dart';
+import '../booking/backend/booking_confirmation_backend.dart';
 
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
@@ -18,6 +19,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
   @override
   void initState() {
     super.initState();
+    BookingConfirmationBackend.instance.fetchLatestBooking();
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -155,7 +157,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -394,7 +396,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        'PS-20261024-8842',
+                                        BookingConfirmationBackend.instance.bookingCode,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.w800,
@@ -467,7 +469,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'B 1234 XYZ',
+                                            BookingConfirmationBackend.instance.plateNumber,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 16,
                                               fontWeight: FontWeight.w800,
@@ -476,7 +478,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                           ),
                                           const SizedBox(height: 1),
                                           Text(
-                                            'Toyota Raize',
+                                            BookingConfirmationBackend.instance.vehicleName,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
@@ -517,7 +519,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                             textBaseline: TextBaseline.alphabetic,
                                             children: [
                                               Text(
-                                                'A-05',
+                                                BookingConfirmationBackend.instance.slotCode,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.w800,
@@ -526,7 +528,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                               ),
                                               const SizedBox(width: 4),
                                               Text(
-                                                'Basement B2',
+                                                BookingConfirmationBackend.instance.locationSub,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.w600,

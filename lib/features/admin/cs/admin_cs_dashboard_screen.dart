@@ -5,6 +5,7 @@ import 'admin_notifications_screen.dart';
 import 'admin_customer_profiles_screen.dart';
 import 'admin_feedback_screen.dart';
 import '../../sitemap_screen.dart';
+import 'backend/admin_cs_dashboard_backend.dart';
 
 typedef AdminCsKycDashboardScreen = AdminCsDashboardScreen;
 
@@ -21,26 +22,30 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
   int _currentTabIndex = 0;
   int _selectedUserMonthIndex = 5;
 
-  final List<Map<String, dynamic>> _userGrowthMonthlyData = [
-    {'month': 'Mei', 'joined': 110, 'cumulative': 480, 'growth': '+12%'},
-    {'month': 'Jun', 'joined': 145, 'cumulative': 625, 'growth': '+15%'},
-    {'month': 'Jul', 'joined': 180, 'cumulative': 805, 'growth': '+18%'},
-    {'month': 'Agu', 'joined': 210, 'cumulative': 1015, 'growth': '+20%'},
-    {'month': 'Sep', 'joined': 225, 'cumulative': 1240, 'growth': '+22%'},
-    {'month': 'Okt', 'joined': 268, 'cumulative': 1508, 'growth': '+27%'},
-  ];
+  List<Map<String, dynamic>> get _userGrowthMonthlyData =>
+      AdminCsDashboardBackend.instance.userGrowthMonthlyData;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminCsDashboardBackend.instance.fetchCsDashboardData();
+  }
+
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF9F9F9),
-        drawer: _buildCsDrawer(context),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
+    return ListenableBuilder(
+      listenable: AdminCsDashboardBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            key: _scaffoldKey,
+            backgroundColor: const Color(0xFFF9F9F9),
+            drawer: _buildCsDrawer(context),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
           leadingWidth: 54,
           // Tombol Ikon CS sebagai trigger drawer (menggantikan burger button seperti di operasional)
           leading: Center(
@@ -158,7 +163,10 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
         ),
       ),
     );
+      },
+    );
   }
+
 
   Widget _buildBottomNavItem({
     required IconData icon,
@@ -459,8 +467,8 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
         Expanded(
           child: _buildMetricCard(
             title: 'Total Pelanggan',
-            value: '1.508 User',
-            sub: '+27% bln Oktober',
+            value: AdminCsDashboardBackend.instance.totalPelanggan,
+            sub: AdminCsDashboardBackend.instance.pertumbuhanBulanIni,
             icon: Icons.people_outline_rounded,
             iconColor: const Color(0xFF114177),
             bgColor: const Color(0xFFEFF6FF),
@@ -470,8 +478,8 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
         Expanded(
           child: _buildMetricCard(
             title: 'Kepuasan Customer',
-            value: '4.8 / 5.0',
-            sub: '142 Ulasan Masuk',
+            value: AdminCsDashboardBackend.instance.kepuasanCustomer,
+            sub: AdminCsDashboardBackend.instance.ulasanMasuk,
             icon: Icons.star_rounded,
             iconColor: const Color(0xFFD97706),
             bgColor: const Color(0xFFFFFBEB),
@@ -480,6 +488,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
       ],
     );
   }
+
 
   Widget _buildMetricCard({
     required String title,

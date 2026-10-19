@@ -4,6 +4,8 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+import 'backend/admin_user_management_backend.dart';
+
 class AdminUserManagementScreen extends StatefulWidget {
   const AdminUserManagementScreen({super.key});
 
@@ -37,64 +39,13 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     'Admin CS & KYC': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],
   };
 
-  final List<Map<String, dynamic>> _admins = [
-    {
-      'id': 'ADM-001',
-      'name': 'Dito Pratama',
-      'email': 'dito@parksmart.id',
-      'phone': '+62 812-3456-7890',
-      'role': 'Super Admin',
-      'status': 'Aktif',
-      'avatar': 'D',
-      'avatarPath': null,
-      'lastLogin': '2 jam lalu',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
-      'createdAt': '12 Jan 2024',
-    },
-    {
-      'id': 'ADM-002',
-      'name': 'Rina Wijaya',
-      'email': 'rina.ops@parksmart.id',
-      'phone': '+62 856-7890-1234',
-      'role': 'Admin Operasional',
-      'status': 'Aktif',
-      'avatar': 'R',
-      'avatarPath': null,
-      'lastLogin': 'Hari ini 08:30',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'],
-      'createdAt': '05 Feb 2024',
-    },
-    {
-      'id': 'ADM-003',
-      'name': 'Bambang Sutrisno',
-      'email': 'bambang.fin@parksmart.id',
-      'phone': '+62 878-1122-3344',
-      'role': 'Admin Finansial',
-      'status': 'Aktif',
-      'avatar': 'B',
-      'avatarPath': null,
-      'lastLogin': 'Kemarin 17:15',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'],
-      'createdAt': '20 Mar 2024',
-    },
-    {
-      'id': 'ADM-004',
-      'name': 'Siti Rahma',
-      'email': 'siti.cs@parksmart.id',
-      'phone': '+62 813-9988-7766',
-      'role': 'Admin CS & KYC',
-      'status': 'Aktif',
-      'avatar': 'S',
-      'avatarPath': null,
-      'lastLogin': '1 jam lalu',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],
-      'createdAt': '10 Apr 2024',
-    },
-  ];
+  List<Map<String, dynamic>> get _admins => AdminUserManagementBackend.instance.admins;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminUserManagementBackend.instance.fetchAdmins();
+  }
 
   @override
   void dispose() {
@@ -634,22 +585,22 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                                 ? ['Semua Lokasi']
                                 : (selectedLocations.isEmpty ? ['Semua Lokasi'] : List<String>.from(selectedLocations));
 
-                            setState(() {
-                              _admins.insert(0, {
-                                'id': newAdminId,
-                                'name': nameCtrl.text.trim(),
-                                'email': emailCtrl.text.trim(),
-                                'phone': phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : '-',
-                                'role': selectedRole,
-                                'status': selectedStatus,
-                                'avatar': nameCtrl.text.trim()[0].toUpperCase(),
-                                'avatarPath': tempAvatarPath,
-                                'lastLogin': 'Baru dibuat',
-                                'locations': finalLocations,
-                                'permissions': _rolePermissions[selectedRole] ?? [],
-                                'createdAt': DateTime.now().toString().split(' ')[0],
-                              });
-                            });
+                            final newAdminData = {
+                              'id': newAdminId,
+                              'name': nameCtrl.text.trim(),
+                              'email': emailCtrl.text.trim(),
+                              'phone': phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : '-',
+                              'role': selectedRole,
+                              'status': selectedStatus,
+                              'avatar': nameCtrl.text.trim()[0].toUpperCase(),
+                              'avatarPath': tempAvatarPath,
+                              'lastLogin': 'Baru dibuat',
+                              'locations': finalLocations,
+                              'permissions': _rolePermissions[selectedRole] ?? [],
+                              'createdAt': DateTime.now().toString().split(' ')[0],
+                            };
+
+                            AdminUserManagementBackend.instance.addAdmin(newAdminData);
 
                             Navigator.pop(ctx);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -861,9 +812,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                             );
                             return;
                           }
-                          setState(() {
-                            _admins.removeWhere((a) => a['id'] == admin['id']);
-                          });
+                          AdminUserManagementBackend.instance.deleteAdmin(admin['id']);
                           Navigator.pop(ctx);
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
@@ -1451,23 +1400,20 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                                 ? ['Semua Lokasi']
                                 : (selectedLocations.isEmpty ? ['Semua Lokasi'] : List<String>.from(selectedLocations));
 
-                            setState(() {
-                              final idx = _admins.indexWhere((a) => a['id'] == admin['id']);
-                              if (idx != -1) {
-                                _admins[idx] = {
-                                  ..._admins[idx],
-                                  'name': nameCtrl.text.trim(),
-                                  'email': isSuperAdmin ? admin['email'] : emailCtrl.text.trim(),
-                                  'phone': phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : '-',
-                                  'role': selectedRole,
-                                  'status': selectedStatus,
-                                  'avatar': nameCtrl.text.trim()[0].toUpperCase(),
-                                  'avatarPath': tempAvatarPath,
-                                  'locations': finalLocations,
-                                  'permissions': _rolePermissions[selectedRole] ?? admin['permissions'],
-                                };
-                              }
-                            });
+                            final updatedData = {
+                              ...admin,
+                              'name': nameCtrl.text.trim(),
+                              'email': isSuperAdmin ? admin['email'] : emailCtrl.text.trim(),
+                              'phone': phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : '-',
+                              'role': selectedRole,
+                              'status': selectedStatus,
+                              'avatar': nameCtrl.text.trim()[0].toUpperCase(),
+                              'avatarPath': tempAvatarPath,
+                              'locations': finalLocations,
+                              'permissions': _rolePermissions[selectedRole] ?? admin['permissions'],
+                            };
+
+                            AdminUserManagementBackend.instance.updateAdmin(admin['id'], updatedData);
 
                             Navigator.pop(ctx);
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -1512,11 +1458,14 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final activeCount = _admins.where((a) => a['status'] == 'Aktif').length;
+    return ListenableBuilder(
+      listenable: AdminUserManagementBackend.instance,
+      builder: (context, _) {
+        final activeCount = _admins.where((a) => a['status'] == 'Aktif').length;
 
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
       backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
@@ -1776,7 +1725,9 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
         ],
       ),
     ));
-  }
+  },
+);
+}
 
   Widget _buildStatCard(String label, String value, Color color, Color bg) {
     return Expanded(

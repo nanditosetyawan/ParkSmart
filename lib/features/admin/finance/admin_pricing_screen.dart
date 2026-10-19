@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_pricing_backend.dart';
 
 class PricingScreen extends StatefulWidget {
   const PricingScreen({super.key});
@@ -28,6 +29,12 @@ class _PricingScreenState extends State<PricingScreen> {
   bool _enableWalletCashback = true;
 
   @override
+  void initState() {
+    super.initState();
+    AdminPricingBackend.instance.fetchPricing(_selectedLocation);
+  }
+
+  @override
   void dispose() {
     _carFirstHourCtrl.dispose();
     _carNextHourCtrl.dispose();
@@ -41,8 +48,24 @@ class _PricingScreenState extends State<PricingScreen> {
     super.dispose();
   }
 
-  void _savePricing() {
-    ScaffoldMessenger.of(context).showSnackBar(
+  Future<void> _savePricing() async {
+    final sm = ScaffoldMessenger.of(context);
+    final data = {
+      'carFirst': int.tryParse(_carFirstHourCtrl.text) ?? 5000,
+      'carNext': int.tryParse(_carNextHourCtrl.text) ?? 4000,
+      'carMax': int.tryParse(_carMaxDailyCtrl.text) ?? 50000,
+      'motorFirst': int.tryParse(_motorFirstHourCtrl.text) ?? 2000,
+      'motorNext': int.tryParse(_motorNextHourCtrl.text) ?? 1000,
+      'motorMax': int.tryParse(_motorMaxDailyCtrl.text) ?? 20000,
+      'evKwh': int.tryParse(_evKwhCtrl.text) ?? 2500,
+      'grace': int.tryParse(_gracePeriodCtrl.text) ?? 15,
+      'penalty': int.tryParse(_overstayPenaltyCtrl.text) ?? 10000,
+      'memberDiscount': _enableMemberDiscount,
+      'walletCashback': _enableWalletCashback,
+    };
+    await AdminPricingBackend.instance.savePricing(_selectedLocation, data);
+    if (!mounted) return;
+    sm.showSnackBar(
       SnackBar(
         content: Text('Konfigurasi tarif untuk $_selectedLocation berhasil diperbarui!', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
         backgroundColor: const Color(0xFF17A18A),
@@ -54,10 +77,12 @@ class _PricingScreenState extends State<PricingScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-      backgroundColor: const Color(0xFFF9F9F9),
+    return ListenableBuilder(
+      listenable: AdminPricingBackend.instance,
+      builder: (context, _) => Theme(
+        data: AppTheme.light,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF9F9F9),
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
@@ -230,8 +255,11 @@ class _PricingScreenState extends State<PricingScreen> {
           const SizedBox(height: 20),
         ],
       ),
-    ));
+        ),
+      ),
+    );
   }
+
 
   Widget _buildTariffSection({
     required IconData icon,

@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'session_checkout_screen.dart';
 import 'extend_session_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
+import 'backend/active_session_backend.dart';
 
 class ActiveSessionScreen extends StatefulWidget {
   const ActiveSessionScreen({super.key});
@@ -22,6 +23,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   void initState() {
     super.initState();
+    ActiveSessionBackend.instance.fetchActiveSession();
     _startTimer();
   }
 
@@ -53,7 +55,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, ActiveSessionBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -345,7 +347,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           ),
                                           const SizedBox(height: 4),
                                           Text(
-                                            'Central Park Mall',
+                                            ActiveSessionBackend.instance.locationName,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 20,
                                               fontWeight: FontWeight.bold,
@@ -359,7 +361,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                               const Icon(Icons.storefront, size: 14, color: Color(0xFFE07A5F)),
                                               const SizedBox(width: 6),
                                               Text(
-                                                'Lantai B2 • Pilar No. 14',
+                                                '${ActiveSessionBackend.instance.locationSub} • Pilar No. 14',
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 13,
                                                   color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
@@ -392,7 +394,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                               ),
                                             ),
                                             child: Text(
-                                              'A-05',
+                                              ActiveSessionBackend.instance.slotCode,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 20,
                                                 fontWeight: FontWeight.bold,
@@ -488,7 +490,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                'Toyota Raize',
+                                                ActiveSessionBackend.instance.vehicleName,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -497,7 +499,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                               ),
                                               const SizedBox(height: 4),
                                               Text(
-                                                'B 1234 XYZ',
+                                                ActiveSessionBackend.instance.plateNumber,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,

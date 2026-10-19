@@ -7,6 +7,7 @@ import 'admin_wallet_screen.dart';
 import 'admin_transactions_screen.dart';
 import 'revenue_screen.dart';
 import '../../sitemap_screen.dart';
+import 'backend/admin_finance_dashboard_backend.dart';
 
 class AdminFinanceDashboardScreen extends StatefulWidget {
   const AdminFinanceDashboardScreen({super.key});
@@ -19,14 +20,22 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   @override
+  void initState() {
+    super.initState();
+    AdminFinanceDashboardBackend.instance.fetchFinanceDashboard();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF9F9F9),
-        drawer: _buildFinanceDrawer(context),
-        appBar: AppBar(
+    return ListenableBuilder(
+      listenable: AdminFinanceDashboardBackend.instance,
+      builder: (context, _) => Theme(
+        data: AppTheme.light,
+        child: Scaffold(
+          key: _scaffoldKey,
+          backgroundColor: const Color(0xFFF9F9F9),
+          drawer: _buildFinanceDrawer(context),
+          appBar: AppBar(
           backgroundColor: Colors.white,
           elevation: 0,
           leadingWidth: 54,
@@ -114,6 +123,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
           ],
         ),
         body: _buildTabCashflowAndSummary(context),
+        ),
       ),
     );
   }
@@ -358,8 +368,9 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
   // ==================== WIDGET HELPERS ====================
   // ==================== WIDGET HELPERS: 3 KARTU UTAMA KE KEUANGAN ====================
   Widget _buildMountainOmzetCard(BuildContext context) {
-    const chartData = [0.42, 0.48, 0.55, 0.68, 0.82, 0.96];
-    const xLabels = ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'];
+    final b = AdminFinanceDashboardBackend.instance;
+    final chartData = b.mountainChartData;
+    final xLabels = b.mountainXLabels;
 
     return Container(
       decoration: BoxDecoration(
@@ -413,7 +424,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
             ),
             const SizedBox(height: 12),
             Text(
-              'Rp 312.450.000',
+              b.totalMonthlyOmzet,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
@@ -423,7 +434,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
             ),
             const SizedBox(height: 2),
             Text(
-              'Oktober 2026',
+              b.currentMonthLabel,
               style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B)),
             ),
             const SizedBox(height: 6),
@@ -434,7 +445,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                 borderRadius: BorderRadius.circular(20),
               ),
               child: Text(
-                '+15.7%',
+                b.monthlyGrowth,
                 style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
               ),
             ),
@@ -531,7 +542,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '842 Trx Hari Ini',
+                  '${AdminFinanceDashboardBackend.instance.successTrxCount} Trx Hari Ini',
                   style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
                 ),
               ),
@@ -539,7 +550,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
           ),
           const SizedBox(height: 12),
           Text(
-            'Rp 28.450.000',
+            AdminFinanceDashboardBackend.instance.successTrxVolume,
             style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
           ),
           const SizedBox(height: 2),
@@ -625,7 +636,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
-                  '1.240 User',
+                  '${AdminFinanceDashboardBackend.instance.activeWalletUsers} User',
                   style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)),
                 ),
               ),
@@ -633,7 +644,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
           ),
           const SizedBox(height: 12),
           Text(
-            'Rp 18.500.000',
+            AdminFinanceDashboardBackend.instance.totalWalletDeposit,
             style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
           ),
           const SizedBox(height: 2),

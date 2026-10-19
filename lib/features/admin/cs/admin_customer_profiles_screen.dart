@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/admin_customer_profiles_backend.dart';
 
 class AdminCustomerProfilesScreen extends StatefulWidget {
   const AdminCustomerProfilesScreen({super.key});
@@ -12,148 +13,15 @@ class AdminCustomerProfilesScreen extends StatefulWidget {
 class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScreen> {
   final TextEditingController _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> _customers = [
-    {
-      'id': 'USR-001',
-      'name': 'Nanda Setiawan',
-      'email': 'nanda.setiawan@gmail.com',
-      'phone': '+62 812-3456-7890',
-      'avatar': 'N',
-      'status': 'Aktif',
-      'kycStatus': 'Terverifikasi',
-      'kycSubmittedAt': '15 Jan 2024',
-      'kycApprovedAt': '16 Jan 2024',
-      'joinDate': '10 Jan 2024',
-      'lastActive': '2 jam lalu',
-      'totalSessions': 47,
-      'totalSpent': 2850000,
-      'walletBalance': 150000,
-      'vehicles': [
-        {'plate': 'B 1234 ABC', 'type': 'Mobil', 'brand': 'Toyota', 'model': 'Avanza', 'color': 'Putih', 'isDefault': true},
-        {'plate': 'B 5678 DEF', 'type': 'Motor', 'brand': 'Honda', 'model': 'Beat', 'color': 'Merah', 'isDefault': false},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': true,
-        'notifPromo': false,
-        'theme': 'Sistem',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WIB',
-      },
-    },
-    {
-      'id': 'USR-002',
-      'name': 'Rafi Maulana',
-      'email': 'rafi.m@example.com',
-      'phone': '+62 856-7890-1234',
-      'avatar': 'R',
-      'status': 'Aktif',
-      'kycStatus': 'Pending',
-      'kycSubmittedAt': '20 Mar 2024',
-      'kycApprovedAt': null,
-      'joinDate': '18 Mar 2024',
-      'lastActive': 'Hari ini 09:15',
-      'totalSessions': 23,
-      'totalSpent': 1240000,
-      'walletBalance': 75000,
-      'vehicles': [
-        {'plate': 'B 9012 GHI', 'type': 'Mobil', 'brand': 'Daihatsu', 'model': 'Xenia', 'color': 'Hitam', 'isDefault': true},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': true,
-        'notifPromo': true,
-        'theme': 'Terang',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WIB',
-      },
-    },
-    {
-      'id': 'USR-003',
-      'name': 'Siti Rahayu',
-      'email': 'siti.r@example.com',
-      'phone': '+62 878-1122-3344',
-      'avatar': 'S',
-      'status': 'Aktif',
-      'kycStatus': 'Terverifikasi',
-      'kycSubmittedAt': '05 Feb 2024',
-      'kycApprovedAt': '06 Feb 2024',
-      'joinDate': '02 Feb 2024',
-      'lastActive': 'Kemarin 18:30',
-      'totalSessions': 62,
-      'totalSpent': 4120000,
-      'walletBalance': 320000,
-      'vehicles': [
-        {'plate': 'D 3456 JKL', 'type': 'Mobil', 'brand': 'Mitsubishi', 'model': 'Xpander', 'color': 'Silver', 'isDefault': true},
-        {'plate': 'D 7890 MNO', 'type': 'Mobil', 'brand': 'Wuling', 'model': 'Air EV', 'color': 'Biru', 'isDefault': false},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': false,
-        'notifPromo': false,
-        'theme': 'Gelap',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WITA',
-      },
-    },
-    {
-      'id': 'USR-004',
-      'name': 'Budi Santoso',
-      'email': 'budi.s@example.com',
-      'phone': '+62 813-9988-7766',
-      'avatar': 'B',
-      'status': 'Diblokir',
-      'kycStatus': 'Ditolak',
-      'kycSubmittedAt': '10 Apr 2024',
-      'kycApprovedAt': null,
-      'joinDate': '08 Apr 2024',
-      'lastActive': '3 hari lalu',
-      'totalSessions': 5,
-      'totalSpent': 180000,
-      'walletBalance': 0,
-      'vehicles': [
-        {'plate': 'B 1111 AAA', 'type': 'Motor', 'brand': 'Yamaha', 'model': 'NMAX', 'color': 'Hitam', 'isDefault': true},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': true,
-        'notifPromo': true,
-        'theme': 'Sistem',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WIB',
-      },
-    },
-    {
-      'id': 'USR-005',
-      'name': 'Dewi Lestari',
-      'email': 'dewi.l@example.com',
-      'phone': '+62 821-4455-6677',
-      'avatar': 'D',
-      'status': 'Tidak Aktif',
-      'kycStatus': 'Belum Submit',
-      'kycSubmittedAt': null,
-      'kycApprovedAt': null,
-      'joinDate': 'Hari ini',
-      'lastActive': 'Baru daftar',
-      'totalSessions': 0,
-      'totalSpent': 0,
-      'walletBalance': 0,
-      'vehicles': [],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': true,
-        'notifPromo': true,
-        'theme': 'Sistem',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WIB',
-      },
-    },
-  ];
+  List<Map<String, dynamic>> get _customers =>
+      AdminCustomerProfilesBackend.instance.customers;
+
+  @override
+  void initState() {
+    super.initState();
+    AdminCustomerProfilesBackend.instance.fetchCustomers();
+  }
+
 
   @override
   void dispose() {
@@ -648,13 +516,16 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
+    return ListenableBuilder(
+      listenable: AdminCustomerProfilesBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9F9F9),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
           leading: GestureDetector(
             onTap: () => Navigator.pop(context),
             child: Container(
@@ -915,5 +786,8 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
         ),
       ),
     );
+      },
+    );
   }
 }
+

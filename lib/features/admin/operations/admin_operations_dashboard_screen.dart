@@ -10,6 +10,7 @@ import 'admin_active_users_screen.dart';
 import 'admin_bookings_screen.dart';
 import 'manage_parking_screen.dart';
 import '../../sitemap_screen.dart';
+import 'backend/admin_operations_dashboard_backend.dart';
 
 class AdminOperationsDashboardScreen extends StatefulWidget {
   const AdminOperationsDashboardScreen({super.key});
@@ -20,6 +21,12 @@ class AdminOperationsDashboardScreen extends StatefulWidget {
 
 class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  @override
+  void initState() {
+    super.initState();
+    AdminOperationsDashboardBackend.instance.fetchDashboardData();
+  }
 
   int _currentTabIndex = 0;
   int _selectedChartCityIndex = 0;
@@ -313,9 +320,12 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
+    return ListenableBuilder(
+      listenable: AdminOperationsDashboardBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
         key: _scaffoldKey,
         backgroundColor: const Color(0xFFF9F9F9),
         drawer: _buildOperationsDrawer(context),
@@ -451,7 +461,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         ),
       ),
     );
-  }
+  },
+);
+}
 
   Widget _buildBottomNavItem({
     required IconData icon,

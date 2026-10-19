@@ -2,6 +2,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/services/maintenance_service.dart';
+import 'backend/admin_app_settings_backend.dart';
 
 class AdminAppSettingsScreen extends StatefulWidget {
   const AdminAppSettingsScreen({super.key});
@@ -35,6 +36,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
   @override
   void initState() {
     super.initState();
+    AdminAppSettingsBackend.instance.loadSettings();
     // Hanya 2 Tab: Maintenance dan Modul Sistem
     _tabController = TabController(length: 2, vsync: this);
 
@@ -334,19 +336,14 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
   }
 
   Future<void> _saveMaintenanceConfig() async {
-    await MaintenanceService.instance.setGlobalMaintenance(
-      _maintenanceMode,
+    await AdminAppSettingsBackend.instance.saveMaintenanceSettings(
+      isGlobal: _maintenanceMode,
       title: _maintenanceTitleCtrl.text,
       message: _maintenanceMessageCtrl.text,
       eta: _maintenanceEtaCtrl.text,
-      warningOnly: _showMaintenanceBannerOnly,
-      notifyPush: _maintenanceMode,
-    );
-
-    await MaintenanceService.instance.setWarningOnlySettings(
-      _showMaintenanceBannerOnly,
-      title: _warningTitleCtrl.text,
-      message: _warningMessageCtrl.text,
+      isWarningOnly: _showMaintenanceBannerOnly,
+      warningTitle: _warningTitleCtrl.text,
+      warningMessage: _warningMessageCtrl.text,
     );
 
     if (mounted) {
@@ -694,7 +691,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
             setState(() {
               _moduleToggles[key] = newVal;
             });
-            MaintenanceService.instance.setModuleMaintenance(key, newVal);
+            AdminAppSettingsBackend.instance.updateModuleToggle(key, newVal);
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(
                 content: Text(

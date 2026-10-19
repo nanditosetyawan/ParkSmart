@@ -1,7 +1,8 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'history_detail_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import 'backend/verified_parking_sessions_backend.dart';
 
 class VerifiedParkingSessionsScreen extends StatefulWidget {
   const VerifiedParkingSessionsScreen({super.key});
@@ -14,12 +15,19 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
   String _selectedFilter = 'Semua Bulan';
 
   @override
+  void initState() {
+    super.initState();
+    VerifiedParkingSessionsBackend.instance.fetchSessions();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, VerifiedParkingSessionsBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
+        final backend = VerifiedParkingSessionsBackend.instance;
 
         final bg = isDark ? theme.bg : const Color(0xFFFCF9F2);
         final cardBg = isDark ? theme.card : Colors.white;
@@ -116,8 +124,8 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text('B 1234 XYZ', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: textMain)),
-                              Text('Toyota Raize • Putih Pearl', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSub)),
+                              Text(backend.vehiclePlate, style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: textMain)),
+                              Text(backend.vehicleInfo, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSub)),
                               const SizedBox(height: 8),
                               const SizedBox(),
                             ],
@@ -139,20 +147,20 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                           Column(
                             children: [
                               Text('Total Sesi', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
-                              Text('28 Kali', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
+                              Text('${backend.totalSessions} Kali', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
                             ],
                           ),
                           Column(
                             children: [
                               Text('Total Durasi', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
-                              Text('64 Jam', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
+                              Text('${backend.totalDurationHours} Jam', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
                             ],
                           ),
                           Column(
                             children: [
                               Text('Bulan Ini', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
                               Text(
-                                'Rp 284k',
+                                backend.thisMonthSpending,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -239,35 +247,25 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
               const SizedBox(height: 16),
 
               // 4. History Items
-              _HistoryItem(
-                mallName: 'Central Park Mall',
-                slot: 'Slot B2-A05 • Pod Otomatis',
-                price: 'Rp 9.000',
-                paymentMethod: 'Auto-Debit',
-                date: 'Hari ini, 24 Okt 2026',
-                duration: '1 Jam 45 Mnt',
-                timeIn: 'Masuk: 13:30 WIB',
-                timeOut: 'Keluar: 15:15 WIB',
-                status: 'Selesai',
-                icon: Icons.local_parking,
-                isDark: isDark,
-              ),
-              const SizedBox(height: 12),
-              _HistoryItem(
-                mallName: 'Grand Indonesia',
-                slot: 'Slot East Mall P3-12',
-                price: 'Rp 15.000',
-                paymentMethod: 'Auto-Debit',
-                date: 'Kemarin, 23 Okt 2026',
-                duration: '2 Jam 45 Mnt',
-                timeIn: 'Masuk: 18:20 WIB',
-                timeOut: 'Keluar: 21:05 WIB',
-                status: 'Selesai',
-                icon: Icons.corporate_fare,
-                isDark: isDark,
-              ),
+              ...backend.sessions.map((item) => Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: _HistoryItem(
+                      id: item.id,
+                      mallName: item.locationName,
+                      slot: item.slot,
+                      price: item.amount,
+                      paymentMethod: 'Auto-Debit',
+                      date: item.date,
+                      duration: item.duration,
+                      timeIn: 'Masuk: Terverifikasi',
+                      timeOut: 'Keluar: Selesai',
+                      status: 'Selesai',
+                      icon: Icons.local_parking,
+                      isDark: isDark,
+                    ),
+                  )),
 
-              const SizedBox(height: 24),
+              const SizedBox(height: 12),
 
               ElevatedButton(
                 onPressed: () {},
@@ -350,6 +348,7 @@ class _FilterChip extends StatelessWidget {
 }
 
 class _HistoryItem extends StatelessWidget {
+  final String id;
   final String mallName;
   final String slot;
   final String price;
@@ -363,6 +362,7 @@ class _HistoryItem extends StatelessWidget {
   final bool isDark;
 
   const _HistoryItem({
+    required this.id,
     required this.mallName,
     required this.slot,
     required this.price,
@@ -498,7 +498,7 @@ class _HistoryItem extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => const HistoryDetailScreen()));
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryDetailScreen(id: id)));
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

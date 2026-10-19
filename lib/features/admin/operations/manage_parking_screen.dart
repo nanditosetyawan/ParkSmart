@@ -3,6 +3,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import 'backend/manage_parking_backend.dart';
 
 class ManageParkingScreen extends StatefulWidget {
   const ManageParkingScreen({super.key});
@@ -20,87 +21,8 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   String _selectedLocationId = 'loc_1';
   int _selectedFloorIndex = 1; // Default to Lantai B2 (which has EV)
 
-  // Master Data Lokasi Parkir (Sesuai Schema supabase.md)
-  final List<Map<String, dynamic>> _locations = [
-    {
-      'id': 'loc_1',
-      'name': 'Central Park Mall',
-      'typeLabel': 'Mall / Pusat Perbelanjaan',
-      'city': 'Jakarta Barat',
-      'address': 'Jl. Letjen S. Parman No.28, Tanjung Duren',
-      'latitude': -6.1754,
-      'longitude': 106.7933,
-      'totalSlots': 300,
-      'occupiedSlots': 240,
-      'status': 'Aktif',
-      'floors': ['Lantai B1', 'Lantai B2', 'Lantai B3'],
-      'operatingHours': '06:00 - 23:00',
-      'baseRate': 5000,
-      'evRate': 7500,
-      'motorRate': 2000,
-      'isEvReady': true,
-      'description': 'Gedung parkir multi-lantai dengan zona khusus EV charging di Lantai B2 dan sensor terpadu.',
-      'checkinRadius': 100,
-      'images': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'id': 'loc_2',
-      'name': 'Grand Indonesia',
-      'typeLabel': 'Pusat Perbelanjaan & Kantor',
-      'city': 'Jakarta Pusat',
-      'address': 'Jl. M.H. Thamrin No.1, Menteng',
-      'latitude': -6.1931,
-      'longitude': 106.8229,
-      'totalSlots': 450,
-      'occupiedSlots': 415,
-      'status': 'Padat',
-      'floors': ['Lantai B1', 'Lantai B2', 'Lantai B3', 'Lantai B4'],
-      'operatingHours': '24 Jam',
-      'baseRate': 8000,
-      'evRate': 12000,
-      'motorRate': 3000,
-      'isEvReady': true,
-      'description': 'Area parkir East & West Mall dengan fasilitas valet dan charging station ultra fast.',
-      'checkinRadius': 150,
-      'images': [
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'id': 'loc_3',
-      'name': 'Malioboro Mall',
-      'typeLabel': 'Pusat Perbelanjaan',
-      'city': 'Yogyakarta',
-      'address': 'Jl. Malioboro No.52-58, Sosrowijayan',
-      'latitude': -7.7929,
-      'longitude': 110.3656,
-      'totalSlots': 200,
-      'occupiedSlots': 102,
-      'status': 'Aktif',
-      'floors': ['Lantai LG', 'Lantai UG', 'Lantai 1'],
-      'operatingHours': '07:00 - 22:00',
-      'baseRate': 4000,
-      'evRate': 6000,
-      'motorRate': 2000,
-      'isEvReady': false,
-      'description': 'Parkiran terpadu kawasan wisata Malioboro dengan akses langsung ke pedestrian.',
-      'checkinRadius': 80,
-      'images': [
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-  ];
+  // Master Data Lokasi Parkir dari Backend
+  List<Map<String, dynamic>> get _locations => ManageParkingBackend.instance.locations;
 
   // Denah Tata Letak Slot per Lantai (Sinkron dengan Denah Booking User di slot_selection_screen)
   late Map<String, Map<String, Map<String, List<Map<String, dynamic>>>>> _floorLayouts;
@@ -110,6 +32,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _initFloorLayouts();
+    ManageParkingBackend.instance.fetchLocations();
   }
 
   void _initFloorLayouts() {
@@ -196,59 +119,62 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9F9F9),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE5E7EB)),
+    return ListenableBuilder(
+      listenable: ManageParkingBackend.instance,
+      builder: (context, _) => Theme(
+        data: AppTheme.light,
+        child: Scaffold(
+          backgroundColor: const Color(0xFFF9F9F9),
+          appBar: AppBar(
+            backgroundColor: Colors.white,
+            elevation: 0,
+            leading: GestureDetector(
+              onTap: () => Navigator.pop(context),
+              child: Container(
+                margin: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
               ),
-              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+            ),
+            title: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Kelola Parkir dan Aturan Tarif',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                ),
+                Text(
+                  'Master Lokasi, Denah Lantai & Posisi Slot EV',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                ),
+              ],
+            ),
+            bottom: TabBar(
+              controller: _tabController,
+              labelColor: const Color(0xFF114177),
+              unselectedLabelColor: const Color(0xFF76777B),
+              indicatorColor: const Color(0xFF114177),
+              indicatorWeight: 3,
+              indicatorSize: TabBarIndicatorSize.tab,
+              labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold),
+              unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w500),
+              tabs: const [
+                Tab(icon: Icon(Icons.business_outlined, size: 18), text: 'Daftar Lokasi & Tarif'),
+                Tab(icon: Icon(Icons.grid_view_rounded, size: 18), text: 'Denah Lantai & Desain Slot'),
+              ],
             ),
           ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Kelola Parkir dan Aturan Tarif',
-                style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-              ),
-              Text(
-                'Master Lokasi, Denah Lantai & Posisi Slot EV',
-                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
-              ),
-            ],
-          ),
-          bottom: TabBar(
+          body: TabBarView(
             controller: _tabController,
-            labelColor: const Color(0xFF114177),
-            unselectedLabelColor: const Color(0xFF76777B),
-            indicatorColor: const Color(0xFF114177),
-            indicatorWeight: 3,
-            indicatorSize: TabBarIndicatorSize.tab,
-            labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold),
-            unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w500),
-            tabs: const [
-              Tab(icon: Icon(Icons.business_outlined, size: 18), text: 'Daftar Lokasi & Tarif'),
-              Tab(icon: Icon(Icons.grid_view_rounded, size: 18), text: 'Denah Lantai & Desain Slot'),
+            children: [
+              _buildLocationsListTab(),
+              _buildFloorPlanDesignerTab(),
             ],
           ),
-        ),
-        body: TabBarView(
-          controller: _tabController,
-          children: [
-            _buildLocationsListTab(),
-            _buildFloorPlanDesignerTab(),
-          ],
         ),
       ),
     );

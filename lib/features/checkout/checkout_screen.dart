@@ -7,6 +7,8 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_typography.dart';
 import '../booking/booking_confirmation_screen.dart';
 import '../profile/vehicle_screen.dart';
+import 'backend/checkout_backend.dart';
+import '../booking/backend/booking_confirmation_backend.dart';
 
 const _kSurface = Color(0xFFFCF9F2);
 const _kCard = Color(0xFFFFFFFF);
@@ -18,8 +20,19 @@ const _kSurfaceContainerHigh = Color(0xFFEBE8E1);
 const _kOnSurfaceVariant = Color(0xFF45474A);
 const _kOutline = Color(0xFF76777B);
 
-class CheckoutScreen extends StatelessWidget {
+class CheckoutScreen extends StatefulWidget {
   const CheckoutScreen({super.key});
+
+  @override
+  State<CheckoutScreen> createState() => _CheckoutScreenState();
+}
+
+class _CheckoutScreenState extends State<CheckoutScreen> {
+  @override
+  void initState() {
+    super.initState();
+    CheckoutBackend.instance.fetchCheckoutData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -142,7 +155,7 @@ class CheckoutScreen extends StatelessWidget {
                                     ),
                                   ),
                                   Text(
-                                    'Central Park Mall',
+                                    CheckoutBackend.instance.locationName,
                                     style: AppTypography.headlineSm(
                                       color: isDark ? Colors.white : Colors.black,
                                     ),
@@ -224,7 +237,7 @@ class CheckoutScreen extends StatelessWidget {
                                             ),
                                           ),
                                           Text(
-                                            'Basement B2 - Slot A-05',
+                                            '${CheckoutBackend.instance.floorName} - Slot ${CheckoutBackend.instance.slotCode}',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -309,7 +322,9 @@ class CheckoutScreen extends StatelessWidget {
                                           ),
                                           const SizedBox(height: 2),
                                           Text(
-                                            'Toyota Raize',
+                                            CheckoutBackend.instance.selectedVehicle != null
+                                                ? '${CheckoutBackend.instance.selectedVehicle!['brand'] ?? ''} ${CheckoutBackend.instance.selectedVehicle!['model'] ?? ''}'.trim()
+                                                : 'Toyota Raize',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
@@ -327,7 +342,9 @@ class CheckoutScreen extends StatelessWidget {
                                         border: Border.all(color: isDark ? const Color(0xFF475569) : const Color(0xFFC6C6CA)),
                                       ),
                                       child: Text(
-                                        'B 1234 XYZ',
+                                        CheckoutBackend.instance.selectedVehicle != null
+                                            ? (CheckoutBackend.instance.selectedVehicle!['plate_number'] ?? 'B 1234 XYZ')
+                                            : 'B 1234 XYZ',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,
@@ -363,8 +380,8 @@ class CheckoutScreen extends StatelessWidget {
                     ),
                     child: Column(
                       children: [
-                        _priceRow('Tarif Parkir', 'Rp 10.000', isDark: isDark),
-                        _priceRow('Biaya Layanan', 'Rp 2.000', isDark: isDark),
+                        _priceRow('Tarif Parkir', 'Rp ${CheckoutBackend.instance.subtotal.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}', isDark: isDark),
+                        _priceRow('Biaya Layanan', 'Rp ${CheckoutBackend.instance.serviceFee.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}', isDark: isDark),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Divider(
@@ -384,7 +401,7 @@ class CheckoutScreen extends StatelessWidget {
                               ),
                             ),
                             Text(
-                              'Rp 12.000',
+                              'Rp ${CheckoutBackend.instance.totalPayment.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
@@ -461,15 +478,31 @@ class CheckoutScreen extends StatelessWidget {
                       width: double.infinity,
                       height: 52,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PinScreen(
-                              nextScreen: BookingConfirmationScreen(),
-                              transactionType: 'parkir',
-                            ),
-                          ),
-                        ),
+                        onPressed: () async {
+                          final booking = await CheckoutBackend.instance.confirmAndCreateBooking();
+                          final veh = CheckoutBackend.instance.selectedVehicle;
+                          BookingConfirmationBackend.instance.setConfirmedPass(
+                            bookingCode: booking?['booking_code'] ?? '#PS-88210-CP',
+                            locationName: CheckoutBackend.instance.locationName,
+                            locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
+                            slotCode: CheckoutBackend.instance.slotCode,
+                            vehicleName: veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Raize',
+                            plateNumber: veh != null ? (veh['plate_number'] ?? 'B 1234 XYZ') : 'B 1234 XYZ',
+                            validTime: '14:00 - 16:00',
+                          );
+
+                          if (context.mounted) {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PinScreen(
+                                  nextScreen: BookingConfirmationScreen(),
+                                  transactionType: 'parkir',
+                                ),
+                              ),
+                            );
+                          }
+                        },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
                           foregroundColor: isDark ? Colors.black : Colors.white,

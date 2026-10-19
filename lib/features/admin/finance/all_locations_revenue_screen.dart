@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'backend/all_locations_revenue_backend.dart';
 
 class AllLocationsRevenueScreen extends StatefulWidget {
   const AllLocationsRevenueScreen({super.key});
@@ -10,121 +11,10 @@ class AllLocationsRevenueScreen extends StatefulWidget {
 }
 
 class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
-  bool _isLoading = false;
+  bool get _isLoading => AllLocationsRevenueBackend.instance.isLoading;
 
-  // Dataset semua lokasi parkir
-  final List<Map<String, dynamic>> _locations = [
-    {
-      'rank': 1,
-      'name': 'Central Park Mall',
-      'city': 'Jakarta Barat',
-      'address': 'Jl. Letjen S. Parman No. 28, Tanjung Duren',
-      'omzet': 'Rp 156.400.000',
-      'rawAmount': 156400000,
-      'percentage': 0.415,
-      'sessions': '4.120 sesi',
-      'growth': '+16.5%',
-    },
-    {
-      'rank': 2,
-      'name': 'Grand Indonesia',
-      'city': 'Jakarta Pusat',
-      'address': 'Jl. M.H. Thamrin No. 1, Menteng',
-      'omzet': 'Rp 98.250.000',
-      'rawAmount': 98250000,
-      'percentage': 0.261,
-      'sessions': '2.640 sesi',
-      'growth': '+14.1%',
-    },
-    {
-      'rank': 3,
-      'name': 'Malioboro Mall',
-      'city': 'Yogyakarta',
-      'address': 'Jl. Malioboro No. 52-58, Danurejan',
-      'omzet': 'Rp 34.600.000',
-      'rawAmount': 34600000,
-      'percentage': 0.092,
-      'sessions': '1.180 sesi',
-      'growth': '+8.4%',
-    },
-    {
-      'rank': 4,
-      'name': 'Galaxy Mall Surabaya',
-      'city': 'Surabaya',
-      'address': 'Jl. Dharmahusada Indah Timur No. 35-37',
-      'omzet': 'Rp 23.200.000',
-      'rawAmount': 23200000,
-      'percentage': 0.062,
-      'sessions': '790 sesi',
-      'growth': '+7.2%',
-    },
-    {
-      'rank': 5,
-      'name': 'Paris Van Java',
-      'city': 'Bandung',
-      'address': 'Jl. Sukajadi No. 131-139, Cipedes',
-      'omzet': 'Rp 18.500.000',
-      'rawAmount': 18500000,
-      'percentage': 0.049,
-      'sessions': '620 sesi',
-      'growth': '+6.2%',
-    },
-    {
-      'rank': 6,
-      'name': 'Mall Bali Galeria',
-      'city': 'Denpasar, Bali',
-      'address': 'Jl. Bypass Ngurah Rai, Kuta',
-      'omzet': 'Rp 14.200.000',
-      'rawAmount': 14200000,
-      'percentage': 0.038,
-      'sessions': '480 sesi',
-      'growth': '+5.5%',
-    },
-    {
-      'rank': 7,
-      'name': 'Sun Plaza',
-      'city': 'Medan',
-      'address': 'Jl. KH. Zainul Arifin No. 7, Petisah',
-      'omzet': 'Rp 11.800.000',
-      'rawAmount': 11800000,
-      'percentage': 0.031,
-      'sessions': '390 sesi',
-      'growth': '+4.8%',
-    },
-    {
-      'rank': 8,
-      'name': 'Living World Alam Sutera',
-      'city': 'Tangerang Selatan',
-      'address': 'Jl. Alam Sutera Boulevard Kav. 21',
-      'omzet': 'Rp 9.400.000',
-      'rawAmount': 9400000,
-      'percentage': 0.025,
-      'sessions': '310 sesi',
-      'growth': '+4.1%',
-    },
-    {
-      'rank': 9,
-      'name': 'Pakuwon Mall',
-      'city': 'Surabaya Barat',
-      'address': 'Jl. Mayjend. Jonosewojo No. 2, Babatan',
-      'omzet': 'Rp 8.100.000',
-      'rawAmount': 8100000,
-      'percentage': 0.022,
-      'sessions': '270 sesi',
-      'growth': '+3.9%',
-    },
-    {
-      'rank': 10,
-      'name': 'Solo Paragon Mall',
-      'city': 'Surakarta',
-      'address': 'Jl. Yosodipuro No. 133, Mangkubumen',
-      'omzet': 'Rp 6.500.000',
-      'rawAmount': 6500000,
-      'percentage': 0.017,
-      'sessions': '210 sesi',
-      'growth': '+2.8%',
-    },
-  ];
+  List<Map<String, dynamic>> get _locations =>
+      AllLocationsRevenueBackend.instance.locations;
 
   @override
   void initState() {
@@ -134,19 +24,13 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
   }
 
   Future<void> _fetchFromDatabase({bool isInitial = false}) async {
-    setState(() => _isLoading = true);
-
-    // Simulasi pemanggilan query data lokasi dari database
-    await Future.delayed(const Duration(milliseconds: 650));
+    final sm = ScaffoldMessenger.of(context);
+    await AllLocationsRevenueBackend.instance.fetchLocationsRevenue();
 
     if (!mounted) return;
 
-    setState(() {
-      _isLoading = false;
-    });
-
     if (!isInitial) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      sm.showSnackBar(
         SnackBar(
           content: Row(
             children: [
@@ -166,72 +50,79 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
     }
   }
 
+
   @override
   Widget build(BuildContext context) {
-    return Theme(
-      data: AppTheme.light,
-      child: Scaffold(
-        backgroundColor: const Color(0xFFF9FAFB),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          leading: GestureDetector(
-            onTap: () => Navigator.pop(context),
-            child: Container(
-              margin: const EdgeInsets.all(8),
-              decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
-              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+    return ListenableBuilder(
+      listenable: AllLocationsRevenueBackend.instance,
+      builder: (context, _) {
+        return Theme(
+          data: AppTheme.light,
+          child: Scaffold(
+            backgroundColor: const Color(0xFFF9FAFB),
+            appBar: AppBar(
+              backgroundColor: Colors.white,
+              elevation: 0,
+              leading: GestureDetector(
+                onTap: () => Navigator.pop(context),
+                child: Container(
+                  margin: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFFF3F4F6), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+                ),
+              ),
+              title: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Kontribusi Omzet per Lokasi',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                  ),
+                  Text(
+                    'Daftar lengkap kontribusi pendapatan seluruh gedung',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                  ),
+                ],
+              ),
+              actions: [
+                // Tombol Reload untuk memanggil ulang data dari database
+                IconButton(
+                  icon: _isLoading
+                      ? const SizedBox(
+                          width: 18,
+                          height: 18,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF114177)),
+                        )
+                      : const Icon(Icons.refresh_rounded, color: Color(0xFF114177), size: 22),
+                  tooltip: 'Muat Ulang Database',
+                  onPressed: _isLoading ? null : () => _fetchFromDatabase(isInitial: false),
+                ),
+                const SizedBox(width: 8),
+              ],
             ),
-          ),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Kontribusi Omzet per Lokasi',
-                style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-              ),
-              Text(
-                'Daftar lengkap kontribusi pendapatan seluruh gedung',
-                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
-              ),
-            ],
-          ),
-          actions: [
-            // Tombol Reload untuk memanggil ulang data dari database
-            IconButton(
-              icon: _isLoading
-                  ? const SizedBox(
-                      width: 18,
-                      height: 18,
-                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF114177)),
-                    )
-                  : const Icon(Icons.refresh_rounded, color: Color(0xFF114177), size: 22),
-              tooltip: 'Muat Ulang Database',
-              onPressed: _isLoading ? null : () => _fetchFromDatabase(isInitial: false),
-            ),
-            const SizedBox(width: 8),
-          ],
-        ),
-        body: RefreshIndicator(
-          onRefresh: () => _fetchFromDatabase(isInitial: false),
-          color: const Color(0xFF114177),
-          child: ListView(
-            padding: const EdgeInsets.all(18),
-            children: [
-              Text(
-                'Peringkat Kontribusi Seluruh Lokasi',
-                style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-              ),
-              const SizedBox(height: 10),
+            body: RefreshIndicator(
+              onRefresh: () => _fetchFromDatabase(isInitial: false),
+              color: const Color(0xFF114177),
+              child: ListView(
+                padding: const EdgeInsets.all(18),
+                children: [
+                  Text(
+                    'Peringkat Kontribusi Seluruh Lokasi',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                  ),
+                  const SizedBox(height: 10),
 
-              // List Seluruh Lokasi
-              ..._locations.map((loc) => _buildLocationCard(loc)),
-            ],
+                  // List Seluruh Lokasi
+                  ..._locations.map((loc) => _buildLocationCard(loc)),
+                ],
+              ),
+            ),
           ),
-        ),
-      ),
+        );
+      },
     );
   }
+
 
   Widget _buildLocationCard(Map<String, dynamic> loc) {
     final int rank = loc['rank'] as int;
