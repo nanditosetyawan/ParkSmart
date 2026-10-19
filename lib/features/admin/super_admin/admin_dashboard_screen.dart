@@ -24,7 +24,7 @@ import '../finance/admin_finance_dashboard_screen.dart';
 import '../finance/admin_pricing_screen.dart';
 import '../finance/admin_transactions_screen.dart';
 import '../finance/admin_wallet_screen.dart';
-import '../finance/admin_bookings_screen.dart';
+import '../operations/admin_bookings_screen.dart';
 
 import 'admin_kyc_screen.dart';
 import '../cs/admin_customer_profiles_screen.dart';

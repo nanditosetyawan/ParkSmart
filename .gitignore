@@ -46,3 +46,4 @@ app.*.map.json
 
 # dotenv
 .env
+.agents/mcp_config.json
