@@ -1406,7 +1406,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                       const SizedBox(width: 5),
                       Text(
                         _selectedParkedMonth == 'Okt 2026'
-                            ? 'Bulan Ini ($_selectedParkedMonth)'
+                            ? 'Bulan Ini '
                             : _selectedParkedMonth,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,

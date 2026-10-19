@@ -11,7 +11,6 @@ class AllLocationsRevenueScreen extends StatefulWidget {
 
 class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
   bool _isLoading = false;
-  DateTime _lastUpdated = DateTime.now();
 
   // Dataset semua lokasi parkir
   final List<Map<String, dynamic>> _locations = [
@@ -144,7 +143,6 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
 
     setState(() {
       _isLoading = false;
-      _lastUpdated = DateTime.now();
     });
 
     if (!isInitial) {
@@ -155,7 +153,7 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
               const Icon(Icons.check_circle_rounded, color: Colors.white, size: 18),
               const SizedBox(width: 8),
               Text(
-                'Data omzet 10 lokasi berhasil diperbarui dari database',
+                'Data omzet seluruh lokasi berhasil diperbarui',
                 style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
               ),
             ],
@@ -166,10 +164,6 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
         ),
       );
     }
-  }
-
-  String _formatTime(DateTime dt) {
-    return '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -224,66 +218,6 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
           child: ListView(
             padding: const EdgeInsets.all(18),
             children: [
-              // Banner Info Sinkronisasi Database
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF114177).withValues(alpha: 0.08),
-                  borderRadius: BorderRadius.circular(14),
-                  border: Border.all(color: const Color(0xFF114177).withValues(alpha: 0.2)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.storage_rounded, size: 20, color: Color(0xFF114177)),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Database Terhubung (${_locations.length} Lokasi Aktif)',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
-                          ),
-                          Text(
-                            'Sinkronisasi terakhir: ${_formatTime(_lastUpdated)} • Tekan tombol reload untuk fetch ulang.',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B)),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 16),
-
-              // Rekap Total Omzet Seluruh Lokasi
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: const Color(0xFFE5E7EB)),
-                  boxShadow: [
-                    BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 6, offset: const Offset(0, 2)),
-                  ],
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text('Total Akumulasi Omzet Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                        const SizedBox(height: 2),
-                        Text('Rp 376.650.000', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.w800, color: const Color(0xFF114177))),
-                      ],
-                    ),
-                   
-                  ],
-                ),
-              ),
-              const SizedBox(height: 18),
-
               Text(
                 'Peringkat Kontribusi Seluruh Lokasi',
                 style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),

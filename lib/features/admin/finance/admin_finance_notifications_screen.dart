@@ -31,10 +31,12 @@ class AdminFinanceNotificationsScreen extends StatefulWidget {
   const AdminFinanceNotificationsScreen({super.key});
 
   @override
-  State<AdminFinanceNotificationsScreen> createState() => _AdminFinanceNotificationsScreenState();
+  State<AdminFinanceNotificationsScreen> createState() =>
+      _AdminFinanceNotificationsScreenState();
 }
 
-class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificationsScreen>
+class _AdminFinanceNotificationsScreenState
+    extends State<AdminFinanceNotificationsScreen>
     with SingleTickerProviderStateMixin {
   late TabController _tabController;
 
@@ -46,7 +48,8 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
       userName: 'Budi Santoso',
       userId: 'usr-001',
       amount: 'Rp 250.000',
-      description: 'Saldo sebesar Rp 250.000 berhasil dikreditkan ke dompet akun Budi Santoso (usr-001). Buku kas dompet telah terupdate.',
+      description:
+          'Saldo sebesar Rp 250.000 berhasil dikreditkan ke dompet akun Budi Santoso (usr-001). Buku kas dompet telah terupdate.',
       status: 'Berhasil',
       time: '12 mnt lalu',
       isRead: false,
@@ -57,7 +60,8 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
       userName: 'Andi Wijaya',
       userId: 'usr-006',
       amount: 'Rp 500.000',
-      description: 'Gagal menginjeksi saldo ke akun Andi Wijaya (usr-006): Melebihi batas pagu limit injeksi tunggal harian per pengguna.',
+      description:
+          'Gagal menginjeksi saldo ke akun Andi Wijaya (usr-006): Melebihi batas pagu limit injeksi tunggal harian per pengguna.',
       status: 'Gagal',
       time: '40 mnt lalu',
       isRead: false,
@@ -68,7 +72,8 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
       userName: 'Siti Rahayu',
       userId: 'usr-003',
       amount: 'Rp 100.000',
-      description: 'Injeksi kompensasi kendala scan QR gerbang untuk Siti Rahayu (usr-003) sebesar Rp 100.000 telah berhasil diselesaikan.',
+      description:
+          'Injeksi kompensasi kendala scan QR gerbang untuk Siti Rahayu (usr-003) sebesar Rp 100.000 telah berhasil diselesaikan.',
       status: 'Berhasil',
       time: '2 jam lalu',
       isRead: true,
@@ -79,7 +84,8 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
       userName: 'Maya Sari',
       userId: 'usr-007',
       amount: 'Rp 50.000',
-      description: 'Injeksi saldo ke akun Maya Sari (usr-007) gagal: ID akun pengguna tidak valid atau status akun sedang dibekukan.',
+      description:
+          'Injeksi saldo ke akun Maya Sari (usr-007) gagal: ID akun pengguna tidak valid atau status akun sedang dibekukan.',
       status: 'Gagal',
       time: '4 jam lalu',
       isRead: true,
@@ -90,7 +96,8 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
       userName: 'Rafi Maulana',
       userId: 'usr-002',
       amount: 'Rp 50.000',
-      description: 'Injeksi saldo promo voucher cashback sebesar Rp 50.000 untuk Rafi Maulana (usr-002) berhasil dikreditkan.',
+      description:
+          'Injeksi saldo promo voucher cashback sebesar Rp 50.000 untuk Rafi Maulana (usr-002) berhasil dikreditkan.',
       status: 'Berhasil',
       time: '1 hari lalu',
       isRead: true,
@@ -111,7 +118,10 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
 
   void _handleAction(FinanceNotificationItem item) {
     setState(() => item.isRead = true);
-    Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen()));
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const AdminWalletScreen()),
+    );
   }
 
   List<FinanceNotificationItem> _getFilteredNotifications(int tabIndex) {
@@ -142,7 +152,11 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                 color: const Color(0xFFF3F4F6),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+              child: const Icon(
+                Icons.arrow_back,
+                size: 20,
+                color: Color(0xFF1A1A18),
+              ),
             ),
           ),
           title: Column(
@@ -152,27 +166,20 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                 children: [
                   Text(
                     'Notifikasi Injeksi Saldo',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                  ),
-                  if (unreadCount > 0) ...[
-                    const SizedBox(width: 8),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD94B4B),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: Text(
-                        '$unreadCount Baru',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: Colors.white),
-                      ),
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A18),
                     ),
-                  ],
+                  ),
                 ],
               ),
               Text(
                 'Status Riwayat Injeksi Saldo Dompet Admin',
-                style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  color: const Color(0xFF76777B),
+                ),
               ),
             ],
           ),
@@ -188,17 +195,25 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                   SnackBar(
                     content: Text(
                       'Semua notifikasi injeksi saldo ditandai telah dibaca.',
-                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w600,
+                      ),
                     ),
                     backgroundColor: const Color(0xFF114177),
                     behavior: SnackBarBehavior.floating,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
+                    ),
                   ),
                 );
               },
               child: Text(
                 'Tandai Dibaca',
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF114177), fontWeight: FontWeight.bold),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: const Color(0xFF114177),
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ),
             const SizedBox(width: 8),
@@ -212,16 +227,28 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
               ),
               child: TabBar(
                 controller: _tabController,
-                labelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold),
-                unselectedLabelStyle: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500),
+                labelStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                ),
+                unselectedLabelStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w500,
+                ),
                 labelColor: const Color(0xFF114177),
                 unselectedLabelColor: const Color(0xFF76777B),
                 indicatorColor: const Color(0xFF114177),
                 indicatorWeight: 3,
                 tabs: [
                   Tab(text: 'Semua (${_notifications.length})'),
-                  Tab(text: 'Berhasil (${_notifications.where((n) => n.status == "Berhasil").length})'),
-                  Tab(text: 'Gagal (${_notifications.where((n) => n.status == "Gagal").length})'),
+                  Tab(
+                    text:
+                        'Berhasil (${_notifications.where((n) => n.status == "Berhasil").length})',
+                  ),
+                  Tab(
+                    text:
+                        'Gagal (${_notifications.where((n) => n.status == "Gagal").length})',
+                  ),
                 ],
               ),
             ),
@@ -250,14 +277,24 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
               Icon(
-                tabIndex == 2 ? Icons.check_circle_outline_rounded : Icons.notifications_none_rounded,
+                tabIndex == 2
+                    ? Icons.check_circle_outline_rounded
+                    : Icons.notifications_none_rounded,
                 size: 48,
-                color: tabIndex == 2 ? const Color(0xFF17A18A) : const Color(0xFF76777B),
+                color: tabIndex == 2
+                    ? const Color(0xFF17A18A)
+                    : const Color(0xFF76777B),
               ),
               const SizedBox(height: 12),
               Text(
-                tabIndex == 2 ? 'Tidak Ada Injeksi Saldo Gagal' : 'Tidak Ada Notifikasi Injeksi',
-                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                tabIndex == 2
+                    ? 'Tidak Ada Injeksi Saldo Gagal'
+                    : 'Tidak Ada Notifikasi Injeksi',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A18),
+                ),
               ),
               const SizedBox(height: 4),
               Text(
@@ -265,7 +302,10 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                     ? 'Semua proses injeksi saldo berhasil terselesaikan dengan baik.'
                     : 'Belum ada riwayat aktivitas injeksi saldo terbaru.',
                 textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: const Color(0xFF76777B),
+                ),
               ),
             ],
           ),
@@ -279,9 +319,15 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
       itemBuilder: (ctx, i) {
         final item = list[i];
         final isSuccess = item.status == 'Berhasil';
-        final statusColor = isSuccess ? const Color(0xFF17A18A) : const Color(0xFFD94B4B);
-        final statusBg = isSuccess ? const Color(0xFFD1F2EB) : const Color(0xFFFDE8E4);
-        final statusIcon = isSuccess ? Icons.check_circle_rounded : Icons.cancel_rounded;
+        final statusColor = isSuccess
+            ? const Color(0xFF17A18A)
+            : const Color(0xFFD94B4B);
+        final statusBg = isSuccess
+            ? const Color(0xFFD1F2EB)
+            : const Color(0xFFFDE8E4);
+        final statusIcon = isSuccess
+            ? Icons.check_circle_rounded
+            : Icons.cancel_rounded;
 
         return Container(
           margin: const EdgeInsets.only(bottom: 12),
@@ -289,7 +335,9 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
             color: Colors.white,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
-              color: item.isRead ? const Color(0xFFE5E7EB) : statusColor.withValues(alpha: 0.4),
+              color: item.isRead
+                  ? const Color(0xFFE5E7EB)
+                  : statusColor.withValues(alpha: 0.4),
               width: item.isRead ? 1 : 1.5,
             ),
             boxShadow: [
@@ -326,7 +374,10 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2.5),
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 7,
+                                  vertical: 2.5,
+                                ),
                                 decoration: BoxDecoration(
                                   color: statusBg,
                                   borderRadius: BorderRadius.circular(6),
@@ -340,7 +391,13 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                                   ),
                                 ),
                               ),
-                              Text(item.time, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                              Text(
+                                item.time,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 11,
+                                  color: const Color(0xFF76777B),
+                                ),
+                              ),
                             ],
                           ),
                           const SizedBox(height: 6),
@@ -348,14 +405,20 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
                             item.title,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13.5,
-                              fontWeight: item.isRead ? FontWeight.w600 : FontWeight.bold,
+                              fontWeight: item.isRead
+                                  ? FontWeight.w600
+                                  : FontWeight.bold,
                               color: const Color(0xFF1A1A18),
                             ),
                           ),
                           const SizedBox(height: 4),
                           Text(
                             item.description,
-                            style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF45474A), height: 1.35),
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 11.5,
+                              color: const Color(0xFF45474A),
+                              height: 1.35,
+                            ),
                           ),
                         ],
                       ),
@@ -365,29 +428,55 @@ class _AdminFinanceNotificationsScreenState extends State<AdminFinanceNotificati
               ),
               const Divider(height: 1, color: Color(0xFFF3F4F6)),
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 10,
+                ),
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     Text(
-                      isSuccess ? 'Terselesaikan di Dompet' : 'Perlu Tindakan Lanjutan',
+                      isSuccess
+                          ? 'Terselesaikan di Dompet'
+                          : 'Perlu Tindakan Lanjutan',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
-                        color: isSuccess ? const Color(0xFF76777B) : const Color(0xFFD94B4B),
-                        fontWeight: isSuccess ? FontWeight.normal : FontWeight.w600,
+                        color: isSuccess
+                            ? const Color(0xFF76777B)
+                            : const Color(0xFFD94B4B),
+                        fontWeight: isSuccess
+                            ? FontWeight.normal
+                            : FontWeight.w600,
                       ),
                     ),
                     ElevatedButton.icon(
                       onPressed: () => _handleAction(item),
-                      icon: Icon(isSuccess ? Icons.account_balance_wallet_outlined : Icons.replay_rounded, size: 14, color: Colors.white),
+                      icon: Icon(
+                        isSuccess
+                            ? Icons.account_balance_wallet_outlined
+                            : Icons.replay_rounded,
+                        size: 14,
+                        color: Colors.white,
+                      ),
                       label: Text(
                         isSuccess ? 'Kelola Dompet' : 'Coba Injeksi Lagi',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
                       ),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: isSuccess ? const Color(0xFF114177) : const Color(0xFFD94B4B),
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        backgroundColor: isSuccess
+                            ? const Color(0xFF114177)
+                            : const Color(0xFFD94B4B),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 14,
+                          vertical: 8,
+                        ),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
+                        ),
                         elevation: 0,
                       ),
                     ),

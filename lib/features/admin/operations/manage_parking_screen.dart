@@ -1,6 +1,8 @@
+import 'dart:io';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ManageParkingScreen extends StatefulWidget {
   const ManageParkingScreen({super.key});
@@ -39,6 +41,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       'isEvReady': true,
       'description': 'Gedung parkir multi-lantai dengan zona khusus EV charging di Lantai B2 dan sensor terpadu.',
       'checkinRadius': 100,
+      'images': [
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
+      ],
     },
     {
       'id': 'loc_2',
@@ -59,6 +67,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       'isEvReady': true,
       'description': 'Area parkir East & West Mall dengan fasilitas valet dan charging station ultra fast.',
       'checkinRadius': 150,
+      'images': [
+        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
+      ],
     },
     {
       'id': 'loc_3',
@@ -79,6 +93,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       'isEvReady': false,
       'description': 'Parkiran terpadu kawasan wisata Malioboro dengan akses langsung ke pedestrian.',
       'checkinRadius': 80,
+      'images': [
+        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
+      ],
     },
   ];
 
@@ -270,6 +290,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     hintText: 'Cari nama gedung, kota, atau alamat...',
                     hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                     border: InputBorder.none,
+                    enabledBorder: InputBorder.none,
+                    focusedBorder: InputBorder.none,
+                    errorBorder: InputBorder.none,
+                    disabledBorder: InputBorder.none,
+                    focusedErrorBorder: InputBorder.none,
+                    filled: false,
                     isDense: true,
                     contentPadding: EdgeInsets.zero,
                   ),
@@ -382,7 +408,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(18),
-          onTap: () => _showQuickEditTariffAndSlotsDialog(loc),
+          onTap: () => _showEditLocationDialog(loc),
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(
@@ -393,13 +419,19 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 48,
-                      height: 48,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
                         color: const Color(0xFF114177).withValues(alpha: 0.08),
                         borderRadius: BorderRadius.circular(12),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
                       ),
-                      child: const Icon(Icons.business_rounded, color: Color(0xFF114177), size: 24),
+                      clipBehavior: Clip.antiAlias,
+                      child: (loc['images'] != null &&
+                              (loc['images'] as List).isNotEmpty &&
+                              (loc['images'][0] as String).isNotEmpty)
+                          ? _buildThumbnail(loc['images'][0])
+                          : const Icon(Icons.business_rounded, color: Color(0xFF114177), size: 24),
                     ),
                     const SizedBox(width: 12),
                     Expanded(
@@ -535,9 +567,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () => _showQuickEditTariffAndSlotsDialog(loc),
-                        icon: const Icon(Icons.edit_note_rounded, size: 16),
-                        label: Text('Ubah Tarif & Slot', style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
+                        onPressed: () => _showEditLocationDialog(loc),
+                        icon: const Icon(Icons.edit_location_alt_rounded, size: 16),
+                        label: Text('Edit Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold)),
                         style: OutlinedButton.styleFrom(
                           foregroundColor: const Color(0xFF114177),
                           side: const BorderSide(color: Color(0xFF114177)),
@@ -1023,7 +1055,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   // ==================== DIALOGS & MODAL CONFIGURATION ====================
 
-  // 1. DIALOG TAMBAH LOKASI BARU (LENGKAP SESUAI SUPABASE.MD)
+  // 1. DIALOG TAMBAH LOKASI BARU (LENGKAP SESUAI SUPABASE.MD + 4 GAMBAR)
   void _showAddLocationDialog() {
     final nameCtrl = TextEditingController();
     final typeCtrl = TextEditingController(text: 'Mall / Pusat Perbelanjaan');
@@ -1038,6 +1070,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final hoursCtrl = TextEditingController(text: '06:00 - 23:00');
     final descCtrl = TextEditingController(text: 'Fasilitas parkir terpadu dengan sistem sensor pintar.');
     bool isEvReady = true;
+
+    final List<String> images = ['', '', '', ''];
+    int primaryImageIndex = 0;
 
     showDialog(
       context: context,
@@ -1058,6 +1093,26 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. FOTO LOKASI PARKIR (4 SLOT) DENGAN HIGHLIGHT FOTO UTAMA
+                  _buildImageSlotsSection(
+                    images: images,
+                    primaryImageIndex: primaryImageIndex,
+                    onPrimaryChanged: (newIdx) {
+                      setDialogState(() => primaryImageIndex = newIdx);
+                    },
+                    onImageChanged: (slotIdx, newPath) {
+                      setDialogState(() {
+                        images[slotIdx] = newPath;
+                        if (images[primaryImageIndex].isEmpty) {
+                          primaryImageIndex = slotIdx;
+                        }
+                      });
+                    },
+                    setDialogState: setDialogState,
+                    dialogContext: ctx,
+                  ),
+                  const SizedBox(height: 12),
+
                   Text('IDENTITAS LOKASI & ALAMAT', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
                   const SizedBox(height: 6),
                   _buildInputField('Nama Gedung / Fasilitas', nameCtrl, Icons.business),
@@ -1115,6 +1170,16 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             ElevatedButton(
               onPressed: () {
                 if (nameCtrl.text.isNotEmpty && slotsCtrl.text.isNotEmpty) {
+                  final List<String> finalImages = [];
+                  if (primaryImageIndex < images.length && images[primaryImageIndex].isNotEmpty) {
+                    finalImages.add(images[primaryImageIndex]);
+                  }
+                  for (int i = 0; i < images.length; i++) {
+                    if (i != primaryImageIndex && images[i].isNotEmpty) {
+                      finalImages.add(images[i]);
+                    }
+                  }
+
                   final newId = 'loc_${_locations.length + 1}';
                   final newLoc = {
                     'id': newId,
@@ -1135,6 +1200,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     'isEvReady': isEvReady,
                     'description': descCtrl.text,
                     'checkinRadius': 100,
+                    'images': finalImages,
                   };
 
                   setState(() {
@@ -1160,63 +1226,141 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     );
   }
 
-  // 2. DIALOG UBAH TOTAL SLOT, TARIF & JENIS PARKIR
-  void _showQuickEditTariffAndSlotsDialog(Map<String, dynamic> loc) {
+  // 2. DIALOG EDIT LOKASI LENGKAP (KOPI SEMUA STYLE & UNSUR INPUT DARI TAMBAH LOKASI)
+  void _showEditLocationDialog(Map<String, dynamic> loc) {
+    final nameCtrl = TextEditingController(text: loc['name']);
+    final typeCtrl = TextEditingController(text: loc['typeLabel']);
+    final cityCtrl = TextEditingController(text: loc['city']);
+    final addressCtrl = TextEditingController(text: loc['address']);
+    final latCtrl = TextEditingController(text: loc['latitude'].toString());
+    final longCtrl = TextEditingController(text: loc['longitude'].toString());
     final slotsCtrl = TextEditingController(text: loc['totalSlots'].toString());
     final baseRateCtrl = TextEditingController(text: loc['baseRate'].toString());
     final evRateCtrl = TextEditingController(text: loc['evRate'].toString());
     final motorRateCtrl = TextEditingController(text: loc['motorRate'].toString());
     final hoursCtrl = TextEditingController(text: loc['operatingHours'].toString());
+    final descCtrl = TextEditingController(text: loc['description'] ?? '');
     bool isEvReady = loc['isEvReady'] == true;
-    String status = loc['status'];
+    String status = loc['status'] ?? 'Aktif';
+
+    final List<String> existingImages = (loc['images'] as List?)?.map((e) => e.toString()).toList() ?? [];
+    final List<String> images = List.generate(4, (i) => i < existingImages.length ? existingImages[i] : '');
+    int primaryImageIndex = 0;
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          title: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+          title: Row(
             children: [
-              Text('Atur Tarif & Kapasitas Slot', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold)),
-              Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-            ],
-          ),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _buildInputField('Total Kapasitas Slot', slotsCtrl, Icons.local_parking, keyboardType: TextInputType.number),
-                const SizedBox(height: 8),
-                Row(
+              const Icon(Icons.edit_location_alt_rounded, color: Color(0xFF114177), size: 24),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: _buildInputField('Tarif Mobil (Rp/j)', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
-                    const SizedBox(width: 8),
-                    Expanded(child: _buildInputField('Tarif EV (Rp/j)', evRateCtrl, Icons.bolt, keyboardType: TextInputType.number)),
+                    Text('Edit Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold)),
+                    Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                   ],
                 ),
-                _buildInputField('Tarif Motor (Rp/j)', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number),
-                _buildInputField('Jam Buka / Operasional', hoursCtrl, Icons.access_time),
-                DropdownButtonFormField<String>(
-                  initialValue: status,
-                  decoration: InputDecoration(
-                    labelText: 'Status Operasional',
-                    labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              ),
+            ],
+          ),
+          content: SizedBox(
+            width: double.maxFinite,
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // 1. FOTO LOKASI PARKIR (4 SLOT) DENGAN HIGHLIGHT FOTO UTAMA
+                  _buildImageSlotsSection(
+                    images: images,
+                    primaryImageIndex: primaryImageIndex,
+                    onPrimaryChanged: (newIdx) {
+                      setDialogState(() => primaryImageIndex = newIdx);
+                    },
+                    onImageChanged: (slotIdx, newPath) {
+                      setDialogState(() {
+                        images[slotIdx] = newPath;
+                        if (images[primaryImageIndex].isEmpty) {
+                          primaryImageIndex = slotIdx;
+                        }
+                      });
+                    },
+                    setDialogState: setDialogState,
+                    dialogContext: ctx,
                   ),
-                  items: ['Aktif', 'Padat', 'Tutup', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 12)))).toList(),
-                  onChanged: (v) => setDialogState(() => status = v ?? 'Aktif'),
-                ),
-                SwitchListTile(
-                  value: isEvReady,
-                  onChanged: (v) => setDialogState(() => isEvReady = v),
-                  title: Text('Fasilitas EV Charging Aktif', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
-                  activeTrackColor: const Color(0xFF17A18A),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ],
+                  const SizedBox(height: 12),
+
+                  Text('IDENTITAS LOKASI & ALAMAT', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
+                  const SizedBox(height: 6),
+                  _buildInputField('Nama Gedung / Fasilitas', nameCtrl, Icons.business),
+                  _buildInputField('Tipe Fasilitas (cth: Mall, Kantor, Outdoor)', typeCtrl, Icons.category_outlined),
+                  _buildInputField('Kota', cityCtrl, Icons.location_city),
+                  _buildInputField('Alamat Lengkap', addressCtrl, Icons.place, maxLines: 2),
+
+                  const SizedBox(height: 10),
+                  Text('KOORDINAT PETA (SUPABASE LAT/LONG)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Expanded(child: _buildInputField('Latitude', latCtrl, Icons.my_location, keyboardType: TextInputType.number)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildInputField('Longitude', longCtrl, Icons.explore, keyboardType: TextInputType.number)),
+                    ],
+                  ),
+
+                  const SizedBox(height: 10),
+                  Text('KAPASITAS & STRUKTUR TARIF (RP/JAM)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
+                  const SizedBox(height: 6),
+                  _buildInputField('Total Kapasitas Slot', slotsCtrl, Icons.local_parking, keyboardType: TextInputType.number),
+                  Row(
+                    children: [
+                      Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
+                      const SizedBox(width: 8),
+                      Expanded(child: _buildInputField('Tarif EV', evRateCtrl, Icons.bolt, keyboardType: TextInputType.number)),
+                    ],
+                  ),
+                  _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number),
+
+                  const SizedBox(height: 10),
+                  Text('OPERASIONAL & KESIAPAN EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
+                  const SizedBox(height: 6),
+                  _buildInputField('Jam Operasional (cth: 06:00 - 23:00)', hoursCtrl, Icons.access_time),
+                  _buildInputField('Deskripsi Fasilitas', descCtrl, Icons.description_outlined, maxLines: 2),
+
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 8),
+                    child: DropdownButtonFormField<String>(
+                      initialValue: status,
+                      decoration: InputDecoration(
+                        labelText: 'Status Operasional',
+                        labelStyle: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                        prefixIcon: const Icon(Icons.info_outline_rounded, color: Color(0xFF114177), size: 18),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      ),
+                      items: ['Aktif', 'Padat', 'Tutup', 'Maintenance']
+                          .map((s) => DropdownMenuItem(value: s, child: Text(s, style: GoogleFonts.plusJakartaSans(fontSize: 12))))
+                          .toList(),
+                      onChanged: (v) => setDialogState(() => status = v ?? 'Aktif'),
+                    ),
+                  ),
+
+                  SwitchListTile(
+                    value: isEvReady,
+                    onChanged: (val) => setDialogState(() => isEvReady = val),
+                    title: Text('Sediakan Stasiun EV Charging', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold)),
+                    subtitle: Text('Aktifkan slot khusus charger di denah lantai', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                    activeTrackColor: const Color(0xFF17A18A),
+                    contentPadding: EdgeInsets.zero,
+                  ),
+                ],
+              ),
             ),
           ),
           actions: [
@@ -1226,19 +1370,43 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             ),
             ElevatedButton(
               onPressed: () {
-                setState(() {
-                  loc['totalSlots'] = int.tryParse(slotsCtrl.text) ?? loc['totalSlots'];
-                  loc['baseRate'] = int.tryParse(baseRateCtrl.text) ?? loc['baseRate'];
-                  loc['evRate'] = int.tryParse(evRateCtrl.text) ?? loc['evRate'];
-                  loc['motorRate'] = int.tryParse(motorRateCtrl.text) ?? loc['motorRate'];
-                  loc['operatingHours'] = hoursCtrl.text;
-                  loc['status'] = status;
-                  loc['isEvReady'] = isEvReady;
-                });
-                Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(backgroundColor: const Color(0xFF17A18A), content: Text('Tarif & Slot ${loc['name']} diperbarui!')),
-                );
+                if (nameCtrl.text.isNotEmpty && slotsCtrl.text.isNotEmpty) {
+                  final List<String> finalImages = [];
+                  if (primaryImageIndex < images.length && images[primaryImageIndex].isNotEmpty) {
+                    finalImages.add(images[primaryImageIndex]);
+                  }
+                  for (int i = 0; i < images.length; i++) {
+                    if (i != primaryImageIndex && images[i].isNotEmpty) {
+                      finalImages.add(images[i]);
+                    }
+                  }
+
+                  setState(() {
+                    loc['name'] = nameCtrl.text;
+                    loc['typeLabel'] = typeCtrl.text;
+                    loc['city'] = cityCtrl.text;
+                    loc['address'] = addressCtrl.text;
+                    loc['latitude'] = double.tryParse(latCtrl.text) ?? loc['latitude'];
+                    loc['longitude'] = double.tryParse(longCtrl.text) ?? loc['longitude'];
+                    loc['totalSlots'] = int.tryParse(slotsCtrl.text) ?? loc['totalSlots'];
+                    loc['baseRate'] = int.tryParse(baseRateCtrl.text) ?? loc['baseRate'];
+                    loc['evRate'] = int.tryParse(evRateCtrl.text) ?? loc['evRate'];
+                    loc['motorRate'] = int.tryParse(motorRateCtrl.text) ?? loc['motorRate'];
+                    loc['operatingHours'] = hoursCtrl.text;
+                    loc['description'] = descCtrl.text;
+                    loc['status'] = status;
+                    loc['isEvReady'] = isEvReady;
+                    loc['images'] = finalImages;
+                  });
+
+                  Navigator.pop(ctx);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF17A18A),
+                      content: Text('Lokasi "${nameCtrl.text}" berhasil diperbarui!'),
+                    ),
+                  );
+                }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
               child: Text('Simpan Perubahan', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
@@ -1453,6 +1621,377 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           filled: true,
           fillColor: const Color(0xFFF9FAFB),
           contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildThumbnail(String pathOrUrl) {
+    if (pathOrUrl.isEmpty) {
+      return const Icon(Icons.image_outlined, color: Color(0xFF94A3B8), size: 24);
+    }
+    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+      return Image.network(
+        pathOrUrl,
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => const Center(
+          child: Icon(Icons.broken_image_rounded, color: Color(0xFF94A3B8), size: 22),
+        ),
+      );
+    }
+    return Image.file(
+      File(pathOrUrl),
+      fit: BoxFit.cover,
+      errorBuilder: (context, error, stackTrace) => const Center(
+        child: Icon(Icons.image_rounded, color: Color(0xFF94A3B8), size: 22),
+      ),
+    );
+  }
+
+  Widget _buildImageSlotsSection({
+    required List<String> images,
+    required int primaryImageIndex,
+    required ValueChanged<int> onPrimaryChanged,
+    required void Function(int, String) onImageChanged,
+    required StateSetter setDialogState,
+    required BuildContext dialogContext,
+  }) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'FOTO LOKASI PARKIR (4 SLOT)',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF76777B),
+              ),
+            ),
+            if (images.any((img) => img.isNotEmpty))
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF17A18A).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  '${images.where((img) => img.isNotEmpty).length}/4 Terisi',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 9.5,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF17A18A),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        const SizedBox(height: 3),
+        Text(
+          'Klik foto terisi untuk menjadikannya Foto Utama (sampul awal di pencarian/peta).',
+          style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF94A3B8)),
+        ),
+        const SizedBox(height: 8),
+        Row(
+          children: List.generate(4, (index) {
+            final hasImage = images[index].isNotEmpty;
+            final isPrimary = primaryImageIndex == index && hasImage;
+            return Expanded(
+              child: Padding(
+                padding: EdgeInsets.only(right: index < 3 ? 8 : 0),
+                child: GestureDetector(
+                  onTap: () {
+                    if (hasImage) {
+                      // Click on uploaded photo -> highlight as primary!
+                      onPrimaryChanged(index);
+                    } else {
+                      // Empty slot -> open picker
+                      _showImageSourcePicker(dialogContext, (selectedPath) {
+                        onImageChanged(index, selectedPath);
+                      });
+                    }
+                  },
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: hasImage ? Colors.grey[100] : const Color(0xFFF8FAFC),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: isPrimary
+                            ? const Color(0xFF114177)
+                            : hasImage
+                                ? const Color(0xFF94A3B8)
+                                : const Color(0xFFE2E8F0),
+                        width: isPrimary ? 2.5 : 1,
+                      ),
+                      boxShadow: isPrimary
+                          ? [
+                              BoxShadow(
+                                color: const Color(0xFF114177).withValues(alpha: 0.25),
+                                blurRadius: 6,
+                                offset: const Offset(0, 2),
+                              ),
+                            ]
+                          : null,
+                    ),
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(isPrimary ? 9.5 : 11),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (hasImage)
+                            _buildThumbnail(images[index])
+                          else
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Icon(Icons.add_a_photo_outlined, size: 20, color: Color(0xFF64748B)),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Foto ${index + 1}',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 9.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                          // Highlight Badge: Foto Utama
+                          if (isPrimary)
+                            Positioned(
+                              top: 4,
+                              left: 4,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF114177),
+                                  borderRadius: BorderRadius.circular(6),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.25),
+                                      blurRadius: 4,
+                                    ),
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.star_rounded, size: 10, color: Colors.amber),
+                                    const SizedBox(width: 2),
+                                    Text(
+                                      'Utama',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 8,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+
+                          // Clear / Remove Button on top-right
+                          if (hasImage)
+                            Positioned(
+                              top: 4,
+                              right: 4,
+                              child: GestureDetector(
+                                onTap: () {
+                                  setDialogState(() {
+                                    images[index] = '';
+                                    if (primaryImageIndex == index) {
+                                      final next = images.indexWhere((img) => img.isNotEmpty);
+                                      onPrimaryChanged(next != -1 ? next : 0);
+                                    }
+                                  });
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(3),
+                                  decoration: const BoxDecoration(
+                                    color: Colors.black54,
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.close, size: 10, color: Colors.white),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+        ),
+      ],
+    );
+  }
+
+  void _showImageSourcePicker(BuildContext parentContext, Function(String) onPicked) {
+    showModalBottomSheet(
+      context: parentContext,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (bCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Pilih Sumber Foto',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                  ),
+                  IconButton(
+                    onPressed: () => Navigator.pop(bCtx),
+                    icon: const Icon(Icons.close, size: 20, color: Color(0xFF76777B)),
+                  ),
+                ],
+              ),
+              const Divider(color: Color(0xFFF3F4F6)),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.photo_library_rounded, color: Color(0xFF114177), size: 20),
+                ),
+                title: Text('Galeri Perangkat', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: Text('Pilih foto gedung dari media penyimpanan', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                onTap: () async {
+                  Navigator.pop(bCtx);
+                  try {
+                    final picker = ImagePicker();
+                    final picked = await picker.pickImage(source: ImageSource.gallery);
+                    if (picked != null) {
+                      onPicked(picked.path);
+                    }
+                  } catch (e) {
+                    debugPrint('Gallery picker error: $e');
+                  }
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF17A18A), size: 20),
+                ),
+                title: Text('Ambil Foto Kamera', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: Text('Potret langsung tampak parkiran', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                onTap: () async {
+                  Navigator.pop(bCtx);
+                  try {
+                    final picker = ImagePicker();
+                    final picked = await picker.pickImage(source: ImageSource.camera);
+                    if (picked != null) {
+                      onPicked(picked.path);
+                    }
+                  } catch (e) {
+                    debugPrint('Camera picker error: $e');
+                  }
+                },
+              ),
+              ListTile(
+                leading: Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(color: Colors.amber.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(10)),
+                  child: const Icon(Icons.collections_rounded, color: Colors.amber, size: 20),
+                ),
+                title: Text('Pilih dari Foto Sampel Parkir (Preset)', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold)),
+                subtitle: Text('Pilihan foto HD gedung & fasilitas parkir siap pakai', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                onTap: () {
+                  Navigator.pop(bCtx);
+                  _showSampleImagesSelector(parentContext, onPicked);
+                },
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showSampleImagesSelector(BuildContext parentContext, Function(String) onPicked) {
+    final List<Map<String, String>> presets = [
+      {'title': 'Gedung Mall Depan', 'url': 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80'},
+      {'title': 'Area Parkir Basemen', 'url': 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80'},
+      {'title': 'Stasiun EV Charger', 'url': 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80'},
+      {'title': 'Outdoor Car Park', 'url': 'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80'},
+      {'title': 'Pintu Masuk Gerbang', 'url': 'https://images.unsplash.com/photo-1526628953301-3e589a6a8b74?w=600&auto=format&fit=crop&q=80'},
+      {'title': 'Rooftop Car Park', 'url': 'https://images.unsplash.com/photo-1470224114660-3f6686c562eb?w=600&auto=format&fit=crop&q=80'},
+    ];
+
+    showModalBottomSheet(
+      context: parentContext,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
+      builder: (sCtx) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'Pilih Foto Sampel Parkir',
+                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+              ),
+              const SizedBox(height: 12),
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 3,
+                  crossAxisSpacing: 10,
+                  mainAxisSpacing: 10,
+                  childAspectRatio: 1.1,
+                ),
+                itemCount: presets.length,
+                itemBuilder: (context, i) => GestureDetector(
+                  onTap: () {
+                    Navigator.pop(sCtx);
+                    onPicked(presets[i]['url']!);
+                  },
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        Image.network(presets[i]['url']!, fit: BoxFit.cover),
+                        Positioned(
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          child: Container(
+                            color: Colors.black.withValues(alpha: 0.6),
+                            padding: const EdgeInsets.symmetric(vertical: 2, horizontal: 4),
+                            child: Text(
+                              presets[i]['title']!,
+                              style: const TextStyle(color: Colors.white, fontSize: 8.5, fontWeight: FontWeight.bold),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.center,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
