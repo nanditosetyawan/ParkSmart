@@ -11,7 +11,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'admin_user_management_screen.dart';
 import 'admin_app_settings_screen.dart';
 import 'admin_ai_config_screen.dart';
-import '../cs_kyc/admin_notifications_screen.dart';
+import '../cs/admin_notifications_screen.dart';
 import '../../../core/services/maintenance_service.dart';
 import '../../../core/services/client_info_service.dart';
 
@@ -20,16 +20,17 @@ import '../operations/admin_locations_screen.dart';
 import '../operations/admin_slot_management_screen.dart';
 import '../operations/admin_active_users_screen.dart';
 
-import '../finance/revenue_screen.dart';
+import '../finance/admin_finance_dashboard_screen.dart';
 import '../finance/admin_pricing_screen.dart';
 import '../finance/admin_transactions_screen.dart';
 import '../finance/admin_wallet_screen.dart';
 import '../finance/admin_bookings_screen.dart';
 
-import '../cs_kyc/admin_kyc_screen.dart';
-import '../cs_kyc/admin_customer_profiles_screen.dart';
-import '../cs_kyc/admin_feedback_screen.dart';
-import '../cs_kyc/admin_kyc_detail_modal.dart';
+import 'admin_kyc_screen.dart';
+import '../cs/admin_customer_profiles_screen.dart';
+import '../cs/admin_feedback_screen.dart';
+import 'admin_kyc_detail_modal.dart';
+import '../cs/admin_cs_dashboard_screen.dart';
 import 'admin_arcade_screen.dart';
 
 import '../../sitemap_screen.dart';
@@ -258,7 +259,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     },
     {
       'title': 'Customer Aktif',
-      'division': 'Divisi CS & KYC',
+      'division': 'Divisi Customer Service (CS)',
       'accentColor': const Color(0xFF6D28D9),
       'icon': Icons.people_outline,
       'periods': [
@@ -1239,9 +1240,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 2),
                 decoration: BoxDecoration(
-                  color: const Color(0xFFF1EEE7),
+                  color: const Color.fromARGB(255, 255, 255, 255),
                   borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: const Color.fromARGB(255, 242, 242, 242)),
+                  border: Border.all(color: const Color.fromARGB(255, 255, 255, 255)),
                 ),
                 child: DropdownButtonHideUnderline(
                   child: DropdownButton<int>(
@@ -1538,7 +1539,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Bypass langsung ke seluruh modul Operasional, Finansial, & CS-KYC jika terjadi kendala',
+                      'Bypass langsung ke seluruh modul Operasional, Finansial, & Layanan CS jika terjadi kendala',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: Colors.white.withValues(alpha: 0.9),
@@ -2079,7 +2080,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                     badgeColor: const Color(0xFF17A18A),
                     desc: 'Akses langsung laporan omzet, tarif dinamis, transaksi, dan saldo dompet',
                     items: [
-                      _EmergencyItem('Laporan Pendapatan & Omzet', Icons.trending_up, () => const RevenueScreen()),
+                      _EmergencyItem('Dashboard Keuangan & Finansial', Icons.account_balance_wallet_rounded, () => const AdminFinanceDashboardScreen()),
                       _EmergencyItem('Atur Tarif Dinamis', Icons.price_change, () => const PricingScreen()),
                       _EmergencyItem('Transaksi Real-time', Icons.receipt_long, () => const AdminTransactionsScreen()),
                       _EmergencyItem('Injeksi/Tarik Saldo Dompet', Icons.account_balance_wallet, () => const AdminWalletScreen()),
@@ -2088,15 +2089,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                   const SizedBox(height: 18),
 
-                  // 3. DIVISI CS & KYC
+                  // 3. DIVISI CUSTOMER SERVICE (CS)
                   _buildEmergencyDivisionGroup(
                     context,
-                    title: '3. Divisi CS & KYC',
-                    roleBadge: 'Fitur CS & KYC',
-                    badgeColor: const Color(0xFFE07A5F),
-                    desc: 'Akses langsung verifikasi KTP, profil pelanggan, komplain, dan promo',
+                    title: '3. Divisi Customer Service (CS)',
+                    roleBadge: 'Fitur Layanan CS',
+                    badgeColor: const Color(0xFF0D9488),
+                    desc: 'Akses langsung dashboard CS, profil pelanggan CRM, komplain pengguna, dan broadcast',
                     items: [
-                      _EmergencyItem('Verifikasi KTP / KYC Identitas', Icons.verified_user, () => const AdminKycScreen()),
+                      _EmergencyItem('Dashboard Layanan CS', Icons.support_agent_rounded, () => const AdminCsDashboardScreen()),
                       _EmergencyItem('Profil Pelanggan CRM', Icons.badge, () => const AdminCustomerProfilesScreen()),
                       _EmergencyItem('Komplain & Feedback Pengguna', Icons.feedback, () => const FeedbackAdminScreen()),
                       _EmergencyItem('Broadcast Notifikasi Promo', Icons.campaign, () => const AdminNotificationsScreen()),
@@ -2730,8 +2731,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1EEE7),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
                             ),
                             child: Text(
                               'NIK: $nik',

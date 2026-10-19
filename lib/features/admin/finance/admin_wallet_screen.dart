@@ -152,136 +152,157 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
+      useSafeArea: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(top: Radius.circular(24))),
       builder: (ctx) {
         return StatefulBuilder(
           builder: (context, setModalState) {
+            final mediaQuery = MediaQuery.of(ctx);
+            final keyboardHeight = mediaQuery.viewInsets.bottom;
+            final screenHeight = mediaQuery.size.height;
+            final topPadding = mediaQuery.padding.top;
+            
+            // Hitung tinggi modal yang tersedia di atas keyboard agar tidak terlempar ke atas dan tidak overflow
+            final maxModalHeight = (screenHeight - keyboardHeight - topPadding - 24).clamp(240.0, screenHeight * 0.75);
+
             return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom: MediaQuery.of(ctx).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Cari Pengguna ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 17, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                          Text('Cari berdasarkan ID User (cth: usr-001) atau Nama', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                        ],
+              padding: EdgeInsets.only(bottom: keyboardHeight),
+              child: Container(
+                constraints: BoxConstraints(maxHeight: maxModalHeight),
+                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 36,
+                        height: 4,
+                        margin: const EdgeInsets.only(bottom: 12),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE5E7EB),
+                          borderRadius: BorderRadius.circular(2),
+                        ),
                       ),
-                      IconButton(onPressed: () => Navigator.pop(ctx), icon: const Icon(Icons.close, color: Color(0xFF76777B))),
-                    ],
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: searchCtrl,
-                    autofocus: true,
-                    style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
-                    decoration: InputDecoration(
-                      hintText: 'Ketik ID User (cth: usr-001, 002) atau Nama...',
-                      hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
-                      prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF114177)),
-                      suffixIcon: searchCtrl.text.isNotEmpty
-                          ? IconButton(
-                              icon: const Icon(Icons.clear, size: 18),
-                              onPressed: () {
-                                setModalState(() {
-                                  searchCtrl.clear();
-                                  filtered = List.from(_users);
-                                });
-                              },
-                            )
-                          : null,
-                      filled: true,
-                      fillColor: const Color(0xFFF9FAFB),
-                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
-                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF114177), width: 1.5)),
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                     ),
-                    onChanged: (val) {
-                      final q = val.trim().toLowerCase();
-                      final cleanQ = q.replaceAll('usr-', '').replaceAll('-', '');
-                      setModalState(() {
-                        filtered = _users.where((u) {
-                          final id = u['id'].toString().toLowerCase();
-                          final cleanId = id.replaceAll('usr-', '').replaceAll('-', '');
-                          final name = u['name'].toString().toLowerCase();
-                          final email = u['email'].toString().toLowerCase();
-                          return id.contains(q) || cleanId.contains(cleanQ) || name.contains(q) || email.contains(q);
-                        }).toList();
-                      });
-                    },
-                  ),
-                  const SizedBox(height: 14),
-                  ConstrainedBox(
-                    constraints: BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.45),
-                    child: filtered.isEmpty
-                        ? Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 32),
-                            child: Center(
-                              child: Text('Tidak ada user dengan ID atau nama tersebut', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
-                            ),
-                          )
-                        : ListView.separated(
-                            shrinkWrap: true,
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, _) => const Divider(color: Color(0xFFF3F4F6), height: 1),
-                            itemBuilder: (ctx, idx) {
-                              final u = filtered[idx];
-                              final isSelected = _selectedUser?['id'] == u['id'];
-                              return ListTile(
-                                contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                leading: CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: isSelected ? const Color(0xFF114177) : const Color(0xFFE3EEFF),
-                                  child: Text(u['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF114177))),
-                                ),
-                                title: Row(
-                                  children: [
-                                    Text(u['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                                    const SizedBox(width: 8),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                      decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                                      child: Text(u['id'].toString().toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                                    ),
-                                  ],
-                                ),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    const SizedBox(height: 2),
-                                    Text(u['email'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
-                                    const SizedBox(height: 2),
-                                    Text('Saldo: ${_formatRupiah(u['balance'])}', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
-                                  ],
-                                ),
-                                trailing: isSelected
-                                    ? const Icon(Icons.check_circle, color: Color(0xFF17A18A), size: 20)
-                                    : const Icon(Icons.chevron_right, color: Color(0xFF9E9E9E), size: 18),
-                                onTap: () {
-                                  setState(() {
-                                    _selectedUser = u;
-                                    _userIdSearchController.text = u['id'].toString().toUpperCase();
-                                    _userSearchQuery = '';
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Cari Pengguna ParkSmart', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                            Text('Cari berdasarkan ID User (cth: usr-001) atau Nama', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                          ],
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(ctx),
+                          icon: const Icon(Icons.close, color: Color(0xFF76777B)),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 12),
+                    TextField(
+                      controller: searchCtrl,
+                      autofocus: true,
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
+                      decoration: InputDecoration(
+                        hintText: 'Ketik ID User (cth: usr-001, 002) atau Nama...',
+                        hintStyle: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                        prefixIcon: const Icon(Icons.search, size: 20, color: Color(0xFF114177)),
+                        suffixIcon: searchCtrl.text.isNotEmpty
+                            ? IconButton(
+                                icon: const Icon(Icons.clear, size: 18),
+                                onPressed: () {
+                                  setModalState(() {
+                                    searchCtrl.clear();
+                                    filtered = List.from(_users);
                                   });
-                                  Navigator.pop(ctx);
                                 },
-                              );
-                            },
-                          ),
-                  ),
-                ],
+                              )
+                            : null,
+                        filled: true,
+                        fillColor: const Color(0xFFF9FAFB),
+                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE5E7EB))),
+                        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFF114177), width: 1.5)),
+                        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      ),
+                      onChanged: (val) {
+                        final q = val.trim().toLowerCase();
+                        final cleanQ = q.replaceAll('usr-', '').replaceAll('-', '');
+                        setModalState(() {
+                          filtered = _users.where((u) {
+                            final id = u['id'].toString().toLowerCase();
+                            final cleanId = id.replaceAll('usr-', '').replaceAll('-', '');
+                            final name = u['name'].toString().toLowerCase();
+                            final email = u['email'].toString().toLowerCase();
+                            return id.contains(q) || cleanId.contains(cleanQ) || name.contains(q) || email.contains(q);
+                          }).toList();
+                        });
+                      },
+                    ),
+                    const SizedBox(height: 10),
+                    Flexible(
+                      child: filtered.isEmpty
+                          ? Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 24),
+                              child: Center(
+                                child: Text('Tidak ada user dengan ID atau nama tersebut', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B))),
+                              ),
+                            )
+                          : ListView.separated(
+                              shrinkWrap: true,
+                              itemCount: filtered.length,
+                              separatorBuilder: (_, _) => const Divider(color: Color(0xFFF3F4F6), height: 1),
+                              itemBuilder: (ctx, idx) {
+                                final u = filtered[idx];
+                                final isSelected = _selectedUser?['id'] == u['id'];
+                                return ListTile(
+                                  contentPadding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                                  leading: CircleAvatar(
+                                    radius: 17,
+                                    backgroundColor: isSelected ? const Color(0xFF114177) : const Color(0xFFE3EEFF),
+                                    child: Text(u['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF114177))),
+                                  ),
+                                  title: Row(
+                                    children: [
+                                      Text(u['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                      const SizedBox(width: 8),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                        decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                                        child: Text(u['id'].toString().toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Column(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Text(u['email'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
+                                      Text('Saldo: ${_formatRupiah(u['balance'])}', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
+                                    ],
+                                  ),
+                                  trailing: isSelected
+                                      ? const Icon(Icons.check_circle, color: Color(0xFF17A18A), size: 20)
+                                      : const Icon(Icons.chevron_right, color: Color(0xFF9E9E9E), size: 18),
+                                  onTap: () {
+                                    setState(() {
+                                      _selectedUser = u;
+                                      _userIdSearchController.text = u['id'].toString().toUpperCase();
+                                      _userSearchQuery = '';
+                                    });
+                                    Navigator.pop(ctx);
+                                  },
+                                );
+                              },
+                            ),
+                    ),
+                  ],
+                ),
               ),
             );
           },

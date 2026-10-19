@@ -1,0 +1,1002 @@
+import '../../../theme/app_theme.dart';
+import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'admin_notifications_screen.dart';
+import 'admin_customer_profiles_screen.dart';
+import 'admin_feedback_screen.dart';
+import '../../sitemap_screen.dart';
+
+typedef AdminCsKycDashboardScreen = AdminCsDashboardScreen;
+
+class AdminCsDashboardScreen extends StatefulWidget {
+  const AdminCsDashboardScreen({super.key});
+
+  @override
+  State<AdminCsDashboardScreen> createState() => _AdminCsDashboardScreenState();
+}
+
+class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+
+  int _currentTabIndex = 0;
+  int _selectedUserMonthIndex = 5;
+
+  final List<Map<String, dynamic>> _userGrowthMonthlyData = [
+    {'month': 'Mei', 'joined': 110, 'cumulative': 480, 'growth': '+12%'},
+    {'month': 'Jun', 'joined': 145, 'cumulative': 625, 'growth': '+15%'},
+    {'month': 'Jul', 'joined': 180, 'cumulative': 805, 'growth': '+18%'},
+    {'month': 'Agu', 'joined': 210, 'cumulative': 1015, 'growth': '+20%'},
+    {'month': 'Sep', 'joined': 225, 'cumulative': 1240, 'growth': '+22%'},
+    {'month': 'Okt', 'joined': 268, 'cumulative': 1508, 'growth': '+27%'},
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Theme(
+      data: AppTheme.light,
+      child: Scaffold(
+        key: _scaffoldKey,
+        backgroundColor: const Color(0xFFF9F9F9),
+        drawer: _buildCsDrawer(context),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          leadingWidth: 54,
+          // Tombol Ikon CS sebagai trigger drawer (menggantikan burger button seperti di operasional)
+          leading: Center(
+            child: InkWell(
+              onTap: () => _scaffoldKey.currentState?.openDrawer(),
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0D9488).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: const Color(0xFF0D9488).withValues(alpha: 0.25)),
+                ),
+                child: const Icon(Icons.support_agent_rounded, size: 20, color: Color(0xFF0D9488)),
+              ),
+            ),
+          ),
+          titleSpacing: 4,
+          title: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Text(
+                    'ParkSmart',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      color: const Color(0xFF76777B),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFCCFBF1),
+                      borderRadius: BorderRadius.circular(4),
+                      border: Border.all(color: const Color(0xFF14B8A6), width: 0.7),
+                    ),
+                    child: Text(
+                      'CUSTOMER SERVICE',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 8,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF0F766E),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Text(
+                'Dashboard Layanan & CRM',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A18),
+                ),
+              ),
+            ],
+          ),
+          actions: [
+            GestureDetector(
+              onTap: () => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const AdminNotificationsScreen()),
+              ),
+              child: Container(
+                width: 40,
+                height: 40,
+                margin: const EdgeInsets.only(right: 14),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFFE5E7EB)),
+                ),
+                child: const Icon(Icons.notifications_none, size: 20, color: Color(0xFF1A1A18)),
+              ),
+            ),
+          ],
+        ),
+        body: IndexedStack(
+          index: _currentTabIndex,
+          children: [
+            _buildTabOverview(context),
+            _buildTabCrm(context),
+          ],
+        ),
+        bottomNavigationBar: Container(
+          decoration: const BoxDecoration(
+            color: Colors.white,
+            border: Border(top: BorderSide(color: Color(0xFFE4DFD5), width: 1)),
+          ),
+          child: SafeArea(
+            child: SizedBox(
+              height: 60,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildBottomNavItem(
+                    icon: Icons.support_agent_rounded,
+                    label: 'Layanan CS',
+                    index: 0,
+                    activeColor: const Color(0xFF0D9488),
+                  ),
+                  _buildBottomNavItem(
+                    icon: Icons.people_outline_rounded,
+                    label: 'Pelanggan & CRM',
+                    index: 1,
+                    activeColor: const Color(0xFF0D9488),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required IconData icon,
+    required String label,
+    required int index,
+    required Color activeColor,
+  }) {
+    final isSelected = _currentTabIndex == index;
+    return Expanded(
+      child: InkWell(
+        onTap: () => setState(() => _currentTabIndex = index),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 3),
+              decoration: BoxDecoration(
+                color: isSelected ? activeColor.withValues(alpha: 0.12) : Colors.transparent,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(
+                icon,
+                size: 20,
+                color: isSelected ? activeColor : const Color(0xFF76777B),
+              ),
+            ),
+            const SizedBox(height: 2),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 10.5,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? activeColor : const Color(0xFF76777B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== DRAWER SIDEBAR CS ====================
+  Widget _buildCsDrawer(BuildContext context) {
+    return Drawer(
+      backgroundColor: Colors.white,
+      child: SafeArea(
+        child: Column(
+          children: [
+            // Header Profil Admin Customer Service
+            Container(
+              padding: const EdgeInsets.all(20),
+              decoration: const BoxDecoration(
+                color: Color(0xFF0D9488),
+              ),
+              child: Row(
+                children: [
+                  Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Center(
+                      child: Text('A', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    ),
+                  ),
+                  const SizedBox(width: 14),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Anisa Putri', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text('Petugas Layanan & CRM', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
+                        const SizedBox(height: 4),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(
+                            color: Colors.white.withValues(alpha: 0.2),
+                            borderRadius: BorderRadius.circular(4),
+                          ),
+                          child: Text('Divisi Customer Service', style: GoogleFonts.plusJakartaSans(fontSize: 9, fontWeight: FontWeight.bold, color: Colors.white)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Menu Navigasi
+            Expanded(
+              child: ListView(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 8, 18, 6),
+                    child: Text(
+                      'LAYANAN & PELANGGAN',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF76777B),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.dashboard_outlined,
+                    label: 'Dashboard Layanan CS',
+                    onTap: () => Navigator.pop(context),
+                    isActive: true,
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.badge_outlined,
+                    label: 'Profil Pelanggan CRM',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.rate_review_outlined,
+                    label: 'Review & Ulasan Pengguna',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const FeedbackAdminScreen()));
+                    },
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.notifications_outlined,
+                    label: 'Pusat Notifikasi & Siaran',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminNotificationsScreen()));
+                    },
+                  ),
+
+                  const Divider(color: Color(0xFFF3F4F6), height: 24, indent: 16, endIndent: 16),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 6),
+                    child: Text(
+                      'UTILITAS SISTEM',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF76777B),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                  ),
+                  _buildDrawerItem(
+                    icon: Icons.map_outlined,
+                    label: 'Sitemap Navigasi Sistem',
+                    onTap: () {
+                      Navigator.pop(context);
+                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen()));
+                    },
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildDrawerItem({
+    required IconData icon,
+    required String label,
+    required VoidCallback onTap,
+    bool isActive = false,
+  }) {
+    return ListTile(
+      leading: Icon(icon, size: 20, color: isActive ? const Color(0xFF0D9488) : const Color(0xFF76777B)),
+      title: Text(
+        label,
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 13,
+          fontWeight: isActive ? FontWeight.bold : FontWeight.w500,
+          color: isActive ? const Color(0xFF0D9488) : const Color(0xFF1A1A18),
+        ),
+      ),
+      selected: isActive,
+      selectedTileColor: const Color(0xFF0D9488).withValues(alpha: 0.08),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+      onTap: onTap,
+    );
+  }
+
+  // ==================== TAB 0: LAYANAN CS & OVERVIEW ====================
+  Widget _buildTabOverview(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Layanan Pelanggan (CS)',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1A18),
+                  ),
+                ),
+                Text(
+                  'Manajemen Customer, CRM & Ulasan Pengguna',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF76777B),
+                  ),
+                ),
+              ],
+            ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: const Color(0xFFCCFBF1),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF14B8A6), width: 0.8),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Icon(Icons.circle, size: 7, color: Color(0xFF0D9488)),
+                  const SizedBox(width: 5),
+                  Text(
+                    'CS Online',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF0F766E),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 16),
+
+        // Grid Ringkasan Metrik CS
+        _buildCsMetricGrid(),
+        const SizedBox(height: 16),
+
+        // Chart Pertumbuhan User Aktif yang Bergabung per Bulan
+        _buildUserGrowthChartCard(context),
+        const SizedBox(height: 18),
+
+        // Quick Hub Cards: Akses Cepat CS & CRM
+        Text(
+          'Akses Cepat Customer Service',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1A1A18),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildCrmHubCard(
+          icon: Icons.person_search_rounded,
+          color: const Color(0xFF114177),
+          title: 'Database Profil Pengguna (CRM)',
+          subtitle: 'Histori transaksi, status akun, nomor HP, dan aktivitas booking',
+          actionText: 'Buka Profil CRM',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen()),
+          ),
+        ),
+        const SizedBox(height: 10),
+        _buildCrmHubCard(
+          icon: Icons.rate_review_rounded,
+          color: const Color(0xFFD97706),
+          title: 'Ulasan & Feedback Pelanggan',
+          subtitle: 'Rating bintang, masukan fasilitas, dan keluhan langsung customer',
+          actionText: 'Kelola Ulasan',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FeedbackAdminScreen()),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  // ==================== STATS METRIC GRID ====================
+  Widget _buildCsMetricGrid() {
+    return Row(
+      children: [
+        Expanded(
+          child: _buildMetricCard(
+            title: 'Total Pelanggan',
+            value: '1.508 User',
+            sub: '+27% bln Oktober',
+            icon: Icons.people_outline_rounded,
+            iconColor: const Color(0xFF114177),
+            bgColor: const Color(0xFFEFF6FF),
+          ),
+        ),
+        const SizedBox(width: 10),
+        Expanded(
+          child: _buildMetricCard(
+            title: 'Kepuasan Customer',
+            value: '4.8 / 5.0',
+            sub: '142 Ulasan Masuk',
+            icon: Icons.star_rounded,
+            iconColor: const Color(0xFFD97706),
+            bgColor: const Color(0xFFFFFBEB),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildMetricCard({
+    required String title,
+    required String value,
+    required String sub,
+    required IconData icon,
+    required Color iconColor,
+    required Color bgColor,
+  }) {
+    return Container(
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.02),
+            blurRadius: 6,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                title,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  color: const Color(0xFF76777B),
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Container(
+                width: 30,
+                height: 30,
+                decoration: BoxDecoration(
+                  color: bgColor,
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Icon(icon, size: 16, color: iconColor),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            value,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1A1A18),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            sub,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              fontWeight: FontWeight.w600,
+              color: iconColor,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ==================== TAB 1: CUSTOMER & CRM ====================
+  Widget _buildTabCrm(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.all(18),
+      children: [
+        Text(
+          'Pusat Pengguna & Hubungan Pelanggan (CRM)',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+            color: const Color(0xFF1A1A18),
+          ),
+        ),
+        Text(
+          'Kelola database profil customer dan pantau review rating kepuasan',
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: 11,
+            color: const Color(0xFF76777B),
+          ),
+        ),
+        const SizedBox(height: 16),
+
+        _buildCrmHubCard(
+          icon: Icons.person_search_rounded,
+          color: const Color(0xFF114177),
+          title: 'Database Profil Pengguna (CRM)',
+          subtitle: 'Histori transaksi, status verifikasi akun, dan aktivitas booking',
+          actionText: 'Buka Profil CRM',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen()),
+          ),
+        ),
+        const SizedBox(height: 12),
+
+        _buildCrmHubCard(
+          icon: Icons.rate_review_rounded,
+          color: const Color(0xFFD97706),
+          title: 'Ulasan & Feedback Pelanggan',
+          subtitle: 'Rating bintang, saran perbaikan fasilitas, dan tanggapan customer',
+          actionText: 'Kelola Ulasan',
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const FeedbackAdminScreen()),
+          ),
+        ),
+        const SizedBox(height: 24),
+      ],
+    );
+  }
+
+  Widget _buildCrmHubCard({
+    required IconData icon,
+    required Color color,
+    required String title,
+    required String subtitle,
+    required String actionText,
+    required VoidCallback onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(14),
+          border: Border.all(color: const Color(0xFFE4DFD5)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.02),
+              blurRadius: 4,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    title,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A18),
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    subtitle,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      color: const Color(0xFF76777B),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            const Icon(Icons.arrow_forward_ios_rounded, size: 12, color: Color(0xFF76777B)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ==================== CHART: PERTUMBUHAN USER AKTIF (PER BULAN) ====================
+  Widget _buildUserGrowthChartCard(BuildContext context) {
+    final selectedData = _userGrowthMonthlyData[_selectedUserMonthIndex];
+    final chartValues = _userGrowthMonthlyData.map<double>((e) {
+      final joined = (e['joined'] as int).toDouble();
+      return (joined / 280.0).clamp(0.1, 1.0);
+    }).toList();
+    final labels = _userGrowthMonthlyData.map<String>((e) => e['month'] as String).toList();
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 8,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF114177).withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.people_outline_rounded, size: 20, color: Color(0xFF114177)),
+                  ),
+                  const SizedBox(width: 10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Pertumbuhan Customer Aktif',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18),
+                        ),
+                      ),
+                      Text(
+                        'Peningkatan pengguna baru yang bergabung per bulan',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10.5,
+                          color: const Color(0xFF76777B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              TextButton.icon(
+                onPressed: () => Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen()),
+                ),
+                icon: const Icon(Icons.arrow_forward, size: 13, color: Color(0xFF114177)),
+                label: Text(
+                  'Lihat Profil',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF114177),
+                  ),
+                ),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  minimumSize: Size.zero,
+                  tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 14),
+
+          // User Stats Highlight
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+            decoration: BoxDecoration(
+              color: const Color(0xFFF8FAFC),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: const Color(0xFFE2E8F0)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Join Bulan ${selectedData['month']}',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        color: const Color(0xFF114177),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '+${selectedData['joined']} User',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF114177),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Total User Aktif',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        color: const Color(0xFF76777B),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      '${selectedData['cumulative']} User',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1A1A18),
+                      ),
+                    ),
+                  ],
+                ),
+                Container(width: 1, height: 28, color: const Color(0xFFCBD5E1)),
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Laju Pertumbuhan',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        color: const Color(0xFF76777B),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        const Icon(Icons.trending_up, size: 14, color: Color(0xFF17A18A)),
+                        const SizedBox(width: 2),
+                        Text(
+                          '${selectedData['growth']}',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF17A18A),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 16),
+
+          // Mountain Area Chart: Pertumbuhan User Join
+          LayoutBuilder(
+            builder: (context, constraints) {
+              return GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTapDown: (details) => _handleChartTouch(details.localPosition, constraints.maxWidth),
+                onHorizontalDragUpdate: (details) => _handleChartTouch(details.localPosition, constraints.maxWidth),
+                child: SizedBox(
+                  height: 120,
+                  width: double.infinity,
+                  child: CustomPaint(
+                    painter: _UserGrowthMountainPainter(
+                      data: chartValues,
+                      xLabels: labels,
+                      selectedIndex: _selectedUserMonthIndex,
+                      lineColor: const Color(0xFF114177),
+                      gradientStart: const Color(0xFF114177).withValues(alpha: 0.28),
+                      gradientEnd: const Color(0xFF114177).withValues(alpha: 0.01),
+                    ),
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _handleChartTouch(Offset localPosition, double totalWidth) {
+    const double marginHorizontal = 16.0;
+    final double chartWidth = totalWidth - (marginHorizontal * 2);
+    if (chartWidth <= 0) return;
+    final double ratio = ((localPosition.dx - marginHorizontal) / chartWidth);
+    final int newIndex = (ratio * (_userGrowthMonthlyData.length - 1))
+        .round()
+        .clamp(0, _userGrowthMonthlyData.length - 1);
+    if (newIndex != _selectedUserMonthIndex) {
+      setState(() {
+        _selectedUserMonthIndex = newIndex;
+      });
+    }
+  }
+}
+
+class _UserGrowthMountainPainter extends CustomPainter {
+  final List<double> data;
+  final List<String> xLabels;
+  final int selectedIndex;
+  final Color lineColor;
+  final Color gradientStart;
+  final Color gradientEnd;
+
+  _UserGrowthMountainPainter({
+    required this.data,
+    required this.xLabels,
+    required this.selectedIndex,
+    required this.lineColor,
+    required this.gradientStart,
+    required this.gradientEnd,
+  });
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    if (data.isEmpty) return;
+
+    const double marginHorizontal = 16.0;
+    final double chartWidth = size.width - (marginHorizontal * 2);
+    final double stepX = chartWidth / (data.length - 1);
+    const double topPadding = 12.0;
+    final double baselineY = size.height - 22.0;
+    final double availableHeight = baselineY - topPadding;
+
+    final List<Offset> points = [];
+    for (int i = 0; i < data.length; i++) {
+      final double x = marginHorizontal + (i * stepX);
+      final double y = topPadding + (1.0 - data[i].clamp(0.0, 1.0)) * availableHeight;
+      points.add(Offset(x, y));
+    }
+
+    final Path linePath = Path();
+    linePath.moveTo(points[0].dx, points[0].dy);
+
+    for (int i = 0; i < points.length - 1; i++) {
+      final p0 = points[i];
+      final p1 = points[i + 1];
+      final controlX = (p0.dx + p1.dx) / 2;
+      linePath.cubicTo(controlX, p0.dy, controlX, p1.dy, p1.dx, p1.dy);
+    }
+
+    final Path fillPath = Path.from(linePath);
+    fillPath.lineTo(points.last.dx, baselineY);
+    fillPath.lineTo(points.first.dx, baselineY);
+    fillPath.close();
+
+    final fillPaint = Paint()
+      ..shader = LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [gradientStart, gradientEnd],
+      ).createShader(Rect.fromLTRB(0, topPadding, 0, baselineY));
+
+    canvas.drawPath(fillPath, fillPaint);
+
+    final linePaint = Paint()
+      ..color = lineColor
+      ..strokeWidth = 2.4
+      ..style = PaintingStyle.stroke
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    canvas.drawPath(linePath, linePaint);
+
+    for (int i = 0; i < points.length; i++) {
+      final p = points[i];
+      final isSelected = i == selectedIndex;
+
+      if (isSelected) {
+        final glowPaint = Paint()..color = lineColor.withValues(alpha: 0.25);
+        canvas.drawCircle(p, 9.0, glowPaint);
+        final outerDot = Paint()..color = Colors.white;
+        canvas.drawCircle(p, 4.5, outerDot);
+        final innerDot = Paint()..color = lineColor;
+        canvas.drawCircle(p, 3.0, innerDot);
+      } else {
+        final dotPaint = Paint()..color = lineColor.withValues(alpha: 0.6);
+        canvas.drawCircle(p, 2.5, dotPaint);
+      }
+
+      if (i < xLabels.length) {
+        final textPainter = TextPainter(
+          text: TextSpan(
+            text: xLabels[i],
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 9.5,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected ? lineColor : const Color(0xFF76777B),
+            ),
+          ),
+          textDirection: TextDirection.ltr,
+        );
+        textPainter.layout();
+        final textX = p.dx - (textPainter.width / 2);
+        final textY = baselineY + 4.0;
+        textPainter.paint(canvas, Offset(textX, textY));
+      }
+    }
+  }
+
+  @override
+  bool shouldRepaint(covariant _UserGrowthMountainPainter oldDelegate) {
+    return oldDelegate.selectedIndex != selectedIndex || oldDelegate.data != data;
+  }
+}

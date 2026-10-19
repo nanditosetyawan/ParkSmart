@@ -1,7 +1,6 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'admin_kyc_screen.dart';
 import 'admin_feedback_screen.dart';
 
 class AdminNotificationsScreen extends StatefulWidget {
@@ -28,7 +27,12 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
 
   void _handleAction(String action) {
     if (action == 'Tinjau KTP') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminKycScreen()));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Akses Dibatasi: Verifikasi identitas e-KTP (KYC) dikelola oleh Super Admin.'),
+          backgroundColor: Color(0xFF0D9488),
+        ),
+      );
     } else if (action == 'Cek Overstay') {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
@@ -57,14 +61,18 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 0,
-        leading: GestureDetector(
-          onTap: () => Navigator.pop(context),
-          child: Container(
-            margin: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(10)),
-            child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+          leading: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              margin: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: const Icon(Icons.arrow_back, size: 20, color: Color(0xFF1A1A18)),
+            ),
           ),
-        ),
         title: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

@@ -253,7 +253,7 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
                 border: Border.all(color: const Color(0xFFE2E8F0)),
               ),
@@ -352,6 +352,12 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
                                 color: const Color(0xFF94A3B8),
                               ),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              filled: false,
                               isDense: true,
                               contentPadding: EdgeInsets.zero,
                             ),

@@ -31,7 +31,15 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
     'Juli 2026',
     'Agustus 2026',
     'September 2026',
-    'Oktober 2026 (Berjalan)',
+    'Oktober 2026',
+  ];
+  final List<String> _monthlyGrowths = [
+    '+5.8%',
+    '+7.2%',
+    '+6.5%',
+    '+12.1%',
+    '+10.4%',
+    '+15.7%',
   ];
   final List<String> _monthlyXLabels = ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'];
 
@@ -245,50 +253,34 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
+                  Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF114177).withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(Icons.calendar_month_rounded, size: 22, color: Color(0xFF114177)),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Container(
-                        width: 40,
-                        height: 40,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF114177).withValues(alpha: 0.1),
-                          borderRadius: BorderRadius.circular(12),
+                      Text(
+                        'PENDAPATAN PER BULAN',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF76777B),
+                          letterSpacing: 0.6,
                         ),
-                        child: const Icon(Icons.calendar_month_rounded, size: 22, color: Color(0xFF114177)),
                       ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'PENDAPATAN PER BULAN',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 12,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF76777B),
-                              letterSpacing: 0.6,
-                            ),
-                          ),
-                          Text(
-                            'Tren Kinerja 6 Bulan Terakhir',
-                            style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF9CA3AF)),
-                          ),
-                        ],
+                      Text(
+                        'Tren Kinerja 6 Bulan Terakhir',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF9CA3AF)),
                       ),
                     ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF17A18A).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      '+15.7% vs bln lalu',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
-                    ),
                   ),
                 ],
               ),
@@ -309,9 +301,23 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
               const SizedBox(height: 4),
               Text(
                 _inspectedMonthlyIndex != null && _inspectedMonthlyIndex! < _monthlyDates.length
-                    ? 'Bulan: ${_monthlyDates[_inspectedMonthlyIndex!]} (Sentuh grafik untuk melihat titik bulan lain)'
-                    : 'Bulan Berjalan: Oktober 2026 • 8.420 Transaksi Selesai',
+                    ? _monthlyDates[_inspectedMonthlyIndex!]
+                    : 'Oktober 2026',
                 style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF17A18A).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Text(
+                  _inspectedMonthlyIndex != null && _inspectedMonthlyIndex! < _monthlyGrowths.length
+                      ? _monthlyGrowths[_inspectedMonthlyIndex!]
+                      : '+15.7%',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
+                ),
               ),
               const SizedBox(height: 16),
 
@@ -397,10 +403,21 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
                       Text('4 Lokasi Teratas • Real-time', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                     ],
                   ),
-                  TextButton.icon(
+                  TextButton(
                     onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AllLocationsRevenueScreen())),
-                    icon: const Icon(Icons.arrow_forward, size: 14, color: Color(0xFF114177)),
-                    label: Text('Selengkapnya', style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      minimumSize: Size.zero,
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: Text(
+                      'Semua',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF114177),
+                      ),
+                    ),
                   ),
                 ],
               ),

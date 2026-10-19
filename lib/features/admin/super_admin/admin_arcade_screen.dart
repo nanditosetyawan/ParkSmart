@@ -62,9 +62,9 @@ class _ArcadeAdminScreenState extends State<ArcadeAdminScreen> {
             child: Container(
               margin: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1F5F9),
+                color: const Color.fromARGB(255, 255, 255, 255),
                 borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFFE2E8F0)),
+                border: Border.all(color: const Color.fromARGB(255, 255, 255, 255)),
               ),
               child: const Icon(Icons.arrow_back_rounded, size: 20, color: Color(0xFF0F172A)),
             ),
@@ -112,44 +112,7 @@ class _ArcadeAdminScreenState extends State<ArcadeAdminScreen> {
                   ),
                 ],
               ),
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFEFF6FF),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.info_outline_rounded, color: Color(0xFF2563EB), size: 20),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          'Sistem Konversi Arcade & Koin',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: const Color(0xFF0F172A),
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Text(
-                          'Poin yang didapatkan pengguna di game Parking Challenge dapat ditukar langsung menjadi Koin Mesin Capit dengan rasio 10.000 Poin = 1 Koin Capit. Setiap hadiah capit berupa uang tunai (Rp 300 - Rp 1.000) langsung masuk ke saldo dompet user.',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 11.5,
-                            height: 1.45,
-                            color: const Color(0xFF64748B),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
+              
             ),
             const SizedBox(height: 20),
 
@@ -165,22 +128,7 @@ class _ArcadeAdminScreenState extends State<ArcadeAdminScreen> {
                   ),
                 ),
                 const SizedBox(width: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF1F5F9),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFCBD5E1)),
-                  ),
-                  child: Text(
-                    '2 Game',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10.5,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF475569),
-                    ),
-                  ),
-                ),
+              
               ],
             ),
             const SizedBox(height: 4),

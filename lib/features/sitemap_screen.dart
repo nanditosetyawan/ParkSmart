@@ -24,11 +24,11 @@ import 'admin/finance/admin_transactions_screen.dart';
 import 'admin/finance/revenue_screen.dart';
 
 // Admin - CS & KYC
-import 'admin/cs_kyc/admin_cskyc_dashboard_screen.dart';
-import 'admin/cs_kyc/admin_kyc_screen.dart';
-import 'admin/cs_kyc/admin_customer_profiles_screen.dart';
-import 'admin/cs_kyc/admin_feedback_screen.dart';
-import 'admin/cs_kyc/admin_notifications_screen.dart';
+import 'admin/cs/admin_cs_dashboard_screen.dart';
+import 'admin/super_admin/admin_kyc_screen.dart';
+import 'admin/cs/admin_customer_profiles_screen.dart';
+import 'admin/cs/admin_feedback_screen.dart';
+import 'admin/cs/admin_notifications_screen.dart';
 import 'admin/super_admin/admin_arcade_screen.dart';
 
 // AI Assistant
@@ -259,6 +259,7 @@ class SitemapScreen extends StatelessWidget {
               // ─── ADMIN CLUSTER 1: SISTEM & SUPER ADMIN ───
               _buildCategory('10. Admin: Sistem & Super Admin', [
                 _Item('Dashboard Utama Admin', 'super_admin/admin_dashboard_screen.dart', (c) => const DashboardScreen(), role: 'Super Admin'),
+                _Item('Verifikasi Dokumen KTP (KYC)', 'super_admin/admin_kyc_screen.dart', (c) => const AdminKycScreen(), role: 'Super Admin'),
                 _Item('Manajemen Akun Admin (RBAC)', 'super_admin/admin_user_management_screen.dart', (c) => const AdminUserManagementScreen(), role: 'Super Admin'),
                 _Item('Pengaturan Parameter Global App', 'super_admin/admin_app_settings_screen.dart', (c) => const AdminAppSettingsScreen(), role: 'Super Admin'),
                 _Item('Konfigurasi Engine & Model AI', 'super_admin/admin_ai_config_screen.dart', (c) => const AdminAiConfigScreen(), role: 'Super Admin'),
@@ -283,13 +284,12 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Laporan Pendapatan & Revenue Analytics', 'finance/revenue_screen.dart', (c) => const RevenueScreen(), role: 'Finance'),
               ], isDark, theme),
 
-              // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN & KYC ───
-              _buildCategory('13. Admin: Layanan Pelanggan & Verifikasi KYC', [
-                _Item('Dashboard Khusus CS & KYC', 'cs_kyc/admin_cskyc_dashboard_screen.dart', (c) => const AdminCsKycDashboardScreen(), role: 'CS & KYC', isNew: true),
-                _Item('Verifikasi Dokumen KTP (KYC)', 'cs_kyc/admin_kyc_screen.dart', (c) => const AdminKycScreen(), role: 'CS & KYC'),
-                _Item('Profil Customer & Riwayat CRM', 'cs_kyc/admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen(), role: 'CS & KYC'),
-                _Item('Review Feedback & Keluhan Pengguna', 'cs_kyc/admin_feedback_screen.dart', (c) => const FeedbackAdminScreen(), role: 'CS & KYC'),
-                _Item('Pusat Notifikasi & Broadcast Masal', 'cs_kyc/admin_notifications_screen.dart', (c) => const AdminNotificationsScreen(), role: 'CS & KYC'),
+              // ─── ADMIN CLUSTER 4: LAYANAN PELANGGAN (CS) ───
+              _buildCategory('13. Admin: Layanan Pelanggan (Customer Service)', [
+                _Item('Dashboard Khusus CS', 'cs/admin_cs_dashboard_screen.dart', (c) => const AdminCsDashboardScreen(), role: 'CS', isNew: true),
+                _Item('Profil Customer & Riwayat CRM', 'cs/admin_customer_profiles_screen.dart', (c) => const AdminCustomerProfilesScreen(), role: 'CS'),
+                _Item('Review Feedback & Keluhan Pengguna', 'cs/admin_feedback_screen.dart', (c) => const FeedbackAdminScreen(), role: 'CS'),
+                _Item('Pusat Notifikasi & Broadcast Masal', 'cs/admin_notifications_screen.dart', (c) => const AdminNotificationsScreen(), role: 'CS'),
               ], isDark, theme),
               const SizedBox(height: 32),
             ],

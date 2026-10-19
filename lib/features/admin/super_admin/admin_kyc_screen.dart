@@ -198,8 +198,9 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
             child: Container(
               margin: const EdgeInsets.only(left: 14, top: 8, bottom: 8),
               decoration: BoxDecoration(
-                color: const Color(0xFFF1EEE7),
+                color: Colors.white,
                 borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
               ),
               child: const Icon(Icons.arrow_back_rounded, size: 20, color: Color(0xFF1A1A18)),
             ),
@@ -259,17 +260,25 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  // Search Bar Konsisten (Signature ParkSmart Search Style)
+                  // Search Bar Bergaya Google Simple & Elegan (Tanpa Double Border)
                   Container(
-                    height: 44,
+                    height: 48,
                     padding: const EdgeInsets.symmetric(horizontal: 14),
                     decoration: BoxDecoration(
-                      color: const Color(0xFFF1EEE7),
-                      borderRadius: BorderRadius.circular(12),
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: const Color(0xFFE2E8F0)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.02),
+                          blurRadius: 4,
+                          offset: const Offset(0, 2),
+                        ),
+                      ],
                     ),
                     child: Row(
                       children: [
-                        const Icon(Icons.search, size: 20, color: Color(0xFF76777B)),
+                        const Icon(Icons.search_rounded, size: 20, color: Color(0xFF64748B)),
                         const SizedBox(width: 10),
                         Expanded(
                           child: TextField(
@@ -278,9 +287,16 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                             style: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF1A1A18)),
                             decoration: InputDecoration(
                               hintText: 'Cari nama pendaftar, NIK, atau kota...',
-                              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF76777B)),
+                              hintStyle: GoogleFonts.plusJakartaSans(fontSize: 13, color: const Color(0xFF94A3B8)),
                               border: InputBorder.none,
+                              enabledBorder: InputBorder.none,
+                              focusedBorder: InputBorder.none,
+                              errorBorder: InputBorder.none,
+                              focusedErrorBorder: InputBorder.none,
+                              disabledBorder: InputBorder.none,
+                              filled: false,
                               isDense: true,
+                              contentPadding: EdgeInsets.zero,
                             ),
                           ),
                         ),
@@ -290,7 +306,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                               _searchController.clear();
                               setState(() {});
                             },
-                            child: const Icon(Icons.cancel, size: 18, color: Color(0xFF76777B)),
+                            child: const Icon(Icons.close_rounded, size: 18, color: Color(0xFF64748B)),
                           ),
                       ],
                     ),
@@ -525,8 +541,9 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                           Container(
                             padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
                             decoration: BoxDecoration(
-                              color: const Color(0xFFF1EEE7),
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(4),
+                              border: Border.all(color: const Color(0xFFE5E7EB)),
                             ),
                             child: Text(
                               'NIK: $nik',
