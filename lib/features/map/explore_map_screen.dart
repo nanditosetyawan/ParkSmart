@@ -17,6 +17,7 @@ import '../parking/parking_detail_screen.dart';
 import '../home/home_screen.dart';
 import '../favorite/favorite_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
+import 'backend/explore_map_backend.dart';
 
 class ExploreMapScreen extends StatefulWidget {
   final Map<String, dynamic>? initialSelectedParking;
@@ -379,6 +380,19 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         _onParkingMarkerTapped(loc);
       });
     }
+
+    // Ambil data lokasi parkir live dari backend Supabase
+    ExploreMapBackend.instance.fetchMapLocations().then((_) {
+      if (mounted && ExploreMapBackend.instance.locations.isNotEmpty) {
+        setState(() {
+          for (final loc in ExploreMapBackend.instance.locations) {
+            if (!_parkingLocations.any((p) => p['name'] == loc['name'])) {
+              _parkingLocations.insert(0, loc);
+            }
+          }
+        });
+      }
+    });
   }
 
   @override

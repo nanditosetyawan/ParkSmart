@@ -29,6 +29,7 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../map/explore_map_screen.dart';
 import '../game/game_lobby_screen.dart' as game;
+import 'backend/home_backend.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -141,6 +142,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     // Langsung minta akses GPS saat membuka aplikasi agar posisi map relevan
     _initGpsAndOrientation();
+    // Ambil data backend Supabase
+    HomeBackend.instance.loadHomeData();
 
     // Periksa apakah sistem sedang dalam mode maintenance global
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -505,16 +508,52 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                           ),
-                          // Notification button
-                          _NavIconBtn(
-                            icon: Icons.notifications_outlined,
-                            onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                          // Notification button with dynamic unread badge
+                          ListenableBuilder(
+                            listenable: HomeBackend.instance,
+                            builder: (context, _) {
+                              final unread = HomeBackend.instance.unreadNotificationCount;
+                              return Stack(
+                                clipBehavior: Clip.none,
+                                children: [
+                                  _NavIconBtn(
+                                    icon: Icons.notifications_outlined,
+                                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const NotificationScreen())),
+                                  ),
+                                  if (unread > 0)
+                                    Positioned(
+                                      top: 4,
+                                      right: 4,
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                                        decoration: BoxDecoration(
+                                          color: const Color(0xFFEF4444),
+                                          borderRadius: BorderRadius.circular(10),
+                                        ),
+                                        constraints: const BoxConstraints(minWidth: 16, minHeight: 16),
+                                        child: Text(
+                                          unread > 9 ? '9+' : '$unread',
+                                          style: const TextStyle(color: Colors.white, fontSize: 9.5, fontWeight: FontWeight.bold),
+                                          textAlign: TextAlign.center,
+                                        ),
+                                      ),
+                                    ),
+                                ],
+                              );
+                            },
                           ),
                         ],
                       ),
                       const SizedBox(height: 20),
-                      // Oversized greeting
-                      Text('Halo, Sarah', style: AppTypography.displayLg()),
+                      // Oversized dynamic greeting from Supabase
+                      ListenableBuilder(
+                        listenable: HomeBackend.instance,
+                        builder: (context, _) {
+                          final name = HomeBackend.instance.userName;
+                          final shortName = name.split(' ').first;
+                          return Text('Halo, $shortName', style: AppTypography.displayLg());
+                        },
+                      ),
                       const SizedBox(height: 4),
                       Text('Temukan slot parkir nyaman hari ini', style: AppTypography.bodySm(color: AppColors.textSecondary)),
 

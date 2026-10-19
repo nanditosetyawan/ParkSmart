@@ -8,6 +8,7 @@ import 'core/services/maintenance_service.dart';
 import 'theme/app_theme.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'features/auth/login_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -19,6 +20,22 @@ void main() async {
   } catch (e) {
     debugPrint('Gagal load .env: $e');
   }
+
+  // Inisialisasi Supabase Backend
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? 'https://necsdylhtswrrqassvzp.supabase.co';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
+  if (supabaseAnonKey.isNotEmpty) {
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey,
+      );
+      debugPrint('Supabase berhasil diinisialisasi: $supabaseUrl');
+    } catch (e) {
+      debugPrint('Error Supabase.initialize: $e');
+    }
+  }
+
   await NotificationService().init();
   await CurrencyService.instance.init();
   await ThemeService.instance.init();

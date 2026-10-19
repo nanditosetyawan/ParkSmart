@@ -9,9 +9,11 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../booking/slot_selection_screen.dart';
 import '../../core/services/maintenance_service.dart';
+import 'backend/parking_detail_backend.dart';
 
 class ParkingDetailScreen extends StatefulWidget {
-  const ParkingDetailScreen({super.key});
+  final String? locationId;
+  const ParkingDetailScreen({super.key, this.locationId});
 
   @override
   State<ParkingDetailScreen> createState() => _ParkingDetailScreenState();
@@ -19,6 +21,12 @@ class ParkingDetailScreen extends StatefulWidget {
 
 class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   bool _bookmarked = false;
+
+  @override
+  void initState() {
+    super.initState();
+    ParkingDetailBackend.instance.fetchLocationDetail(locationId: widget.locationId);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -200,34 +208,48 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                           ],
                         ),
                         const SizedBox(height: 10),
-                        Text(
-                          'Central Park Mall',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 34,
-                            fontWeight: FontWeight.w800,
-                            height: 1.15,
-                            letterSpacing: -0.5,
-                            color: isDark ? Colors.white : AppColors.textPrimary,
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.near_me,
-                              size: 18,
-                              color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF1F4F3C),
-                            ),
-                            const SizedBox(width: 6),
-                            Expanded(
-                              child: Text(
-                                'Jl. Letjen S. Parman Kav. 28, South Lobby B2, Jakarta Barat',
-                                style: AppTypography.bodySm(
-                                  color: isDark ? theme.textMuted : AppColors.textSecondary,
+                        ListenableBuilder(
+                          listenable: ParkingDetailBackend.instance,
+                          builder: (context, _) {
+                            final loc = ParkingDetailBackend.instance.locationDetail;
+                            final name = loc?['name'] as String? ?? 'Central Park Mall';
+                            final address = loc?['address'] as String? ?? 'Jl. Letjen S. Parman Kav. 28, South Lobby B2, Jakarta Barat';
+
+                            return Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  name,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 34,
+                                    fontWeight: FontWeight.w800,
+                                    height: 1.15,
+                                    letterSpacing: -0.5,
+                                    color: isDark ? Colors.white : AppColors.textPrimary,
+                                  ),
                                 ),
-                              ),
-                            ),
-                          ],
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [
+                                    Icon(
+                                      Icons.near_me,
+                                      size: 18,
+                                      color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF1F4F3C),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        address,
+                                        style: AppTypography.bodySm(
+                                          color: isDark ? theme.textMuted : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            );
+                          },
                         ),
 
                         // Capacity card
@@ -257,14 +279,20 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                         ),
                                       ),
                                       const SizedBox(height: 4),
-                                      Text(
-                                        '28 Slot',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 32,
-                                          fontWeight: FontWeight.w700,
-                                          letterSpacing: -0.5,
-                                          color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                                        ),
+                                      ListenableBuilder(
+                                        listenable: ParkingDetailBackend.instance,
+                                        builder: (context, _) {
+                                          final available = ParkingDetailBackend.instance.availableSlots;
+                                          return Text(
+                                            '$available Slot',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 32,
+                                              fontWeight: FontWeight.w700,
+                                              letterSpacing: -0.5,
+                                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                            ),
+                                          );
+                                        },
                                       ),
                                       Text(
                                         'Siap pakai di Basement B2',

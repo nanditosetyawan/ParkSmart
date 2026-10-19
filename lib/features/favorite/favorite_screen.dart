@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
 import '../../core/services/theme_service.dart';
 import '../parking/parking_detail_screen.dart';
+import 'backend/favorite_backend.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -68,6 +69,17 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   void initState() {
     super.initState();
     _displayedFavorites = List.from(_allFavorites);
+
+    // Ambil data tempat favorit live dari backend Supabase
+    FavoriteBackend.instance.fetchFavorites().then((_) {
+      if (mounted && FavoriteBackend.instance.favorites.isNotEmpty) {
+        setState(() {
+          _allFavorites.clear();
+          _allFavorites.addAll(FavoriteBackend.instance.favorites);
+          _displayedFavorites = List.from(_allFavorites);
+        });
+      }
+    });
   }
 
   void _onSearchChanged(String query) {

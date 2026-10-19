@@ -122,8 +122,6 @@ class _AdminOperationsNotificationsScreenState extends State<AdminOperationsNoti
 
   @override
   Widget build(BuildContext context) {
-    final unreadCount = _notifications.where((n) => !n.isRead).length;
-
     return Theme(
       data: AppTheme.light,
       child: Scaffold(
