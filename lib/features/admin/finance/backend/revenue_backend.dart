@@ -103,8 +103,8 @@ class RevenueBackend extends ChangeNotifier {
     try {
       final payments = await _client
           .from('payments')
-          .select('amount, payment_status, created_at')
-          .eq('payment_status', 'paid');
+          .select('amount, status, created_at')
+          .eq('status', 'success');
 
       if (payments.isNotEmpty) {
         double total = 0;

@@ -1720,7 +1720,6 @@ class _RecommendationsList extends StatefulWidget {
 
 class _RecommendationsListState extends State<_RecommendationsList> {
   bool _isLoading = false;
-  int _extraCount = 0;
 
   Widget _buildCard({
     required String title,
@@ -1970,8 +1969,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance]),
       builder: (context, _) {
+        final locations = HomeBackend.instance.recommendedLocations;
+
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -1986,102 +1987,99 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     onTap: () async {
                       if (_isLoading) return;
                       setState(() => _isLoading = true);
-                      await Future.delayed(const Duration(seconds: 1));
+                      await HomeBackend.instance.loadHomeData();
                       if (mounted) {
-                        setState(() {
-                          _isLoading = false;
-                          _extraCount++;
-                        });
+                        setState(() => _isLoading = false);
                       }
                     },
                     child: _isLoading 
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text('Lihat Semua', style: AppTypography.buttonSm(color: AppColors.secondary)),
+                      : Text('Muat Ulang', style: AppTypography.buttonSm(color: AppColors.secondary)),
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 2),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-              child: _buildCard(
-                title: 'Grand Indonesia West Mall', 
-                subtitle: '850m • 8 slot kosong', 
-                price: 'Rp 6.000 / jam', 
-                imageUrl: 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-                rating: '4.8',
-                locData: const {
-                  'name': 'Grand Indonesia West Mall',
-                  'type': 'Parkiran Mall',
-                  'point': LatLng(-6.1953, 106.8208),
-                  'slots': 8,
-                  'isEv': false,
-                  'distance': '850m',
-                  'price': 'Rp 6.000 / jam',
-                  'rating': 4.8,
-                  'reviews': '1.820',
-                  'hours': 'Buka • Tutup pukul 22.00 WIB',
-                  'photos': [
-                    'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-                  ],
-                },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-              child: _buildCard(
-                title: 'Central Park Mall Parking', 
-                subtitle: '350m • 42 slot tersedia', 
-                price: 'Rp 5.000 / jam', 
-                imageUrl: 'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-                rating: '4.7',
-                isEv: true,
-                locData: const {
-                  'name': 'Central Park Mall Parking',
-                  'type': 'Parkiran Mall',
-                  'point': LatLng(-6.1788, 106.7916),
-                  'slots': 42,
-                  'isEv': true,
-                  'distance': '350m',
-                  'price': 'Rp 5.000 / jam',
-                  'rating': 4.7,
-                  'reviews': '1.420',
-                  'hours': 'Buka • Tutup pukul 22.00 WIB',
-                  'photos': [
-                    'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-                    'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-                  ],
-                },
-              ),
-            ),
-            for (int i = 0; i < _extraCount; i++)
+
+            if (locations.isEmpty)
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                child: _buildCard(
-                  title: 'Plaza Indonesia (Lantai 2)', 
-                  subtitle: '1.2km • Tersedia 12 slot', 
-                  price: 'Rp 5.000 / jam', 
-                  imageUrl: 'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-                  rating: '4.6',
-                  locData: const {
-                    'name': 'Plaza Indonesia (Lantai 2)',
-                    'type': 'Parkiran Mall',
-                    'point': LatLng(-6.1928, 106.8228),
-                    'slots': 12,
-                    'isEv': false,
-                    'distance': '1.2km',
-                    'price': 'Rp 5.000 / jam',
-                    'rating': 4.6,
-                    'reviews': '1.150',
-                    'hours': 'Buka • Tutup pukul 22.00 WIB',
-                    'photos': [
-                      'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-                      'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH, vertical: 36),
+                child: Center(
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.local_parking_outlined,
+                        size: 48,
+                        color: ThemeService.instance.textSecondary.withValues(alpha: 0.35),
+                      ),
+                      const SizedBox(height: 12),
+                      Text(
+                        'Belum ada rekomendasi parkir aktif',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: ThemeService.instance.textSecondary,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Semua tempat parkir diinput langsung oleh Admin Operasional',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: ThemeService.instance.textSecondary.withValues(alpha: 0.7),
+                        ),
+                      ),
                     ],
+                  ),
+                ),
+              )
+            else
+              for (final loc in locations)
+                Builder(
+                  builder: (context) {
+                    final lat = (loc['latitude'] as num?)?.toDouble() ?? -6.1754;
+                    final lng = (loc['longitude'] as num?)?.toDouble() ?? 106.7933;
+                    final rate = (loc['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+                    final capacity = (loc['total_capacity'] as num?)?.toInt() ?? 50;
+                    final ratingVal = (loc['rating'] as num?)?.toDouble() ?? 4.8;
+                    final reviewsVal = loc['review_count']?.toString() ?? '100';
+                    final facilities = (loc['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+                    final isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
+                    final img = (loc['image_url'] != null && loc['image_url'].toString().isNotEmpty)
+                        ? loc['image_url'].toString()
+                        : 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80';
+
+                    final locData = {
+                      'id': loc['id'],
+                      'name': loc['name'] ?? 'Spot Parkir',
+                      'type': loc['type'] ?? 'Parkiran Mall',
+                      'point': LatLng(lat, lng),
+                      'slots': capacity,
+                      'isEv': isEv,
+                      'distance': '1.2 km',
+                      'price': 'Rp ${rate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+                      'rating': ratingVal,
+                      'reviews': reviewsVal,
+                      'hours': loc['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
+                      'photos': [img],
+                      'facilities': facilities,
+                    };
+
+                    return Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+                      child: _buildCard(
+                        title: loc['name'] ?? 'Spot Parkir',
+                        subtitle: '${loc['city'] ?? 'Jakarta'} • $capacity slot kapasitas',
+                        price: 'Rp ${rate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+                        imageUrl: img,
+                        rating: ratingVal.toStringAsFixed(1),
+                        isEv: isEv,
+                        locData: locData,
+                      ),
+                    );
                   },
                 ),
-              ),
             const SizedBox(height: 36),
           ],
         );

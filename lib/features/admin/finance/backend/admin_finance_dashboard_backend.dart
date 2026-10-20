@@ -81,7 +81,7 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
       // 1. Ambil agregat pembayaran sukses
       final paymentsRes = await _client
           .from('payments')
-          .select('id, amount, payment_method, payment_status, created_at')
+          .select('id, transaction_code, amount, payment_method, status, transaction_type, description, created_at')
           .order('created_at', ascending: false)
           .limit(20);
 
@@ -91,7 +91,7 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
 
         for (var row in paymentsRes) {
           final amt = (row['amount'] as num?)?.toDouble() ?? 0;
-          if (row['payment_status'] == 'paid' || row['payment_status'] == 'success') {
+          if (row['status'] == 'success') {
             totalPaid += amt;
             countSuccess++;
           }
@@ -101,6 +101,38 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
           successTrxCount = countSuccess;
           successTrxVolume = 'Rp ${_formatCurrency(totalPaid.round())}';
         }
+
+        recentTransactions = paymentsRes.take(5).map<Map<String, dynamic>>((p) {
+          final amt = (p['amount'] as num?)?.toInt() ?? 0;
+          final method = (p['payment_method'] ?? 'WALLET').toString().toUpperCase();
+          final type = (p['transaction_type'] ?? 'parking_payment').toString();
+          final isIncome = type != 'refund';
+
+          IconData icon = Icons.account_balance_wallet;
+          Color iconBg = const Color(0xFFFEF3C7);
+          Color iconColor = const Color(0xFFD97706);
+
+          if (method == 'QRIS') {
+            icon = Icons.qr_code_2;
+            iconBg = const Color(0xFFD1F2EB);
+            iconColor = const Color(0xFF17A18A);
+          } else if (type == 'refund') {
+            icon = Icons.replay;
+            iconBg = const Color(0xFFFDE8E4);
+            iconColor = const Color(0xFFD94B4B);
+          }
+
+          return {
+            'icon': icon,
+            'iconBg': iconBg,
+            'iconColor': iconColor,
+            'title': p['description'] ?? 'Transaksi ParkSmart #$method',
+            'subtitle': 'Kode #${p['transaction_code'] ?? 'TRX-001'}',
+            'amount': '${isIncome ? '+' : '-'}Rp ${_formatCurrency(amt)}',
+            'isIncome': isIncome,
+            'time': p['created_at'] != null ? p['created_at'].toString().substring(0, 10) : 'Hari ini',
+          };
+        }).toList();
       }
 
       // 2. Ambil total deposit saldo pengguna

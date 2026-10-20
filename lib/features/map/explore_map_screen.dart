@@ -198,196 +198,45 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   // Kategori terpilih (Terdekat, Mall, Parkir EV)
   String _selectedCategory = '';
 
-  // Data lokasi parkir di sekitar dengan informasi rating, jam buka & foto admin
-  final List<Map<String, dynamic>> _parkingLocations = [
-    {
-      'name': 'Parkir Khusus Abu Bakar Ali Malioboro',
-      'type': 'Parkir Resmi Malioboro',
-      'point': const LatLng(-7.7915, 110.3658),
-      'slots': 55,
-      'isEv': true,
-      'distance': '400m',
-      'price': 'Rp 3.000 / jam',
-      'rating': 4.7,
-      'reviews': '1.850',
-      'hours': 'Buka 24 Jam',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Parkiran Malioboro Mall Basement',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-7.7928, 110.3665),
-      'slots': 38,
-      'isEv': false,
-      'distance': '600m',
-      'price': 'Rp 4.000 / jam',
-      'rating': 4.6,
-      'reviews': '940',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Taman Parkir Ngabean Jogja',
-      'type': 'Parkir Wisata Kraton',
-      'point': const LatLng(-7.8062, 110.3582),
-      'slots': 70,
-      'isEv': false,
-      'distance': '850m',
-      'price': 'Rp 3.000 / jam',
-      'rating': 4.5,
-      'reviews': '610',
-      'hours': 'Buka 24 Jam',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Plaza Ambarrukmo Parking Hub',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-7.7826, 110.4011),
-      'slots': 92,
-      'isEv': true,
-      'distance': '2.4km',
-      'price': 'Rp 4.000 / jam',
-      'rating': 4.8,
-      'reviews': '3.200',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Central Park Mall Parking',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1788, 106.7916),
-      'slots': 42,
-      'isEv': true,
-      'distance': '350m',
-      'price': 'Rp 5.000 / jam',
-      'rating': 4.7,
-      'reviews': '1.420',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Neo Soho Parking Hub',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1755, 106.7895),
-      'slots': 18,
-      'isEv': true,
-      'distance': '500m',
-      'price': 'Rp 5.000 / jam',
-      'rating': 4.6,
-      'reviews': '850',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Mall Taman Anggrek Basement',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1790, 106.7925),
-      'slots': 85,
-      'isEv': false,
-      'distance': '750m',
-      'price': 'Rp 4.000 / jam',
-      'rating': 4.5,
-      'reviews': '2.100',
-      'hours': 'Buka • Tutup pukul 21.30 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'EV Fast Charging Hub Tomang',
-      'type': 'Parkir Khusus EV',
-      'point': const LatLng(-6.1740, 106.7940),
-      'slots': 6,
-      'isEv': true,
-      'distance': '1.1km',
-      'price': 'Rp 8.000 / jam',
-      'rating': 4.8,
-      'reviews': '340',
-      'hours': 'Buka 24 Jam',
-      'photos': [
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Grand Indonesia West Mall',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1953, 106.8208),
-      'slots': 8,
-      'isEv': false,
-      'distance': '850m',
-      'price': 'Rp 6.000 / jam',
-      'rating': 4.8,
-      'reviews': '1.820',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Plaza Indonesia (Lantai 2)',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1928, 106.8228),
-      'slots': 12,
-      'isEv': false,
-      'distance': '1.2km',
-      'price': 'Rp 5.000 / jam',
-      'rating': 4.6,
-      'reviews': '1.150',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-  ];
+  // Data lokasi parkir dinamis murni dari Supabase (diinput oleh Admin Operasional)
+  // Tidak ada marker di peta jika database kosong / belum diinput admin
+  final List<Map<String, dynamic>> _parkingLocations = [];
 
   @override
   void initState() {
     super.initState();
-    // Titik awal peta: Sekitar Central Park Jakarta
-    _currentPosition = const LatLng(-6.1774, 106.7907);
+    // Titik awal peta default: Jakarta
+    _currentPosition = const LatLng(-6.1754, 106.7933);
     _fetchWeather(_currentPosition!);
 
     if (widget.initialSelectedParking != null) {
       final loc = widget.initialSelectedParking!;
-      if (!_parkingLocations.any((p) => p['name'] == loc['name'])) {
-        _parkingLocations.add(loc);
-      }
+      _parkingLocations.add(loc);
       _selectedParking = loc;
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _onParkingMarkerTapped(loc);
       });
     }
 
-    // Ambil data lokasi parkir live dari backend Supabase
+    // Ambil data lokasi parkir live dari backend Supabase (diinput oleh Admin Operasional)
+    // Jika database kosong, tidak ada titik di peta sama sekali
     ExploreMapBackend.instance.fetchMapLocations().then((_) {
-      if (mounted && ExploreMapBackend.instance.locations.isNotEmpty) {
+      if (mounted) {
         setState(() {
+          _parkingLocations.clear();
+          if (widget.initialSelectedParking != null) {
+            _parkingLocations.add(widget.initialSelectedParking!);
+          }
           for (final loc in ExploreMapBackend.instance.locations) {
             if (!_parkingLocations.any((p) => p['name'] == loc['name'])) {
-              _parkingLocations.insert(0, loc);
+              _parkingLocations.add(loc);
+            }
+          }
+          // Jika ada lokasi dari database dan belum ada yang dipilih, pusatkan ke lokasi pertama
+          if (_selectedParking == null && _parkingLocations.isNotEmpty) {
+            final firstLoc = _parkingLocations.first;
+            if (firstLoc['point'] != null) {
+              _currentPosition = firstLoc['point'] as LatLng;
             }
           }
         });

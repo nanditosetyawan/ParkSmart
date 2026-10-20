@@ -11,6 +11,9 @@ class ProfileBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
+  String _userId = 'c0000000-0000-0000-0000-000000000001';
+  String get userId => _userId;
+
   String _name = 'Nandito Setyawan';
   String _email = 'dito@parksmart.id';
   String _phone = '+62 812-3456-7890';
@@ -35,21 +38,24 @@ class ProfileBackend extends ChangeNotifier {
 
     try {
       final user = _client.auth.currentUser;
-      final userId = user?.id;
+      final authUserId = user?.id;
 
       // Ambil data user dari tabel users
       dynamic query = _client.from('users').select(
         'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance',
       );
 
-      if (userId != null) {
-        query = query.eq('auth_user_id', userId);
+      if (authUserId != null) {
+        query = query.eq('auth_user_id', authUserId);
       }
 
       final response = await query.limit(1);
 
       if (response != null && (response as List).isNotEmpty) {
         final data = response.first;
+        if (data['id'] != null) {
+          _userId = data['id'].toString();
+        }
         _name = data['full_name'] ?? _name;
         _email = data['email'] ?? _email;
         _phone = data['phone'] ?? _phone;

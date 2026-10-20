@@ -33,34 +33,35 @@ class ExploreMapBackend extends ChangeNotifier {
 
       final response = await query.order('rating', ascending: false);
 
-      if (response.isNotEmpty) {
-        _locations = response.map<Map<String, dynamic>>((row) {
-          final lat = (row['latitude'] as num?)?.toDouble() ?? -7.7956;
-          final lng = (row['longitude'] as num?)?.toDouble() ?? 110.3695;
-          final rateMobil = (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
-          final capacity = (row['total_capacity'] as int?) ?? 50;
-          final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
-          final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
+      _locations = response.map<Map<String, dynamic>>((row) {
+        final lat = (row['latitude'] as num?)?.toDouble() ?? -6.1754;
+        final lng = (row['longitude'] as num?)?.toDouble() ?? 106.7933;
+        final rateMobil = (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+        final capacity = (row['total_capacity'] as int?) ?? 50;
+        final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+        final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
 
-          return {
-            'id': row['id'],
-            'name': row['name'] ?? 'Spot Parkir',
-            'type': row['type'] ?? 'Parkir Resmi',
-            'point': LatLng(lat, lng),
-            'slots': capacity,
-            'isEv': isEv,
-            'distance': '1.2 km',
-            'price': 'Rp ${rateMobil.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
-            'rating': (row['rating'] as num?)?.toDouble() ?? 4.5,
-            'reviews': '${row['review_count'] ?? 100}',
-            'hours': row['status'] == 'open' ? 'Buka 24 Jam' : 'Tutup Sementara',
-            'photos': [
-              row['image_url'] ?? 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-            ],
-            'facilities': facilities,
-          };
-        }).toList();
-      }
+        return {
+          'id': row['id'],
+          'name': row['name'] ?? 'Spot Parkir',
+          'type': row['type'] ?? 'Parkir Resmi',
+          'point': LatLng(lat, lng),
+          'slots': capacity,
+          'isEv': isEv,
+          'distance': '1.2 km',
+          'price': 'Rp ${rateMobil.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+          'rating': (row['rating'] as num?)?.toDouble() ?? 4.5,
+          'reviews': '${row['review_count'] ?? 0}',
+          'hours': row['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
+          'photos': [
+            if (row['image_url'] != null && row['image_url'].toString().isNotEmpty)
+              row['image_url'].toString()
+            else
+              'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+          ],
+          'facilities': facilities,
+        };
+      }).toList();
     } catch (e) {
       debugPrint('[ExploreMapBackend] fetchMapLocations error: $e');
     } finally {

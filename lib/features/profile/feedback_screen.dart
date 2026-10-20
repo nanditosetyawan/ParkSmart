@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../home/home_screen.dart';
+import 'backend/feedback_backend.dart';
 
 class FeedbackScreen extends StatefulWidget {
   const FeedbackScreen({super.key});
@@ -13,6 +14,14 @@ class FeedbackScreen extends StatefulWidget {
 class _FeedbackScreenState extends State<FeedbackScreen> {
   int _rating = 5;
   final Set<String> _selectedTopics = {'Akurasi Sensor ANPR'};
+  final TextEditingController _commentController = TextEditingController();
+  bool _isSubmitting = false;
+
+  @override
+  void dispose() {
+    _commentController.dispose();
+    super.dispose();
+  }
 
   final List<String> _topics = [
     'Akurasi Sensor ANPR',
@@ -360,6 +369,35 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           ],
                         ),
                       ),
+                      const SizedBox(height: 18),
+
+                      // Input Catatan / Komentar Pengguna
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF181C22) : Colors.white,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: isDark ? const Color(0xFF2D3542) : const Color(0xFFE5E2DB),
+                          ),
+                        ),
+                        child: TextField(
+                          controller: _commentController,
+                          maxLines: 3,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                          ),
+                          decoration: InputDecoration(
+                            border: InputBorder.none,
+                            hintText: 'Tuliskan ulasan atau masukan detail Anda di sini...',
+                            hintStyle: GoogleFonts.plusJakartaSans(
+                              fontSize: 13,
+                              color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
+                            ),
+                          ),
+                        ),
+                      ),
                       const SizedBox(height: 32),
 
                       // Submit Button (sesuai pola: tombol hitam jadi putih teks hitam di dark mode)
@@ -367,11 +405,22 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: () {
-                            showDialog(
-                              context: context,
-                              barrierColor: Colors.black.withValues(alpha: 0.65),
-                              builder: (dialogCtx) => ListenableBuilder(
+                          onPressed: _isSubmitting
+                              ? null
+                              : () async {
+                                  setState(() => _isSubmitting = true);
+                                  await FeedbackBackend.instance.submitFeedback(
+                                    rating: _rating,
+                                    comment: _commentController.text,
+                                    selectedTopics: _selectedTopics.toList(),
+                                  );
+                                  if (!mounted) return;
+                                  setState(() => _isSubmitting = false);
+
+                                  showDialog(
+                                    context: context,
+                                    barrierColor: Colors.black.withValues(alpha: 0.65),
+                                    builder: (dialogCtx) => ListenableBuilder(
                                 listenable: ThemeService.instance,
                                 builder: (context, _) {
                                   final dlgTheme = ThemeService.instance;

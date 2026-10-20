@@ -74,18 +74,16 @@ class HomeBackend extends ChangeNotifier {
     }
   }
 
-  /// 2. Ambil lokasi parkir rekomendasi (Targeted Columns: id, code, name, type, city, hourly_rate_mobil, rating, review_count, status, image_url)
+  /// 2. Ambil lokasi parkir rekomendasi dari Supabase (diinput oleh Admin Operasional)
   Future<void> _fetchRecommendedLocations() async {
     try {
       final data = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, hourly_rate_mobil, rating, review_count, status, image_url')
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, rating, review_count, status, image_url, facilities')
           .order('rating', ascending: false)
-          .limit(5);
+          .limit(10);
 
-      if (data.isNotEmpty) {
-        _recommendedLocations = List<Map<String, dynamic>>.from(data);
-      }
+      _recommendedLocations = List<Map<String, dynamic>>.from(data);
     } catch (e) {
       debugPrint('[HomeBackend] _fetchRecommendedLocations error: $e');
     }

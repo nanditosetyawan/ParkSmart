@@ -163,21 +163,28 @@ class AdminLocationsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final imgUrl = loc['imageUrl']?.toString() ??
+          loc['image_url']?.toString() ??
+          'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80';
+
       await _client.from('parking_locations').insert({
         'code': 'LOC-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
         'name': loc['name'] ?? 'Lokasi Baru',
         'city': loc['city'] ?? 'Jakarta',
         'province': 'Indonesia',
         'address': loc['address'] ?? '-',
-        'latitude': -6.1754,
-        'longitude': 106.7933,
+        'latitude': loc['latitude'] ?? -6.1754,
+        'longitude': loc['longitude'] ?? 106.7933,
         'total_capacity': loc['capacity'] ?? 100,
         'car_slots_capacity': loc['carSlots'] ?? 80,
         'motor_slots_capacity': loc['motorSlots'] ?? 15,
         'ev_slots_capacity': loc['evSlots'] ?? 5,
         'hourly_rate_mobil': loc['hourlyRate'] ?? 5000,
         'status': 'active',
+        'image_url': imgUrl,
+        'images': [imgUrl],
       });
+      await fetchLocations();
       return true;
     } catch (e) {
       debugPrint('[AdminLocationsBackend] addLocation error: $e');

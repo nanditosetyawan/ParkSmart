@@ -81,64 +81,58 @@ class HistoryBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await _client
+      final List<HistoryItem> fetched = [];
+
+      // 1. Ambil dari tabel parking_sessions
+      final sessions = await _client
           .from('parking_sessions')
-          .select('id, plate_number, vehicle_desc, check_in_time, total_fee, status')
+          .select('id, plate_number, vehicle_desc, check_in_time, total_fee, status, parking_locations(name)')
           .order('created_at', ascending: false)
           .limit(20);
 
-      if (res.isNotEmpty) {
-        _items = res.map((r) => HistoryItem.fromMap(r)).toList();
-      } else {
-        _useFallbackData();
+      for (var s in sessions) {
+        final locName = s['parking_locations'] != null ? s['parking_locations']['name']?.toString() : null;
+        final map = Map<String, dynamic>.from(s);
+        if (locName != null) map['location_name'] = locName;
+        fetched.add(HistoryItem.fromMap(map));
       }
+
+      // 2. Ambil dari tabel bookings
+      final bookings = await _client
+          .from('bookings')
+          .select('id, booking_code, start_time, duration_hours, total_price, booking_status, parking_locations(name)')
+          .order('created_at', ascending: false)
+          .limit(20);
+
+      for (var b in bookings) {
+        final locName = b['parking_locations'] != null ? b['parking_locations']['name']?.toString() : 'Lokasi Parkir';
+        final statusStr = b['booking_status']?.toString().toLowerCase() ?? 'upcoming';
+        final isSelesai = statusStr == 'completed';
+        final isAktif = statusStr == 'active' || statusStr == 'upcoming';
+
+        fetched.add(HistoryItem(
+          id: b['id']?.toString() ?? '',
+          mallName: locName ?? 'ParkSmart Hub',
+          date: b['start_time'] != null
+              ? b['start_time'].toString().substring(0, 10)
+              : 'Hari ini',
+          status: isSelesai ? 'Selesai' : (isAktif ? 'Aktif' : statusStr),
+          statusColor: isSelesai ? const Color(0xFF059669) : const Color(0xFFD97706),
+          duration: '${b['duration_hours'] ?? 2} Jam',
+          slot: 'Booking #${b['booking_code'] ?? ''}',
+          price: 'Rp ${(b['total_price'] ?? 0).toString()}',
+          icon: Icons.local_parking,
+          isEv: false,
+        ));
+      }
+
+      _items = fetched;
     } catch (e) {
-      debugPrint('HistoryBackend fetchHistory error (using fallback): $e');
-      _useFallbackData();
+      debugPrint('HistoryBackend fetchHistory error: $e');
+      _items = [];
     } finally {
       _isLoading = false;
       notifyListeners();
     }
-  }
-
-  void _useFallbackData() {
-    _items = [
-      HistoryItem(
-        id: 'hist-001',
-        mallName: 'Central Park Mall',
-        date: 'Hari ini • 14:20',
-        status: 'Aktif',
-        statusColor: const Color(0xFFD97706),
-        duration: '1 Jam 15 Mnt',
-        slot: 'Slot A-05',
-        price: 'Rp 8.000',
-        icon: Icons.local_parking,
-        isEv: false,
-      ),
-      HistoryItem(
-        id: 'hist-002',
-        mallName: 'Grand Indonesia',
-        date: '21 Okt 2026 • 18:30',
-        status: 'Selesai',
-        statusColor: const Color(0xFF059669),
-        duration: '3 Jam',
-        slot: 'Slot C-14',
-        price: 'Rp 18.000',
-        icon: Icons.garage,
-        isEv: false,
-      ),
-      HistoryItem(
-        id: 'hist-003',
-        mallName: 'Pacific Place SCBD',
-        date: '18 Okt 2026 • 10:15',
-        status: 'Selesai',
-        statusColor: const Color(0xFF059669),
-        duration: '1 Jam',
-        slot: 'Slot B-02 (EV)',
-        price: 'Rp 15.000',
-        icon: Icons.electric_car,
-        isEv: true,
-      ),
-    ];
   }
 }

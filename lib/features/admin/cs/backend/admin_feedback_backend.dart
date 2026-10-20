@@ -77,6 +77,26 @@ class AdminFeedbackBackend extends ChangeNotifier {
   late List<Map<String, dynamic>> feedbacks = List.from(_defaultFeedbacks);
 
   /// Mengambil data ulasan dari Supabase
+  String _formatDate(dynamic dateRaw) {
+    if (dateRaw == null) return 'Hari ini';
+    try {
+      final dt = DateTime.parse(dateRaw.toString()).toLocal();
+      const months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      final day = dt.day;
+      final month = months[dt.month - 1];
+      final year = dt.year;
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      return '$day $month $year, $hour:$minute WIB';
+    } catch (_) {
+      return dateRaw.toString();
+    }
+  }
+
+  /// Mengambil data ulasan dari Supabase (terkoneksi ke public.customer_feedbacks)
   Future<void> fetchFeedbacks() async {
     _isLoading = true;
     _errorMessage = null;
@@ -84,39 +104,43 @@ class AdminFeedbackBackend extends ChangeNotifier {
 
     try {
       final res = await _client
-          .from('parking_reviews')
-          .select('id, rating, comment, reply, created_at')
+          .from('customer_feedbacks')
+          .select('id, rating, comment, admin_reply, is_resolved, created_at, users(full_name, phone), parking_locations(name)')
           .order('created_at', ascending: false);
 
       if (res.isNotEmpty) {
         feedbacks = res.map<Map<String, dynamic>>((row) {
-          final reply = row['reply']?.toString();
+          final reply = row['admin_reply']?.toString();
+          final userData = row['users'] as Map<String, dynamic>?;
+          final locData = row['parking_locations'] as Map<String, dynamic>?;
+          final userName = userData?['full_name'] ?? 'Pelanggan ParkSmart';
+          final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'P';
+          final locName = locData?['name'] ?? 'Central Park Mall';
+          final isResolved = (row['is_resolved'] as bool?) ?? (reply != null && reply.isNotEmpty);
+
           return {
             'id': row['id']?.toString() ?? 'FDB-000',
-            'user': 'Pelanggan ParkSmart',
-            'avatar': 'P',
+            'user': userName,
+            'avatar': initial,
             'rating': (row['rating'] as num?)?.toInt() ?? 5,
-            'location': 'Central Park Mall',
-            'date': row['created_at']?.toString().split('T')[0] ?? 'Hari ini',
+            'location': locName,
+            'date': row['created_at'] != null ? _formatDate(row['created_at']) : 'Hari ini',
             'comment': row['comment']?.toString() ?? 'Layanan parkir sangat baik.',
             'adminReply': reply,
-            'isResolved': reply != null && reply.isNotEmpty,
+            'isResolved': isResolved,
           };
         }).toList();
       }
     } catch (e) {
       debugPrint('[AdminFeedbackBackend] fetchFeedbacks error: $e');
       _errorMessage = e.toString();
-      if (feedbacks.isEmpty) {
-        feedbacks = List.from(_defaultFeedbacks);
-      }
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
 
-  /// Mengirimkan balasan resmi admin CS
+  /// Mengirimkan balasan resmi admin CS ke customer_feedbacks
   Future<void> submitReply(String id, String reply) async {
     final idx = feedbacks.indexWhere((f) => f['id'] == id);
     if (idx != -1) {
@@ -126,9 +150,13 @@ class AdminFeedbackBackend extends ChangeNotifier {
     }
 
     try {
-      await _client.from('parking_reviews').update({
-        'reply': reply,
+      await _client.from('customer_feedbacks').update({
+        'admin_reply': reply,
+        'is_resolved': true,
+        'replied_at': DateTime.now().toUtc().toIso8601String(),
       }).eq('id', id);
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[AdminFeedbackBackend] submitReply error: $e');
+    }
   }
 }
