@@ -26,7 +26,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
 
 
   final Map<String, List<String>> _rolePermissions = {
-    'Super Admin': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
+    'Super Admin': ['Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
     'Admin Operasional': ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'],
     'Admin Finansial': ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'],
     'Admin CS & KYC': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],

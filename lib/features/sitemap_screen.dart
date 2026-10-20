@@ -245,7 +245,7 @@ class SitemapScreen extends StatelessWidget {
                           const SizedBox(width: 8),
                           Expanded(
                             child: Text(
-                              'Konsep RBAC: Super Admin memiliki Emergency Master Access ke semua fitur termasuk Verifikasi KTP. Admin divisi (Operasional, Finansial, CS) terisolasi ketat pada fiturnya sendiri.',
+                              'Konsep RBAC: Super Admin mengelola tata kelola sistem, verifikasi KTP KYC, manajemen akun admin, dan konfigurasi AI. Admin divisi (Operasional, Finansial, CS) terisolasi pada fungsinya masing-masing.',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 height: 1.4,

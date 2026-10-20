@@ -25,7 +25,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
       'avatarPath': null,
       'lastLogin': '2 jam lalu',
       'locations': ['Semua Lokasi'],
-      'permissions': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
+      'permissions': ['Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
       'createdAt': '12 Jan 2024',
     },
     {
@@ -157,7 +157,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
   List<String> _getPermissionsForRole(String role) {
     switch (role) {
       case 'Super Admin':
-        return ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'];
+        return ['Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'];
       case 'Admin Operasional':
         return ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'];
       case 'Admin Finansial':

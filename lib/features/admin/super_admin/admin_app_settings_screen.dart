@@ -249,7 +249,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
             ),
           ),
 
-          // PENGATURAN MODE PERINGATAN SAJA (Menggantikan Kebijakan Akses Darurat)
+          // PENGATURAN MODE PERINGATAN SAJA (Banner Pengumuman)
           _buildSectionTitle(
             'Mode Peringatan Saja',
             subtitle: 'Tampilkan pesan pengumuman tanpa memblokir seluruh akses dan pemesanan aplikasi',
