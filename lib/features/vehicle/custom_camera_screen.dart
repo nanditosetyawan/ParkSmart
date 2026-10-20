@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+import 'backend/custom_camera_backend.dart';
 
 class CustomCameraScreen extends StatefulWidget {
   const CustomCameraScreen({super.key});
@@ -14,6 +15,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
   int _step = 1; // 1 = Pindai Plat, 2 = Pindai STNK
   CameraController? _controller;
   bool _isCameraInitialized = false;
+  bool _isUploading = false;
 
   @override
   void initState() {
@@ -34,7 +36,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
         }
       }
     } catch (e) {
-      debugPrint('Error initializing camera: ');
+      debugPrint('Error initializing camera: $e');
     }
   }
 
@@ -44,43 +46,57 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
     super.dispose();
   }
 
-  Future<void> _onCapture() async {
-    if (_controller != null && _controller!.value.isInitialized) {
-      try {
-        await _controller!.takePicture(); // Take actual picture
-      } catch (e) {
-        debugPrint('Error taking picture: ');
-      }
-    }
-    
+  Future<void> _processImageBytes(dynamic bytes) async {
+    if (!mounted) return;
+    setState(() => _isUploading = true);
+
+    final backend = CustomCameraBackend.instance;
     if (_step == 1) {
+      await backend.uploadPlatImage(bytes: bytes);
+      if (!mounted) return;
       setState(() {
+        _isUploading = false;
         _step = 2;
       });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Foto Plat Nomor berhasil diunggah! Lanjut foto STNK.'),
+          backgroundColor: Color(0xFF10B981),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else {
-      // Step 2 completed, return to AddVehicleScreen
-      if (mounted) {
-        Navigator.pop(context);
+      await backend.uploadStnkImage(bytes: bytes);
+      if (!mounted) return;
+      setState(() => _isUploading = false);
+      Navigator.pop(context);
+    }
+  }
+
+  Future<void> _onCapture() async {
+    if (_isUploading) return;
+    if (_controller != null && _controller!.value.isInitialized) {
+      try {
+        final XFile file = await _controller!.takePicture();
+        final bytes = await file.readAsBytes();
+        await _processImageBytes(bytes);
+      } catch (e) {
+        debugPrint('Error taking picture: $e');
       }
     }
   }
 
   Future<void> _onGallery() async {
+    if (_isUploading) return;
     final ImagePicker picker = ImagePicker();
     try {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
-        // Image selected from gallery, proceed to next step
-        if (_step == 1) {
-          setState(() {
-            _step = 2;
-          });
-        } else {
-          if (mounted) Navigator.pop(context);
-        }
+        final bytes = await image.readAsBytes();
+        await _processImageBytes(bytes);
       }
     } catch (e) {
-      debugPrint('Error picking image: ');
+      debugPrint('Error picking image: $e');
     }
   }
 

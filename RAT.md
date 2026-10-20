@@ -277,17 +277,19 @@
 │      replied_at   : TSTZ  │   │      created_at   : TSTZ  │
 └───────────────────────────┘   └───────────────────────────┘
 
-            │ (1:N)                               │ (0..1:N)
+            │ (1:2 Max Overwritten)                │ (0..1:N)
             ▼                                     ▼
 ┌───────────────────────────┐   ┌───────────────────────────┐
 │       ARCADE_SCORES       │   │      SYSTEM_SETTINGS      │
 ├───────────────────────────┤   ├───────────────────────────┤
 │ [PK] id           : UUID  │   │ [PK] key          : VARCHAR│
 │ [FK] user_id      : UUID  │   │      value        : JSONB  │
-│      game_name    : VARCHAR   │      description  : TEXT  │
-│      score        : INT   │   │ [FK] updated_by   : UUID  │
-│      points_earned: INT   │   │      updated_at   : TSTZ  │
-│      played_at    : TSTZ  │   └───────────────────────────┘
+│ [UQ] game_name    : VARCHAR   │      description  : TEXT  │
+│ [UQ] score_type   : VARCHAR   │ [FK] updated_by   : UUID  │
+│      score        : INT   │   │      updated_at   : TSTZ  │
+│      points_earned: INT   │   └───────────────────────────┘
+│      played_at    : TSTZ  │
+│ (Maks 2 row: highest/curr)│
 └───────────────────────────┘
 ```
 

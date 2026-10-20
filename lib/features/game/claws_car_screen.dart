@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'backend/claws_car_backend.dart';
 
 class ClawsCarScreen extends StatefulWidget {
   const ClawsCarScreen({super.key});
@@ -370,6 +371,12 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   }
 
   void _showPrizeWonModal(int amount, int newWallet) {
+    // Sinkronisasi ke Supabase arcade_scores (aturan menimpa: 1 row highest, 1 row current)
+    ClawsCarBackend.instance.saveGameResult(
+      score: amount,
+      pointsEarned: (amount / 100).round(),
+    );
+
     showDialog(
       context: context,
       barrierDismissible: true,

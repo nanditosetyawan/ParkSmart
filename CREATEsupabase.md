@@ -314,14 +314,16 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 14. TABEL SKOR ARCADE & POIN
+-- 14. TABEL SKOR ARCADE & POIN (SISTEM TIMPA / OVERWRITE - MAKSIMAL 2 ROW PER USER PER GAME)
 CREATE TABLE IF NOT EXISTS public.arcade_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     game_name VARCHAR(60) NOT NULL,
     score INT NOT NULL DEFAULT 0,
     points_earned INT NOT NULL DEFAULT 0,
-    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    score_type VARCHAR(20) NOT NULL DEFAULT 'current', -- 'highest' (rekor terbaik) atau 'current' (sesi terakhir ditimpa)
+    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_user_game_score_type UNIQUE (user_id, game_name, score_type)
 );
 
 -- 15. TABEL PENGATURAN GLOBAL SISTEM (JSONB)
@@ -334,10 +336,51 @@ CREATE TABLE IF NOT EXISTS public.system_settings (
 );
 
 -- ============================================================================
+-- 16. SUPABASE STORAGE BUCKET (DOKUMEN KYC & KENDARAAN)
+-- ============================================================================
+-- Bucket untuk menyimpan foto KTP & Selfie pengguna yang dikompresi brutal (~95%)
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'kyc-documents',
+    'kyc-documents',
+    true,
+    5242880, -- 5 MB batas maksimum (file terkompresi biasanya hanya 50-100 KB)
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- ============================================================================
+-- 17. MIGRATION & ALTER TABLE LOG (MCP EXECUTED)
+-- ============================================================================
+-- Query penyesuaian kolom & constraint tabel arcade_scores:
+-- ALTER TABLE public.arcade_scores ADD COLUMN IF NOT EXISTS score_type VARCHAR(20) NOT NULL DEFAULT 'current';
+-- ALTER TABLE public.arcade_scores DROP CONSTRAINT IF EXISTS uq_user_game_score_type;
+-- ALTER TABLE public.arcade_scores ADD CONSTRAINT uq_user_game_score_type UNIQUE (user_id, game_name, score_type);
+--
+-- Query bypass RLS untuk lingkungan lokal & integrasi development:
+-- ALTER TABLE public.admins DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.arcade_scores DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.bookings DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.customer_feedbacks DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.parking_locations DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.parking_sessions DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.parking_slots DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.payments DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.system_notifications DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.system_settings DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.user_kyc DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
+-- ALTER TABLE public.vehicles DISABLE ROW LEVEL SECURITY;
+
+-- ============================================================================
 -- INDEKS PERFORMA QUERY
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON public.users(phone);
+CREATE INDEX IF NOT EXISTS idx_arcade_scores_lookup ON public.arcade_scores(user_id, game_name, score_type);
 CREATE INDEX IF NOT EXISTS idx_vehicles_user ON public.vehicles(user_id);
 CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON public.vehicles(plate_number);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON public.admins(email);

@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../home/home_screen.dart';
 import '../../core/services/notification_service.dart';
+import 'backend/pin_backend.dart';
 
 class PinScreen extends StatefulWidget {
   final Widget nextScreen;
@@ -40,6 +41,27 @@ class _PinScreenState extends State<PinScreen> {
         _isProcessing = true;
       });
       _focusNode.unfocus();
+
+      // Verifikasi PIN dengan database via PinBackend
+      final isValid = await PinBackend.instance.verifyPin(value);
+      if (!mounted) return;
+
+      if (!isValid) {
+        setState(() {
+          _isProcessing = false;
+        });
+        _pinController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              PinBackend.instance.errorMessage ?? 'PIN Salah! Default PIN sistem: 1234',
+              style: GoogleFonts.plusJakartaSans(),
+            ),
+            backgroundColor: const Color(0xFFEF4444),
+          ),
+        );
+        return;
+      }
 
       final theme = ThemeService.instance;
       final isDark = theme.isDarkMode;

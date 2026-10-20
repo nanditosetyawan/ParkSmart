@@ -448,9 +448,18 @@ Dua sensor wajib digunakan secara bermakna, bukan hanya dibaca nilainya. Acceler
 | Start game  \-\> Pilih level  \-\> Kontrol kendaraan dengan sensor  \-\> Masuk ke slot parkir  \-\> Validasi posisi  \-\> Score  \-\> Simpan game score |
 | :---- |
 
-## **14.2 Batasan**
+## **14.2 Aturan Penyimpanan Skor Arcade (Sistem Overwrite - Maksimal 2 Baris)**
 
-Game harus sederhana agar tidak menggeser fokus dari produk utama. Tidak diperlukan engine game eksternal bila implementasi Flutter custom cukup. Fokus academic requirement adalah penggunaan dua sensor dalam satu fitur yang relevan dengan parkir.
+Penyimpanan skor game arcade (`arcade_scores`) menerapkan aturan penimpaan (*overwriting*) ketat untuk menjaga performa database agar baris data tidak membengkak tanpa batas:
+1. **Rekor Tertinggi (`score_type = 'highest'`)**: Tepat 1 baris per pengguna per jenis game yang hanya diperbarui jika pemain berhasil mencetak skor lebih tinggi dari rekor sebelumnya.
+2. **Skor Terakhir (`score_type = 'current'`)**: Tepat 1 baris per pengguna per jenis game yang selalu ditimpa (*upsert*) setiap kali permainan berakhir.
+3. **Reward Poin & Koin**: Poin yang diperoleh dari game balapan dan mesin capit langsung ditambahkan ke atribut `points` dan `wallet_balance` pada tabel `users`.
+4. **Total Baris Maksimal**: Tepat 2 baris data per pengguna per jenis permainan pada tabel `arcade_scores` menggunakan *unique constraint* `(user_id, game_name, score_type)`.
+
+## **14.3 Batasan & Optimasi Mobile (Cache Balancer & Kompresi Brutal 95%)**
+
+* **Database Request Balancer (Local Caching)**: Seluruh modul mobile (Android & iOS) dilengkapi layer penyeimbang database (`DatabaseCacheBalancerService`) dengan in-memory cache dan local persistent cache ber-TTL 3-15 menit untuk mencegah request berulang kali ke Supabase saat membuka halaman yang sama. Cache hanya di-invalidasi ketika terjadi mutasi data baru (Insert, Update, Delete).
+* **Kompresi Brutal 95% KYC & Kendaraan**: Fitur kamera KTP, STNK, dan Selfie wajah menerapkan utility kompresi brutal ~95% (`ImageCompressionUtil`) di background isolate sebelum berkas diunggah ke Supabase Storage bucket `kyc-documents`, menjaga ukuran file tetap di kisaran 50–100 KB sehingga hemat bandwidth dan cepat saat ditinjau Super Admin untuk proses persetujuan (ACC).
 
 # **15\. Notification, Currency, dan Timezone**
 

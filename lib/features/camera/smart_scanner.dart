@@ -4,6 +4,7 @@ import 'package:google_mlkit_barcode_scanning/google_mlkit_barcode_scanning.dart
 import 'package:google_mlkit_image_labeling/google_mlkit_image_labeling.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import 'backend/smart_scanner_backend.dart';
 
 class SmartScanner {
   static Future<void> openCameraAndProcess(BuildContext context) async {
@@ -33,9 +34,16 @@ class SmartScanner {
       final barcodes = await barcodeScanner.processImage(inputImage);
       await barcodeScanner.close();
 
+
       if (barcodes.isNotEmpty) {
-        // Jika ketemu barcode
-        resultMessage = 'Teks Barcode/QR:\n${barcodes.first.displayValue}';
+        // Jika ketemu barcode, validasi dengan database
+        final raw = barcodes.first.displayValue ?? '';
+        final valResult = await SmartScannerBackend.instance.validateScannedCode(raw);
+        if (valResult['found'] == true) {
+          resultMessage = '✅ ${valResult['title']}:\n${valResult['data']}';
+        } else {
+          resultMessage = 'Teks Barcode/QR:\n$raw';
+        }
       } else {
         // 3. Jika tidak ada barcode, kita deteksi benda (Image Labeling)
         final ImageLabelerOptions options = ImageLabelerOptions(confidenceThreshold: 0.7);

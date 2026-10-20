@@ -7,6 +7,7 @@ import 'package:sensors_plus/sensors_plus.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/sound_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'backend/car_game_backend.dart';
 
 // ============================================================
 // MODEL PARKIRAN & RINTANGAN RANJAU
@@ -462,6 +463,11 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
       if (_score > 0) {
         final currentPoints = prefs.getInt('user_arcade_points') ?? 25000;
         await prefs.setInt('user_arcade_points', currentPoints + _score);
+        // Sinkronisasi ke Supabase arcade_scores (aturan menimpa: 1 row highest, 1 row current)
+        CarGameBackend.instance.saveGameResult(
+          score: _score,
+          pointsEarned: _score,
+        );
       }
     } catch (e) {
       debugPrint('[CarGame] Error saving high score: $e');
