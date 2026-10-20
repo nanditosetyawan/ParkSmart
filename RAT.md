@@ -8,9 +8,9 @@
 
 ---
 
-## 1. DAFTAR 13 TABEL UTAMA & NOTASI KARDINALITAS
+## 1. DAFTAR 14 TABEL UTAMA & NOTASI KARDINALITAS
 
-### 📑 Ringkasan 13 Entitas Inti Sistem:
+### 📑 Ringkasan 14 Entitas Inti Sistem:
 | No | Entitas (Tabel) | Klaster Bisnis | Peran & Deskripsi Fungsional |
 |:---:|:---|:---|:---|
 | 1 | `users` | Akun & Profil | Profil pengemudi, saldo dompet ParkSmart Pay, poin, tier & bookmark favorit |
@@ -26,6 +26,7 @@
 | 11 | `system_notifications` | CS & Broadcast | Notifikasi broadcast promo, peringatan overstay & info keamanan sistem |
 | 12 | `arcade_scores` | Gamifikasi | Rekor skor game balap & mesin capit serta perolehan SmartPoints pengemudi |
 | 13 | `system_settings` | Super Admin | Konfigurasi global JSONB: saklar fitur (feature_toggles) & parameter AI Jarvis (Kurs valuta ditangani client-side via free API) |
+| 14 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf portal admin (IP publik, ISP, geolokasi, perangkat hardware, status) |
 
 ---
 
@@ -74,11 +75,11 @@
 │      gender           : VARCHAR   │    │      division         : VARCHAR   │
 │      birth_date       : DATE      │    │      avatar_url       : TEXT      │
 │      address          : TEXT      │    │      status           : ENUM      │
-│      wallet_balance   : NUMERIC   │    │ [FK] assigned_loc_id  : UUID      │
-│      points           : INT       │    │      last_login_at    : TIMESTAMPTZ│
-│      member_tier      : ENUM      │    │      created_at       : TIMESTAMPTZ│
-│      tot_parking_cnt  : INT       │    │      updated_at       : TIMESTAMPTZ│
-│      total_savings    : NUMERIC   │    └───────────────────────────────────┘
+│      wallet_balance   : NUMERIC   │    │      last_login_at    : TIMESTAMPTZ│
+│      points           : INT       │    │      created_at       : TIMESTAMPTZ│
+│      member_tier      : ENUM      │    │      updated_at       : TIMESTAMPTZ│
+│      tot_parking_cnt  : INT       │    └───────────────────────────────────┘
+│      total_savings    : NUMERIC   │
 │      fav_location_ids : UUID[]    │
 │      pin_hash         : VARCHAR   │
 │      is_biometric_en  : BOOLEAN   │
@@ -274,25 +275,30 @@
 │      replied_at   : TSTZ  │   │      created_at   : TSTZ  │
 └───────────────────────────┘   └───────────────────────────┘
 
-            │ (1:2 Max Overwritten)                │ (0..1:N)
-            ▼                                     ▼
-┌───────────────────────────┐   ┌───────────────────────────┐
-│       ARCADE_SCORES       │   │      SYSTEM_SETTINGS      │
-├───────────────────────────┤   ├───────────────────────────┤
-│ [PK] id           : UUID  │   │ [PK] key          : VARCHAR│
-│ [FK] user_id      : UUID  │   │      value        : JSONB  │
-│ [UQ] game_name    : VARCHAR   │      description  : TEXT  │
-│ [UQ] score_type   : VARCHAR   │ [FK] updated_by   : UUID  │
-│      score        : INT   │   │      updated_at   : TSTZ  │
-│      points_earned: INT   │   └───────────────────────────┘
-│      played_at    : TSTZ  │
-│ (Maks 2 row: highest/curr)│
-└───────────────────────────┘
+            │ (1:2 Max Overwritten)                │ (0..1:N)                    │ (0..1:N)
+            ▼                                     ▼                             ▼
+┌───────────────────────────┐   ┌───────────────────────────┐   ┌───────────────────────────┐
+│       ARCADE_SCORES       │   │      SYSTEM_SETTINGS      │   │     ADMIN_AUDIT_LOGS      │
+├───────────────────────────┤   ├───────────────────────────┤   ├───────────────────────────┤
+│ [PK] id           : UUID  │   │ [PK] key          : VARCHAR│   │ [PK] id           : UUID  │
+│ [FK] user_id      : UUID  │   │      value        : JSONB  │   │ [FK] admin_id     : UUID  │
+│ [UQ] game_name    : VARCHAR   │      description  : TEXT  │   │      admin_name   : VARCHAR│
+│ [UQ] score_type   : VARCHAR   │ [FK] updated_by   : UUID  │   │      admin_email  : VARCHAR│
+│      score        : INT   │   │      updated_at   : TSTZ  │   │      role         : VARCHAR│
+│      points_earned: INT   │   └───────────────────────────┘   │      action       : VARCHAR│
+│      played_at    : TSTZ  │                                   │      device_model : VARCHAR│
+│ (Maks 2 row: highest/curr)│                                   │      ip_address   : VARCHAR│
+└───────────────────────────┘                                   │      location     : VARCHAR│
+                                                                │      isp          : VARCHAR│
+                                                                │      status       : VARCHAR│
+                                                                │      is_current   : BOOL   │
+                                                                │      created_at   : TSTZ   │
+                                                                └───────────────────────────┘
 ```
 
 ---
 
-## 6. MASTER ERD MERMAID (13 TABEL UTAMA)
+## 6. MASTER ERD MERMAID (14 TABEL UTAMA)
 
 ```mermaid
 erDiagram
@@ -310,7 +316,7 @@ erDiagram
     ADMINS ||--o{ CUSTOMER_FEEDBACKS : "replies"
     ADMINS ||--o{ SYSTEM_NOTIFICATIONS : "broadcasts"
     ADMINS ||--o{ SYSTEM_SETTINGS : "configures"
-    ADMINS |o--o{ PARKING_LOCATIONS : "assigned_to"
+    ADMINS ||--o{ ADMIN_AUDIT_LOGS : "logs"
 
     PARKING_LOCATIONS ||--o{ PARKING_SLOTS : "contains"
     PARKING_LOCATIONS ||--o{ PARKING_SESSIONS : "hosts"

@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SCRIPT DDL POSTGRESQL / SUPABASE - PARKSMART ID
 -- Path: lib/database/schema.sql
--- Skema: 13 Tabel Utama Teroptimasi & User-Oriented
+-- Skema: 14 Tabel Utama Teroptimasi & User-Oriented
 -- Siap dieksekusi sekali jalan (Dependency-Ordered)
 -- ============================================================================
 
@@ -308,7 +308,8 @@ CREATE TABLE IF NOT EXISTS public.arcade_scores (
     game_name VARCHAR(60) NOT NULL,
     score INT NOT NULL DEFAULT 0,
     points_earned INT NOT NULL DEFAULT 0,
-    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    score_type VARCHAR(30) DEFAULT 'current'
 );
 
 -- 15. TABEL PENGATURAN GLOBAL SISTEM (JSONB)

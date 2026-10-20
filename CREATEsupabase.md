@@ -1,9 +1,9 @@
-# 🛠️ DDL QUERY CREATE TABLE SUPABASE POSTGRESQL (13 TABEL UTAMA)
+# 🛠️ DDL QUERY CREATE TABLE SUPABASE POSTGRESQL (14 TABEL UTAMA)
 ## Proyek: Smart Parking (ParkSmart ID)
 ### Enterprise Database DDL Script — Production Ready & Optimized
 
 > 📌 **PANDUAN EKSEKUSI:**  
-> File ini berisi query DDL SQL lengkap untuk membuat **seluruh 13 tabel utama**, custom ENUMs, foreign keys, constraints, dan indeks performa.  
+> File ini berisi query DDL SQL lengkap untuk membuat **seluruh 14 tabel utama**, custom ENUMs, foreign keys, constraints, dan indeks performa.  
 > Seluruh query disusun berurutan (*dependency-ordered*) sehingga **dapat langsung dieksekusi sekali jalan pada Supabase SQL Editor / PostgreSQL psql** tanpa error dependensi.
 
 ---
@@ -11,7 +11,7 @@
 ```sql
 -- ============================================================================
 -- SCRIPT DDL SUPABASE POSTGRESQL - PARKSMART ID
--- Skema: 13 Tabel Utama Teroptimasi (User, Staf Admin Terpadu & Layanan Bisnis)
+-- Skema: 14 Tabel Utama Teroptimasi (User, Staf Admin Terpadu & Layanan Bisnis)
 -- ============================================================================
 
 -- 1. EKSTENSI KRIPTOGRAFI & UUID
@@ -338,9 +338,9 @@ VALUES
     'ai_config',
     '{
         "model_name": "qwen/qwen3.8-27b",
-        "api_key": "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",
-        "temperature": 0.4,
+        "api_key": "",
         "max_tokens": 1024,
+        "temperature": 0.4,
         "ocr_confidence_threshold": 0.85,
         "is_autonomous_pricing_enabled": true
     }'::jsonb,

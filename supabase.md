@@ -25,6 +25,7 @@
 | 11 | `system_notifications` | CS & Sistem | Siaran pesan broadcast, promo tarif & notifikasi peringatan operasional |
 | 12 | `arcade_scores` | Gamifikasi & Poin | Riwayat skor mini-game (Car & Claws) serta perolehan SmartPoints pengguna |
 | 13 | `system_settings` | Super Admin | Konfigurasi variabel global (AI Jarvis, feature toggles JSONB; kurs ditangani client-side via Free API) |
+| 14 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf admin terpadu (IP publik, ISP, geolokasi, perangkat hardware, status) |
 
 ---
 
@@ -515,9 +516,9 @@ VALUES
     'ai_config',
     '{
         "model_name": "qwen/qwen3.8-27b",
-        "api_key": "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",
-        "temperature": 0.4,
+        "api_key": "",
         "max_tokens": 1024,
+        "temperature": 0.4,
         "ocr_confidence_threshold": 0.85,
         "is_autonomous_pricing_enabled": true
     }'::jsonb,
@@ -541,7 +542,7 @@ ON CONFLICT (key) DO UPDATE SET
 
 ---
 
-### Tabel 16: `admin_audit_logs` (Audit Log Aktivitas Login Admin)
+### Tabel 14: `admin_audit_logs` (Audit Log Aktivitas Login Admin)
 Menyimpan jejak audit digital aktivitas login seluruh tingkatan administrator (Super Admin, Operasional, Finansial, CS & KYC) meliputi alamat IP publik, penyedia ISP, deteksi perangkat keras, geolokasi kota, status sesi, dan timestamp real-time untuk pemantauan keamanan sistem.
 * **File Rujukan Kode:** `lib/core/services/client_info_service.dart`, `lib/features/admin/super_admin/admin_dashboard_screen.dart`, `lib/features/auth/login_screen.dart`.
 
