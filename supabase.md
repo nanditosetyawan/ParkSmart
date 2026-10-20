@@ -140,7 +140,6 @@ CREATE TABLE IF NOT EXISTS public.users (
     member_tier member_tier_enum NOT NULL DEFAULT 'BRONZE',
     total_parking_count INT NOT NULL DEFAULT 0,
     total_savings NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
-    theme_mode VARCHAR(20) NOT NULL DEFAULT 'system',
     favorite_location_ids UUID[] NOT NULL DEFAULT '{}',
     pin_hash VARCHAR(255),
     is_biometric_enabled BOOLEAN NOT NULL DEFAULT false,
@@ -538,4 +537,31 @@ ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,
     description = EXCLUDED.description,
     updated_at = timezone('utc'::text, now());
+```
+
+---
+
+### Tabel 16: `admin_audit_logs` (Audit Log Aktivitas Login Admin)
+Menyimpan jejak audit digital aktivitas login seluruh tingkatan administrator (Super Admin, Operasional, Finansial, CS & KYC) meliputi alamat IP publik, penyedia ISP, deteksi perangkat keras, geolokasi kota, status sesi, dan timestamp real-time untuk pemantauan keamanan sistem.
+* **File Rujukan Kode:** `lib/core/services/client_info_service.dart`, `lib/features/admin/super_admin/admin_dashboard_screen.dart`, `lib/features/auth/login_screen.dart`.
+
+```sql
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    admin_name VARCHAR(150) NOT NULL,
+    admin_email VARCHAR(255),
+    role VARCHAR(50) NOT NULL,
+    action VARCHAR(100) NOT NULL DEFAULT 'Login berhasil',
+    device_model VARCHAR(150),
+    ip_address VARCHAR(50),
+    location VARCHAR(150),
+    isp VARCHAR(150),
+    status VARCHAR(50) DEFAULT 'Berhasil',
+    is_current_session BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_role ON public.admin_audit_logs(role);
 ```

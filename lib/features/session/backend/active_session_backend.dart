@@ -114,14 +114,73 @@ class ActiveSessionBackend extends ChangeNotifier {
             _floorName = slot['floor_name']?.toString() ?? _floorName;
           }
         }
+      } else {
+        // Cek juga dari tabel bookings jika ada reservasi slot aktif
+        final booking = await _client
+            .from('bookings')
+            .select('id, booking_code, slot_id, location_id, end_time, start_time, total_price')
+            .inFilter('booking_status', ['upcoming', 'active'])
+            .order('start_time', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        if (booking != null) {
+          _sessionData = booking;
+          _sessionId = booking['id']?.toString() ?? _sessionId;
+          _sessionCode = booking['booking_code']?.toString() ?? _sessionCode;
+          _currentFee = (booking['total_price'] as num?)?.toDouble() ?? _currentFee;
+
+          if (booking['start_time'] != null) {
+            _checkInTime = DateTime.tryParse(booking['start_time'].toString())?.toLocal();
+          }
+
+          if (booking['end_time'] != null) {
+            _expectedCheckOutTime = DateTime.tryParse(booking['end_time'].toString())?.toLocal();
+            if (_expectedCheckOutTime != null) {
+              final diff = _expectedCheckOutTime!.difference(DateTime.now()).inSeconds;
+              _remainingSeconds = diff > 0 ? diff : 0;
+            }
+          }
+
+          if (booking['location_id'] != null) {
+            final loc = await _client
+                .from('parking_locations')
+                .select('name, address')
+                .eq('id', booking['location_id'])
+                .maybeSingle();
+
+            if (loc != null) {
+              _locationName = loc['name']?.toString() ?? _locationName;
+              _locationSub = loc['address']?.toString() ?? _locationSub;
+            }
+          }
+
+          if (booking['slot_id'] != null) {
+            final slot = await _client
+                .from('parking_slots')
+                .select('slot_code, floor_name')
+                .eq('id', booking['slot_id'])
+                .maybeSingle();
+
+            if (slot != null) {
+              _slotCode = slot['slot_code']?.toString() ?? _slotCode;
+              _floorName = slot['floor_name']?.toString() ?? _floorName;
+            }
+          }
+        } else {
+          _sessionData = null;
+        }
       }
     } catch (e) {
       debugPrint('[ActiveSessionBackend] fetchActiveSession error: $e');
+      _sessionData = null;
     } finally {
       _isLoading = false;
       notifyListeners();
     }
   }
+
+  bool get hasActiveSession => _sessionData != null;
 
   void updateRemainingSeconds(int seconds) {
     _remainingSeconds = seconds;

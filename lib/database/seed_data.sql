@@ -57,54 +57,26 @@ INSERT INTO public.parking_locations (
 )
 ON CONFLICT (code) DO NOTHING;
 
--- 2. SEED DATA AKUN ADMIN TERPADU (4 DIVISI RBAC)
+-- 2. SEED DATA AKUN ADMIN TERPADU (SUPER ADMIN)
 INSERT INTO public.admins (
     id, email, full_name, phone, role, division, status
 ) VALUES
 (
-    'b0000000-0000-0000-0000-000000000001', 'superadmin@parksmart.id', 'Dito Pratama', '+62 812-0000-0001',
+    'b0000000-0000-0000-0000-000000000001', 'superadmin@parksmart.id', 'Gibran Widodo', '+62 812-0000-0001',
     'super_admin', 'Sistem & Super Admin', 'active'
-),
-(
-    'b0000000-0000-0000-0000-000000000002', 'ops.centralpark@parksmart.id', 'Bambang Hidayat', '+62 812-0000-0002',
-    'operational', 'Divisi Operasional Lapangan', 'active'
-),
-(
-    'b0000000-0000-0000-0000-000000000003', 'finance@parksmart.id', 'Indah Permatasari', '+62 812-0000-0003',
-    'finance', 'Divisi Akuntansi & Keuangan', 'active'
-),
-(
-    'b0000000-0000-0000-0000-000000000004', 'cs@parksmart.id', 'Nabila Putri', '+62 812-0000-0004',
-    'cs', 'Divisi Layanan Pelanggan & CRM', 'active'
 )
 ON CONFLICT (email) DO NOTHING;
 
 -- 3. SEED DATA PENGGUNA (USERS)
 INSERT INTO public.users (
-    id, email, phone, full_name, gender, birth_date, address,
-    wallet_balance, points, member_tier, total_parking_count, total_savings, theme_mode, status
+    id, email, phone, full_name, wallet_balance, points, member_tier, total_parking_count, total_savings, status
 ) VALUES
 (
-    'c0000000-0000-0000-0000-000000000001', 'dito@parksmart.id', '+62 812-3456-7890',
-    'Nandito Setyawan', 'Laki-laki', '2001-08-15', 'Jl. Palmerah Barat No. 12, Jakarta Barat',
-    250000.00, 1250, 'GOLD', 48, 124000.00, 'system', 'active'
-),
-(
-    'c0000000-0000-0000-0000-000000000002', 'rafi.maulana@gmail.com', '+62 856-7890-1234',
-    'Rafi Maulana', 'Laki-laki', '1998-04-20', 'Jl. Kebon Jeruk No. 45, Jakarta Barat',
-    120000.00, 480, 'SILVER', 18, 45000.00, 'light', 'active'
-),
-(
-    'c0000000-0000-0000-0000-000000000003', 'dewi.lestari@gmail.com', '+62 813-9988-7766',
-    'Dewi Lestari', 'Perempuan', '1995-11-03', 'Apartemen Sudirman Tower A-12, SCBD Jakarta',
-    500000.00, 3200, 'PLATINUM', 84, 280000.00, 'dark', 'active'
-),
-(
-    'c0000000-0000-0000-0000-000000000004', 'budi.santoso@gmail.com', '+62 821-1122-3344',
-    'Budi Santoso', 'Laki-laki', '1992-06-12', 'Jl. Sosrowijayan No. 8, Danurejan, Yogyakarta',
-    50000.00, 150, 'BRONZE', 6, 12000.00, 'system', 'active'
+    'c0000000-0000-0000-0000-000000000001', 'jokowi.dodo@gmail.com', '+62 811-2345-6789',
+    'Jokowi Dodo', 0.00, 0, 'BRONZE', 0, 0.00, 'active'
 )
 ON CONFLICT (email) DO NOTHING;
+
 
 -- 4. SEED DATA GARASI KENDARAAN (VEHICLES)
 INSERT INTO public.vehicles (
@@ -230,3 +202,14 @@ INSERT INTO public.system_notifications (
     'security', 'Cek Akun', true
 )
 ON CONFLICT (id) DO NOTHING;
+
+-- 10. SEED DATA AUDIT LOG LOGIN ADMIN (AUDIT TRAIL SUPER ADMIN)
+INSERT INTO public.admin_audit_logs (
+    admin_name, admin_email, role, action, device_model, ip_address, location, isp, status, created_at
+) VALUES
+(
+    'Gibran Widodo', 'superadmin@parksmart.id', 'Super Admin', 'Login berhasil (Sesi Aktif)',
+    'Web Browser (Chrome/Edge)', '140.213.160.202', 'Yogyakarta, Indonesia', 'PT Telkom Indonesia', 'Berhasil',
+    NOW()
+);
+

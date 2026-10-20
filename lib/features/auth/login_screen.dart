@@ -22,6 +22,7 @@ import '../home/home_screen.dart';
 import '../auth/register_screen.dart';
 import '../auth/forgot_password_screen.dart';
 import '../admin/super_admin/admin_dashboard_screen.dart';
+import '../../core/services/client_info_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -876,6 +877,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                     return;
                                   }
                                   */
+
+                                  final adminUser = _adminUsernameController.text.trim().isNotEmpty
+                                      ? _adminUsernameController.text.trim()
+                                      : 'Gibran Widodo';
+                                  ClientInfoService.instance.recordAdminLogin(
+                                    adminName: adminUser,
+                                    adminEmail: 'superadmin@parksmart.id',
+                                    role: 'Super Admin',
+                                    action: 'Login berhasil (Portal Otentikasi)',
+                                  );
 
                                   // Langsung masuk ke Admin Dashboard (Akses Developer)
                                   Navigator.push(

@@ -23,19 +23,27 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   void initState() {
     super.initState();
-    ActiveSessionBackend.instance.fetchActiveSession();
+    ActiveSessionBackend.instance.fetchActiveSession().then((_) {
+      if (mounted) {
+        setState(() {
+          _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;
+        });
+      }
+    });
     _startTimer();
   }
 
   void _startTimer() {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      setState(() {
-        if (_remainingSeconds > 0) {
-          _remainingSeconds--;
-        } else {
-          _timer.cancel();
-        }
-      });
+      if (mounted) {
+        setState(() {
+          if (_remainingSeconds > 0) {
+            _remainingSeconds--;
+          } else {
+            _timer.cancel();
+          }
+        });
+      }
     });
   }
 

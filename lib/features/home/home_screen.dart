@@ -960,90 +960,110 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                 ),
 
-                // ─── Active Booking Section ─────────────────────
-                const SizedBox(height: 28),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                  child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Text('Sesi Parkir Aktif', style: AppTypography.headlineMd()),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                          decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
-                          child: Text('Lantai B2', style: AppTypography.buttonSm(color: AppColors.secondary)),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 14),
-                    Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceCard,
-                        borderRadius: AppRadii.xl2Radius,
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
-                        boxShadow: const [AppShadows.soft],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(children: [
-                        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          // Parking spot image
-                          ClipRRect(
-                            borderRadius: AppRadii.imgRadius,
-                            child: Image.network(
-                              'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr',
-                              width: 64, height: 64, fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) => Container(
-                                width: 64, height: 64, color: AppColors.surfaceDim,
-                                child: Icon(Icons.local_parking, color: AppColors.secondary),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                            Text('SLOT TERPESAN', style: AppTypography.overline(color: AppColors.secondary)),
-                            const SizedBox(height: 2),
-                            Text('Central Park Mall', style: AppTypography.headlineSm()),
-                            const SizedBox(height: 2),
-                            Text('Spot A-12 • Jalur Khusus EV', style: AppTypography.caption(color: AppColors.textSecondary)),
-                          ])),
-                          Container(
-                            width: 40, height: 40,
-                            decoration: BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
-                            child: Icon(Icons.qr_code_2, size: 20, color: Colors.white),
-                          ),
-                        ]),
-                        const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
-                          child: Row(
+                // ─── Active Booking / Session Section (Dynamic from Database) ───
+                ListenableBuilder(
+                  listenable: HomeBackend.instance,
+                  builder: (context, _) {
+                    final session = HomeBackend.instance.activeSession;
+                    if (session == null) {
+                      return const SizedBox.shrink(); // Sembunyikan total jika database kosong / tidak ada sesi aktif
+                    }
+
+                    final locName = session['location_name'] ?? 'Spot Parkir';
+                    final slotCode = session['slot_code'] ?? 'A-01';
+                    final floorName = session['floor_name'] ?? 'Lantai B1';
+                    final title = session['title'] ?? 'SLOT TERPESAN';
+                    final tag = session['tag'] ?? 'Sesi Parkir Aktif';
+                    final imageUrl = session['image_url'] ??
+                        'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr';
+
+                    return Padding(
+                      padding: const EdgeInsets.only(top: 28.0),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                Text('SISA WAKTU', style: AppTypography.overline(color: AppColors.textSecondary)),
-                                const SizedBox(height: 2),
-                                Text('01:42:18', style: AppTypography.monoLg()),
-                              ]),
-                              GestureDetector(
-                                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const active.ActiveSessionScreen())),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
-                                    boxShadow: const [AppShadows.float]),
-                                  child: Row(children: [
-                                    Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
-                                    const SizedBox(width: 6),
-                                    Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
-                                  ]),
-                                ),
+                              Text(tag, style: AppTypography.headlineMd()),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
+                                child: Text(floorName, style: AppTypography.buttonSm(color: AppColors.secondary)),
                               ),
                             ],
                           ),
-                        ),
-                      ]),
-                    ),
-                  ]),
+                          const SizedBox(height: 14),
+                          Container(
+                            decoration: BoxDecoration(
+                              color: AppColors.surfaceCard,
+                              borderRadius: AppRadii.xl2Radius,
+                              border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
+                              boxShadow: const [AppShadows.soft],
+                            ),
+                            padding: const EdgeInsets.all(20),
+                            child: Column(children: [
+                              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                // Parking spot image
+                                ClipRRect(
+                                  borderRadius: AppRadii.imgRadius,
+                                  child: Image.network(
+                                    imageUrl,
+                                    width: 64, height: 64, fit: BoxFit.cover,
+                                    errorBuilder: (context, error, stackTrace) => Container(
+                                      width: 64, height: 64, color: AppColors.surfaceDim,
+                                      child: Icon(Icons.local_parking, color: AppColors.secondary),
+                                    ),
+                                  ),
+                                ),
+                                const SizedBox(width: 14),
+                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                  Text(title, style: AppTypography.overline(color: AppColors.secondary)),
+                                  const SizedBox(height: 2),
+                                  Text(locName, style: AppTypography.headlineSm()),
+                                  const SizedBox(height: 2),
+                                  Text('Spot $slotCode • $floorName', style: AppTypography.caption(color: AppColors.textSecondary)),
+                                ])),
+                                Container(
+                                  width: 40, height: 40,
+                                  decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
+                                  child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
+                                ),
+                              ]),
+                              const SizedBox(height: 16),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      Text('SISA WAKTU', style: AppTypography.overline(color: AppColors.textSecondary)),
+                                      const SizedBox(height: 2),
+                                      _HomeSessionCountdownTimer(endTime: session['end_time']),
+                                    ]),
+                                    GestureDetector(
+                                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const active.ActiveSessionScreen())),
+                                      child: Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                        decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
+                                          boxShadow: const [AppShadows.float]),
+                                        child: Row(children: [
+                                          Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
+                                          const SizedBox(width: 6),
+                                          Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
+                                        ]),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ]),
+                          ),
+                        ]),
+                      ),
+                    );
+                  },
                 ),
 
                 // ─── Recommendations Section ────────────────────
@@ -2087,4 +2107,64 @@ class _RecommendationsListState extends State<_RecommendationsList> {
     );
   }
 }
+
+/// Widget timer hitung mundur real-time matematika untuk sesi parkir aktif / reservasi
+class _HomeSessionCountdownTimer extends StatefulWidget {
+  final dynamic endTime;
+  const _HomeSessionCountdownTimer({required this.endTime});
+
+  @override
+  State<_HomeSessionCountdownTimer> createState() => _HomeSessionCountdownTimerState();
+}
+
+class _HomeSessionCountdownTimerState extends State<_HomeSessionCountdownTimer> {
+  Timer? _timer;
+  late int _remainingSeconds;
+
+  @override
+  void initState() {
+    super.initState();
+    _calculateRemaining();
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) {
+        setState(() {
+          _calculateRemaining();
+        });
+      }
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _HomeSessionCountdownTimer oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.endTime != widget.endTime) {
+      _calculateRemaining();
+    }
+  }
+
+  void _calculateRemaining() {
+    if (widget.endTime == null) {
+      _remainingSeconds = 0;
+      return;
+    }
+    final dt = DateTime.tryParse(widget.endTime.toString())?.toLocal() ?? DateTime.now();
+    final diff = dt.difference(DateTime.now()).inSeconds;
+    _remainingSeconds = diff > 0 ? diff : 0;
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final h = (_remainingSeconds ~/ 3600).toString().padLeft(2, '0');
+    final m = ((_remainingSeconds % 3600) ~/ 60).toString().padLeft(2, '0');
+    final s = (_remainingSeconds % 60).toString().padLeft(2, '0');
+    return Text('$h:$m:$s', style: AppTypography.monoLg());
+  }
+}
+
 

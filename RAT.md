@@ -79,7 +79,6 @@
 │      member_tier      : ENUM      │    │      created_at       : TIMESTAMPTZ│
 │      tot_parking_cnt  : INT       │    │      updated_at       : TIMESTAMPTZ│
 │      total_savings    : NUMERIC   │    └───────────────────────────────────┘
-│      theme_mode       : VARCHAR   │
 │      fav_location_ids : UUID[]    │
 │      pin_hash         : VARCHAR   │
 │      is_biometric_en  : BOOLEAN   │
@@ -348,6 +347,7 @@ erDiagram
 | `admins` | `customer_feedbacks`| `customer_feedbacks.replied_by_admin_id` | `0..1 : N` | `SET NULL` | Admin CS membalas ulasan keluhan pengguna |
 | `admins` | `system_notifications`| `system_notifications.sender_admin_id` | `0..1 : N` | `SET NULL` | Admin CS / Super Admin menerbitkan pesan broadcast |
 | `admins` | `system_settings` | `system_settings.updated_by` | `0..1 : N` | `SET NULL` | Super Admin memperbarui konfigurasi AI Jarvis & feature toggles |
+| `admins` | `admin_audit_logs` | `admin_audit_logs.admin_id` | `0..1 : N` | `SET NULL` | Jejak audit digital aktivitas login seluruh tingkatan administrator |
 | `parking_locations` | `parking_slots` | `parking_slots.location_id` | `1 : N` | `CASCADE` | Gedung parkir memiliki banyak slot fisik per lantai |
 | `parking_locations` | `parking_sessions` | `parking_sessions.location_id` | `1 : N` | `RESTRICT` | Gedung parkir menaungi sesi kendaraan masuk gerbang |
 | `parking_locations` | `bookings` | `bookings.location_id` | `1 : N` | `RESTRICT` | Lokasi gedung tempat slot parkir dipesan di muka |

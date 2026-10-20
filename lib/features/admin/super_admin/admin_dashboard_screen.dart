@@ -45,8 +45,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   int? _inspectedPointIndex;
 
   // 👤 Super Admin Profile State
-  String _superAdminName = 'Dito Pratama';
-  final String _superAdminEmail = 'dito@parksmart.id';
+  String _superAdminName = 'Gibran Widodo';
+  final String _superAdminEmail = 'superadmin@parksmart.id';
   String? _superAdminAvatarPath;
 
   // 🪪 Daftar Permintaan Konfirmasi Pendaftaran KTP (KYC) Baru dari Supabase
@@ -141,16 +141,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (forceNetworkRefresh) {
         await ClientInfoService.instance.fetchClientNetworkInfo(forceRefresh: true);
         await ClientInfoService.instance.getDeviceModel(forceRefresh: true);
+        await ClientInfoService.instance.recordAdminLogin(
+          adminName: _superAdminName,
+          role: 'Super Admin',
+          action: 'Login berhasil (Sesi Aktif)',
+        );
       }
 
-      // Catat sesi login aktif Super Admin
-      await ClientInfoService.instance.recordAdminLogin(
-        adminName: _superAdminName,
-        role: 'Super Admin',
-        action: 'Login berhasil (Sesi Aktif)',
-      );
+      var rawLogs = await ClientInfoService.instance.getStoredLogs();
 
-      final rawLogs = await ClientInfoService.instance.getStoredLogs();
+      // Jika log masih kosong sama sekali, catat sesi awal
+      if (rawLogs.isEmpty) {
+        await ClientInfoService.instance.recordAdminLogin(
+          adminName: _superAdminName,
+          role: 'Super Admin',
+          action: 'Login berhasil (Sesi Aktif)',
+        );
+        rawLogs = await ClientInfoService.instance.getStoredLogs();
+      }
 
       if (mounted) {
         setState(() {

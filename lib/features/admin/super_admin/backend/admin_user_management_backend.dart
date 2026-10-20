@@ -16,12 +16,12 @@ class AdminUserManagementBackend extends ChangeNotifier {
   final List<Map<String, dynamic>> _defaultAdmins = [
     {
       'id': 'ADM-001',
-      'name': 'Dito Pratama',
-      'email': 'dito@parksmart.id',
-      'phone': '+62 812-3456-7890',
+      'name': 'Gibran Widodo',
+      'email': 'superadmin@parksmart.id',
+      'phone': '+62 812-0000-0001',
       'role': 'Super Admin',
       'status': 'Aktif',
-      'avatar': 'D',
+      'avatar': 'G',
       'avatarPath': null,
       'lastLogin': '2 jam lalu',
       'locations': ['Semua Lokasi'],
