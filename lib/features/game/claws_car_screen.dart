@@ -346,6 +346,10 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                           prefs.setInt('user_arcade_points', _userPoints);
                           prefs.setInt('claws_car_coins', _credits);
                         });
+                        ClawsCarBackend.instance.exchangePointsForCoins(
+                          pointsToDeduct: requiredPoints,
+                          coinsToAdd: exchangeCoins,
+                        );
                         messenger.showSnackBar(
                           SnackBar(
                             content: Text('🎉 Berhasil menukar $exchangeCoins koin capit!'),

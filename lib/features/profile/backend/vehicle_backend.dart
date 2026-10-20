@@ -11,6 +11,7 @@ class VehicleItem {
   final String category;
   final String color;
   final String plateExpiry;
+  final String? photoUrl;
   final bool isDefault;
 
   VehicleItem({
@@ -22,6 +23,7 @@ class VehicleItem {
     required this.category,
     required this.color,
     required this.plateExpiry,
+    this.photoUrl,
     required this.isDefault,
   });
 
@@ -35,6 +37,7 @@ class VehicleItem {
       category: map['vehicle_category']?.toString() ?? 'suv',
       color: map['color']?.toString() ?? 'Abu-Abu Metalik',
       plateExpiry: map['plate_expiry']?.toString() ?? '08 • 29',
+      photoUrl: map['photo_url']?.toString(),
       isDefault: map['is_default'] == true,
     );
   }
@@ -65,7 +68,7 @@ class VehicleBackend extends ChangeNotifier {
       final userId = user?.id;
 
       dynamic query = _client.from('vehicles').select(
-        'id, brand, model, plate_number, vehicle_type, vehicle_category, color, plate_expiry, is_default',
+        'id, brand, model, plate_number, vehicle_type, vehicle_category, color, plate_expiry, photo_url, is_default',
       );
 
       if (userId != null) {

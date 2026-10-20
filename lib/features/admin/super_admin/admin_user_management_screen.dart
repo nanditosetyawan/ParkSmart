@@ -23,14 +23,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
   final List<String> _assignableRoles = ['Admin Operasional', 'Admin Finansial', 'Admin CS & KYC'];
   final List<String> _statusFilters = ['Semua', 'Aktif', 'Nonaktif', 'Pending Verifikasi'];
 
-  final List<String> _allLocations = [
-    'Central Park Mall',
-    'Grand Indonesia',
-    'Pacific Place SCBD',
-    'Malioboro Mall',
-    'Tunjungan Plaza 6',
-    'Senayan City',
-  ];
+
 
   final Map<String, List<String>> _rolePermissions = {
     'Super Admin': ['Veto Darurat', 'Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
@@ -177,7 +170,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     String selectedRole = 'Admin Operasional';
     String selectedStatus = 'Aktif';
     String? tempAvatarPath;
-    final List<String> selectedLocations = List<String>.from(_allLocations);
 
     showDialog(
       context: context,
@@ -213,7 +205,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text('Tambah Admin Baru', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                              Text('Pilih peran divisi & lokasi akses', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                              Text('Atur akun dan peran administrator', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                             ],
                           ),
                         ],
@@ -365,11 +357,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       if (v != null) {
                         setDialogState(() {
                           selectedRole = v;
-                          if (v == 'Admin Operasional' || v == 'Admin CS & KYC') {
-                            if (selectedLocations.isEmpty) {
-                              selectedLocations.addAll(_allLocations);
-                            }
-                          }
                         });
                       }
                     },
@@ -397,162 +384,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       if (v != null) setDialogState(() => selectedStatus = v);
                     },
                   ),
-                  const SizedBox(height: 16),
-
-                  // ─── LOKASI AKSES ATAU CAKUPAN FINANSIAL ───
-                  if (selectedRole == 'Admin Finansial') ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFD1F2EB).withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(color: const Color(0xFF17A18A).withValues(alpha: 0.3)),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.account_balance, color: Color(0xFF17A18A), size: 20),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'Cakupan Akses Menyeluruh (Global)',
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF0F766E)),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Admin Finansial mengelola total omzet, saldo pengguna, dan pembayaran secara platform-wide tanpa batas lokasi tertentu.',
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else ...[
-                    // BARIS SATU BARIS: TEKS LOKASI AKSES + TOMBOL RELOAD + CHECKBOX PILIH SEMUA
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Lokasi Akses',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1EEE7),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '${selectedLocations.length}/${_allLocations.length}',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Tombol Reload untuk mereload semua posisi
-                            Tooltip(
-                              message: 'Reload semua posisi lokasi',
-                              child: InkWell(
-                                onTap: () {
-                                  setDialogState(() {
-                                    selectedLocations.clear();
-                                    selectedLocations.addAll(_allLocations);
-                                  });
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1EEE7),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFE4DFD5)),
-                                  ),
-                                  child: const Icon(Icons.refresh, size: 16, color: Color(0xFF114177)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Checkbox Centang Box: Pilih Semua
-                            InkWell(
-                              onTap: () {
-                                setDialogState(() {
-                                  if (selectedLocations.length == _allLocations.length) {
-                                    selectedLocations.clear();
-                                  } else {
-                                    selectedLocations.clear();
-                                    selectedLocations.addAll(_allLocations);
-                                  }
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(8),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: Checkbox(
-                                      value: selectedLocations.length == _allLocations.length && _allLocations.isNotEmpty,
-                                      activeColor: const Color(0xFF114177),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                      onChanged: (val) {
-                                        setDialogState(() {
-                                          if (val == true) {
-                                            selectedLocations.clear();
-                                            selectedLocations.addAll(_allLocations);
-                                          } else {
-                                            selectedLocations.clear();
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Pilih Semua',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _allLocations.map((loc) {
-                        final isSelected = selectedLocations.contains(loc);
-                        return FilterChip(
-                          label: Text(loc, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setDialogState(() {
-                              selected ? selectedLocations.add(loc) : selectedLocations.remove(loc);
-                            });
-                          },
-                          selectedColor: const Color(0xFFE3EEFF),
-                          checkmarkColor: const Color(0xFF114177),
-                          backgroundColor: const Color(0xFFF1EEE7),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: isSelected ? const Color(0xFF114177) : Colors.transparent)),
-                        );
-                      }).toList(),
-                    ),
-                  ],
-
                   const SizedBox(height: 24),
 
                   // ACTION BUTTONS
@@ -581,10 +412,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                             }
 
                             final newAdminId = 'ADM-${(_admins.length + 1).toString().padLeft(3, '0')}';
-                            final List<String> finalLocations = selectedRole == 'Admin Finansial'
-                                ? ['Semua Lokasi']
-                                : (selectedLocations.isEmpty ? ['Semua Lokasi'] : List<String>.from(selectedLocations));
-
                             final newAdminData = {
                               'id': newAdminId,
                               'name': nameCtrl.text.trim(),
@@ -595,7 +422,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                               'avatar': nameCtrl.text.trim()[0].toUpperCase(),
                               'avatarPath': tempAvatarPath,
                               'lastLogin': 'Baru dibuat',
-                              'locations': finalLocations,
+                              'locations': ['Semua Lokasi'],
                               'permissions': _rolePermissions[selectedRole] ?? [],
                               'createdAt': DateTime.now().toString().split(' ')[0],
                             };
@@ -688,41 +515,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                 _buildDetailRow('Peran', admin['role'], valueColor: roleColor),
                 _buildDetailRow('Terdaftar Sejak', admin['createdAt']),
                 _buildDetailRow('Login Terakhir', admin['lastLogin']),
-                const Divider(color: Color(0xFFF1EEE7), height: 28),
-                if (admin['role'] == 'Admin Finansial') ...[
-                  Text('Cakupan Akses', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  const SizedBox(height: 8),
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    decoration: BoxDecoration(color: const Color(0xFFD1F2EB), borderRadius: BorderRadius.circular(8)),
-                    child: Text('Cakupan Finansial Menyeluruh (Global Seluruh Titik)', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF0F766E))),
-                  ),
-                ] else ...[
-                  Text('Lokasi Akses', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                  const SizedBox(height: 8),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: (admin['locations'] as List).map((loc) => Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                      decoration: BoxDecoration(color: const Color(0xFFF1EEE7), borderRadius: BorderRadius.circular(8)),
-                      child: Text(loc, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A))),
-                    )).toList(),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Text('Izin & Wewenang RBAC', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                const SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: (admin['permissions'] as List).map((perm) => Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(8)),
-                    child: Text(perm, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF114177))),
-                  )).toList(),
-                ),
                 const SizedBox(height: 20),
 
                 // Tindakan SOP: Bekukan Admin & Reset Kredensial
@@ -949,7 +741,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     String selectedRole = admin['role'];
     String selectedStatus = admin['status'];
     String? tempAvatarPath = admin['avatarPath'];
-    final List<String> selectedLocations = List<String>.from(admin['locations']);
 
     final isSuperAdmin = admin['role'] == 'Super Admin';
 
@@ -1163,11 +954,6 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                         if (v != null) {
                           setDialogState(() {
                             selectedRole = v;
-                            if (v == 'Admin Operasional' || v == 'Admin CS & KYC') {
-                              if (selectedLocations.isEmpty) {
-                                selectedLocations.addAll(_allLocations);
-                              }
-                            }
                           });
                         }
                       },
@@ -1197,177 +983,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // ─── LOKASI AKSES ATAU CAKUPAN FINANSIAL ───
-                  if (selectedRole == 'Admin Finansial' || isSuperAdmin) ...[
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: isSuperAdmin
-                            ? const Color(0xFFEDE9FE).withValues(alpha: 0.5)
-                            : const Color(0xFFD1F2EB).withValues(alpha: 0.5),
-                        borderRadius: BorderRadius.circular(12),
-                        border: Border.all(
-                          color: isSuperAdmin
-                              ? const Color(0xFF6D28D9).withValues(alpha: 0.3)
-                              : const Color(0xFF17A18A).withValues(alpha: 0.3),
-                        ),
-                      ),
-                      child: Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            isSuperAdmin ? Icons.verified_user : Icons.account_balance,
-                            color: isSuperAdmin ? const Color(0xFF6D28D9) : const Color(0xFF17A18A),
-                            size: 20,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  isSuperAdmin
-                                      ? 'Akses Root Sistem Penuh'
-                                      : 'Cakupan Akses Menyeluruh (Global)',
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.bold,
-                                    color: isSuperAdmin ? const Color(0xFF6D28D9) : const Color(0xFF0F766E),
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  isSuperAdmin
-                                      ? 'Super Admin mengontrol seluruh modul, veto darurat, RBAC, dan audit trail.'
-                                      : 'Admin Finansial mengelola total omzet, saldo pengguna, dan pembayaran platform-wide tanpa batas lokasi tertentu.',
-                                  style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF45474A)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ] else ...[
-                    // BARIS SATU BARIS: TEKS LOKASI AKSES + TOMBOL RELOAD + CHECKBOX PILIH SEMUA
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Row(
-                          children: [
-                            Text(
-                              'Lokasi Akses',
-                              style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                            ),
-                            const SizedBox(width: 6),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFF1EEE7),
-                                borderRadius: BorderRadius.circular(6),
-                              ),
-                              child: Text(
-                                '${selectedLocations.length}/${_allLocations.length}',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)),
-                              ),
-                            ),
-                          ],
-                        ),
-                        Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            // Tombol Reload untuk mereload semua posisi
-                            Tooltip(
-                              message: 'Reload semua posisi lokasi',
-                              child: InkWell(
-                                onTap: () {
-                                  setDialogState(() {
-                                    selectedLocations.clear();
-                                    selectedLocations.addAll(_allLocations);
-                                  });
-                                },
-                                borderRadius: BorderRadius.circular(8),
-                                child: Container(
-                                  padding: const EdgeInsets.all(6),
-                                  decoration: BoxDecoration(
-                                    color: const Color(0xFFF1EEE7),
-                                    borderRadius: BorderRadius.circular(8),
-                                    border: Border.all(color: const Color(0xFFE4DFD5)),
-                                  ),
-                                  child: const Icon(Icons.refresh, size: 16, color: Color(0xFF114177)),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            // Checkbox Centang Box: Pilih Semua
-                            InkWell(
-                              onTap: () {
-                                setDialogState(() {
-                                  if (selectedLocations.length == _allLocations.length) {
-                                    selectedLocations.clear();
-                                  } else {
-                                    selectedLocations.clear();
-                                    selectedLocations.addAll(_allLocations);
-                                  }
-                                });
-                              },
-                              borderRadius: BorderRadius.circular(8),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  SizedBox(
-                                    width: 20,
-                                    height: 20,
-                                    child: Checkbox(
-                                      value: selectedLocations.length == _allLocations.length && _allLocations.isNotEmpty,
-                                      activeColor: const Color(0xFF114177),
-                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
-                                      onChanged: (val) {
-                                        setDialogState(() {
-                                          if (val == true) {
-                                            selectedLocations.clear();
-                                            selectedLocations.addAll(_allLocations);
-                                          } else {
-                                            selectedLocations.clear();
-                                          }
-                                        });
-                                      },
-                                    ),
-                                  ),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Pilih Semua',
-                                    style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _allLocations.map((loc) {
-                        final isSelected = selectedLocations.contains(loc);
-                        return FilterChip(
-                          label: Text(loc, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: isSelected ? FontWeight.bold : FontWeight.w500)),
-                          selected: isSelected,
-                          onSelected: (selected) {
-                            setDialogState(() {
-                              selected ? selectedLocations.add(loc) : selectedLocations.remove(loc);
-                            });
-                          },
-                          selectedColor: const Color(0xFFE3EEFF),
-                          checkmarkColor: const Color(0xFF114177),
-                          backgroundColor: const Color(0xFFF1EEE7),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8), side: BorderSide(color: isSelected ? const Color(0xFF114177) : Colors.transparent)),
-                        );
-                      }).toList(),
-                    ),
-                  ],
+
 
                   const SizedBox(height: 24),
 
@@ -1396,9 +1012,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                               return;
                             }
 
-                            final List<String> finalLocations = (selectedRole == 'Admin Finansial' || isSuperAdmin)
-                                ? ['Semua Lokasi']
-                                : (selectedLocations.isEmpty ? ['Semua Lokasi'] : List<String>.from(selectedLocations));
+                            final List<String> finalLocations = ['Semua Lokasi'];
 
                             final updatedData = {
                               ...admin,

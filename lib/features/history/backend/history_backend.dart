@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+import '../../../core/utils/ticket_status_helper.dart';
+
 class HistoryItem {
   final String id;
   final String mallName;
@@ -27,8 +29,8 @@ class HistoryItem {
   });
 
   factory HistoryItem.fromMap(Map<String, dynamic> map) {
-    final statusStr = (map['status'] ?? 'selesai').toString().toLowerCase();
-    final isSelesai = statusStr == 'completed' || statusStr == 'selesai';
+    final statusStr = (map['status'] ?? 'completed').toString().toLowerCase();
+    final mark = TicketMark.resolve(sessionStatus: statusStr);
     final vehicleDesc = (map['vehicle_desc'] ?? '').toString().toLowerCase();
     final isEv = vehicleDesc.contains('ev') || vehicleDesc.contains('ioniq');
 
@@ -38,8 +40,8 @@ class HistoryItem {
       date: map['created_at'] != null
           ? map['created_at'].toString().substring(0, 10)
           : '21 Okt 2026',
-      status: isSelesai ? 'Selesai' : 'Aktif',
-      statusColor: isSelesai ? const Color(0xFF059669) : const Color(0xFFD97706),
+      status: mark,
+      statusColor: TicketMark.getColor(mark),
       duration: map['duration'] ?? '2 Jam',
       slot: map['slot_code'] ?? 'Slot A-05',
       price: 'Rp ${(map['total_fee'] ?? 12000).toString()}',
@@ -65,10 +67,19 @@ class HistoryBackend extends ChangeNotifier {
   List<HistoryItem> _items = [];
   List<HistoryItem> get items {
     if (_selectedFilter == 'all') return _items;
-    if (_selectedFilter == 'active') {
-      return _items.where((i) => i.status == 'Aktif').toList();
+    if (_selectedFilter == 'ready') {
+      return _items.where((i) => i.status == TicketMark.ready).toList();
     }
-    return _items.where((i) => i.status == 'Selesai').toList();
+    if (_selectedFilter == 'active') {
+      return _items.where((i) => i.status == TicketMark.aktif).toList();
+    }
+    if (_selectedFilter == 'completed') {
+      return _items.where((i) => i.status == TicketMark.selesai).toList();
+    }
+    if (_selectedFilter == 'unpaid') {
+      return _items.where((i) => i.status == TicketMark.belumDibayar).toList();
+    }
+    return _items.where((i) => i.status.toLowerCase() == _selectedFilter.toLowerCase()).toList();
   }
 
   void setFilter(String filter) {
@@ -100,15 +111,16 @@ class HistoryBackend extends ChangeNotifier {
       // 2. Ambil dari tabel bookings
       final bookings = await _client
           .from('bookings')
-          .select('id, booking_code, start_time, duration_hours, total_price, booking_status, parking_locations(name)')
+          .select('id, booking_code, start_time, duration_hours, total_price, payment_status, booking_status, parking_locations(name)')
           .order('created_at', ascending: false)
           .limit(20);
 
       for (var b in bookings) {
         final locName = b['parking_locations'] != null ? b['parking_locations']['name']?.toString() : 'Lokasi Parkir';
-        final statusStr = b['booking_status']?.toString().toLowerCase() ?? 'upcoming';
-        final isSelesai = statusStr == 'completed';
-        final isAktif = statusStr == 'active' || statusStr == 'upcoming';
+        final mark = TicketMark.resolve(
+          paymentStatus: b['payment_status']?.toString(),
+          bookingStatus: b['booking_status']?.toString(),
+        );
 
         fetched.add(HistoryItem(
           id: b['id']?.toString() ?? '',
@@ -116,8 +128,8 @@ class HistoryBackend extends ChangeNotifier {
           date: b['start_time'] != null
               ? b['start_time'].toString().substring(0, 10)
               : 'Hari ini',
-          status: isSelesai ? 'Selesai' : (isAktif ? 'Aktif' : statusStr),
-          statusColor: isSelesai ? const Color(0xFF059669) : const Color(0xFFD97706),
+          status: mark,
+          statusColor: TicketMark.getColor(mark),
           duration: '${b['duration_hours'] ?? 2} Jam',
           slot: 'Booking #${b['booking_code'] ?? ''}',
           price: 'Rp ${(b['total_price'] ?? 0).toString()}',

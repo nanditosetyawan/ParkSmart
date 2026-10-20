@@ -25,34 +25,38 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   @override
   void initState() {
     super.initState();
+    AdminOperationsDashboardBackend.instance.addListener(_onBackendChanged);
     AdminOperationsDashboardBackend.instance.fetchDashboardData();
+  }
+
+  void _onBackendChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  void dispose() {
+    AdminOperationsDashboardBackend.instance.removeListener(_onBackendChanged);
+    super.dispose();
   }
 
   int _currentTabIndex = 0;
   int _selectedChartCityIndex = 0;
   String _selectedStatusFilter = 'Semua';
-  String _selectedParkedMonth = 'Okt 2026';
-  final List<String> _parkedMonths = [
-    'Okt 2026',
-    'Sep 2026',
-    'Agu 2026',
-    'Jul 2026',
-    'Jun 2026',
-    'Mei 2026',
-  ];
+  String? _selectedParkedMonth;
+  List<String> get _parkedMonths => AdminOperationsDashboardBackend.instance.availableMonths;
 
   // 📈 Kursor Crosshair Inspeksi Chart Gunung Kendaraan Parkir
   int? _inspectedParkedPointIndex;
 
-  void _onParkedChartTouch(double touchX, double canvasWidth, int pointCount) {
-    if (pointCount <= 1 || canvasWidth <= 0) return;
+  void _onParkedChartTouch(double touchX, double canvasWidth, int pointCount, int activePointCount) {
+    if (pointCount <= 1 || canvasWidth <= 0 || activePointCount <= 0) return;
     const double marginHorizontal = 24.0;
     final double chartWidth = canvasWidth - (marginHorizontal * 2);
     if (chartWidth <= 0) return;
 
     final double stepX = chartWidth / (pointCount - 1);
     final double relativeX = (touchX - marginHorizontal).clamp(0.0, chartWidth);
-    final int closestIndex = (relativeX / stepX).round().clamp(0, pointCount - 1);
+    final int closestIndex = (relativeX / stepX).round().clamp(0, activePointCount - 1);
 
     if (_inspectedParkedPointIndex != closestIndex) {
       setState(() {
@@ -171,13 +175,6 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     },
   ];
 
-  int get _totalParkedVehicles {
-    int sum = 0;
-    for (var l in _operationalLocations) {
-      sum += (l['occupied'] as int);
-    }
-    return sum;
-  }
 
 
 
@@ -1229,85 +1226,62 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     );
   }
 
-  // ⛰️ KARTU CHART GUNUNG KENDARAAN PARKIR (TEKAN & GESER TITIKNYA)
+  // ⛰️ KARTU CHART GUNUNG KENDARAAN PARKIR (4 MINGGU PER BULAN)
   Widget _buildParkedVehiclesMountainChart() {
     const Color accentColor = Color(0xFF17A18A); // Emerald green
+    final availableMonths = _parkedMonths;
+    final monthlyData = AdminOperationsDashboardBackend.instance.monthlyChartData;
 
-    final Map<String, Map<String, dynamic>> monthDataMap = {
-      'Okt 2026': {
-        'total': '$_totalParkedVehicles Unit',
-        'subtitle': 'Hari Ini (31 Okt)',
-        'chartData': [0.38, 0.48, 0.62, 0.82, 0.76, 0.88, 0.96],
-        'pointValues': ['720 Unit', '765 Unit', '815 Unit', '890 Unit', '860 Unit', '910 Unit', '$_totalParkedVehicles Unit'],
-        'pointDates': ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini (31 Okt)'],
-        'xLabels': ['1 Okt', '6 Okt', '11 Okt', '16 Okt', '21 Okt', '26 Okt', 'Hari Ini'],
-        'trend': '+14.8% Akumulasi Bulan Ini',
-      },
-      'Sep 2026': {
-        'total': '885 Unit',
-        'subtitle': 'Akhir Bulan (30 Sep)',
-        'chartData': [0.32, 0.42, 0.55, 0.70, 0.68, 0.80, 0.88],
-        'pointValues': ['680 Unit', '710 Unit', '750 Unit', '820 Unit', '805 Unit', '860 Unit', '885 Unit'],
-        'pointDates': ['1 Sep', '6 Sep', '11 Sep', '16 Sep', '21 Sep', '26 Sep', '30 Sep'],
-        'xLabels': ['1 Sep', '6 Sep', '11 Sep', '16 Sep', '21 Sep', '26 Sep', '30 Sep'],
-        'trend': '+11.2% Akumulasi Sep',
-      },
-      'Agu 2026': {
-        'total': '840 Unit',
-        'subtitle': 'Akhir Bulan (31 Agu)',
-        'chartData': [0.28, 0.38, 0.50, 0.65, 0.60, 0.75, 0.84],
-        'pointValues': ['620 Unit', '660 Unit', '710 Unit', '780 Unit', '760 Unit', '815 Unit', '840 Unit'],
-        'pointDates': ['1 Agu', '6 Agu', '11 Agu', '16 Agu', '21 Agu', '26 Agu', '31 Agu'],
-        'xLabels': ['1 Agu', '6 Agu', '11 Agu', '16 Agu', '21 Agu', '26 Agu', '31 Agu'],
-        'trend': '+8.5% Akumulasi Agu',
-      },
-      'Jul 2026': {
-        'total': '820 Unit',
-        'subtitle': 'Akhir Bulan (31 Jul)',
-        'chartData': [0.30, 0.40, 0.48, 0.62, 0.58, 0.72, 0.82],
-        'pointValues': ['640 Unit', '680 Unit', '720 Unit', '760 Unit', '745 Unit', '790 Unit', '820 Unit'],
-        'pointDates': ['1 Jul', '6 Jul', '11 Jul', '16 Jul', '21 Jul', '26 Jul', '31 Jul'],
-        'xLabels': ['1 Jul', '6 Jul', '11 Jul', '16 Jul', '21 Jul', '26 Jul', '31 Jul'],
-        'trend': '+9.1% Akumulasi Jul',
-      },
-      'Jun 2026': {
-        'total': '795 Unit',
-        'subtitle': 'Akhir Bulan (30 Jun)',
-        'chartData': [0.25, 0.35, 0.45, 0.58, 0.55, 0.68, 0.78],
-        'pointValues': ['610 Unit', '650 Unit', '695 Unit', '740 Unit', '730 Unit', '770 Unit', '795 Unit'],
-        'pointDates': ['1 Jun', '6 Jun', '11 Jun', '16 Jun', '21 Jun', '26 Jun', '30 Jun'],
-        'xLabels': ['1 Jun', '6 Jun', '11 Jun', '16 Jun', '21 Jun', '26 Jun', '30 Jun'],
-        'trend': '+7.3% Akumulasi Jun',
-      },
-      'Mei 2026': {
-        'total': '760 Unit',
-        'subtitle': 'Akhir Bulan (31 Mei)',
-        'chartData': [0.22, 0.30, 0.40, 0.52, 0.50, 0.64, 0.74],
-        'pointValues': ['580 Unit', '620 Unit', '660 Unit', '705 Unit', '690 Unit', '735 Unit', '760 Unit'],
-        'pointDates': ['1 Mei', '6 Mei', '11 Mei', '16 Mei', '21 Mei', '26 Mei', '31 Mei'],
-        'xLabels': ['1 Mei', '6 Mei', '11 Mei', '16 Mei', '21 Mei', '26 Mei', '31 Mei'],
-        'trend': '+6.8% Akumulasi Mei',
-      },
+    if (availableMonths.isEmpty) {
+      return _buildEmptyParkedVehiclesChart(accentColor);
+    }
+
+    final effectiveMonth = (_selectedParkedMonth != null && availableMonths.contains(_selectedParkedMonth))
+        ? _selectedParkedMonth!
+        : availableMonths.first;
+
+    final activeData = monthlyData[effectiveMonth] ?? {
+      'availableWeeksCount': 4,
+      'latestWeekIndex': 0,
+      'rawValues': [0, 0, 0, 0],
+      'chartData': [0.05, 0.05, 0.05, 0.05],
+      'pointValues': ['0 Unit', '0 Unit', '0 Unit', '0 Unit'],
+      'pointDates': ['Minggu 1 (Tgl 1-7)', 'Minggu 2 (Tgl 8-14)', 'Minggu 3 (Tgl 15-21)', 'Minggu 4 (Tgl 22-Akhir)'],
+      'xLabels': ['Minggu 1', 'Minggu 2', 'Minggu 3', 'Minggu 4'],
+      'percentages': [0.0, 0.0, 0.0, 0.0],
     };
 
-    final activeData = monthDataMap[_selectedParkedMonth] ?? monthDataMap['Okt 2026']!;
-    final List<double> chartData = List<double>.from(activeData['chartData']);
+    final int availableWeeksCount = (activeData['availableWeeksCount'] as num?)?.toInt() ?? 4;
+    final int latestWeekIndex = (activeData['latestWeekIndex'] as num?)?.toInt() ?? 0;
+    final List<int> rawValues = List<int>.from(activeData['rawValues'] ?? [0, 0, 0, 0]);
+    final List<double> chartData = List<double>.from(activeData['chartData'] ?? [0.05, 0.05, 0.05, 0.05]);
     final List<String> pointValues = List<String>.from(activeData['pointValues']);
     final List<String> pointDates = List<String>.from(activeData['pointDates']);
     final List<String> xLabels = List<String>.from(activeData['xLabels']);
+    final List<double> percentages = List<double>.from(activeData['percentages']);
     final int pointCount = chartData.length;
 
     final bool isInspecting = _inspectedParkedPointIndex != null &&
         _inspectedParkedPointIndex! >= 0 &&
-        _inspectedParkedPointIndex! < pointCount;
+        _inspectedParkedPointIndex! < availableWeeksCount;
 
-    final String displayValue = isInspecting
-        ? pointValues[_inspectedParkedPointIndex!]
-        : (activeData['total'] as String);
+    // Menentukan minggu yang aktif ditampilkan nilainya
+    final int activeWeekIdx = isInspecting ? _inspectedParkedPointIndex! : latestWeekIndex;
+    final String displayValue = '${rawValues[activeWeekIdx]} Unit';
+    final String displaySubtitle = pointDates[activeWeekIdx];
 
-    final String displaySubtitle = isInspecting
-        ? pointDates[_inspectedParkedPointIndex!]
-        : (activeData['subtitle'] as String);
+    // Kalkulasi persentase kenaikan/penurunan vs minggu sebelumnya
+    double diffPercent = 0.0;
+    String badgeText = 'Minggu 1';
+    bool isNegative = false;
+
+    if (activeWeekIdx > 0) {
+      diffPercent = percentages[activeWeekIdx];
+      isNegative = diffPercent < 0;
+      badgeText = '${diffPercent >= 0 ? '+' : ''}${diffPercent.toStringAsFixed(1)}% vs M-$activeWeekIdx';
+    } else {
+      badgeText = 'Minggu 1';
+    }
 
     return Container(
       decoration: BoxDecoration(
@@ -1366,9 +1340,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                   ),
                 ],
               ),
-              // Dropdown Pilihan Bulan (Background Putih + Outline Tipis Hitam)
+              // Dropdown Pilihan Bulan (Dari database, maks 6 bulan terakhir WIB)
               PopupMenuButton<String>(
-                initialValue: _selectedParkedMonth,
+                initialValue: effectiveMonth,
                 onSelected: (String month) {
                   setState(() {
                     _selectedParkedMonth = month;
@@ -1381,9 +1355,10 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                   borderRadius: BorderRadius.circular(12),
                   side: const BorderSide(color: Color(0xFFE5E7EB)),
                 ),
-                itemBuilder: (context) => _parkedMonths.map((m) {
-                  final isSelected = m == _selectedParkedMonth;
-                  final label = m == 'Okt 2026' ? 'Bulan Ini ($m)' : m;
+                itemBuilder: (context) => availableMonths.map((m) {
+                  final isSelected = m == effectiveMonth;
+                  final isCurrentMonth = m.contains('Okt 2026') || m == availableMonths.first;
+                  final label = isCurrentMonth ? 'Bulan Ini ($m)' : m;
                   return PopupMenuItem<String>(
                     value: m,
                     height: 38,
@@ -1417,9 +1392,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                       const Icon(Icons.calendar_month_rounded, size: 12, color: Color(0xFF1A1A18)),
                       const SizedBox(width: 5),
                       Text(
-                        _selectedParkedMonth == 'Okt 2026'
-                            ? 'Bulan Ini '
-                            : _selectedParkedMonth,
+                        effectiveMonth,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
@@ -1437,7 +1410,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
           const SizedBox(height: 12),
 
-          // Nilai Angka Besar + Status Keterangan
+          // Nilai Angka Besar + Persentase Kenaikan/Penurunan (Tombol Reset Dihilangkan)
           Row(
             crossAxisAlignment: CrossAxisAlignment.baseline,
             textBaseline: TextBaseline.alphabetic,
@@ -1452,49 +1425,43 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 ),
               ),
               const SizedBox(width: 8),
-              if (isInspecting)
-                InkWell(
-                  onTap: () {
-                    setState(() => _inspectedParkedPointIndex = null);
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1EEE7),
-                      borderRadius: BorderRadius.circular(4),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isNegative ? const Color(0xFFFDE8E4) : const Color(0xFFE8F7F4),
+                  borderRadius: BorderRadius.circular(6),
+                  border: Border.all(
+                    color: isNegative
+                        ? const Color(0xFFD94B4B).withValues(alpha: 0.25)
+                        : const Color(0xFF17A18A).withValues(alpha: 0.25),
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      isNegative ? Icons.trending_down : Icons.trending_up,
+                      size: 12,
+                      color: isNegative ? const Color(0xFFD94B4B) : const Color(0xFF17A18A),
                     ),
-                    child: Text(
-                      'Reset',
+                    const SizedBox(width: 3),
+                    Text(
+                      badgeText,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         fontWeight: FontWeight.bold,
-                        color: const Color(0xFF71717A),
+                        color: isNegative ? const Color(0xFFD94B4B) : const Color(0xFF17A18A),
                       ),
                     ),
-                  ),
-                )
-              else
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE8F7F4),
-                    borderRadius: BorderRadius.circular(4),
-                  ),
-                  child: Text(
-                    activeData['trend'] as String,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 10,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF17A18A),
-                    ),
-                  ),
+                  ],
                 ),
+              ),
             ],
           ),
 
           const SizedBox(height: 12),
 
-          // ⛰️ Chart Gunung Area (Tekan & Geser Titik Crosshair Langsung)
+          // ⛰️ Chart Gunung Area (4 Titik: Minggu 1 s.d. 4)
           LayoutBuilder(
             builder: (context, constraints) {
               final double canvasWidth = constraints.maxWidth;
@@ -1511,13 +1478,13 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (details) {
-                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount, availableWeeksCount);
                     },
                     onPanStart: (details) {
-                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount, availableWeeksCount);
                     },
                     onPanUpdate: (details) {
-                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                      _onParkedChartTouch(details.localPosition.dx, canvasWidth, pointCount, availableWeeksCount);
                     },
                     child: SizedBox(
                       width: canvasWidth,
@@ -1528,7 +1495,8 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                           pointValues: pointValues,
                           pointDates: pointDates,
                           xLabels: xLabels,
-                          inspectedIndex: _inspectedParkedPointIndex,
+                          inspectedIndex: isInspecting ? _inspectedParkedPointIndex : null,
+                          activePointCount: availableWeeksCount,
                           lineColor: accentColor,
                           gradientStart: accentColor.withValues(alpha: 0.35),
                           gradientEnd: accentColor.withValues(alpha: 0.0),
@@ -1563,6 +1531,195 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 ),
               ),
             ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyParkedVehiclesChart(Color accentColor) {
+    return Container(
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      padding: const EdgeInsets.all(18),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    width: 38,
+                    height: 38,
+                    decoration: BoxDecoration(
+                      color: accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(Icons.directions_car_rounded, size: 22, color: accentColor),
+                  ),
+                  const SizedBox(width: 12),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Kendaraan Parkir',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 14,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18),
+                        ),
+                      ),
+                      Text(
+                        'Database Kosong',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              // Dropdown Pilihan Bulan: Tetap bertuliskan "Bulan Ini" dan dapat diklik (menampilkan "Belum ada data")
+              PopupMenuButton<String>(
+                elevation: 4,
+                color: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  side: const BorderSide(color: Color(0xFFE5E7EB)),
+                ),
+                itemBuilder: (context) => [
+                  PopupMenuItem<String>(
+                    enabled: false,
+                    value: 'empty',
+                    height: 38,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.info_outline_rounded, size: 16, color: Color(0xFF76777B)),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Belum ada data',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF76777B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(8),
+                    border: Border.all(color: const Color(0xFF1A1A18), width: 0.9),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.calendar_month_rounded, size: 12, color: Color(0xFF1A1A18)),
+                      const SizedBox(width: 5),
+                      Text(
+                        'Bulan Ini',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF1A1A18),
+                        ),
+                      ),
+                      const SizedBox(width: 4),
+                      const Icon(Icons.keyboard_arrow_down_rounded, size: 14, color: Color(0xFF1A1A18)),
+                    ],
+                  ),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          Text(
+            '0 Unit',
+            style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.w800, color: const Color(0xFF1A1A18)),
+          ),
+          const SizedBox(height: 12),
+          // Area Chart 160px: Mempertahankan garis dasar dan teks Minggu 1, 2, 3, 4 di bawahnya
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final double canvasWidth = constraints.maxWidth;
+              const double canvasHeight = 160.0;
+              const double marginHorizontal = 24.0;
+              final double chartWidth = canvasWidth - (marginHorizontal * 2);
+              final double stepX = chartWidth / 3.0; // 4 titik -> 3 segmen
+
+              return Container(
+                width: canvasWidth,
+                height: canvasHeight,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFAFAF9),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: const Color(0xFFEFECE6)),
+                ),
+                child: Stack(
+                  children: [
+                    // Pesan 'Belum ada data' di tengah area grafik
+                    Center(
+                      child: Padding(
+                        padding: const EdgeInsets.only(bottom: 28.0, left: 16.0, right: 16.0),
+                        child: Text(
+                          'Belum ada data sesi parkir di database untuk periode ini.',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: const Color(0xFF76777B),
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                    // Garis Axis Baseline
+                    Positioned(
+                      left: marginHorizontal - 15,
+                      right: marginHorizontal - 15,
+                      bottom: 36.0,
+                      child: Container(
+                        height: 1.2,
+                        color: const Color(0xFFE4DFD5),
+                      ),
+                    ),
+                    // Pertahankan tulisan Minggu 1, 2, 3, 4
+                    ...List.generate(4, (index) {
+                      final double posX = marginHorizontal + (index * stepX);
+                      final label = 'Minggu ${index + 1}';
+                      return Positioned(
+                        left: posX - 32.0,
+                        width: 64.0,
+                        bottom: 8.0,
+                        child: Center(
+                          child: Text(
+                            label,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w500,
+                              color: const Color(0xFF76777B),
+                            ),
+                          ),
+                        ),
+                      );
+                    }),
+                  ],
+                ),
+              );
+            },
           ),
         ],
       ),
@@ -2242,6 +2399,7 @@ class _MountainChartPainter extends CustomPainter {
   final List<String> pointDates;
   final List<String> xLabels;
   final int? inspectedIndex;
+  final int activePointCount;
   final Color lineColor;
   final Color gradientStart;
   final Color gradientEnd;
@@ -2252,6 +2410,7 @@ class _MountainChartPainter extends CustomPainter {
     required this.pointDates,
     required this.xLabels,
     this.inspectedIndex,
+    this.activePointCount = 4,
     required this.lineColor,
     required this.gradientStart,
     required this.gradientEnd,
@@ -2303,6 +2462,8 @@ class _MountainChartPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
+    final int effectiveActive = activePointCount.clamp(1, points.length);
+
     final gridPaint = Paint()
       ..color = const Color(0xFFE5E7EB).withValues(alpha: 0.7)
       ..strokeWidth = 1.0;
@@ -2328,16 +2489,17 @@ class _MountainChartPainter extends CustomPainter {
       baselinePaint,
     );
 
+    // 🌊 Fill Gunung Hijau (Hanya digambar sampai minggu aktif/tersedia)
     final path = Path();
     path.moveTo(points.first.dx, baselineY);
     path.lineTo(points.first.dx, points.first.dy);
 
     const double tension = 0.22;
-    for (int i = 0; i < points.length - 1; i++) {
+    for (int i = 0; i < effectiveActive - 1; i++) {
       final Offset p0 = i > 0 ? points[i - 1] : points[0];
       final Offset p1 = points[i];
       final Offset p2 = points[i + 1];
-      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+      final Offset p3 = i < effectiveActive - 2 ? points[i + 2] : p2;
 
       final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
       final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
@@ -2345,7 +2507,7 @@ class _MountainChartPainter extends CustomPainter {
       path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
     }
 
-    path.lineTo(points.last.dx, baselineY);
+    path.lineTo(points[effectiveActive - 1].dx, baselineY);
     path.close();
 
     final fillPaint = Paint()
@@ -2358,14 +2520,15 @@ class _MountainChartPainter extends CustomPainter {
 
     canvas.drawPath(path, fillPaint);
 
+    // 〰️ Garis Hijau Utama (Hanya digambar sampai minggu aktif/tersedia)
     final strokePath = Path();
     strokePath.moveTo(points.first.dx, points.first.dy);
 
-    for (int i = 0; i < points.length - 1; i++) {
+    for (int i = 0; i < effectiveActive - 1; i++) {
       final Offset p0 = i > 0 ? points[i - 1] : points[0];
       final Offset p1 = points[i];
       final Offset p2 = points[i + 1];
-      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+      final Offset p3 = i < effectiveActive - 2 ? points[i + 2] : p2;
 
       final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
       final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
@@ -2382,18 +2545,34 @@ class _MountainChartPainter extends CustomPainter {
 
     canvas.drawPath(strokePath, linePaint);
 
-    final int labelStep = xLabels.length > 8 ? (xLabels.length / 5).ceil() : 1;
+    // Garis putus-putus tipis untuk minggu yang belum berjalan (misal minggu 4)
+    if (effectiveActive < points.length) {
+      final futurePaint = Paint()
+        ..color = const Color(0xFFD1D5DB)
+        ..strokeWidth = 1.4;
+      for (int i = effectiveActive - 1; i < points.length - 1; i++) {
+        _drawDashedLine(canvas, points[i], points[i + 1], futurePaint, dashWidth: 4, dashSpace: 4);
+      }
+      for (int i = effectiveActive; i < points.length; i++) {
+        canvas.drawCircle(points[i], 3, Paint()..color = const Color(0xFFD1D5DB));
+      }
+    }
+
+    // Label Sumbu X (Minggu 1, Minggu 2, Minggu 3, Minggu 4)
     for (int i = 0; i < xLabels.length && i < points.length; i++) {
       final bool isSelected = inspectedIndex == i;
-      final bool shouldDraw = isSelected || (i % labelStep == 0) || (i == xLabels.length - 1);
-      if (!shouldDraw) continue;
+      final bool isFuture = i >= effectiveActive;
 
       final labelSpan = TextSpan(
         text: xLabels[i],
         style: TextStyle(
           fontSize: isSelected ? 10 : 9,
           fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          color: isSelected ? lineColor : const Color(0xFF76777B),
+          color: isSelected
+              ? lineColor
+              : isFuture
+                  ? const Color(0xFFB0B0B0)
+                  : const Color(0xFF76777B),
         ),
       );
       final labelTp = TextPainter(
@@ -2415,7 +2594,8 @@ class _MountainChartPainter extends CustomPainter {
       labelTp.paint(canvas, Offset(labelX, labelY));
     }
 
-    if (inspectedIndex != null && inspectedIndex! >= 0 && inspectedIndex! < points.length) {
+    // Tampilan Titik Crosshair saat Inspeksi / Klik Minggu
+    if (inspectedIndex != null && inspectedIndex! >= 0 && inspectedIndex! < effectiveActive) {
       final Offset inspectPt = points[inspectedIndex!];
 
       final crosshairVerticalPaint = Paint()
@@ -2541,20 +2721,24 @@ class _MountainChartPainter extends CustomPainter {
         tp.paint(canvas, Offset(boxX + padH, boxY + padV));
       }
     } else {
+      // Titik puncak (Peak) dalam rentang minggu yang aktif
       int peakIndex = 0;
       double maxVal = data[0];
-      for (int i = 1; i < data.length; i++) {
+      for (int i = 1; i < effectiveActive; i++) {
         if (data[i] > maxVal) {
           maxVal = data[i];
           peakIndex = i;
         }
       }
-      final peakPoint = points[peakIndex];
-      canvas.drawCircle(peakPoint, 7, Paint()..color = lineColor.withValues(alpha: 0.2));
-      canvas.drawCircle(peakPoint, 4, Paint()..color = lineColor);
-      canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
+      if (peakIndex != effectiveActive - 1) {
+        final peakPoint = points[peakIndex];
+        canvas.drawCircle(peakPoint, 7, Paint()..color = lineColor.withValues(alpha: 0.2));
+        canvas.drawCircle(peakPoint, 4, Paint()..color = lineColor);
+        canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
+      }
 
-      final livePoint = points.last;
+      // Titik terbaru (Live dot) pada minggu aktif terakhir
+      final livePoint = points[effectiveActive - 1];
       canvas.drawCircle(livePoint, 8, Paint()..color = lineColor.withValues(alpha: 0.3));
       canvas.drawCircle(livePoint, 4.5, Paint()..color = lineColor);
       canvas.drawCircle(livePoint, 2.2, Paint()..color = Colors.white);
@@ -2565,6 +2749,7 @@ class _MountainChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _MountainChartPainter oldDelegate) {
     return oldDelegate.data != data ||
         oldDelegate.lineColor != lineColor ||
-        oldDelegate.inspectedIndex != inspectedIndex;
+        oldDelegate.inspectedIndex != inspectedIndex ||
+        oldDelegate.activePointCount != activePointCount;
   }
 }

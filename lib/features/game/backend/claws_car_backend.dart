@@ -121,4 +121,29 @@ class ClawsCarBackend extends ChangeNotifier {
       notifyListeners();
     }
   }
+
+  /// Menukar poin ke koin capit (Claw Crane) dan mengurangi saldo poin di tabel users
+  Future<void> exchangePointsForCoins({
+    required int pointsToDeduct,
+    required int coinsToAdd,
+  }) async {
+    try {
+      final uid = _client.auth.currentUser?.id;
+      if (uid == null) return;
+
+      final user = await _client.from('users').select('points').eq('id', uid).maybeSingle();
+      final currentPoints = (user?['points'] as num?)?.toInt() ?? 0;
+      final newPoints = (currentPoints - pointsToDeduct).clamp(0, 999999999);
+
+      await _client.from('users').update({
+        'points': newPoints,
+        'updated_at': DateTime.now().toIso8601String(),
+      }).eq('id', uid);
+
+      await DatabaseCacheBalancerService.instance.invalidatePrefix('user_');
+      debugPrint('[ClawsCarBackend] Berhasil konversi: -$pointsToDeduct poin, +$coinsToAdd koin capit. Sisa poin: $newPoints');
+    } catch (e) {
+      debugPrint('[ClawsCarBackend] Error exchangePointsForCoins: $e');
+    }
+  }
 }

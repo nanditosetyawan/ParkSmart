@@ -112,7 +112,6 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
     color VARCHAR(40) NOT NULL,
     plate_expiry VARCHAR(10),
     photo_url TEXT,
-    stnk_photo_url TEXT,
     is_default BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -130,7 +129,6 @@ CREATE TABLE IF NOT EXISTS public.admins (
     division VARCHAR(100) NOT NULL,
     avatar_url TEXT,
     status admin_status_enum NOT NULL DEFAULT 'active',
-    assigned_location_id UUID,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
@@ -189,10 +187,6 @@ CREATE TABLE IF NOT EXISTS public.parking_locations (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Relasi Lokasi Kerja Admin Operasional (Circular Safety)
-ALTER TABLE public.admins
-    DROP CONSTRAINT IF EXISTS fk_admins_location,
-    ADD CONSTRAINT fk_admins_location FOREIGN KEY (assigned_location_id) REFERENCES public.parking_locations(id) ON DELETE SET NULL;
 
 -- 8. TABEL DENAH SLOT PARKIR & SENSOR IOT
 CREATE TABLE IF NOT EXISTS public.parking_slots (
@@ -270,12 +264,10 @@ CREATE TABLE IF NOT EXISTS public.payments (
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
     booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
     session_id UUID REFERENCES public.parking_sessions(id) ON DELETE SET NULL,
-    processed_by_admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
     transaction_type transaction_type_enum NOT NULL DEFAULT 'parking_payment',
     payment_method payment_method_enum NOT NULL DEFAULT 'wallet',
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
     description TEXT,
-    admin_note TEXT,
     blockchain_hash VARCHAR(66),
     status transaction_status_enum NOT NULL DEFAULT 'success',
     completed_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),

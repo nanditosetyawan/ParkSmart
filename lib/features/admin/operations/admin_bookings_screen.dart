@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/utils/ticket_status_helper.dart';
 import 'backend/admin_bookings_backend.dart';
 
 class AdminBookingsScreen extends StatefulWidget {
@@ -24,7 +25,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 5, vsync: this);
     AdminBookingsBackend.instance.fetchBookings();
   }
 
@@ -37,10 +38,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
 
   Map<String, List<Map<String, dynamic>>> get _groupedBookings {
     final groups = <String, List<Map<String, dynamic>>>{
-      'Mendatang': [],
-      'Aktif': [],
-      'Selesai': [],
-      'Dibatalkan': [],
+      TicketMark.ready: [],
+      TicketMark.aktif: [],
+      TicketMark.selesai: [],
+      TicketMark.belumDibayar: [],
+      TicketMark.dibatalkan: [],
     };
 
     for (var b in _filteredBookings) {
@@ -71,33 +73,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
   }
 
   Color _getStatusColor(String status) {
-    switch (status) {
-      case 'Mendatang':
-        return const Color(0xFF114177);
-      case 'Aktif':
-        return const Color(0xFF17A18A);
-      case 'Selesai':
-        return const Color(0xFF76777B);
-      case 'Dibatalkan':
-        return const Color(0xFFD94B4B);
-      default:
-        return const Color(0xFF76777B);
-    }
+    return TicketMark.getColor(status);
   }
 
   Color _getStatusBg(String status) {
-    switch (status) {
-      case 'Mendatang':
-        return const Color(0xFFE3EEFF);
-      case 'Aktif':
-        return const Color(0xFFD1F2EB);
-      case 'Selesai':
-        return const Color(0xFFF3F4F6);
-      case 'Dibatalkan':
-        return const Color(0xFFFDE8E4);
-      default:
-        return const Color(0xFFF3F4F6);
-    }
+    return TicketMark.getBgColor(status);
   }
 
   Color _getVehicleColor(String type) {
@@ -208,7 +188,7 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
                 const SizedBox(height: 20),
 
                 // Actions
-                if (booking['status'] == 'Mendatang' || booking['status'] == 'Aktif') ...[
+                if (booking['status'] == TicketMark.ready || booking['status'] == TicketMark.aktif || booking['status'] == TicketMark.belumDibayar) ...[
                   Row(
                     children: [
                       Expanded(
@@ -222,31 +202,33 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
                           style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD94B4B)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
                         ),
                       ),
-                      const SizedBox(width: 12),
-                      if (booking['status'] == 'Mendatang')
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              _confirmStartSession(booking);
-                            },
-                            icon: const Icon(Icons.play_arrow, size: 18, color: Colors.white),
-                            label: Text('Mulai Sesi', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                      if (booking['status'] == TicketMark.ready || booking['status'] == TicketMark.aktif) ...[
+                        const SizedBox(width: 12),
+                        if (booking['status'] == TicketMark.ready)
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _confirmStartSession(booking);
+                              },
+                              icon: const Icon(Icons.play_arrow, size: 18, color: Colors.white),
+                              label: Text('Mulai Sesi', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                            ),
+                          )
+                        else
+                          Expanded(
+                            child: ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _forceCheckout(booking);
+                              },
+                              icon: const Icon(Icons.exit_to_app, size: 18, color: Colors.white),
+                              label: Text('Force Check-Out', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
+                              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE07A5F), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
+                            ),
                           ),
-                        )
-                      else
-                        Expanded(
-                          child: ElevatedButton.icon(
-                            onPressed: () {
-                              Navigator.pop(ctx);
-                              _forceCheckout(booking);
-                            },
-                            icon: const Icon(Icons.exit_to_app, size: 18, color: Colors.white),
-                            label: Text('Force Check-Out', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-                            style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFE07A5F), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)), padding: const EdgeInsets.symmetric(vertical: 14)),
-                          ),
-                        ),
+                      ],
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -391,10 +373,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
       listenable: AdminBookingsBackend.instance,
       builder: (context, _) {
         final stats = {
-          'Mendatang': _bookings.where((b) => b['status'] == 'Mendatang').length,
-          'Aktif': _bookings.where((b) => b['status'] == 'Aktif').length,
-          'Selesai': _bookings.where((b) => b['status'] == 'Selesai').length,
-          'Dibatalkan': _bookings.where((b) => b['status'] == 'Dibatalkan').length,
+          TicketMark.ready: _bookings.where((b) => b['status'] == TicketMark.ready).length,
+          TicketMark.aktif: _bookings.where((b) => b['status'] == TicketMark.aktif).length,
+          TicketMark.selesai: _bookings.where((b) => b['status'] == TicketMark.selesai).length,
+          TicketMark.belumDibayar: _bookings.where((b) => b['status'] == TicketMark.belumDibayar).length,
+          TicketMark.dibatalkan: _bookings.where((b) => b['status'] == TicketMark.dibatalkan).length,
         };
 
         return Theme(
@@ -434,10 +417,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
               indicatorWeight: 2,
               isScrollable: true,
               tabs: const [
-                Tab(text: 'Mendatang'),
-                Tab(text: 'Aktif'),
-                Tab(text: 'Selesai'),
-                Tab(text: 'Dibatalkan'),
+                Tab(text: TicketMark.ready),
+                Tab(text: TicketMark.aktif),
+                Tab(text: TicketMark.selesai),
+                Tab(text: TicketMark.belumDibayar),
+                Tab(text: TicketMark.dibatalkan),
               ],
             ),
           ),
@@ -453,17 +437,17 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
               children: [
                 Row(
                   children: [
-                    _buildStatCard('Mendatang', '${stats['Mendatang']}', const Color(0xFF114177), const Color(0xFFE3EEFF)),
+                    _buildStatCard(TicketMark.ready, '${stats[TicketMark.ready]}', TicketMark.getColor(TicketMark.ready), TicketMark.getBgColor(TicketMark.ready)),
                     const SizedBox(width: 10),
-                    _buildStatCard('Aktif', '${stats['Aktif']}', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
+                    _buildStatCard(TicketMark.aktif, '${stats[TicketMark.aktif]}', TicketMark.getColor(TicketMark.aktif), TicketMark.getBgColor(TicketMark.aktif)),
                   ],
                 ),
                 const SizedBox(height: 10),
                 Row(
                   children: [
-                    _buildStatCard('Selesai', '${stats['Selesai']}', const Color(0xFF76777B), const Color(0xFFF3F4F6)),
+                    _buildStatCard(TicketMark.selesai, '${stats[TicketMark.selesai]}', TicketMark.getColor(TicketMark.selesai), TicketMark.getBgColor(TicketMark.selesai)),
                     const SizedBox(width: 10),
-                    _buildStatCard('Dibatalkan', '${stats['Dibatalkan']}', const Color(0xFFD94B4B), const Color(0xFFFDE8E4)),
+                    _buildStatCard(TicketMark.belumDibayar, '${stats[TicketMark.belumDibayar]}', TicketMark.getColor(TicketMark.belumDibayar), TicketMark.getBgColor(TicketMark.belumDibayar)),
                   ],
                 ),
                 const SizedBox(height: 14),
@@ -559,10 +543,11 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
             child: TabBarView(
               controller: _tabController,
               children: [
-                _buildBookingList(_groupedBookings['Mendatang']!),
-                _buildBookingList(_groupedBookings['Aktif']!),
-                _buildBookingList(_groupedBookings['Selesai']!),
-                _buildBookingList(_groupedBookings['Dibatalkan']!),
+                _buildBookingList(_groupedBookings[TicketMark.ready] ?? []),
+                _buildBookingList(_groupedBookings[TicketMark.aktif] ?? []),
+                _buildBookingList(_groupedBookings[TicketMark.selesai] ?? []),
+                _buildBookingList(_groupedBookings[TicketMark.belumDibayar] ?? []),
+                _buildBookingList(_groupedBookings[TicketMark.dibatalkan] ?? []),
               ],
             ),
           ),

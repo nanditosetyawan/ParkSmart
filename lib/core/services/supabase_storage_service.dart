@@ -50,11 +50,59 @@ class SupabaseStorageService {
     }
   }
 
-  /// Unggah foto kendaraan (Plat nomor / STNK)
+  /// Unggah foto fisik kendaraan (Mobil / Motor) dengan kompresi kualitas 70% (tidak buram)
+  Future<String?> uploadVehiclePhoto({
+    required Uint8List rawBytes,
+    required String userId,
+  }) async {
+    try {
+      // Kompresi kualitas 70% (target width 1200px) agar ukuran hemat storage namun visual tetap tajam & tidak buram
+      final compressionResult = await ImageCompressionUtil.compressBrutally(
+        rawBytes,
+        targetWidth: 1200,
+        quality: 70,
+      );
+
+      final fileName = 'car_${userId}_${DateTime.now().millisecondsSinceEpoch}.jpg';
+      final storagePath = '$userId/$fileName';
+
+      String targetBucket = 'vehicles';
+      try {
+        await _client.storage.from(targetBucket).uploadBinary(
+              storagePath,
+              compressionResult.compressedBytes,
+              fileOptions: const FileOptions(
+                contentType: 'image/jpeg',
+                upsert: true,
+              ),
+            );
+      } catch (err) {
+        debugPrint('[SupabaseStorage] Fallback to kyc-documents: $err');
+        targetBucket = kycBucket;
+        await _client.storage.from(targetBucket).uploadBinary(
+              storagePath,
+              compressionResult.compressedBytes,
+              fileOptions: const FileOptions(
+                contentType: 'image/jpeg',
+                upsert: true,
+              ),
+            );
+      }
+
+      final publicUrl = _client.storage.from(targetBucket).getPublicUrl(storagePath);
+      debugPrint('[SupabaseStorage] Foto kendaraan berhasil diunggah: $publicUrl');
+      return publicUrl;
+    } catch (e) {
+      debugPrint('[SupabaseStorage] Gagal mengunggah foto kendaraan: $e');
+      return null;
+    }
+  }
+
+  /// Unggah foto kendaraan lama
   Future<String?> uploadVehicleImage({
     required Uint8List rawBytes,
     required String userId,
-    required String docType, // 'plat' atau 'stnk'
+    required String docType,
   }) async {
     try {
       final compressionResult = await ImageCompressionUtil.compressBrutally(

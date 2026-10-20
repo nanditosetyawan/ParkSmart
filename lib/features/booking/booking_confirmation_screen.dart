@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/utils/ticket_status_helper.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -157,21 +158,49 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                   ),
                                 ],
                               ),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: Colors.white,
-                                  borderRadius: AppRadii.pillRadius,
-                                  border: isDark ? null : Border.all(color: const Color(0xFFE5E2DB)),
-                                ),
-                                child: Text(
-                                  BookingConfirmationBackend.instance.bookingCode,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.w700,
-                                    color: Colors.black,
+                              Row(
+                                children: [
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                    decoration: BoxDecoration(
+                                      color: TicketMark.getBgColor(BookingConfirmationBackend.instance.ticketStatus, isDark: isDark),
+                                      borderRadius: AppRadii.pillRadius,
+                                      border: Border.all(color: TicketMark.getBorderColor(BookingConfirmationBackend.instance.ticketStatus, isDark: isDark)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(TicketMark.getIcon(BookingConfirmationBackend.instance.ticketStatus), size: 12, color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus)),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          BookingConfirmationBackend.instance.ticketStatus,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.bold,
+                                            color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                                   ),
-                                ),
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                    decoration: BoxDecoration(
+                                      color: Colors.white,
+                                      borderRadius: AppRadii.pillRadius,
+                                      border: isDark ? null : Border.all(color: const Color(0xFFE5E2DB)),
+                                    ),
+                                    child: Text(
+                                      BookingConfirmationBackend.instance.bookingCode,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w700,
+                                        color: Colors.black,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ],
                           ),

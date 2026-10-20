@@ -59,23 +59,23 @@ ON CONFLICT (code) DO NOTHING;
 
 -- 2. SEED DATA AKUN ADMIN TERPADU (4 DIVISI RBAC)
 INSERT INTO public.admins (
-    id, email, full_name, phone, role, division, status, assigned_location_id
+    id, email, full_name, phone, role, division, status
 ) VALUES
 (
     'b0000000-0000-0000-0000-000000000001', 'superadmin@parksmart.id', 'Dito Pratama', '+62 812-0000-0001',
-    'super_admin', 'Sistem & Super Admin', 'active', NULL
+    'super_admin', 'Sistem & Super Admin', 'active'
 ),
 (
     'b0000000-0000-0000-0000-000000000002', 'ops.centralpark@parksmart.id', 'Bambang Hidayat', '+62 812-0000-0002',
-    'operational', 'Divisi Operasional Lapangan', 'active', 'a0000000-0000-0000-0000-000000000001'
+    'operational', 'Divisi Operasional Lapangan', 'active'
 ),
 (
     'b0000000-0000-0000-0000-000000000003', 'finance@parksmart.id', 'Indah Permatasari', '+62 812-0000-0003',
-    'finance', 'Divisi Akuntansi & Keuangan', 'active', NULL
+    'finance', 'Divisi Akuntansi & Keuangan', 'active'
 ),
 (
     'b0000000-0000-0000-0000-000000000004', 'cs@parksmart.id', 'Nabila Putri', '+62 812-0000-0004',
-    'cs', 'Divisi Layanan Pelanggan & CRM', 'active', NULL
+    'cs', 'Divisi Layanan Pelanggan & CRM', 'active'
 )
 ON CONFLICT (email) DO NOTHING;
 
@@ -178,21 +178,6 @@ VALUES
         "is_autonomous_pricing_enabled": true
     }'::jsonb,
     'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing',
-    'b0000000-0000-0000-0000-000000000001'
-),
-(
-    'currency_rates',
-    '{
-        "IDR": 1.0,
-        "USD": 16250.0,
-        "SGD": 12100.0,
-        "MYR": 3480.0,
-        "EUR": 17400.0,
-        "JPY": 108.5,
-        "GBP": 20600.0,
-        "AUD": 10650.0
-    }'::jsonb,
-    'Tabel kurs nilai tukar 8 valuta asing untuk turis mancanegara',
     'b0000000-0000-0000-0000-000000000001'
 ),
 (

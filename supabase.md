@@ -24,7 +24,7 @@
 | 10 | `customer_feedbacks` | Customer Service | Ulasan bintang 1-5, masukan fasilitas & tanggapan keluhan pengguna |
 | 11 | `system_notifications` | CS & Sistem | Siaran pesan broadcast, promo tarif & notifikasi peringatan operasional |
 | 12 | `arcade_scores` | Gamifikasi & Poin | Riwayat skor mini-game (Car & Claws) serta perolehan SmartPoints pengguna |
-| 13 | `system_settings` | Super Admin | Konfigurasi variabel global (AI Jarvis, kurs valuta, feature toggles JSONB) |
+| 13 | `system_settings` | Super Admin | Konfigurasi variabel global (AI Jarvis, feature toggles JSONB; kurs ditangani client-side via Free API) |
 
 ---
 
@@ -158,7 +158,8 @@ CREATE INDEX IF NOT EXISTS idx_users_status ON public.users(status);
 ---
 
 ### Tabel 2: `vehicles`
-Menyimpan garasi kendaraan pengguna yang digunakan untuk kalkulasi tarif gerbang, reservasi slot, dan auto-detect nomor plat (TNKB) via AI OCR Kamera.
+Menyimpan garasi kendaraan pengguna yang digunakan untuk kalkulasi tarif gerbang, reservasi slot, dan auto-detect nomor plat (TNKB) via AI OCR Kamera.  
+*Catatan Pemrosesan Foto:* Pengguna wajib memfoto 2x (Plat Nomor fisik & Masa Berlaku STNK). Foto hanya diolah di memori (in-memory OCR) untuk mengambil teks dan gambar fotonya **tidak disimpan ke storage/database** demi privasi dan efisiensi.
 * **File Rujukan Kode:** `lib/features/profile/vehicle_screen.dart`, `lib/features/vehicle/add_vehicle_screen.dart`, `custom_camera_screen.dart`.
 
 ```sql
@@ -173,7 +174,6 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
     color VARCHAR(40) NOT NULL,
     plate_expiry VARCHAR(10),
     photo_url TEXT,
-    stnk_photo_url TEXT,
     is_default BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -201,7 +201,6 @@ CREATE TABLE IF NOT EXISTS public.admins (
     division VARCHAR(100) NOT NULL,
     avatar_url TEXT,
     status admin_status_enum NOT NULL DEFAULT 'active',
-    assigned_location_id UUID, -- Referensi ke lokasi parkir tertentu (jika role operasional lapangan)
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
@@ -403,12 +402,10 @@ CREATE TABLE IF NOT EXISTS public.payments (
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
     booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
     session_id UUID REFERENCES public.parking_sessions(id) ON DELETE SET NULL,
-    processed_by_admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
     transaction_type transaction_type_enum NOT NULL DEFAULT 'parking_payment',
     payment_method payment_method_enum NOT NULL DEFAULT 'wallet',
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
     description TEXT,
-    admin_note TEXT,                              -- Catatan khusus admin (misal saat injeksi/kompensasi)
     blockchain_hash VARCHAR(66),                  -- Hash kriptografi bukti validasi SHA-256 (0x...)
     status transaction_status_enum NOT NULL DEFAULT 'success',
     completed_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
@@ -487,7 +484,9 @@ CREATE TABLE IF NOT EXISTS public.arcade_scores (
     game_name VARCHAR(60) NOT NULL, -- 'car_game', 'claws_car'
     score INT NOT NULL DEFAULT 0,
     points_earned INT NOT NULL DEFAULT 0,
-    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    score_type VARCHAR(20) NOT NULL DEFAULT 'current', -- 'highest' (rekor terbaik) atau 'current' (sesi terakhir ditimpa)
+    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_user_game_score_type UNIQUE (user_id, game_name, score_type)
 );
 
 CREATE INDEX IF NOT EXISTS idx_arcade_scores_user ON public.arcade_scores(user_id);
@@ -497,15 +496,46 @@ CREATE INDEX IF NOT EXISTS idx_arcade_scores_game ON public.arcade_scores(game_n
 ---
 
 ### Tabel 13: `system_settings` (Konfigurasi Global Super Admin)
-Struktur tabel variabel dinamis berbasis Key-Value (JSONB) yang mengontrol konfigurasi kecerdasan buatan (*AI Jarvis Engine*), nilai tukar 8 mata uang asing, parameter tarif denda & grace period, serta fitur toggle sistem secara instan tanpa perlu re-deploy aplikasi.
-* **File Rujukan Kode:** `lib/features/admin/super_admin/admin_app_settings_screen.dart`, `admin_ai_config_screen.dart`.
+Struktur tabel variabel dinamis berbasis Key-Value (JSONB) yang mengontrol konfigurasi kecerdasan buatan (*AI Jarvis Engine*), saklar fitur sistem (*feature toggles*), serta parameter global tanpa perlu re-deploy aplikasi.  
+*Catatan Arsitektur Kurs Valuta Asing:* Fitur konversi mata uang asing dioperasikan murni secara matematis pada tampilan antarmuka (client-side UI math display) menggunakan Public Open Exchange Rates API tanpa biaya (0 rupiah) dan saklar toggle ON/OFF di menu Pengaturan Pengguna. Seluruh data transaksi keuangan di database tetap murni tersimpan dalam Rupiah (IDR).
+* **File Rujukan Kode:** `lib/features/admin/super_admin/admin_app_settings_screen.dart`, `admin_ai_config_screen.dart`, `lib/core/services/currency_service.dart`.
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.system_settings (
-    key VARCHAR(80) PRIMARY KEY, -- 'ai_config', 'currency_rates', 'feature_toggles', 'pricing_multipliers'
+    key VARCHAR(80) PRIMARY KEY, -- 'ai_config', 'feature_toggles'
     value JSONB NOT NULL,
     description TEXT,
     updated_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- Inisialisasi Otomatis Default Record System Settings saat Skema Dijalankan
+INSERT INTO public.system_settings (key, value, description)
+VALUES
+(
+    'ai_config',
+    '{
+        "model_name": "qwen/qwen3.8-27b",
+        "api_key": "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",
+        "temperature": 0.4,
+        "max_tokens": 1024,
+        "ocr_confidence_threshold": 0.85,
+        "is_autonomous_pricing_enabled": true
+    }'::jsonb,
+    'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing'
+),
+(
+    'feature_toggles',
+    '{
+        "is_arcade_active": true,
+        "is_ev_charging_booking_enabled": true,
+        "is_crypto_blockchain_audit_live": true,
+        "is_biometric_login_enforced": false
+    }'::jsonb,
+    'Saklar fitur sistem aplikasi ParkSmart ID'
+)
+ON CONFLICT (key) DO UPDATE SET
+    value = EXCLUDED.value,
+    description = EXCLUDED.description,
+    updated_at = timezone('utc'::text, now());
 ```

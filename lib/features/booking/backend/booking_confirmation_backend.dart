@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/utils/ticket_status_helper.dart';
 
 /// Backend khusus untuk BookingConfirmationScreen (lib/features/booking/booking_confirmation_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk tiket konfirmasi reservasi
@@ -17,6 +18,9 @@ class BookingConfirmationBackend extends ChangeNotifier {
 
   String _bookingCode = '#PS-88210-CP';
   String get bookingCode => _bookingCode;
+
+  String _ticketStatus = TicketMark.ready;
+  String get ticketStatus => _ticketStatus;
 
   String _locationName = 'Central Park Mall';
   String get locationName => _locationName;
@@ -45,7 +49,7 @@ class BookingConfirmationBackend extends ChangeNotifier {
     try {
       var query = _client
           .from('bookings')
-          .select('id, booking_code, start_time, end_time, duration_hours, total_price, qr_code_hash, booking_status, location_id, slot_id, vehicle_id');
+          .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, qr_code_hash, location_id, slot_id, vehicle_id');
 
       final bookingData = bookingId != null
           ? await query.eq('id', bookingId).maybeSingle()
@@ -54,6 +58,10 @@ class BookingConfirmationBackend extends ChangeNotifier {
       if (bookingData != null) {
         _latestBooking = bookingData;
         _bookingCode = bookingData['booking_code'] ?? _bookingCode;
+        _ticketStatus = TicketMark.resolve(
+          paymentStatus: bookingData['payment_status']?.toString() ?? 'paid',
+          bookingStatus: bookingData['booking_status']?.toString() ?? 'upcoming',
+        );
 
         // Format waktu
         try {

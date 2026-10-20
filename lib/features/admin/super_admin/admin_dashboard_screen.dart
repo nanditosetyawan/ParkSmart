@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import 'backend/admin_dashboard_backend.dart';
+import 'backend/admin_kyc_backend.dart';
 
 // Screens for Super Admin Core Governance
 import 'admin_user_management_screen.dart';
@@ -71,7 +72,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _isMaintenanceActive = MaintenanceService.instance.isGlobalMaintenance;
     _loadSuperAdminProfile();
     _initClientAuditLogs();
+    AdminDashboardBackend.instance.addListener(_onDashboardBackendChanged);
+    AdminDashboardBackend.instance.startPeriodicMetrics();
     AdminDashboardBackend.instance.fetchDashboardMetrics();
+  }
+
+  void _onDashboardBackendChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadSuperAdminProfile() async {
@@ -90,17 +99,29 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
   @override
   void dispose() {
+    AdminDashboardBackend.instance.stopPeriodicMetrics();
+    AdminDashboardBackend.instance.removeListener(_onDashboardBackendChanged);
     super.dispose();
   }
 
-  void _onChartTouch(double localX, double canvasWidth, int pointCount) {
-    if (pointCount <= 1) return;
+  void _onChartTouch(double localX, double canvasWidth, int pointCount, int activeCount) {
+    if (pointCount <= 1 || canvasWidth <= 0) return;
+    if (activeCount == 0) {
+      if (_inspectedPointIndex != 0) {
+        setState(() => _inspectedPointIndex = 0);
+      }
+      return;
+    }
     const double marginHorizontal = 24.0;
     final double chartWidth = canvasWidth - (marginHorizontal * 2);
+    if (chartWidth <= 0) return;
     final double stepX = chartWidth / (pointCount - 1);
 
-    final double relativeX = localX - marginHorizontal;
-    final int closestIndex = (relativeX / stepX).round().clamp(0, pointCount - 1);
+    final double relativeX = (localX - marginHorizontal).clamp(0.0, chartWidth);
+    int closestIndex = (relativeX / stepX).round().clamp(0, pointCount - 1);
+    if (closestIndex >= activeCount) {
+      closestIndex = activeCount - 1;
+    }
 
     if (_inspectedPointIndex != closestIndex) {
       setState(() {
@@ -113,194 +134,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   bool _isMaintenanceActive = false;
 
   // Divisional Read-Only Metrics Data (Dengan opsi 1 Hari, 1 Minggu, 1 Bulan, 1 Tahun)
-  final List<Map<String, dynamic>> _divisionalMetrics = [
-    {
-      'title': 'Pendapatan Global',
-      'division': 'Divisi Finansial',
-      'accentColor': const Color(0xFF17A18A),
-      'icon': Icons.trending_up,
-      'periods': [
-        // 0: 1 Hari
-        {
-          'value': 'Rp 3.850.000',
-          'growth': '+18%',
-          'chartData': [0.15, 0.28, 0.42, 0.65, 0.58, 0.82, 0.95],
-          'pointValues': ['Rp 320 Rb', 'Rp 650 Rb', 'Rp 1.25 Jt', 'Rp 2.10 Jt', 'Rp 2.55 Jt', 'Rp 3.20 Jt', 'Rp 3.85 Jt'],
-          'pointDates': ['00:00 WIB', '04:00 WIB', '08:00 WIB', '12:00 WIB', '16:00 WIB', '20:00 WIB', '23:59 WIB'],
-          'xLabels': ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
-        },
-        // 1: 1 Minggu
-        {
-          'value': 'Rp 26.400.000',
-          'growth': '+12%',
-          'chartData': [0.35, 0.48, 0.42, 0.68, 0.75, 0.92, 0.86],
-          'pointValues': ['Rp 2.8 Jt', 'Rp 3.2 Jt', 'Rp 3.0 Jt', 'Rp 4.1 Jt', 'Rp 4.5 Jt', 'Rp 5.1 Jt', 'Rp 3.7 Jt'],
-          'pointDates': ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
-          'xLabels': ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
-        },
-        // 2: 1 Bulan
-        {
-          'value': 'Rp 48.500.000',
-          'growth': '+14%',
-          'chartData': [0.25, 0.32, 0.28, 0.45, 0.38, 0.52, 0.60, 0.55, 0.72, 0.68, 0.85, 0.78, 0.95, 0.82, 0.90],
-          'pointValues': [
-            'Rp 21.5 Jt', 'Rp 24.2 Jt', 'Rp 22.8 Jt', 'Rp 29.0 Jt', 'Rp 26.4 Jt',
-            'Rp 33.1 Jt', 'Rp 36.5 Jt', 'Rp 34.0 Jt', 'Rp 41.2 Jt', 'Rp 39.5 Jt',
-            'Rp 45.8 Jt', 'Rp 43.0 Jt', 'Rp 52.0 Jt', 'Rp 46.2 Jt', 'Rp 48.5 Jt'
-          ],
-          'pointDates': [
-            '01 Okt', '02 Okt', '03 Okt', '04 Okt', '05 Okt',
-            '06 Okt', '07 Okt', '08 Okt', '09 Okt', '10 Okt',
-            '11 Okt', '12 Okt', '13 Okt', '14 Okt', '15 Okt'
-          ],
-          'xLabels': [
-            '01', '02', '03', '04', '05',
-            '06', '07', '08', '09', '10',
-            '11', '12', '13', '14', '15 Okt'
-          ],
-        },
-        // 3: 1 Tahun
-        {
-          'value': 'Rp 582.400.000',
-          'growth': '+28%',
-          'chartData': [0.25, 0.30, 0.36, 0.42, 0.48, 0.55, 0.62, 0.68, 0.75, 0.82, 0.91, 0.98],
-          'pointValues': [
-            'Rp 32 Jt', 'Rp 36 Jt', 'Rp 40 Jt', 'Rp 44 Jt', 'Rp 48 Jt', 'Rp 52 Jt',
-            'Rp 55 Jt', 'Rp 58 Jt', 'Rp 61 Jt', 'Rp 64 Jt', 'Rp 69 Jt', 'Rp 73.4 Jt'
-          ],
-          'pointDates': [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-          ],
-          'xLabels': ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-        },
-      ],
-    },
-    {
-      'title': 'Total Booking',
-      'division': 'Divisi Finansial',
-      'accentColor': const Color(0xFF114177),
-      'icon': Icons.book_online,
-      'periods': [
-        // 0: 1 Hari
-        {
-          'value': '245 Transaksi',
-          'growth': '+11%',
-          'chartData': [0.18, 0.25, 0.50, 0.72, 0.65, 0.88, 0.95],
-          'pointValues': ['18 tx', '25 tx', '65 tx', '125 tx', '160 tx', '215 tx', '245 tx'],
-          'pointDates': ['00:00 WIB', '04:00 WIB', '08:00 WIB', '12:00 WIB', '16:00 WIB', '20:00 WIB', '23:59 WIB'],
-          'xLabels': ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
-        },
-        // 1: 1 Minggu
-        {
-          'value': '1.720 Transaksi',
-          'growth': '+7%',
-          'chartData': [0.32, 0.45, 0.40, 0.62, 0.70, 0.90, 0.82],
-          'pointValues': ['195 tx', '230 tx', '210 tx', '285 tx', '310 tx', '345 tx', '245 tx'],
-          'pointDates': ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
-          'xLabels': ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
-        },
-        // 2: 1 Bulan
-        {
-          'value': '3.420 Transaksi',
-          'growth': '+8%',
-          'chartData': [0.30, 0.38, 0.35, 0.50, 0.48, 0.62, 0.58, 0.70, 0.65, 0.80, 0.75, 0.88, 0.82, 0.96, 0.88],
-          'pointValues': [
-            '1.420 tx', '1.680 tx', '1.590 tx', '2.100 tx', '2.050 tx',
-            '2.450 tx', '2.380 tx', '2.720 tx', '2.610 tx', '3.050 tx',
-            '2.920 tx', '3.310 tx', '3.180 tx', '3.650 tx', '3.420 tx'
-          ],
-          'pointDates': [
-            '01 Okt', '02 Okt', '03 Okt', '04 Okt', '05 Okt',
-            '06 Okt', '07 Okt', '08 Okt', '09 Okt', '10 Okt',
-            '11 Okt', '12 Okt', '13 Okt', '14 Okt', '15 Okt'
-          ],
-          'xLabels': [
-            '01', '02', '03', '04', '05',
-            '06', '07', '08', '09', '10',
-            '11', '12', '13', '14', '15 Okt'
-          ],
-        },
-        // 3: 1 Tahun
-        {
-          'value': '41.250 Transaksi',
-          'growth': '+22%',
-          'chartData': [0.28, 0.33, 0.38, 0.45, 0.52, 0.58, 0.65, 0.71, 0.78, 0.85, 0.91, 0.97],
-          'pointValues': [
-            '2.400 tx', '2.680 tx', '2.950 tx', '3.200 tx', '3.450 tx', '3.620 tx',
-            '3.780 tx', '3.910 tx', '4.080 tx', '4.250 tx', '4.380 tx', '4.550 tx'
-          ],
-          'pointDates': [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-          ],
-          'xLabels': ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-        },
-      ],
-    },
-    {
-      'title': 'Customer Aktif',
-      'division': 'Divisi Customer Service (CS)',
-      'accentColor': const Color(0xFF6D28D9),
-      'icon': Icons.people_outline,
-      'periods': [
-        // 0: 1 Hari
-        {
-          'value': '1.420 Pengguna',
-          'growth': '+9%',
-          'chartData': [0.22, 0.35, 0.52, 0.68, 0.74, 0.88, 0.96],
-          'pointValues': ['120 User', '210 User', '580 User', '890 User', '1.150 User', '1.340 User', '1.420 User'],
-          'pointDates': ['00:00 WIB', '04:00 WIB', '08:00 WIB', '12:00 WIB', '16:00 WIB', '20:00 WIB', '23:59 WIB'],
-          'xLabels': ['00:00', '04:00', '08:00', '12:00', '16:00', '20:00', '23:59'],
-        },
-        // 1: 1 Minggu
-        {
-          'value': '4.850 Pengguna',
-          'growth': '+6%',
-          'chartData': [0.35, 0.44, 0.52, 0.63, 0.72, 0.84, 0.94],
-          'pointValues': ['3.900 User', '4.050 User', '4.200 User', '4.380 User', '4.550 User', '4.720 User', '4.850 User'],
-          'pointDates': ['Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'],
-          'xLabels': ['Sen', 'Sel', 'Rab', 'Kam', 'Jum', 'Sab', 'Min'],
-        },
-        // 2: 1 Bulan
-        {
-          'value': '12.850 Pengguna',
-          'growth': '+5%',
-          'chartData': [0.35, 0.40, 0.44, 0.48, 0.53, 0.58, 0.63, 0.67, 0.72, 0.76, 0.81, 0.85, 0.89, 0.93, 0.96],
-          'pointValues': [
-            '9.820 User', '10.050 User', '10.240 User', '10.510 User', '10.780 User',
-            '11.020 User', '11.290 User', '11.530 User', '11.820 User', '12.040 User',
-            '12.280 User', '12.490 User', '12.650 User', '12.780 User', '12.850 User'
-          ],
-          'pointDates': [
-            '01 Okt', '02 Okt', '03 Okt', '04 Okt', '05 Okt',
-            '06 Okt', '07 Okt', '08 Okt', '09 Okt', '10 Okt',
-            '11 Okt', '12 Okt', '13 Okt', '14 Okt', '15 Okt'
-          ],
-          'xLabels': [
-            '01', '02', '03', '04', '05',
-            '06', '07', '08', '09', '10',
-            '11', '12', '13', '14', '15 Okt'
-          ],
-        },
-        // 3: 1 Tahun
-        {
-          'value': '48.900 Pengguna',
-          'growth': '+35%',
-          'chartData': [0.30, 0.36, 0.43, 0.50, 0.57, 0.64, 0.72, 0.79, 0.85, 0.90, 0.94, 0.98],
-          'pointValues': [
-            '15.200 User', '18.100 User', '21.400 User', '25.000 User', '28.600 User', '32.100 User',
-            '35.800 User', '39.200 User', '42.500 User', '45.100 User', '47.300 User', '48.900 User'
-          ],
-          'pointDates': [
-            'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
-            'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
-          ],
-          'xLabels': ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
-        },
-      ],
-    },
-  ];
+  // Dikalkulasi secara real-time dari Supabase & Waktu Server Indonesia WIB oleh AdminDashboardBackend
+  List<Map<String, dynamic>> get _divisionalMetrics => AdminDashboardBackend.instance.divisionalMetrics;
 
   // Log Aktivitas Login Admin (Diperbarui real-time via ClientInfoService)
   List<Map<String, dynamic>> _adminLogs = [];
@@ -1363,13 +1198,13 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTapDown: (details) {
-                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount, activePeriod['activePointCount'] as int? ?? 0);
                     },
                     onPanStart: (details) {
-                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount, activePeriod['activePointCount'] as int? ?? 0);
                     },
                     onPanUpdate: (details) {
-                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount);
+                      _onChartTouch(details.localPosition.dx, canvasWidth, pointCount, activePeriod['activePointCount'] as int? ?? 0);
                     },
                     child: SizedBox(
                       width: canvasWidth,
@@ -1381,6 +1216,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                           pointDates: pointDates,
                           xLabels: xLabels,
                           inspectedIndex: _inspectedPointIndex,
+                          activePointCount: activePeriod['activePointCount'] as int? ?? 0,
                           lineColor: accentColor,
                           gradientStart: accentColor.withValues(alpha: 0.35),
                           gradientEnd: accentColor.withValues(alpha: 0.0),
@@ -2544,7 +2380,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   const Icon(Icons.check_circle_outline, size: 36, color: Color(0xFF17A18A)),
                   const SizedBox(height: 8),
                   Text(
-                    'Semua Berkas KTP Telah Ditinjau!',
+                    'Tidak Ada Antrean',
                     style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
                   ),
                   const SizedBox(height: 4),
@@ -2861,23 +2697,36 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  void _handleKycAction(int index, bool accepted, [String? rejectReason]) {
+  void _handleKycAction(int index, bool accepted, [String? rejectReason]) async {
     if (index >= _pendingKycList.length) return;
     final item = _pendingKycList[index];
+    final kycId = item['id']?.toString();
     setState(() {
       _pendingKycList.removeAt(index);
     });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          accepted
-              ? 'Pendaftaran KTP ${item['name']} telah disetujui & diverifikasi.'
-              : 'Pendaftaran KTP ${item['name']} telah ditolak. Alasan: ${rejectReason ?? "Tidak memenuhi syarat"}',
+    if (kycId != null && !kycId.startsWith('KYC-')) {
+      try {
+        if (accepted) {
+          await AdminKycBackend.instance.approveKyc(kycId);
+        } else {
+          await AdminKycBackend.instance.rejectKyc(kycId, rejectReason ?? 'Ditolak oleh admin');
+        }
+      } catch (_) {}
+    }
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            accepted
+                ? 'Pendaftaran KTP ${item['name']} telah disetujui & diverifikasi.'
+                : 'Pendaftaran KTP ${item['name']} telah ditolak. Alasan: ${rejectReason ?? "Tidak memenuhi syarat"}',
+          ),
+          backgroundColor: accepted ? const Color(0xFF17A18A) : const Color(0xFFD94B4B),
         ),
-        backgroundColor: accepted ? const Color(0xFF17A18A) : const Color(0xFFD94B4B),
-      ),
-    );
+      );
+    }
   }
 
   void _showKycDetailDialog(Map<String, dynamic> kyc, int index) {
@@ -2933,6 +2782,7 @@ class _MountainChartPainter extends CustomPainter {
   final List<String> pointDates;
   final List<String> xLabels;
   final int? inspectedIndex;
+  final int activePointCount;
   final Color lineColor;
   final Color gradientStart;
   final Color gradientEnd;
@@ -2943,6 +2793,7 @@ class _MountainChartPainter extends CustomPainter {
     required this.pointDates,
     required this.xLabels,
     this.inspectedIndex,
+    this.activePointCount = 0,
     required this.lineColor,
     required this.gradientStart,
     required this.gradientEnd,
@@ -3022,100 +2873,124 @@ class _MountainChartPainter extends CustomPainter {
       baselinePaint,
     );
 
-    // 3. Bangun Area Gunung dengan Spline Catmull-Rom Cubic Bézier
-    final path = Path();
-    path.moveTo(points.first.dx, baselineY);
-    path.lineTo(points.first.dx, points.first.dy);
+    // 3. Bangun Area Gunung & Garis Kurva berdasarkan activePointCount
+    // Rule:
+    // - activePointCount == 0 (belum ada data): Cukup titik hijau di sisi bawah saja (baseline).
+    // - activePointCount == 1 (hanya titik pertama yang ada data): Titik hijau di posisi terangkat (posisi ga dibawah), belum membentuk garis.
+    // - activePointCount >= 2: Baru membentuk garis kurva & fill area dari titik 0 sampai titik (activePointCount - 1).
+    if (activePointCount >= 2) {
+      final int count = activePointCount.clamp(2, points.length);
+      final List<Offset> activePoints = points.sublist(0, count);
 
-    const double tension = 0.22;
-    for (int i = 0; i < points.length - 1; i++) {
-      final Offset p0 = i > 0 ? points[i - 1] : points[0];
-      final Offset p1 = points[i];
-      final Offset p2 = points[i + 1];
-      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
+      final path = Path();
+      path.moveTo(activePoints.first.dx, baselineY);
+      path.lineTo(activePoints.first.dx, activePoints.first.dy);
 
-      final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
-      final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
+      const double tension = 0.22;
+      for (int i = 0; i < activePoints.length - 1; i++) {
+        final Offset p0 = i > 0 ? activePoints[i - 1] : activePoints[0];
+        final Offset p1 = activePoints[i];
+        final Offset p2 = activePoints[i + 1];
+        final Offset p3 = i < activePoints.length - 2 ? activePoints[i + 2] : p2;
 
-      path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
-    }
+        final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
+        final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
 
-    path.lineTo(points.last.dx, baselineY);
-    path.close();
-
-    // Fill dengan vertical linear gradient
-    final fillPaint = Paint()
-      ..shader = LinearGradient(
-        begin: Alignment.topCenter,
-        end: Alignment.bottomCenter,
-        colors: [gradientStart, gradientEnd],
-      ).createShader(Rect.fromLTWH(0, topPadding, size.width, availableHeight))
-      ..style = PaintingStyle.fill;
-
-    canvas.drawPath(path, fillPaint);
-
-    // 4. Garis Stroke Kurva Utama
-    final strokePath = Path();
-    strokePath.moveTo(points.first.dx, points.first.dy);
-
-    for (int i = 0; i < points.length - 1; i++) {
-      final Offset p0 = i > 0 ? points[i - 1] : points[0];
-      final Offset p1 = points[i];
-      final Offset p2 = points[i + 1];
-      final Offset p3 = i < points.length - 2 ? points[i + 2] : p2;
-
-      final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
-      final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
-
-      strokePath.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
-    }
-
-    final linePaint = Paint()
-      ..color = lineColor
-      ..strokeWidth = 3.0
-      ..style = PaintingStyle.stroke
-      ..strokeCap = StrokeCap.round
-      ..strokeJoin = StrokeJoin.round;
-
-    canvas.drawPath(strokePath, linePaint);
-
-    // 5. Gambar Sumbu X Label Tanggal di Bawah Setiap Titik
-    final int labelStep = xLabels.length > 8 ? (xLabels.length / 5).ceil() : 1;
-    for (int i = 0; i < xLabels.length && i < points.length; i++) {
-      final bool isSelected = inspectedIndex == i;
-      final bool shouldDraw = isSelected || (i % labelStep == 0) || (i == xLabels.length - 1);
-      if (!shouldDraw) continue;
-
-      final labelSpan = TextSpan(
-        text: xLabels[i],
-        style: TextStyle(
-          fontSize: isSelected ? 10 : 9,
-          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-          color: isSelected ? lineColor : const Color(0xFF76777B),
-        ),
-      );
-      final labelTp = TextPainter(
-        text: labelSpan,
-        textDirection: TextDirection.ltr,
-      )..layout();
-
-      final double labelX = points[i].dx - (labelTp.width / 2);
-      final double labelY = baselineY + 8.0;
-
-      if (isSelected) {
-        final pillRect = RRect.fromRectAndRadius(
-          Rect.fromLTWH(labelX - 4, labelY - 2, labelTp.width + 8, labelTp.height + 4),
-          const Radius.circular(4),
-        );
-        canvas.drawRRect(pillRect, Paint()..color = lineColor.withValues(alpha: 0.15));
+        path.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
       }
 
-      labelTp.paint(canvas, Offset(labelX, labelY));
+      path.lineTo(activePoints.last.dx, baselineY);
+      path.close();
+
+      // Fill dengan vertical linear gradient
+      final fillPaint = Paint()
+        ..shader = LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [gradientStart, gradientEnd],
+        ).createShader(Rect.fromLTWH(0, topPadding, size.width, availableHeight))
+        ..style = PaintingStyle.fill;
+
+      canvas.drawPath(path, fillPaint);
+
+      // Garis Stroke Kurva Utama
+      final strokePath = Path();
+      strokePath.moveTo(activePoints.first.dx, activePoints.first.dy);
+
+      for (int i = 0; i < activePoints.length - 1; i++) {
+        final Offset p0 = i > 0 ? activePoints[i - 1] : activePoints[0];
+        final Offset p1 = activePoints[i];
+        final Offset p2 = activePoints[i + 1];
+        final Offset p3 = i < activePoints.length - 2 ? activePoints[i + 2] : p2;
+
+        final Offset cp1 = Offset(p1.dx + (p2.dx - p0.dx) * tension, p1.dy + (p2.dy - p0.dy) * tension);
+        final Offset cp2 = Offset(p2.dx - (p3.dx - p1.dx) * tension, p2.dy - (p3.dy - p1.dy) * tension);
+
+        strokePath.cubicTo(cp1.dx, cp1.dy, cp2.dx, cp2.dy, p2.dx, p2.dy);
+      }
+
+      final linePaint = Paint()
+        ..color = lineColor
+        ..strokeWidth = 3.0
+        ..style = PaintingStyle.stroke
+        ..strokeCap = StrokeCap.round
+        ..strokeJoin = StrokeJoin.round;
+
+      canvas.drawPath(strokePath, linePaint);
+
+      // Titik intermediate kecil di sepanjang garis aktif
+      for (int i = 0; i < activePoints.length - 1; i++) {
+        canvas.drawCircle(activePoints[i], 2.5, Paint()..color = lineColor.withValues(alpha: 0.6));
+      }
     }
 
-    // 6. Mode Inspeksi / Crosshair Aktif (Kursor Silang ala TradingView)
+    // 4. Titik Utama / Indikator Live
+    if (inspectedIndex == null) {
+      if (activePointCount == 0) {
+        // Belum ada data: Cukup titik hijau di sisi bawah saja (baseline)
+        final Offset emptyDot = Offset(points[0].dx, baselineY);
+        canvas.drawCircle(emptyDot, 7, Paint()..color = lineColor.withValues(alpha: 0.25));
+        canvas.drawCircle(emptyDot, 4.5, Paint()..color = lineColor);
+        canvas.drawCircle(emptyDot, 2.2, Paint()..color = Colors.white);
+      } else if (activePointCount == 1) {
+        // Sudah ada data titik 1: Titik hijau tapi posisi terangkat (posisi ga dibawah)
+        final Offset singleDot = points[0];
+        canvas.drawCircle(singleDot, 8, Paint()..color = lineColor.withValues(alpha: 0.3));
+        canvas.drawCircle(singleDot, 4.5, Paint()..color = lineColor);
+        canvas.drawCircle(singleDot, 2.2, Paint()..color = Colors.white);
+      } else {
+        // Sudah ada >= 2 titik: Gambar titik puncak & titik terbaru (Live) di ujung kurva aktif
+        final int count = activePointCount.clamp(2, points.length);
+        int peakIndex = 0;
+        double maxVal = data[0];
+        for (int i = 1; i < count; i++) {
+          if (data[i] > maxVal) {
+            maxVal = data[i];
+            peakIndex = i;
+          }
+        }
+        if (peakIndex != count - 1 && data[peakIndex] > 0) {
+          final peakPoint = points[peakIndex];
+          canvas.drawCircle(peakPoint, 7, Paint()..color = lineColor.withValues(alpha: 0.2));
+          canvas.drawCircle(peakPoint, 4, Paint()..color = lineColor);
+          canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
+        }
+
+        // Titik terbaru (Live) di ujung titik aktif (bukan di ujung kanvas points.last)
+        final livePoint = points[count - 1];
+        canvas.drawCircle(livePoint, 8, Paint()..color = lineColor.withValues(alpha: 0.3));
+        canvas.drawCircle(livePoint, 4.5, Paint()..color = lineColor);
+        canvas.drawCircle(livePoint, 2.2, Paint()..color = Colors.white);
+      }
+    }
+
+    // 5. Mode Inspeksi / Crosshair Aktif (Kursor Silang ala TradingView)
     if (inspectedIndex != null && inspectedIndex! >= 0 && inspectedIndex! < points.length) {
-      final Offset inspectPt = points[inspectedIndex!];
+      final int maxInspect = activePointCount > 0 ? activePointCount : 1;
+      final int safeInspect = inspectedIndex!.clamp(0, maxInspect - 1);
+      final Offset inspectPt = (activePointCount == 0 && safeInspect == 0)
+          ? Offset(points[0].dx, baselineY)
+          : points[safeInspect];
 
       // Garis vertikal crosshair
       final crosshairVerticalPaint = Paint()
@@ -3161,11 +3036,11 @@ class _MountainChartPainter extends CustomPainter {
       );
 
       // Tooltip Box Mengambang (Floating Tooltip Box)
-      if (inspectedIndex! < pointDates.length && inspectedIndex! < pointValues.length) {
+      if (safeInspect < pointDates.length && safeInspect < pointValues.length) {
         final tooltipSpan = TextSpan(
           children: [
             TextSpan(
-              text: '${pointDates[inspectedIndex!]}  •  ',
+              text: '${pointDates[safeInspect]}  •  ',
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w500,
@@ -3173,7 +3048,7 @@ class _MountainChartPainter extends CustomPainter {
               ),
             ),
             TextSpan(
-              text: pointValues[inspectedIndex!],
+              text: pointValues[safeInspect],
               style: const TextStyle(
                 fontSize: 10,
                 fontWeight: FontWeight.w800,
@@ -3249,26 +3124,40 @@ class _MountainChartPainter extends CustomPainter {
         // Gambar teks tooltip
         tp.paint(canvas, Offset(boxX + padH, boxY + padV));
       }
-    } else {
-      // 7. Jika tidak dalam mode inspeksi, gambar indikator titik puncak & titik terbaru (Live)
-      int peakIndex = 0;
-      double maxVal = data[0];
-      for (int i = 1; i < data.length; i++) {
-        if (data[i] > maxVal) {
-          maxVal = data[i];
-          peakIndex = i;
-        }
-      }
-      final peakPoint = points[peakIndex];
-      canvas.drawCircle(peakPoint, 7, Paint()..color = lineColor.withValues(alpha: 0.2));
-      canvas.drawCircle(peakPoint, 4, Paint()..color = lineColor);
-      canvas.drawCircle(peakPoint, 2, Paint()..color = Colors.white);
+    }
 
-      // Titik Terbaru / Live (di ujung kanan)
-      final livePoint = points.last;
-      canvas.drawCircle(livePoint, 8, Paint()..color = lineColor.withValues(alpha: 0.3));
-      canvas.drawCircle(livePoint, 4.5, Paint()..color = lineColor);
-      canvas.drawCircle(livePoint, 2.2, Paint()..color = Colors.white);
+    // 6. Gambar Sumbu X Label Tanggal di Bawah Setiap Titik
+    final int labelStep = xLabels.length > 8 ? (xLabels.length / 5).ceil() : 1;
+    for (int i = 0; i < xLabels.length && i < points.length; i++) {
+      final bool isSelected = inspectedIndex == i;
+      final bool shouldDraw = isSelected || (i % labelStep == 0) || (i == xLabels.length - 1);
+      if (!shouldDraw) continue;
+
+      final labelSpan = TextSpan(
+        text: xLabels[i],
+        style: TextStyle(
+          fontSize: isSelected ? 10 : 9,
+          fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+          color: isSelected ? lineColor : const Color(0xFF76777B),
+        ),
+      );
+      final labelTp = TextPainter(
+        text: labelSpan,
+        textDirection: TextDirection.ltr,
+      )..layout();
+
+      final double labelX = points[i].dx - (labelTp.width / 2);
+      final double labelY = baselineY + 8.0;
+
+      if (isSelected) {
+        final pillRect = RRect.fromRectAndRadius(
+          Rect.fromLTWH(labelX - 4, labelY - 2, labelTp.width + 8, labelTp.height + 4),
+          const Radius.circular(4),
+        );
+        canvas.drawRRect(pillRect, Paint()..color = lineColor.withValues(alpha: 0.15));
+      }
+
+      labelTp.paint(canvas, Offset(labelX, labelY));
     }
   }
 
@@ -3276,6 +3165,7 @@ class _MountainChartPainter extends CustomPainter {
   bool shouldRepaint(covariant _MountainChartPainter oldDelegate) {
     return oldDelegate.data != data ||
         oldDelegate.lineColor != lineColor ||
-        oldDelegate.inspectedIndex != inspectedIndex;
+        oldDelegate.inspectedIndex != inspectedIndex ||
+        oldDelegate.activePointCount != activePointCount;
   }
 }

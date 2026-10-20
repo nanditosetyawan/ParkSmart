@@ -16,18 +16,30 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  const defaultUrl = 'https://necsdylhtswrrqassvzp.supabase.co';
+  const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lY3NkeWxodHN3cnJxYXNzdnpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MjAxNDIsImV4cCI6MjEwNzk5NjE0Mn0.EZDWK_RFCflWiCzjh-X3bA7B71haE4gLMpiIcyc8qTk';
+  const defaultGroqKey = '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';
+
+  // 1. Coba load .env
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    debugPrint('Gagal load .env: $e');
+    debugPrint('Gagal load .env via file (umum terjadi di Web): $e');
   }
 
-  // Inisialisasi Supabase Backend dengan fallback credential valid
-  const defaultUrl = 'https://necsdylhtswrrqassvzp.supabase.co';
-  const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lY3NkeWxodHN3cnJxYXNzdnpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MjAxNDIsImV4cCI6MjEwNzk5NjE0Mn0.EZDWK_RFCflWiCzjh-X3bA7B71haE4gLMpiIcyc8qTk';
+  // 2. Pastikan dotenv selalu terinisialisasi agar dotenv.env tidak pernah melempar NotInitializedError!
+  if (!dotenv.isInitialized) {
+    dotenv.loadFromString(envString: '''
+GROQ_API_KEY=$defaultGroqKey
+SUPABASE_PROJECT_ID=necsdylhtswrrqassvzp
+SUPABASE_URL=$defaultUrl
+SUPABASE_ANON_KEY=$defaultAnonKey
+''');
+  }
 
-  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? defaultUrl;
-  final supabaseAnonKey = (dotenv.env['SUPABASE_ANON_KEY'] != null && dotenv.env['SUPABASE_ANON_KEY']!.isNotEmpty)
+  final supabaseUrl = (dotenv.isInitialized ? dotenv.env['SUPABASE_URL'] : null) ?? defaultUrl;
+  final supabaseAnonKey = (dotenv.isInitialized && dotenv.env['SUPABASE_ANON_KEY'] != null && dotenv.env['SUPABASE_ANON_KEY']!.isNotEmpty)
       ? dotenv.env['SUPABASE_ANON_KEY']!
       : defaultAnonKey;
 

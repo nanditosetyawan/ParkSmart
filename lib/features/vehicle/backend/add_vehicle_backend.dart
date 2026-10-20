@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/supabase_storage_service.dart';
 import '../../profile/backend/vehicle_backend.dart';
 
 class AddVehicleBackend extends ChangeNotifier {
@@ -19,6 +20,8 @@ class AddVehicleBackend extends ChangeNotifier {
     required String vehicleName,
     required String category,
     required String color,
+    String? plateExpiry,
+    Uint8List? vehiclePhotoBytes,
   }) async {
     _isLoading = true;
     _errorMessage = null;
@@ -30,6 +33,17 @@ class AddVehicleBackend extends ChangeNotifier {
 
       final type = category == 'motor' ? 'motor' : 'mobil';
 
+      // 1. Upload foto kendaraan fisik jika pengguna memilih foto (dikompres kualitas 70% jernih)
+      String? photoUrl;
+      if (vehiclePhotoBytes != null && vehiclePhotoBytes.isNotEmpty) {
+        photoUrl = await SupabaseStorageService.instance.uploadVehiclePhoto(
+          rawBytes: vehiclePhotoBytes,
+          userId: userId,
+        );
+      }
+
+      // Catatan: Foto STNK TIDAK disimpan ke database/storage (hanya diekstrak via OCR).
+      // Sedangkan foto fisik kendaraan disimpan ke kolom `photo_url`.
       final data = {
         'user_id': userId,
         'plate_number': plateNumber.trim().toUpperCase(),
@@ -39,14 +53,14 @@ class AddVehicleBackend extends ChangeNotifier {
         'vehicle_category': category,
         'color': color,
         'is_default': false,
-        'plate_expiry': '12 • 29',
+        if (photoUrl != null) ...{'photo_url': photoUrl},
         'created_at': DateTime.now().toIso8601String(),
       };
 
       try {
         await _client.from('vehicles').insert(data);
       } catch (e) {
-        debugPrint('Supabase insert vehicle fallback or error: $e');
+        debugPrint('Supabase insert vehicle error: $e');
       }
 
       // Refresh vehicle list in profile

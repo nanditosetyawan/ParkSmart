@@ -1,6 +1,7 @@
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../../core/utils/ticket_status_helper.dart';
 import 'backend/admin_transactions_backend.dart';
 
 class AdminTransactionsScreen extends StatefulWidget {
@@ -202,10 +203,36 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                         Text(txn['id'], style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
                       ],
                     ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                      decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
-                      child: Text(txn['status'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
+                    Row(
+                      children: [
+                        if (txn['ticketMark'] != null) ...[
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            decoration: BoxDecoration(
+                              color: TicketMark.getBgColor(txn['ticketMark']),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: TicketMark.getBorderColor(txn['ticketMark'])),
+                            ),
+                            child: Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(TicketMark.getIcon(txn['ticketMark']), size: 12, color: TicketMark.getColor(txn['ticketMark'])),
+                                const SizedBox(width: 4),
+                                Text(
+                                  txn['ticketMark'],
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: TicketMark.getColor(txn['ticketMark'])),
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                        ],
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                          decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(8)),
+                          child: Text(txn['status'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: statusColor)),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -257,6 +284,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                 const SizedBox(height: 10),
                 if (txn['location'] != '-') _buildInfoRow('Lokasi', txn['location']),
                 if (txn['slot'] != '-') _buildInfoRow('Slot', txn['slot']),
+                if (txn['ticketMark'] != null) _buildInfoRow('Status Tiket', txn['ticketMark']),
                 _buildInfoRow('Metode Bayar', txn['paymentMethod']),
                 _buildInfoRow('Dibuat', _formatDateTime(txn['createdAt'])),
                 if (txn['completedAt'] != null) _buildInfoRow('Diselesaikan', _formatDateTime(txn['completedAt'])),
@@ -543,6 +571,32 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                               ),
                             ),
                           ),
+                          if (t['ticketMark'] != null) ...[
+                            const SizedBox(width: 5),
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
+                              decoration: BoxDecoration(
+                                color: TicketMark.getBgColor(t['ticketMark']),
+                                borderRadius: BorderRadius.circular(4),
+                                border: Border.all(color: TicketMark.getBorderColor(t['ticketMark']), width: 0.8),
+                              ),
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Icon(TicketMark.getIcon(t['ticketMark']), size: 9, color: TicketMark.getColor(t['ticketMark'])),
+                                  const SizedBox(width: 3),
+                                  Text(
+                                    t['ticketMark'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 9,
+                                      fontWeight: FontWeight.bold,
+                                      color: TicketMark.getColor(t['ticketMark']),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                         ],
                       ),
                       const SizedBox(height: 2),

@@ -83,7 +83,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
     try {
       final response = await _client
           .from('admins')
-          .select('id, email, full_name, phone, role, division, avatar_url, status, assigned_location_id, last_login_at, created_at')
+          .select('id, email, full_name, phone, role, division, avatar_url, status, last_login_at, created_at')
           .order('created_at', ascending: true);
 
       if (response.isNotEmpty) {

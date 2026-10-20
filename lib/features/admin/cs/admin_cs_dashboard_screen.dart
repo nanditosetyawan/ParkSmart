@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -20,10 +21,13 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   int _currentTabIndex = 0;
-  int _selectedUserMonthIndex = 5;
+  int? _inspectedQuarterIndex;
 
-  List<Map<String, dynamic>> get _userGrowthMonthlyData =>
-      AdminCsDashboardBackend.instance.userGrowthMonthlyData;
+  int get _activeQuarterIndex => (_inspectedQuarterIndex ?? AdminCsDashboardBackend.instance.latestQuarterIndex)
+      .clamp(0, AdminCsDashboardBackend.instance.userGrowthQuarterlyData.length - 1);
+
+  List<Map<String, dynamic>> get _userGrowthQuarterlyData =>
+      AdminCsDashboardBackend.instance.userGrowthQuarterlyData;
 
   @override
   void initState() {
@@ -468,7 +472,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
           child: _buildMetricCard(
             title: 'Total Pelanggan',
             value: AdminCsDashboardBackend.instance.totalPelanggan,
-            sub: AdminCsDashboardBackend.instance.pertumbuhanBulanIni,
+            sub: AdminCsDashboardBackend.instance.pertumbuhanKuartalIni,
             icon: Icons.people_outline_rounded,
             iconColor: const Color(0xFF114177),
             bgColor: const Color(0xFFEFF6FF),
@@ -679,14 +683,15 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
     );
   }
 
-  // ==================== CHART: PERTUMBUHAN USER AKTIF (PER BULAN) ====================
+  // ==================== CHART: PERTUMBUHAN USER AKTIF (PER KUARTAL) ====================
   Widget _buildUserGrowthChartCard(BuildContext context) {
-    final selectedData = _userGrowthMonthlyData[_selectedUserMonthIndex];
-    final chartValues = _userGrowthMonthlyData.map<double>((e) {
-      final joined = (e['joined'] as int).toDouble();
-      return (joined / 280.0).clamp(0.1, 1.0);
-    }).toList();
-    final labels = _userGrowthMonthlyData.map<String>((e) => e['month'] as String).toList();
+    final backend = AdminCsDashboardBackend.instance;
+    final selectedData = _userGrowthQuarterlyData[_activeQuarterIndex];
+    final chartValues = backend.quarterlyChartData;
+    final labels = backend.quarterlyXLabels;
+    final double growthVal = (selectedData['growth'] as num?)?.toDouble() ?? 0.0;
+    final bool isNegative = growthVal < 0;
+    final bool isBasis = _activeQuarterIndex == 0;
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -733,7 +738,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                         ),
                       ),
                       Text(
-                        'Peningkatan pengguna baru yang bergabung per bulan',
+                        'Peningkatan pengguna baru yang bergabung per kuartal',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 10.5,
                           color: const Color(0xFF76777B),
@@ -782,7 +787,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Join Bulan ${selectedData['month']}',
+                      'Join ${selectedData['quarter']}',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 10,
                         color: const Color(0xFF114177),
@@ -791,7 +796,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '+${selectedData['joined']} User',
+                      '+${_formatNumber(selectedData['joined'])} User',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -813,7 +818,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '${selectedData['cumulative']} User',
+                      '${_formatNumber(selectedData['cumulative'])} User',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
@@ -836,14 +841,24 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                     const SizedBox(height: 2),
                     Row(
                       children: [
-                        const Icon(Icons.trending_up, size: 14, color: Color(0xFF17A18A)),
+                        Icon(
+                          isBasis
+                              ? Icons.info_outline
+                              : (isNegative ? Icons.trending_down : Icons.trending_up),
+                          size: 14,
+                          color: isBasis
+                              ? const Color(0xFF76777B)
+                              : (isNegative ? const Color(0xFFD94B4B) : const Color(0xFF17A18A)),
+                        ),
                         const SizedBox(width: 2),
                         Text(
-                          '${selectedData['growth']}',
+                          '${selectedData['growthText']}',
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
+                            fontSize: 12,
                             fontWeight: FontWeight.bold,
-                            color: const Color(0xFF17A18A),
+                            color: isBasis
+                                ? const Color(0xFF76777B)
+                                : (isNegative ? const Color(0xFFD94B4B) : const Color(0xFF17A18A)),
                           ),
                         ),
                       ],
@@ -855,7 +870,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
           ),
           const SizedBox(height: 16),
 
-          // Mountain Area Chart: Pertumbuhan User Join
+          // Mountain Area Chart: Pertumbuhan User Join (4 Kuartal)
           LayoutBuilder(
             builder: (context, constraints) {
               return GestureDetector(
@@ -869,7 +884,8 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                     painter: _UserGrowthMountainPainter(
                       data: chartValues,
                       xLabels: labels,
-                      selectedIndex: _selectedUserMonthIndex,
+                      selectedIndex: _activeQuarterIndex,
+                      activePointCount: backend.availableQuartersCount,
                       lineColor: const Color(0xFF114177),
                       gradientStart: const Color(0xFF114177).withValues(alpha: 0.28),
                       gradientEnd: const Color(0xFF114177).withValues(alpha: 0.01),
@@ -885,18 +901,25 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
   }
 
   void _handleChartTouch(Offset localPosition, double totalWidth) {
+    final backend = AdminCsDashboardBackend.instance;
+    final int activeCount = backend.availableQuartersCount;
+    if (activeCount <= 0 || totalWidth <= 0) return;
     const double marginHorizontal = 16.0;
     final double chartWidth = totalWidth - (marginHorizontal * 2);
     if (chartWidth <= 0) return;
-    final double ratio = ((localPosition.dx - marginHorizontal) / chartWidth);
-    final int newIndex = (ratio * (_userGrowthMonthlyData.length - 1))
-        .round()
-        .clamp(0, _userGrowthMonthlyData.length - 1);
-    if (newIndex != _selectedUserMonthIndex) {
+    final double stepX = chartWidth / (backend.quarterlyXLabels.length - 1);
+    final double relativeX = (localPosition.dx - marginHorizontal).clamp(0.0, chartWidth);
+    final int newIndex = (relativeX / stepX).round().clamp(0, activeCount - 1);
+    if (newIndex != _inspectedQuarterIndex) {
       setState(() {
-        _selectedUserMonthIndex = newIndex;
+        _inspectedQuarterIndex = newIndex;
       });
     }
+  }
+
+  String _formatNumber(dynamic n) {
+    if (n == null) return '0';
+    return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 }
 
@@ -904,6 +927,7 @@ class _UserGrowthMountainPainter extends CustomPainter {
   final List<double> data;
   final List<String> xLabels;
   final int selectedIndex;
+  final int activePointCount;
   final Color lineColor;
   final Color gradientStart;
   final Color gradientEnd;
@@ -912,10 +936,39 @@ class _UserGrowthMountainPainter extends CustomPainter {
     required this.data,
     required this.xLabels,
     required this.selectedIndex,
+    this.activePointCount = 4,
     required this.lineColor,
     required this.gradientStart,
     required this.gradientEnd,
   });
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset p1,
+    Offset p2,
+    Paint paint, {
+    double dashWidth = 4,
+    double dashSpace = 4,
+  }) {
+    final double dx = p2.dx - p1.dx;
+    final double dy = p2.dy - p1.dy;
+    final double distance = math.sqrt(dx * dx + dy * dy);
+    if (distance == 0) return;
+    final double unitX = dx / distance;
+    final double unitY = dy / distance;
+
+    double current = 0;
+    while (current < distance) {
+      final double start = current;
+      final double end = math.min(current + dashWidth, distance);
+      canvas.drawLine(
+        Offset(p1.dx + unitX * start, p1.dy + unitY * start),
+        Offset(p1.dx + unitX * end, p1.dy + unitY * end),
+        paint,
+      );
+      current += dashWidth + dashSpace;
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -935,10 +988,12 @@ class _UserGrowthMountainPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
+    final int effectiveActive = activePointCount.clamp(1, points.length);
+
     final Path linePath = Path();
     linePath.moveTo(points[0].dx, points[0].dy);
 
-    for (int i = 0; i < points.length - 1; i++) {
+    for (int i = 0; i < effectiveActive - 1; i++) {
       final p0 = points[i];
       final p1 = points[i + 1];
       final controlX = (p0.dx + p1.dx) / 2;
@@ -946,7 +1001,7 @@ class _UserGrowthMountainPainter extends CustomPainter {
     }
 
     final Path fillPath = Path.from(linePath);
-    fillPath.lineTo(points.last.dx, baselineY);
+    fillPath.lineTo(points[effectiveActive - 1].dx, baselineY);
     fillPath.lineTo(points.first.dx, baselineY);
     fillPath.close();
 
@@ -968,18 +1023,38 @@ class _UserGrowthMountainPainter extends CustomPainter {
 
     canvas.drawPath(linePath, linePaint);
 
+    // Garis putus-putus untuk kuartal mendatang jika ada
+    if (effectiveActive < points.length) {
+      final futurePaint = Paint()
+        ..color = const Color(0xFFCBD5E1)
+        ..strokeWidth = 1.5;
+      for (int i = effectiveActive - 1; i < points.length - 1; i++) {
+        _drawDashedLine(canvas, points[i], points[i + 1], futurePaint);
+      }
+      for (int i = effectiveActive; i < points.length; i++) {
+        canvas.drawCircle(points[i], 2.5, Paint()..color = const Color(0xFFCBD5E1));
+      }
+    }
+
     for (int i = 0; i < points.length; i++) {
       final p = points[i];
       final isSelected = i == selectedIndex;
+      final isFuture = i >= effectiveActive;
 
-      if (isSelected) {
+      if (isSelected && !isFuture) {
+        // Vertical dashed indicator line
+        final indicatorPaint = Paint()
+          ..color = lineColor.withValues(alpha: 0.5)
+          ..strokeWidth = 1.2;
+        _drawDashedLine(canvas, Offset(p.dx, topPadding), Offset(p.dx, baselineY), indicatorPaint, dashWidth: 3, dashSpace: 3);
+
         final glowPaint = Paint()..color = lineColor.withValues(alpha: 0.25);
         canvas.drawCircle(p, 9.0, glowPaint);
         final outerDot = Paint()..color = Colors.white;
         canvas.drawCircle(p, 4.5, outerDot);
         final innerDot = Paint()..color = lineColor;
         canvas.drawCircle(p, 3.0, innerDot);
-      } else {
+      } else if (!isFuture) {
         final dotPaint = Paint()..color = lineColor.withValues(alpha: 0.6);
         canvas.drawCircle(p, 2.5, dotPaint);
       }
@@ -991,7 +1066,11 @@ class _UserGrowthMountainPainter extends CustomPainter {
             style: GoogleFonts.plusJakartaSans(
               fontSize: 9.5,
               fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-              color: isSelected ? lineColor : const Color(0xFF76777B),
+              color: isSelected
+                  ? lineColor
+                  : isFuture
+                      ? const Color(0xFFB0B0B0)
+                      : const Color(0xFF76777B),
             ),
           ),
           textDirection: TextDirection.ltr,
@@ -1006,6 +1085,8 @@ class _UserGrowthMountainPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _UserGrowthMountainPainter oldDelegate) {
-    return oldDelegate.selectedIndex != selectedIndex || oldDelegate.data != data;
+    return oldDelegate.selectedIndex != selectedIndex ||
+        oldDelegate.activePointCount != activePointCount ||
+        oldDelegate.data != data;
   }
 }

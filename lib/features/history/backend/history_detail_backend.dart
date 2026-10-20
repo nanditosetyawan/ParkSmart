@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/utils/ticket_status_helper.dart';
 
 /// Backend khusus untuk HistoryDetailScreen (lib/features/history/history_detail_screen.dart)
 class HistoryDetailBackend extends ChangeNotifier {
@@ -23,7 +24,7 @@ class HistoryDetailBackend extends ChangeNotifier {
   int _serviceFee = 2000;
   int _discount = 4000;
   int _totalAmount = 14000;
-  String _status = 'Sukses';
+  String _status = TicketMark.selesai;
 
   String get transactionCode => _transactionCode;
   String get locationName => _locationName;
@@ -45,9 +46,10 @@ class HistoryDetailBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 1. Cek pada tabel parking_sessions
       final res = await _client
           .from('parking_sessions')
-          .select('session_code, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, status')
+          .select('session_code, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, status, parking_locations(name, address)')
           .eq('id', id)
           .maybeSingle();
 
@@ -56,8 +58,51 @@ class HistoryDetailBackend extends ChangeNotifier {
         _vehicleInfo = '${res['vehicle_desc'] ?? 'Mobil'} (${res['plate_number'] ?? 'B 1234 XYZ'})';
         if (res['total_fee'] != null) {
           _totalAmount = (double.tryParse(res['total_fee'].toString()) ?? _totalAmount.toDouble()).toInt();
+          _baseFee = _totalAmount;
         }
-        _status = (res['status'] ?? 'completed') == 'completed' ? 'Sukses' : 'Aktif';
+        if (res['check_in_time'] != null) {
+          try {
+            final ci = DateTime.parse(res['check_in_time'].toString()).toLocal();
+            _checkInTime = '${ci.hour.toString().padLeft(2, '0')}:${ci.minute.toString().padLeft(2, '0')} WIB';
+          } catch (_) {}
+        }
+        if (res['check_out_time'] != null) {
+          try {
+            final co = DateTime.parse(res['check_out_time'].toString()).toLocal();
+            _checkOutTime = '${co.hour.toString().padLeft(2, '0')}:${co.minute.toString().padLeft(2, '0')} WIB';
+          } catch (_) {}
+        } else {
+          _checkOutTime = 'Sedang Berlangsung';
+        }
+        _status = TicketMark.resolve(sessionStatus: res['status']);
+        if (res['parking_locations'] != null) {
+          _locationName = res['parking_locations']['name'] ?? _locationName;
+          _locationDetail = res['parking_locations']['address'] ?? _locationDetail;
+        }
+      } else {
+        // 2. Jika tidak ada di parking_sessions, cari pada tabel bookings
+        final bRes = await _client
+            .from('bookings')
+            .select('booking_code, start_time, end_time, total_price, payment_status, booking_status, parking_locations(name, address), vehicles(brand, model, plate_number)')
+            .eq('id', id)
+            .maybeSingle();
+
+        if (bRes != null) {
+          _transactionCode = bRes['booking_code'] ?? _transactionCode;
+          _totalAmount = (double.tryParse(bRes['total_price'].toString()) ?? _totalAmount.toDouble()).toInt();
+          _status = TicketMark.resolve(
+            paymentStatus: bRes['payment_status']?.toString(),
+            bookingStatus: bRes['booking_status']?.toString(),
+          );
+          if (bRes['vehicles'] != null) {
+            final veh = bRes['vehicles'];
+            _vehicleInfo = '${veh['brand'] ?? 'Kendaraan'} ${veh['model'] ?? ''} (${veh['plate_number'] ?? ''})'.trim();
+          }
+          if (bRes['parking_locations'] != null) {
+            _locationName = bRes['parking_locations']['name'] ?? _locationName;
+            _locationDetail = bRes['parking_locations']['address'] ?? _locationDetail;
+          }
+        }
       }
     } catch (e) {
       debugPrint('HistoryDetailBackend fetchDetail error: $e');

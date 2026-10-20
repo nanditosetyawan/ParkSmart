@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -18,11 +19,25 @@ class AdminFinanceDashboardScreen extends StatefulWidget {
 
 class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  int? _inspectedQuarterIndex;
 
   @override
   void initState() {
     super.initState();
     AdminFinanceDashboardBackend.instance.fetchFinanceDashboard();
+  }
+
+  void _onQuarterChartTouch(double localX, double canvasWidth, int pointCount, int activeCount) {
+    if (pointCount <= 1 || canvasWidth <= 0 || activeCount <= 0) return;
+    const double marginHorizontal = 12.0;
+    final double chartWidth = canvasWidth - (marginHorizontal * 2);
+    if (chartWidth <= 0) return;
+    final double stepX = chartWidth / (pointCount - 1);
+    final double relativeX = (localX - marginHorizontal).clamp(0.0, chartWidth);
+    final int closestIndex = (relativeX / stepX).round().clamp(0, activeCount - 1);
+    if (_inspectedQuarterIndex != closestIndex) {
+      setState(() => _inspectedQuarterIndex = closestIndex);
+    }
   }
 
   @override
@@ -369,8 +384,17 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
   // ==================== WIDGET HELPERS: 3 KARTU UTAMA KE KEUANGAN ====================
   Widget _buildMountainOmzetCard(BuildContext context) {
     final b = AdminFinanceDashboardBackend.instance;
-    final chartData = b.mountainChartData;
-    final xLabels = b.mountainXLabels;
+    final chartData = b.quarterlyChartData;
+    final xLabels = b.quarterlyXLabels;
+    final int availableCount = b.availableQuartersCount;
+    final int activeIdx = (_inspectedQuarterIndex ?? b.latestQuarterIndex).clamp(0, b.quarterlyValues.length - 1);
+    final String displayOmzet = b.quarterlyValues[activeIdx];
+    final String displayLabel = b.quarterlyDates[activeIdx];
+    final double growth = b.quarterlyGrowths[activeIdx];
+    final bool isNegative = growth < 0;
+    final String growthBadgeText = activeIdx == 0
+        ? 'Kuartal 1 (Basis)'
+        : '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}% vs Q$activeIdx';
 
     return Container(
       decoration: BoxDecoration(
@@ -406,7 +430,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'TOTAL OMZET BULANAN',
+                      'TOTAL OMZET KUARTAL',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         fontWeight: FontWeight.bold,
@@ -415,7 +439,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                       ),
                     ),
                     Text(
-                      'Tren Pendapatan 6 Bulan Terakhir',
+                      'Tren Pendapatan 4 Kuartal (2026)',
                       style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF9CA3AF)),
                     ),
                   ],
@@ -424,7 +448,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
             ),
             const SizedBox(height: 12),
             Text(
-              b.totalMonthlyOmzet,
+              displayOmzet,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 24,
                 fontWeight: FontWeight.w800,
@@ -434,36 +458,69 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
             ),
             const SizedBox(height: 2),
             Text(
-              b.currentMonthLabel,
+              displayLabel,
               style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B)),
             ),
             const SizedBox(height: 6),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
               decoration: BoxDecoration(
-                color: const Color(0xFF17A18A).withValues(alpha: 0.12),
+                color: isNegative ? const Color(0xFFFDE8E4) : const Color(0xFFE8F7F4),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: isNegative
+                      ? const Color(0xFFD94B4B).withValues(alpha: 0.25)
+                      : const Color(0xFF17A18A).withValues(alpha: 0.25),
+                ),
               ),
-              child: Text(
-                b.monthlyGrowth,
-                style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(
+                    isNegative ? Icons.trending_down : Icons.trending_up,
+                    size: 12,
+                    color: isNegative ? const Color(0xFFD94B4B) : const Color(0xFF17A18A),
+                  ),
+                  const SizedBox(width: 4),
+                  Text(
+                    growthBadgeText,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.bold,
+                      color: isNegative ? const Color(0xFFD94B4B) : const Color(0xFF17A18A),
+                    ),
+                  ),
+                ],
               ),
             ),
             const SizedBox(height: 12),
 
-            // Mountain Chart Area
-            SizedBox(
-              height: 90,
-              width: double.infinity,
-              child: CustomPaint(
-                painter: _SimpleMountainPainter(
-                  data: chartData,
-                  xLabels: xLabels,
-                  lineColor: const Color(0xFF114177),
-                  gradientStart: const Color(0xFF114177).withValues(alpha: 0.3),
-                  gradientEnd: const Color(0xFF114177).withValues(alpha: 0.0),
-                ),
-              ),
+            // Mountain Chart Area (Interaktif 4 Kuartal)
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final double canvasWidth = constraints.maxWidth;
+                return GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTapDown: (details) => _onQuarterChartTouch(details.localPosition.dx, canvasWidth, chartData.length, availableCount),
+                  onPanStart: (details) => _onQuarterChartTouch(details.localPosition.dx, canvasWidth, chartData.length, availableCount),
+                  onPanUpdate: (details) => _onQuarterChartTouch(details.localPosition.dx, canvasWidth, chartData.length, availableCount),
+                  child: SizedBox(
+                    height: 90,
+                    width: double.infinity,
+                    child: CustomPaint(
+                      painter: _SimpleMountainPainter(
+                        data: chartData,
+                        xLabels: xLabels,
+                        inspectedIndex: _inspectedQuarterIndex,
+                        activePointCount: availableCount,
+                        lineColor: const Color(0xFF114177),
+                        gradientStart: const Color(0xFF114177).withValues(alpha: 0.3),
+                        gradientEnd: const Color(0xFF114177).withValues(alpha: 0.0),
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 8),
 
@@ -742,6 +799,8 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
 class _SimpleMountainPainter extends CustomPainter {
   final List<double> data;
   final List<String> xLabels;
+  final int? inspectedIndex;
+  final int activePointCount;
   final Color lineColor;
   final Color gradientStart;
   final Color gradientEnd;
@@ -749,10 +808,40 @@ class _SimpleMountainPainter extends CustomPainter {
   _SimpleMountainPainter({
     required this.data,
     required this.xLabels,
+    this.inspectedIndex,
+    this.activePointCount = 4,
     required this.lineColor,
     required this.gradientStart,
     required this.gradientEnd,
   });
+
+  void _drawDashedLine(
+    Canvas canvas,
+    Offset p1,
+    Offset p2,
+    Paint paint, {
+    double dashWidth = 3,
+    double dashSpace = 3,
+  }) {
+    final double dx = p2.dx - p1.dx;
+    final double dy = p2.dy - p1.dy;
+    final double distance = math.sqrt(dx * dx + dy * dy);
+    if (distance == 0) return;
+    final double unitX = dx / distance;
+    final double unitY = dy / distance;
+
+    double current = 0;
+    while (current < distance) {
+      final double start = current;
+      final double end = math.min(current + dashWidth, distance);
+      canvas.drawLine(
+        Offset(p1.dx + unitX * start, p1.dy + unitY * start),
+        Offset(p1.dx + unitX * end, p1.dy + unitY * end),
+        paint,
+      );
+      current += dashWidth + dashSpace;
+    }
+  }
 
   @override
   void paint(Canvas canvas, Size size) {
@@ -772,10 +861,13 @@ class _SimpleMountainPainter extends CustomPainter {
       points.add(Offset(x, y));
     }
 
+    final int effectiveActive = activePointCount.clamp(1, points.length);
+
+    // 🌊 Fill Gradien Biru Tua (Hanya sampai kuartal aktif)
     final Path linePath = Path();
     linePath.moveTo(points[0].dx, points[0].dy);
 
-    for (int i = 0; i < points.length - 1; i++) {
+    for (int i = 0; i < effectiveActive - 1; i++) {
       final p0 = points[i];
       final p1 = points[i + 1];
       final controlX = (p0.dx + p1.dx) / 2;
@@ -783,7 +875,7 @@ class _SimpleMountainPainter extends CustomPainter {
     }
 
     final Path fillPath = Path.from(linePath);
-    fillPath.lineTo(points.last.dx, baselineY);
+    fillPath.lineTo(points[effectiveActive - 1].dx, baselineY);
     fillPath.lineTo(points.first.dx, baselineY);
     fillPath.close();
 
@@ -796,29 +888,46 @@ class _SimpleMountainPainter extends CustomPainter {
 
     canvas.drawPath(fillPath, fillPaint);
 
+    // 〰️ Garis Biru Tua Utama (Hanya sampai kuartal aktif)
     final linePaint = Paint()
       ..color = lineColor
-      ..strokeWidth = 2.2
+      ..strokeWidth = 2.4
       ..style = PaintingStyle.stroke
       ..strokeCap = StrokeCap.round
       ..strokeJoin = StrokeJoin.round;
 
     canvas.drawPath(linePath, linePaint);
 
+    // Garis putus-putus untuk kuartal yang belum berjalan
+    if (effectiveActive < points.length) {
+      final futurePaint = Paint()
+        ..color = const Color(0xFFD1D5DB)
+        ..strokeWidth = 1.4;
+      for (int i = effectiveActive - 1; i < points.length - 1; i++) {
+        _drawDashedLine(canvas, points[i], points[i + 1], futurePaint);
+      }
+      for (int i = effectiveActive; i < points.length; i++) {
+        canvas.drawCircle(points[i], 2.5, Paint()..color = const Color(0xFFD1D5DB));
+      }
+    }
+
+    final int activeDotIdx = inspectedIndex ?? (effectiveActive - 1);
+
     for (int i = 0; i < points.length; i++) {
       final p = points[i];
-      final isLast = i == points.length - 1;
+      final isSelected = i == activeDotIdx;
+      final isFuture = i >= effectiveActive;
 
-      if (isLast) {
+      if (isSelected && !isFuture) {
         final glowPaint = Paint()..color = lineColor.withValues(alpha: 0.2);
         canvas.drawCircle(p, 8.0, glowPaint);
         final outerDot = Paint()..color = Colors.white;
         canvas.drawCircle(p, 4.0, outerDot);
         final innerDot = Paint()..color = lineColor;
         canvas.drawCircle(p, 2.8, innerDot);
-      } else {
+      } else if (!isFuture) {
         final dotPaint = Paint()..color = lineColor;
-        canvas.drawCircle(p, 2.0, dotPaint);
+        canvas.drawCircle(p, 2.2, dotPaint);
       }
 
       if (i < xLabels.length) {
@@ -826,9 +935,13 @@ class _SimpleMountainPainter extends CustomPainter {
           text: TextSpan(
             text: xLabels[i],
             style: GoogleFonts.plusJakartaSans(
-              fontSize: 9.5,
-              fontWeight: isLast ? FontWeight.bold : FontWeight.w500,
-              color: isLast ? lineColor : const Color(0xFF76777B),
+              fontSize: isSelected ? 10.5 : 9.5,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              color: isSelected
+                  ? lineColor
+                  : isFuture
+                      ? const Color(0xFFB0B0B0)
+                      : const Color(0xFF76777B),
             ),
           ),
           textDirection: TextDirection.ltr,
@@ -843,6 +956,11 @@ class _SimpleMountainPainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant _SimpleMountainPainter oldDelegate) => false;
+  bool shouldRepaint(covariant _SimpleMountainPainter oldDelegate) {
+    return oldDelegate.data != data ||
+        oldDelegate.inspectedIndex != inspectedIndex ||
+        oldDelegate.activePointCount != activePointCount ||
+        oldDelegate.lineColor != lineColor;
+  }
 }
 

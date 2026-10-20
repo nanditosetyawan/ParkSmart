@@ -14,7 +14,7 @@
 | No | Entitas (Tabel) | Klaster Bisnis | Peran & Deskripsi Fungsional |
 |:---:|:---|:---|:---|
 | 1 | `users` | Akun & Profil | Profil pengemudi, saldo dompet ParkSmart Pay, poin, tier & bookmark favorit |
-| 2 | `vehicles` | Garasi Kendaraan | Garasi mobil/motor/EV pengguna, plat nomor (TNKB), kategori & STNK |
+| 2 | `vehicles` | Garasi Kendaraan | Garasi kendaraan pengguna, plat nomor (TNKB) & masa berlaku STNK (foto diolah in-memory, file tidak disimpan) |
 | 3 | `admins` | Staf Terpadu | 1 Tabel konsolidasi staf (Super Admin, Operasional, Finansial, CS) via RBAC |
 | 4 | `user_kyc` | Super Admin KYC | Verifikasi KTP 16 digit, biometrik selfie & tinjauan berkas identitas resmi |
 | 5 | `parking_locations` | Operasional | Gedung/Mall mitra, koordinat GPS, radius geofence, fasilitas & tarif dasar |
@@ -25,7 +25,7 @@
 | 10 | `customer_feedbacks` | CS & Review | Ulasan bintang (1-5), saran marka/kendala & respons resmi Customer Service |
 | 11 | `system_notifications` | CS & Broadcast | Notifikasi broadcast promo, peringatan overstay & info keamanan sistem |
 | 12 | `arcade_scores` | Gamifikasi | Rekor skor game balap & mesin capit serta perolehan SmartPoints pengemudi |
-| 13 | `system_settings` | Super Admin | Konfigurasi global JSONB: variabel AI Jarvis, kurs 8 valuta & feature toggles |
+| 13 | `system_settings` | Super Admin | Konfigurasi global JSONB: saklar fitur (feature_toggles) & parameter AI Jarvis (Kurs valuta ditangani client-side via free API) |
 
 ---
 
@@ -104,8 +104,8 @@
 │      color            : VARCHAR   │    │      gender           : VARCHAR   │
 │      plate_expiry     : VARCHAR   │    │      religion         : VARCHAR   │
 │      photo_url        : TEXT      │    │      occupation       : VARCHAR   │
-│      stnk_photo_url   : TEXT      │    │      ktp_image_url    : TEXT      │
-│      is_default       : BOOLEAN   │    │      selfie_image_url : TEXT      │
+│      is_default       : BOOLEAN   │    │      ktp_image_url    : TEXT      │
+│      created_at       : TIMESTAMPTZ│    │      selfie_image_url : TEXT      │
 │      created_at       : TIMESTAMPTZ│    │      status           : ENUM      │
 │      updated_at       : TIMESTAMPTZ│    │      reject_reason    : TEXT      │
 └───────────────────────────────────┘    │ [FK] reviewed_by      : UUID (ADM)│
@@ -234,12 +234,10 @@
     │ [FK] user_id            : UUID (USERS)                 │
     │ [FK] booking_id         : UUID (BOOKINGS, Nullable)    │
     │ [FK] session_id         : UUID (SESSIONS, Nullable)    │
-    │ [FK] processed_by_admin : UUID (ADMINS, Nullable)      │
     │      transaction_type   : ENUM (parkir, topup, injeksi)│
     │      payment_method     : ENUM (wallet, qris, va, etc) │
     │      amount             : NUMERIC                      │
     │      description        : TEXT                         │
-    │      admin_note         : TEXT                         │
     │      blockchain_hash    : VARCHAR(66)                  │
     │      status             : ENUM (pending, success, etc) │
     │      completed_at       : TIMESTAMPTZ                  │
@@ -347,11 +345,9 @@ erDiagram
 | `users` | `system_notifications`| `system_notifications.recipient_user_id` | `1 : N` | `CASCADE` | Pesan notifikasi personal (NULL = broadcast publik) |
 | `users` | `arcade_scores` | `arcade_scores.user_id` | `1 : N` | `CASCADE` | Catatan skor mini-game & poin loyalitas SmartPoints |
 | `admins` | `user_kyc` | `user_kyc.reviewed_by` | `0..1 : N` | `SET NULL` | Super Admin memvalidasi atau menolak berkas KYC |
-| `admins` | `payments` | `payments.processed_by_admin_id` | `0..1 : N` | `SET NULL` | Admin Finansial menyetujui injeksi saldo / kompensasi |
 | `admins` | `customer_feedbacks`| `customer_feedbacks.replied_by_admin_id` | `0..1 : N` | `SET NULL` | Admin CS membalas ulasan keluhan pengguna |
 | `admins` | `system_notifications`| `system_notifications.sender_admin_id` | `0..1 : N` | `SET NULL` | Admin CS / Super Admin menerbitkan pesan broadcast |
-| `admins` | `system_settings` | `system_settings.updated_by` | `0..1 : N` | `SET NULL` | Super Admin memperbarui konfigurasi AI / mata uang |
-| `parking_locations` | `admins` | `admins.assigned_location_id` | `0..1 : N` | `SET NULL` | Admin Operasional ditugaskan di lokasi gedung tertentu |
+| `admins` | `system_settings` | `system_settings.updated_by` | `0..1 : N` | `SET NULL` | Super Admin memperbarui konfigurasi AI Jarvis & feature toggles |
 | `parking_locations` | `parking_slots` | `parking_slots.location_id` | `1 : N` | `CASCADE` | Gedung parkir memiliki banyak slot fisik per lantai |
 | `parking_locations` | `parking_sessions` | `parking_sessions.location_id` | `1 : N` | `RESTRICT` | Gedung parkir menaungi sesi kendaraan masuk gerbang |
 | `parking_locations` | `bookings` | `bookings.location_id` | `1 : N` | `RESTRICT` | Lokasi gedung tempat slot parkir dipesan di muka |

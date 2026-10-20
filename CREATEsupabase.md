@@ -110,6 +110,8 @@ CREATE TABLE IF NOT EXISTS public.users (
 );
 
 -- 4. TABEL GARASI KENDARAAN PENGGUNA
+-- Catatan Arsitektur Foto: Foto fisik plat & lembar STNK wajib diambil 2x dan HANYA diolah secara in-memory (RAM)
+-- untuk ekstraksi teks plate_number & plate_expiry. File gambar TIDAK disimpan ke server/storage demi efisiensi & privasi.
 CREATE TABLE IF NOT EXISTS public.vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -121,7 +123,6 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
     color VARCHAR(40) NOT NULL,
     plate_expiry VARCHAR(10),
     photo_url TEXT,
-    stnk_photo_url TEXT,
     is_default BOOLEAN NOT NULL DEFAULT false,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
@@ -139,7 +140,6 @@ CREATE TABLE IF NOT EXISTS public.admins (
     division VARCHAR(100) NOT NULL,
     avatar_url TEXT,
     status admin_status_enum NOT NULL DEFAULT 'active',
-    assigned_location_id UUID,
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
@@ -198,10 +198,6 @@ CREATE TABLE IF NOT EXISTS public.parking_locations (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Relasi Lokasi Kerja Admin Operasional
-ALTER TABLE public.admins
-    DROP CONSTRAINT IF EXISTS fk_admins_location,
-    ADD CONSTRAINT fk_admins_location FOREIGN KEY (assigned_location_id) REFERENCES public.parking_locations(id) ON DELETE SET NULL;
 
 -- 8. TABEL DENAH SLOT PARKIR & SENSOR IOT
 CREATE TABLE IF NOT EXISTS public.parking_slots (
@@ -274,12 +270,10 @@ CREATE TABLE IF NOT EXISTS public.payments (
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
     booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
     session_id UUID REFERENCES public.parking_sessions(id) ON DELETE SET NULL,
-    processed_by_admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
     transaction_type transaction_type_enum NOT NULL DEFAULT 'parking_payment',
     payment_method payment_method_enum NOT NULL DEFAULT 'wallet',
     amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
     description TEXT,
-    admin_note TEXT,
     blockchain_hash VARCHAR(66),
     status transaction_status_enum NOT NULL DEFAULT 'success',
     completed_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
@@ -327,13 +321,46 @@ CREATE TABLE IF NOT EXISTS public.arcade_scores (
 );
 
 -- 15. TABEL PENGATURAN GLOBAL SISTEM (JSONB)
+-- Catatan Arsitektur Kurs: Konversi mata uang asing dioperasikan murni secara client-side (UI display math)
+-- menggunakan Open Exchange Rates API publik bebas biaya (0 rupiah) tanpa modifikasi data keuangan database.
+-- Tabel ini difokuskan untuk saklar fitur dinamis (feature_toggles) dan parameter kecerdasan buatan (ai_config).
 CREATE TABLE IF NOT EXISTS public.system_settings (
-    key VARCHAR(80) PRIMARY KEY,
+    key VARCHAR(80) PRIMARY KEY, -- Contoh: 'ai_config', 'feature_toggles'
     value JSONB NOT NULL,
     description TEXT,
     updated_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- Inisialisasi Otomatis Rekor Pengaturan Sistem Saat Skema Dibuat
+INSERT INTO public.system_settings (key, value, description)
+VALUES
+(
+    'ai_config',
+    '{
+        "model_name": "qwen/qwen3.8-27b",
+        "api_key": "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",
+        "temperature": 0.4,
+        "max_tokens": 1024,
+        "ocr_confidence_threshold": 0.85,
+        "is_autonomous_pricing_enabled": true
+    }'::jsonb,
+    'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing'
+),
+(
+    'feature_toggles',
+    '{
+        "is_arcade_active": true,
+        "is_ev_charging_booking_enabled": true,
+        "is_crypto_blockchain_audit_live": true,
+        "is_biometric_login_enforced": false
+    }'::jsonb,
+    'Saklar fitur sistem aplikasi ParkSmart ID'
+)
+ON CONFLICT (key) DO UPDATE SET
+    value = EXCLUDED.value,
+    description = EXCLUDED.description,
+    updated_at = timezone('utc'::text, now());
 
 -- ============================================================================
 -- 16. SUPABASE STORAGE BUCKET (DOKUMEN KYC & KENDARAAN)
@@ -353,14 +380,9 @@ ON CONFLICT (id) DO UPDATE SET
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
 
 -- ============================================================================
--- 17. MIGRATION & ALTER TABLE LOG (MCP EXECUTED)
+-- 17. KEBIJAKAN ROW LEVEL SECURITY (RLS) DEVELOPMENT
 -- ============================================================================
--- Query penyesuaian kolom & constraint tabel arcade_scores:
--- ALTER TABLE public.arcade_scores ADD COLUMN IF NOT EXISTS score_type VARCHAR(20) NOT NULL DEFAULT 'current';
--- ALTER TABLE public.arcade_scores DROP CONSTRAINT IF EXISTS uq_user_game_score_type;
--- ALTER TABLE public.arcade_scores ADD CONSTRAINT uq_user_game_score_type UNIQUE (user_id, game_name, score_type);
---
--- Query bypass RLS untuk lingkungan lokal & integrasi development:
+-- Query bypass RLS untuk kelancaran integrasi development lokal & pengujian:
 -- ALTER TABLE public.admins DISABLE ROW LEVEL SECURITY;
 -- ALTER TABLE public.arcade_scores DISABLE ROW LEVEL SECURITY;
 -- ALTER TABLE public.bookings DISABLE ROW LEVEL SECURITY;

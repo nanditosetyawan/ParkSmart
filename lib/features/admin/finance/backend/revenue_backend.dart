@@ -16,83 +16,78 @@ class RevenueBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  List<double> monthlyChartData = [0.42, 0.48, 0.55, 0.68, 0.82, 0.96];
-  List<String> monthlyValues = [
-    'Rp 210.500.000',
-    'Rp 225.800.000',
-    'Rp 240.500.000',
-    'Rp 269.800.000',
-    'Rp 295.400.000',
-    'Rp 312.450.000',
-  ];
-  List<String> monthlyDates = [
-    'Mei 2026',
-    'Juni 2026',
-    'Juli 2026',
-    'Agustus 2026',
-    'September 2026',
-    'Oktober 2026',
-  ];
-  List<String> monthlyGrowths = [
-    '+5.8%',
-    '+7.2%',
-    '+6.5%',
-    '+12.1%',
-    '+10.4%',
-    '+15.7%',
-  ];
-  List<String> monthlyXLabels = ['Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt'];
+  DateTime get _nowWib => DateTime.now().toUtc().add(const Duration(hours: 7));
 
-  final Map<String, Map<String, dynamic>> locationDataset = {
-    'Central Park Mall': {
-      'totalOmzet': 'Rp 156.400.000',
-      'targetOmzet': 'Rp 160.000.000',
-      'progressTarget': 0.97,
-      'growth': '+16.5%',
-      'totalSessions': '4.120',
-      'avgTicket': 'Rp 37.960',
-      'occupancyRate': '82%',
-      'evChargingOmzet': 'Rp 18.250.000',
-      'peakHours': '17:00 - 20:00 WIB',
-      'dailyDistribution': [0.65, 0.58, 0.72, 0.70, 0.85, 0.96, 0.92],
-    },
-    'Grand Indonesia': {
-      'totalOmzet': 'Rp 98.250.000',
-      'targetOmzet': 'Rp 110.000.000',
-      'progressTarget': 0.89,
-      'growth': '+14.1%',
-      'totalSessions': '2.640',
-      'avgTicket': 'Rp 37.215',
-      'occupancyRate': '76%',
-      'evChargingOmzet': 'Rp 12.400.000',
-      'peakHours': '12:00 - 15:00 WIB',
-      'dailyDistribution': [0.70, 0.68, 0.74, 0.72, 0.88, 0.92, 0.85],
-    },
-    'Malioboro Mall': {
-      'totalOmzet': 'Rp 34.600.000',
-      'targetOmzet': 'Rp 40.000.000',
-      'progressTarget': 0.86,
-      'growth': '+8.4%',
-      'totalSessions': '1.180',
-      'avgTicket': 'Rp 29.320',
-      'occupancyRate': '64%',
-      'evChargingOmzet': 'Rp 3.100.000',
-      'peakHours': '18:00 - 21:00 WIB',
-      'dailyDistribution': [0.55, 0.50, 0.60, 0.58, 0.80, 0.95, 0.90],
-    },
-    'Paris Van Java': {
-      'totalOmzet': 'Rp 23.200.000',
-      'targetOmzet': 'Rp 25.000.000',
-      'progressTarget': 0.92,
-      'growth': '+7.2%',
-      'totalSessions': '790',
-      'avgTicket': 'Rp 29.360',
-      'occupancyRate': '58%',
-      'evChargingOmzet': 'Rp 2.450.000',
-      'peakHours': '16:00 - 19:00 WIB',
-      'dailyDistribution': [0.45, 0.42, 0.52, 0.50, 0.75, 0.90, 0.85],
-    },
-  };
+  DateTime _parseToWib(dynamic val) {
+    if (val == null) return _nowWib;
+    final dt = DateTime.tryParse(val.toString());
+    if (dt == null) return _nowWib;
+    return dt.toUtc().add(const Duration(hours: 7));
+  }
+
+  // 📊 State 4 Kuartal (Q1, Q2, Q3, Q4) untuk Ringkasan
+  int availableQuartersCount = 4;
+  int latestQuarterIndex = 3;
+  int availableWeeksCount = 3;
+  int latestWeekIndex = 2;
+
+  List<double> quarterlyRawAmounts = [245000000, 210000000, 280000000, 315500000];
+  List<double> quarterlyChartData = [0.55, 0.38, 0.72, 0.95];
+  List<String> quarterlyValues = [
+    'Rp 245.000.000',
+    'Rp 210.000.000',
+    'Rp 280.000.000',
+    'Rp 315.500.000',
+  ];
+  List<String> quarterlyDates = [
+    'Kuartal 1 (Jan - Mar 2026)',
+    'Kuartal 2 (Apr - Jun 2026)',
+    'Kuartal 3 (Jul - Sep 2026)',
+    'Kuartal 4 (Okt - Des 2026)',
+  ];
+  List<String> quarterlyXLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
+  List<double> quarterlyGrowths = [0.0, -14.3, 33.3, 12.7];
+  List<int> quarterlyTrxCounts = [49, 42, 56, 64];
+
+  List<double> get monthlyChartData => quarterlyChartData;
+  List<String> get monthlyValues => quarterlyValues;
+  List<String> get monthlyDates => quarterlyDates;
+  List<String> get monthlyGrowths => quarterlyGrowths.map((g) => '${g >= 0 ? '+' : ''}${g.toStringAsFixed(1)}%').toList();
+  List<String> get monthlyXLabels => quarterlyXLabels;
+
+  // 🏢 State Per Lokasi (Dinamis dari Supabase)
+  List<Map<String, dynamic>> availableLocations = [];
+  Map<String, Map<String, dynamic>> locationDataset = {};
+
+  // 🚗🏍️ State Analitik Tipe Kendaraan (Global, Sesi Selesai / Completed Saja)
+  int completedMobilCount = 0;
+  int completedMotorCount = 0;
+  double completedMobilRevenue = 0.0;
+  double completedMotorRevenue = 0.0;
+
+  int get totalCompletedSessions => completedMobilCount + completedMotorCount;
+  double get totalCompletedRevenue => completedMobilRevenue + completedMotorRevenue;
+
+  double get mobilSessionRatio => totalCompletedSessions > 0
+      ? (completedMobilCount / totalCompletedSessions) * 100.0
+      : 0.0;
+  double get motorSessionRatio => totalCompletedSessions > 0
+      ? (completedMotorCount / totalCompletedSessions) * 100.0
+      : 0.0;
+
+  double get mobilRevenueRatio => totalCompletedRevenue > 0
+      ? (completedMobilRevenue / totalCompletedRevenue) * 100.0
+      : 0.0;
+  double get motorRevenueRatio => totalCompletedRevenue > 0
+      ? (completedMotorRevenue / totalCompletedRevenue) * 100.0
+      : 0.0;
+
+  double get avgFeeMobil => completedMobilCount > 0
+      ? completedMobilRevenue / completedMobilCount
+      : 0.0;
+  double get avgFeeMotor => completedMotorCount > 0
+      ? completedMotorRevenue / completedMotorCount
+      : 0.0;
 
   /// Mengambil data revenue dari Supabase
   Future<void> fetchRevenueData() async {
@@ -101,20 +96,314 @@ class RevenueBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final payments = await _client
-          .from('payments')
-          .select('amount, status, created_at')
-          .eq('status', 'success');
+      final now = _nowWib;
+      final int currentYear = now.year;
+      final int nowMonth = now.month;
+      final int nowDay = now.day;
 
-      if (payments.isNotEmpty) {
-        double total = 0;
-        for (var p in payments) {
-          total += (p['amount'] as num?)?.toDouble() ?? 0;
+      // 1. Hitung kuartal aktif berjalan
+      if (nowMonth <= 3) {
+        availableQuartersCount = 1;
+      } else if (nowMonth <= 6) {
+        availableQuartersCount = 2;
+      } else if (nowMonth <= 9) {
+        availableQuartersCount = 3;
+      } else {
+        availableQuartersCount = 4;
+      }
+      latestQuarterIndex = availableQuartersCount - 1;
+
+      // 2. Hitung minggu aktif berjalan untuk bulan ini (Oktober 2026)
+      if (nowDay <= 7) {
+        availableWeeksCount = 1;
+      } else if (nowDay <= 14) {
+        availableWeeksCount = 2;
+      } else if (nowDay <= 21) {
+        availableWeeksCount = 3;
+      } else {
+        availableWeeksCount = 4;
+      }
+      latestWeekIndex = availableWeeksCount - 1;
+
+      // 3. Ambil data ringkasan agregat dari public.payments
+      try {
+        final paymentsRes = await _client
+            .from('payments')
+            .select('amount, status, created_at, completed_at');
+
+        if (paymentsRes.isNotEmpty) {
+          double q1 = 0;
+          double q2 = 0;
+          double q3 = 0;
+          double q4 = 0;
+          int c1 = 0;
+          int c2 = 0;
+          int c3 = 0;
+          int c4 = 0;
+
+          for (var row in paymentsRes) {
+            final amt = (row['amount'] as num?)?.toDouble() ?? 0;
+            final status = (row['status'] ?? '').toString().toLowerCase();
+            final isSuccess = status == 'success' || status == 'paid';
+
+            if (isSuccess) {
+              final rawTs = row['completed_at'] ?? row['created_at'];
+              final wibDt = _parseToWib(rawTs);
+
+              if (wibDt.year == currentYear) {
+                final m = wibDt.month;
+                if (m >= 1 && m <= 3) {
+                  q1 += amt;
+                  c1++;
+                } else if (m >= 4 && m <= 6) {
+                  q2 += amt;
+                  c2++;
+                } else if (m >= 7 && m <= 9) {
+                  q3 += amt;
+                  c3++;
+                } else if (m >= 10 && m <= 12) {
+                  q4 += amt;
+                  c4++;
+                }
+              }
+            }
+          }
+
+          if (q1 > 0 || q2 > 0 || q3 > 0 || q4 > 0) {
+            quarterlyRawAmounts = [q1, q2, q3, q4];
+            quarterlyTrxCounts = [c1, c2, c3, c4];
+            quarterlyValues = [
+              'Rp ${_formatCurrency(q1.round())}',
+              'Rp ${_formatCurrency(q2.round())}',
+              'Rp ${_formatCurrency(q3.round())}',
+              'Rp ${_formatCurrency(q4.round())}',
+            ];
+
+            quarterlyGrowths = [0.0, 0.0, 0.0, 0.0];
+            if (q1 > 0) {
+              quarterlyGrowths[1] = ((q2 - q1) / q1) * 100.0;
+            } else if (q2 > 0) {
+              quarterlyGrowths[1] = 100.0;
+            }
+
+            if (q2 > 0) {
+              quarterlyGrowths[2] = ((q3 - q2) / q2) * 100.0;
+            } else if (q3 > 0) {
+              quarterlyGrowths[2] = 100.0;
+            }
+
+            if (q3 > 0) {
+              quarterlyGrowths[3] = ((q4 - q3) / q3) * 100.0;
+            } else if (q4 > 0) {
+              quarterlyGrowths[3] = 100.0;
+            }
+
+            final double maxQ = quarterlyRawAmounts.fold(0.0, (m, v) => v > m ? v : m);
+            quarterlyChartData = quarterlyRawAmounts.map((v) {
+              if (maxQ <= 0 || v <= 0) return 0.08;
+              return 0.18 + (v / maxQ) * 0.77;
+            }).toList();
+          } else {
+            quarterlyRawAmounts = [0.0, 0.0, 0.0, 0.0];
+            quarterlyTrxCounts = [0, 0, 0, 0];
+            quarterlyValues = ['Rp 0', 'Rp 0', 'Rp 0', 'Rp 0'];
+            quarterlyGrowths = [0.0, 0.0, 0.0, 0.0];
+            quarterlyChartData = [0.0, 0.0, 0.0, 0.0];
+          }
+        } else {
+          quarterlyRawAmounts = [0.0, 0.0, 0.0, 0.0];
+          quarterlyTrxCounts = [0, 0, 0, 0];
+          quarterlyValues = ['Rp 0', 'Rp 0', 'Rp 0', 'Rp 0'];
+          quarterlyGrowths = [0.0, 0.0, 0.0, 0.0];
+          quarterlyChartData = [0.0, 0.0, 0.0, 0.0];
+        }
+      } catch (e) {
+        debugPrint('[RevenueBackend] payments fetch error: $e');
+      }
+
+      // 4. Ambil data lokasi parkir dan sesi per lokasi dari Supabase
+      final locsRes = await _client
+          .from('parking_locations')
+          .select('id, name, city, code')
+          .order('name');
+
+      if (locsRes.isEmpty) {
+        availableLocations = [];
+        locationDataset = {};
+      } else {
+        availableLocations = List<Map<String, dynamic>>.from(locsRes);
+
+        // Ambil semua sesi parkir untuk diagregasi per lokasi dan rasio kendaraan global
+        final sessionsRes = await _client
+            .from('parking_sessions')
+            .select('location_id, total_fee, check_in_time, status, vehicle_type');
+
+        // Peta agregasi per location_id
+        final Map<String, List<double>> locQuarterlySums = {};
+        final Map<String, List<double>> locWeeklySums = {};
+        final Map<String, double> locTotalYearSums = {};
+        double totalAllLocationsYear = 0.0;
+
+        int mobCount = 0;
+        int motCount = 0;
+        double mobRev = 0.0;
+        double motRev = 0.0;
+
+        for (var loc in availableLocations) {
+          final String locId = loc['id'].toString();
+          locQuarterlySums[locId] = [0.0, 0.0, 0.0, 0.0];
+          locWeeklySums[locId] = [0.0, 0.0, 0.0, 0.0];
+          locTotalYearSums[locId] = 0.0;
         }
 
-        if (total > 0) {
-          monthlyValues[monthlyValues.length - 1] = 'Rp ${_formatCurrency(total.round())}';
+        for (var s in sessionsRes) {
+          final String status = (s['status'] ?? '').toString().toLowerCase();
+          final String vType = (s['vehicle_type'] ?? '').toString().toLowerCase();
+          final double fee = (s['total_fee'] as num?)?.toDouble() ?? 0.0;
+
+          // 🚗🏍️ Hitung global rasio kendaraan: HANYA SESI SELESAI (COMPLETED)
+          // Mengabaikan yang masih masuk / proses / aktif
+          if (status == 'completed') {
+            if (vType == 'mobil' || vType == 'car' || vType == 'ev') {
+              mobCount++;
+              mobRev += fee;
+            } else if (vType == 'motor' || vType == 'motorcycle') {
+              motCount++;
+              motRev += fee;
+            }
+          }
+
+          final String locId = (s['location_id'] ?? '').toString();
+          if (!locQuarterlySums.containsKey(locId)) continue;
+
+          final DateTime dt = _parseToWib(s['check_in_time']);
+
+          // Hitung kuartal untuk tahun berjalan
+          if (dt.year == currentYear) {
+            final int m = dt.month;
+            int qIndex = 0;
+            if (m >= 1 && m <= 3) {
+              qIndex = 0;
+            } else if (m >= 4 && m <= 6) {
+              qIndex = 1;
+            } else if (m >= 7 && m <= 9) {
+              qIndex = 2;
+            } else {
+              qIndex = 3;
+            }
+
+            locQuarterlySums[locId]![qIndex] += fee;
+            locTotalYearSums[locId] = (locTotalYearSums[locId] ?? 0.0) + fee;
+            totalAllLocationsYear += fee;
+
+            // Hitung minggu untuk bulan berjalan
+            if (m == nowMonth) {
+              final int d = dt.day;
+              int wIndex = 0;
+              if (d >= 1 && d <= 7) {
+                wIndex = 0;
+              } else if (d >= 8 && d <= 14) {
+                wIndex = 1;
+              } else if (d >= 15 && d <= 21) {
+                wIndex = 2;
+              } else {
+                wIndex = 3;
+              }
+
+              locWeeklySums[locId]![wIndex] += fee;
+            }
+          }
         }
+
+        completedMobilCount = mobCount;
+        completedMotorCount = motCount;
+        completedMobilRevenue = mobRev;
+        completedMotorRevenue = motRev;
+
+        final Map<String, Map<String, dynamic>> newDataset = {};
+
+        for (var loc in availableLocations) {
+          final String locId = loc['id'].toString();
+          final String locName = loc['name'] ?? 'Lokasi';
+          final String locCity = loc['city'] ?? '';
+          final String locCode = loc['code'] ?? '';
+
+          final List<double> qAmounts = locQuarterlySums[locId] ?? [0.0, 0.0, 0.0, 0.0];
+          final List<double> wAmounts = locWeeklySums[locId] ?? [0.0, 0.0, 0.0, 0.0];
+          final double totalLocYear = locTotalYearSums[locId] ?? 0.0;
+
+          // Hitung persentase kontribusi
+          final double contributionRatio = totalAllLocationsYear > 0 ? (totalLocYear / totalAllLocationsYear) * 100.0 : 0.0;
+          final String contributionStr = '${contributionRatio.toStringAsFixed(1)}%';
+
+          // Hitung pertumbuhan kuartal (Q1, Q2, Q3, Q4)
+          final List<double> qGrowths = [0.0, 0.0, 0.0, 0.0];
+          for (int i = 1; i < 4; i++) {
+            final prev = qAmounts[i - 1];
+            final curr = qAmounts[i];
+            if (prev > 0) {
+              qGrowths[i] = ((curr - prev) / prev) * 100.0;
+            } else if (curr > 0) {
+              qGrowths[i] = 100.0;
+            }
+          }
+
+          // Hitung pertumbuhan minggu (W1, W2, W3, W4)
+          final List<double> wGrowths = [0.0, 0.0, 0.0, 0.0];
+          for (int i = 1; i < 4; i++) {
+            final prev = wAmounts[i - 1];
+            final curr = wAmounts[i];
+            if (prev > 0) {
+              wGrowths[i] = ((curr - prev) / prev) * 100.0;
+            } else if (curr > 0) {
+              wGrowths[i] = 100.0;
+            }
+          }
+
+          // Normalisasi kurva chart untuk kuartal (1 Tahun)
+          final double maxQ = qAmounts.fold(0.0, (m, v) => v > m ? v : m);
+          final List<double> qChartData = qAmounts.map((v) {
+            if (maxQ <= 0 || v <= 0) return 0.08;
+            return 0.18 + (v / maxQ) * 0.77;
+          }).toList();
+
+          // Normalisasi kurva chart untuk minggu (1 Bulan)
+          final double maxW = wAmounts.fold(0.0, (m, v) => v > m ? v : m);
+          final List<double> wChartData = wAmounts.map((v) {
+            if (maxW <= 0 || v <= 0) return 0.08;
+            return 0.18 + (v / maxW) * 0.77;
+          }).toList();
+
+          newDataset[locName] = {
+            'id': locId,
+            'name': locName,
+            'city': locCity,
+            'code': locCode,
+            'totalOmzet': 'Rp ${_formatCurrency(totalLocYear.round())}',
+            'contribution': contributionStr,
+            // 1 Bulan (4 Minggu)
+            'monthRawAmounts': wAmounts,
+            'monthData': wChartData,
+            'monthValues': wAmounts.map((v) => 'Rp ${_formatCurrency(v.round())}').toList(),
+            'monthDates': ['Minggu 1 (1 - 7 Okt)', 'Minggu 2 (8 - 14 Okt)', 'Minggu 3 (15 - 21 Okt)', 'Minggu 4 (22 - 31 Okt)'],
+            'monthLabels': ['W1', 'W2', 'W3', 'W4'],
+            'monthGrowths': wGrowths,
+            // 1 Tahun (4 Kuartal)
+            'yearRawAmounts': qAmounts,
+            'yearData': qChartData,
+            'yearValues': qAmounts.map((v) => 'Rp ${_formatCurrency(v.round())}').toList(),
+            'yearDates': [
+              'Kuartal 1 (Jan - Mar $currentYear)',
+              'Kuartal 2 (Apr - Jun $currentYear)',
+              'Kuartal 3 (Jul - Sep $currentYear)',
+              'Kuartal 4 (Okt - Des $currentYear)',
+            ],
+            'yearLabels': ['Q1', 'Q2', 'Q3', 'Q4'],
+            'yearGrowths': qGrowths,
+          };
+        }
+
+        locationDataset = newDataset;
       }
     } catch (e) {
       debugPrint('[RevenueBackend] fetchRevenueData error: $e');

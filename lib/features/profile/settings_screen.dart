@@ -455,6 +455,64 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
                   const SizedBox(height: 16),
 
+                  // Toggle Switch for Currency Conversion
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E242B) : const Color(0xFFF1EEE7),
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(
+                          color: currencyService.isConversionEnabled
+                              ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF15803D))
+                              : (isDark ? theme.border : const Color(0xFFE5E2DB)),
+                          width: currencyService.isConversionEnabled ? 1.5 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Aktifkan Konversi Kurs Asing',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  currencyService.isConversionEnabled
+                                      ? 'Konversi aktif di layar (DB tetap Rupiah murni)'
+                                      : 'Mati (Harga tampil apa adanya dalam Rupiah)',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          Switch(
+                            value: currencyService.isConversionEnabled,
+                            activeThumbColor: const Color(0xFF15803D),
+                            onChanged: (val) async {
+                              await currencyService.toggleConversion(val);
+                              setModalState(() {});
+                              setState(() {});
+                            },
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 12),
+
                   // Simulation Card
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -1321,23 +1379,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Divider(color: ThemeService.instance.divider, height: 1)),
                         _SettingActionRow(
                           icon: Icons.payments,
-                          title: 'Mata Uang',
-                          subtitle: '${CurrencyService.instance.currentCurrency} (${CurrencyService.instance.currentInfo.name})',
+                          title: 'Mata Uang & Kurs Valuta',
+                          subtitle: CurrencyService.instance.isConversionEnabled
+                              ? '${CurrencyService.instance.currentCurrency} (${CurrencyService.instance.currentInfo.name}) - Konversi Aktif'
+                              : 'IDR (Rupiah Indonesia) - Standar',
                           actionWidget: Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                 decoration: BoxDecoration(
-                                  color: const Color(0xFFF1EEE7),
+                                  color: CurrencyService.instance.isConversionEnabled
+                                      ? const Color(0xFFDCFCE7)
+                                      : const Color(0xFFF1EEE7),
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                                 child: Text(
-                                  CurrencyService.instance.currentCurrency,
+                                  CurrencyService.instance.isConversionEnabled
+                                      ? CurrencyService.instance.currentCurrency
+                                      : 'IDR (OFF)',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
-                                    color: const Color(0xFF1C1C18),
+                                    color: CurrencyService.instance.isConversionEnabled
+                                        ? const Color(0xFF15803D)
+                                        : const Color(0xFF1C1C18),
                                   ),
                                 ),
                               ),

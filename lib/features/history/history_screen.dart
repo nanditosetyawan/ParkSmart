@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/utils/ticket_status_helper.dart';
 import 'history_detail_screen.dart' as history_detail;
 import 'backend/history_backend.dart';
 
@@ -102,7 +103,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                       child: ListView(
                         padding: const EdgeInsets.fromLTRB(20, 12, 20, 140),
                         children: [
-                          // Filter Chips
+                          // Filter Chips (Standard 4 Mark: Belum Dibayar, Ready, Aktif, Selesai)
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
                             child: Row(
@@ -116,10 +117,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
-                                  label: 'Selesai',
-                                  isSelected: backend.selectedFilter == 'completed',
+                                  label: 'Ready',
+                                  isSelected: backend.selectedFilter == 'ready',
                                   isDark: isDark,
-                                  onTap: () => backend.setFilter('completed'),
+                                  onTap: () => backend.setFilter('ready'),
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
@@ -127,6 +128,20 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   isSelected: backend.selectedFilter == 'active',
                                   isDark: isDark,
                                   onTap: () => backend.setFilter('active'),
+                                ),
+                                const SizedBox(width: 8),
+                                _FilterChip(
+                                  label: 'Selesai',
+                                  isSelected: backend.selectedFilter == 'completed',
+                                  isDark: isDark,
+                                  onTap: () => backend.setFilter('completed'),
+                                ),
+                                const SizedBox(width: 8),
+                                _FilterChip(
+                                  label: 'Belum Dibayar',
+                                  isSelected: backend.selectedFilter == 'unpaid',
+                                  isDark: isDark,
+                                  onTap: () => backend.setFilter('unpaid'),
                                 ),
                               ],
                             ),
@@ -378,24 +393,22 @@ class _HistoryCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.4) : const Color(0xFFECFDF5),
+                    color: TicketMark.getBgColor(status, isDark: isDark),
                     borderRadius: BorderRadius.circular(16),
                     border: Border.all(
-                      color: isDark
-                          ? const Color(0xFF059669).withValues(alpha: 0.5)
-                          : const Color(0xFFA7F3D0).withValues(alpha: 0.6),
+                      color: TicketMark.getBorderColor(status, isDark: isDark),
                     ),
                   ),
                   child: Row(
                     children: [
-                      Container(width: 6, height: 6, decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle)),
+                      Container(width: 6, height: 6, decoration: BoxDecoration(color: TicketMark.getColor(status), shape: BoxShape.circle)),
                       const SizedBox(width: 6),
                       Text(
                         status,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF065F46),
+                          color: TicketMark.getColor(status),
                         ),
                       ),
                     ],

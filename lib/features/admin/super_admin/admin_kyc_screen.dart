@@ -251,7 +251,7 @@ class _AdminKycScreenState extends State<AdminKycScreen> {
                           const SizedBox(height: 14),
                           Text(
                             _selectedTab == 0
-                                ? 'Semua berkas KYC telah diproses'
+                                ? 'Tidak Ada Antrean'
                                 : (_selectedTab == 1 ? 'Belum ada berkas KYC disetujui' : 'Tidak ada berkas yang ditolak'),
                             style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
                           ),

@@ -25,6 +25,7 @@ class CurrencyService extends ChangeNotifier {
   CurrencyService._internal();
 
   static const String _prefsCurrencyKey = 'selected_currency_code';
+  static const String _prefsConversionEnabledKey = 'currency_conversion_enabled';
   static const String _prefsRatesKey = 'cached_currency_rates';
   static const String _prefsLastUpdatedKey = 'currency_last_updated';
 
@@ -74,6 +75,7 @@ class CurrencyService extends ChangeNotifier {
     ),
   };
 
+  bool _isConversionEnabled = false;
   String _currentCurrency = 'IDR';
   Map<String, double> _rates = {
     'IDR': 1.0,
@@ -86,15 +88,17 @@ class CurrencyService extends ChangeNotifier {
   DateTime? _lastUpdated;
   bool _isLoading = false;
 
-  String get currentCurrency => _currentCurrency;
+  bool get isConversionEnabled => _isConversionEnabled;
+  String get currentCurrency => _isConversionEnabled ? _currentCurrency : 'IDR';
   CurrencyInfo get currentInfo =>
-      supportedCurrencies[_currentCurrency] ?? supportedCurrencies['IDR']!;
+      supportedCurrencies[currentCurrency] ?? supportedCurrencies['IDR']!;
   Map<String, double> get rates => _rates;
   DateTime? get lastUpdated => _lastUpdated;
   bool get isLoading => _isLoading;
 
   Future<void> init() async {
     final prefs = await SharedPreferences.getInstance();
+    _isConversionEnabled = prefs.getBool(_prefsConversionEnabledKey) ?? false;
     _currentCurrency = prefs.getString(_prefsCurrencyKey) ?? 'IDR';
 
     final cachedRates = prefs.getString(_prefsRatesKey);
@@ -162,17 +166,28 @@ class CurrencyService extends ChangeNotifier {
     return false;
   }
 
+  Future<void> toggleConversion(bool enabled) async {
+    _isConversionEnabled = enabled;
+    notifyListeners();
+
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_prefsConversionEnabledKey, enabled);
+  }
+
   Future<void> setCurrency(String code) async {
     if (!supportedCurrencies.containsKey(code)) return;
     _currentCurrency = code;
+    _isConversionEnabled = (code != 'IDR');
     notifyListeners();
 
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prefsCurrencyKey, code);
+    await prefs.setBool(_prefsConversionEnabledKey, _isConversionEnabled);
   }
 
-  /// Convert amount from IDR base to target currency
+  /// Convert amount from IDR base to target currency purely on the UI display
   double convert(num amountInIdr, [String? targetCurrency]) {
+    if (!_isConversionEnabled) return amountInIdr.toDouble();
     final code = targetCurrency ?? _currentCurrency;
     if (code == 'IDR') return amountInIdr.toDouble();
     final rate = _rates[code] ?? 1.0;

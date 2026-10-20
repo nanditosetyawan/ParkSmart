@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/utils/ticket_status_helper.dart';
 import 'backend/history_detail_backend.dart';
 
 class HistoryDetailScreen extends StatefulWidget {
@@ -195,19 +196,26 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                             Container(
                                               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                               decoration: BoxDecoration(
-                                                color: const Color(0xFF17A18A).withValues(alpha: isDark ? 0.2 : 0.1),
+                                                color: TicketMark.getBgColor(backend.status, isDark: isDark),
                                                 borderRadius: BorderRadius.circular(12),
+                                                border: Border.all(
+                                                  color: TicketMark.getBorderColor(backend.status, isDark: isDark),
+                                                ),
                                               ),
                                               child: Row(
                                                 children: [
-                                                  const Icon(Icons.check_circle, size: 13, color: Color(0xFF17A18A)),
+                                                  Icon(
+                                                    TicketMark.getIcon(backend.status),
+                                                    size: 13,
+                                                    color: TicketMark.getColor(backend.status),
+                                                  ),
                                                   const SizedBox(width: 4),
                                                   Text(
                                                     backend.status,
                                                     style: GoogleFonts.plusJakartaSans(
                                                       fontSize: 11,
-                                                      fontWeight: FontWeight.w600,
-                                                      color: const Color(0xFF17A18A),
+                                                      fontWeight: FontWeight.w700,
+                                                      color: TicketMark.getColor(backend.status),
                                                     ),
                                                   ),
                                                 ],
