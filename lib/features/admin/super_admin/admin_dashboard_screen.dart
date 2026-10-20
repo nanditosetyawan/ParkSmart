@@ -781,9 +781,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             _buildMountainChartSection(currentMetric),
             const SizedBox(height: 24),
 
-            // 🚨 SECTION 2: 1 TOMBOL MENONJOL: AKSES DARURAT DIVISI (EMERGENCY OVERRIDE)
-            _buildEmergencyAccessButton(context),
-            const SizedBox(height: 24),
 
             // 🪪 SECTION: KONFIRMASI PENDAFTARAN KTP (VERIFIKASI KYC IDENTITAS)
             _buildKycConfirmationSection(context),
@@ -958,14 +955,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen()));
-            },
-          ),
-          ListTile(
-            leading: const Icon(Icons.flash_on, color: Color(0xFFC0392B)),
-            title: Text('Akses Darurat Divisi', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFC0392B))),
-            onTap: () {
-              Navigator.pop(context);
-              _showEmergencyMasterModal(context);
             },
           ),
 
