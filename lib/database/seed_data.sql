@@ -6,21 +6,21 @@
 
 -- 1. SEED DATA AKUN ADMIN TERPADU (SUPER ADMIN)
 INSERT INTO public.admins (
-    id, email, full_name, phone, role, division, status
+    id, email, full_name, phone, role, division, status, password
 ) VALUES
 (
     'b0000000-0000-0000-0000-000000000001', 'superadmin@parksmart.id', 'Gibran Widodo', '+62 812-0000-0001',
-    'super_admin', 'Sistem & Super Admin', 'active'
+    'super_admin', 'Sistem & Super Admin', 'active', 'superadmin123'
 )
 ON CONFLICT (email) DO NOTHING;
 
 -- 2. SEED DATA PENGGUNA BARU (USERS)
 INSERT INTO public.users (
-    id, email, phone, full_name, wallet_balance, points, member_tier, total_parking_count, total_savings, status
+    id, email, phone, full_name, wallet_balance, points, member_tier, total_parking_count, total_savings, status, password
 ) VALUES
 (
     'c0000000-0000-0000-0000-000000000001', 'jokowi.dodo@gmail.com', '+62 811-2345-6789',
-    'Jokowi Dodo', 0.00, 0, 'BRONZE', 0, 0.00, 'active'
+    'Jokowi Dodo', 0.00, 0, 'BRONZE', 0, 0.00, 'active', 'user123'
 )
 ON CONFLICT (email) DO NOTHING;
 

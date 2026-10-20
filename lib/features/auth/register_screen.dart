@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/theme_service.dart';
+import '../profile/backend/profile_backend.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -33,6 +35,136 @@ class _RegisterScreenState extends State<RegisterScreen> {
     _phoneController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  bool _isLoading = false;
+
+  Future<void> _handleRegister() async {
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final phone = _phoneController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan masukkan nama lengkap.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (email.isEmpty || !email.contains('@') || !email.contains('.')) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan masukkan alamat email yang valid.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (phone.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Silakan masukkan nomor handphone.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    if (password.length < 6) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Kata sandi minimal 6 karakter.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      return;
+    }
+
+    setState(() => _isLoading = true);
+
+    try {
+      // 1. Cek apakah email sudah terdaftar sebelumnya
+      final existing = await Supabase.instance.client
+          .from('users')
+          .select('id')
+          .eq('email', email)
+          .maybeSingle();
+
+      if (existing != null) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Email sudah terdaftar. Silakan langsung masuk.'),
+              backgroundColor: Colors.orangeAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      // 2. Simpan user baru ke database public.users
+      final inserted = await Supabase.instance.client
+          .from('users')
+          .insert({
+            'full_name': name,
+            'email': email,
+            'phone': phone,
+            'password': password,
+            'member_tier': 'BRONZE',
+            'wallet_balance': 0.00,
+            'points': 0,
+            'total_parking_count': 0,
+            'total_savings': 0.00,
+            'status': 'active',
+          })
+          .select()
+          .single();
+
+      // 3. Simpan state user baru di ProfileBackend
+      ProfileBackend.instance.setLoggedInUser(
+        id: inserted['id'].toString(),
+        fullName: name,
+        email: email,
+        phone: phone,
+        memberTier: 'BRONZE',
+        walletBalance: 0,
+      );
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Registrasi akun berhasil! Silakan masuk dengan akun baru Anda.'),
+            backgroundColor: Color(0xFF0D9488),
+            duration: Duration(seconds: 3),
+          ),
+        );
+
+        if (Navigator.canPop(context)) {
+          Navigator.pop(context, email);
+        } else {
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => LoginScreen(initialEmail: email)),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Registrasi gagal: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
   }
 
   @override
@@ -210,7 +342,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       width: double.infinity,
                       height: 56,
                       child: ElevatedButton(
-                        onPressed: () => Navigator.pop(context),
+                        onPressed: _isLoading ? null : _handleRegister,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
                           foregroundColor: isDark ? Colors.black : Colors.white,
@@ -218,26 +350,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                           shadowColor: isDark ? Colors.white.withValues(alpha: 0.15) : Colors.transparent,
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
                         ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Text(
-                              'Buat Akun',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                                color: isDark ? Colors.black : Colors.white,
-                                letterSpacing: 0.3,
+                        child: _isLoading
+                            ? SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.4,
+                                  valueColor: AlwaysStoppedAnimation<Color>(
+                                    isDark ? Colors.black : Colors.white,
+                                  ),
+                                ),
+                              )
+                            : Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Buat Akun',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                      color: isDark ? Colors.black : Colors.white,
+                                      letterSpacing: 0.3,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Icon(
+                                    Icons.arrow_forward,
+                                    size: 19,
+                                    color: isDark ? Colors.black : Colors.white,
+                                  ),
+                                ],
                               ),
-                            ),
-                            const SizedBox(width: 10),
-                            Icon(
-                              Icons.arrow_forward,
-                              size: 19,
-                              color: isDark ? Colors.black : Colors.white,
-                            ),
-                          ],
-                        ),
                       ),
                     ),
                     const SizedBox(height: 24),
@@ -245,10 +388,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     // Login Link
                     Center(
                       child: GestureDetector(
-                        onTap: () => Navigator.pushReplacement(
-                          context,
-                          MaterialPageRoute(builder: (_) => const LoginScreen()),
-                        ),
+                        onTap: () {
+                          if (Navigator.canPop(context)) {
+                            Navigator.pop(context);
+                          } else {
+                            Navigator.pushReplacement(
+                              context,
+                              MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            );
+                          }
+                        },
                         child: RichText(
                           text: TextSpan(
                             style: GoogleFonts.plusJakartaSans(

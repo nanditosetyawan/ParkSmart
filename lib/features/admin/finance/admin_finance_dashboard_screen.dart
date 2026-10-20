@@ -8,6 +8,7 @@ import 'admin_wallet_screen.dart';
 import 'admin_transactions_screen.dart';
 import 'revenue_screen.dart';
 import '../../sitemap_screen.dart';
+import '../../auth/login_screen.dart';
 import 'backend/admin_finance_dashboard_backend.dart';
 
 class AdminFinanceDashboardScreen extends StatefulWidget {
@@ -265,6 +266,26 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                     onTap: () {
                       Navigator.pop(context);
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen()));
+                    },
+                  ),
+                  const Divider(color: Color(0xFFF3F4F6), height: 24, indent: 16, endIndent: 16),
+                  ListTile(
+                    leading: const Icon(Icons.logout, color: Color(0xFFD94B4B)),
+                    title: Text(
+                      'Keluar Dashboard',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFFD94B4B),
+                      ),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
+                    onTap: () {
+                      Navigator.pushAndRemoveUntil(
+                        context,
+                        MaterialPageRoute(builder: (_) => const LoginScreen()),
+                        (route) => false,
+                      );
                     },
                   ),
                 ],

@@ -32,6 +32,23 @@ class ProfileBackend extends ChangeNotifier {
   int get walletBalance => _walletBalance;
   String get primaryVehicle => _primaryVehicle;
 
+  void setLoggedInUser({
+    required String id,
+    required String fullName,
+    required String email,
+    required String phone,
+    String? memberTier,
+    int? walletBalance,
+  }) {
+    _userId = id;
+    _name = fullName;
+    _email = email;
+    _phone = phone;
+    if (memberTier != null) _memberTier = memberTier;
+    if (walletBalance != null) _walletBalance = walletBalance;
+    notifyListeners();
+  }
+
   Future<void> fetchProfile() async {
     _isLoading = true;
     notifyListeners();
@@ -47,6 +64,8 @@ class ProfileBackend extends ChangeNotifier {
 
       if (authUserId != null) {
         query = query.eq('auth_user_id', authUserId);
+      } else if (_userId.isNotEmpty) {
+        query = query.eq('id', _userId);
       }
 
       final response = await query.limit(1);
