@@ -54,7 +54,7 @@ class _PinScreenState extends State<PinScreen> {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(
-              PinBackend.instance.errorMessage ?? 'PIN Salah! Default PIN sistem: 1234',
+              PinBackend.instance.errorMessage ?? 'PIN yang dimasukkan salah. Silakan coba lagi.',
               style: GoogleFonts.plusJakartaSans(),
             ),
             backgroundColor: const Color(0xFFEF4444),

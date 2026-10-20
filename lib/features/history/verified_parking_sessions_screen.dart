@@ -247,7 +247,52 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
               const SizedBox(height: 16),
 
               // 4. History Items
-              ...backend.sessions.map((item) => Padding(
+              if (backend.sessions.isEmpty)
+                Container(
+                  margin: const EdgeInsets.only(top: 8),
+                  padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 24),
+                  decoration: BoxDecoration(
+                    color: cardBg,
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(color: cardBorder),
+                  ),
+                  child: Column(
+                    children: [
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1EEE7),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Icon(
+                          Icons.verified_user_outlined,
+                          size: 40,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        'Belum Ada Sesi Terverifikasi',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: textMain,
+                        ),
+                      ),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Riwayat transaksi parkir yang telah divalidasi ke blockchain akan tampil di sini.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          color: textSub,
+                        ),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                ...backend.sessions.map((item) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _HistoryItem(
                       id: item.id,

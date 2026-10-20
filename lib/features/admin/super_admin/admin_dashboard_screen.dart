@@ -951,6 +951,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Navigator.push(context, MaterialPageRoute(builder: (_) => const ArcadeAdminScreen()));
             },
           ),
+          ListTile(
+            leading: const Icon(Icons.access_time_filled, color: Color(0xFFD97706)),
+            title: Text('Waktu', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
+            onTap: () {
+              Navigator.pop(context);
+              _showTimeZonesDialog();
+            },
+          ),
 
           const Divider(height: 20, color: Color(0xFFE4DFD5)),
           ListTile(
@@ -961,6 +969,204 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             },
           ),
           const SizedBox(height: 20),
+        ],
+      ),
+    );
+  }
+
+  // ─── FITUR: POP-UP KONVERSI ZONA WAKTU INDONESIA (WIB, WITA, WIT) ───
+  void _showTimeZonesDialog() {
+    showDialog(
+      context: context,
+      builder: (ctx) {
+        return StatefulBuilder(
+          builder: (context, setDialogState) {
+            final nowUtc = DateTime.now().toUtc();
+            final wib = nowUtc.add(const Duration(hours: 7));
+            final wita = nowUtc.add(const Duration(hours: 8));
+            final wit = nowUtc.add(const Duration(hours: 9));
+
+            String twoDigits(int n) => n.toString().padLeft(2, '0');
+            String formatTime(DateTime dt) =>
+                '${twoDigits(dt.hour)}:${twoDigits(dt.minute)}:${twoDigits(dt.second)}';
+
+            const months = [
+              'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+              'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+            ];
+            const days = [
+              'Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'
+            ];
+            String formatDate(DateTime dt) {
+              final dayIndex = dt.weekday == 7 ? 0 : dt.weekday;
+              return '${days[dayIndex]}, ${dt.day} ${months[dt.month - 1]} ${dt.year}';
+            }
+
+            return AlertDialog(
+              backgroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              titlePadding: const EdgeInsets.fromLTRB(20, 20, 20, 10),
+              contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              title: Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFEF3C7),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: const Icon(Icons.access_time_filled, color: Color(0xFFD97706), size: 22),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Waktu Saat Ini',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 17,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1C1D1F),
+                          ),
+                        ),
+                        Text(
+                          formatDate(wib),
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: const Color(0xFF64748B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              content: SizedBox(
+                width: double.maxFinite,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    _buildTimeZoneCard(
+                      zoneName: 'WIB',
+                      fullName: 'Waktu Indonesia Barat (UTC+7)',
+                      timeString: '${formatTime(wib)} WIB',
+                      regions: 'Sumatera, Jawa, Kalimantan Barat & Tengah',
+                      color: const Color(0xFF10B981),
+                      bgColor: const Color(0xFFECFDF5),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTimeZoneCard(
+                      zoneName: 'WITA',
+                      fullName: 'Waktu Indonesia Tengah (UTC+8)',
+                      timeString: '${formatTime(wita)} WITA',
+                      regions: 'Sulawesi, Bali, NTB, NTT, Kalsel, Kaltim, Kaltara',
+                      color: const Color(0xFF3B82F6),
+                      bgColor: const Color(0xFFEFF6FF),
+                    ),
+                    const SizedBox(height: 10),
+                    _buildTimeZoneCard(
+                      zoneName: 'WIT',
+                      fullName: 'Waktu Indonesia Timur (UTC+9)',
+                      timeString: '${formatTime(wit)} WIT',
+                      regions: 'Maluku, Maluku Utara, Papua',
+                      color: const Color(0xFF8B5CF6),
+                      bgColor: const Color(0xFFF5F3FF),
+                    ),
+                  ],
+                ),
+              ),
+              actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 16),
+              actions: [
+                SizedBox(
+                  width: double.infinity,
+                  child: ElevatedButton(
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF1C1D1F),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Tutup',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  Widget _buildTimeZoneCard({
+    required String zoneName,
+    required String fullName,
+    required String timeString,
+    required String regions,
+    required Color color,
+    required Color bgColor,
+  }) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: bgColor,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: color,
+                  borderRadius: BorderRadius.circular(6),
+                ),
+                child: Text(
+                  zoneName,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+              ),
+              Text(
+                timeString,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0F172A),
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 6),
+          Text(
+            fullName,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: const Color(0xFF334155),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            regions,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 10,
+              color: const Color(0xFF64748B),
+            ),
+          ),
         ],
       ),
     );

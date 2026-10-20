@@ -61,6 +61,81 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
 
+        if (!SlotSelectionBackend.instance.isLoading && SlotSelectionBackend.instance.currentLocation == null) {
+          return Scaffold(
+            backgroundColor: isDark ? theme.bg : const Color(0xFFFCF9F2),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                'Pilih Slot Parkir',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1EEE7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.grid_off_outlined,
+                        size: 64,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Denah Slot Parkir Belum Tersedia',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Lokasi parkir belum dipilih atau belum ada denah slot yang terdaftar di lokasi ini.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.arrow_back, size: 18),
+                      label: const Text('Kembali ke Peta'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
+                        foregroundColor: isDark ? Colors.black : Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         return Scaffold(
           backgroundColor: isDark ? theme.bg : const Color(0xFFFCF9F2),
           body: Stack(

@@ -224,9 +224,56 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       ],
                     ),
                   ),
-                  const SizedBox(height: 12),
-                  
-                  // Main Vehicle Card
+                  if (VehicleBackend.instance.vehicles.isEmpty) ...[
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+                      child: Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(28),
+                        decoration: BoxDecoration(
+                          color: theme.card,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: theme.border),
+                        ),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 72,
+                              height: 72,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.directions_car_outlined,
+                                size: 36,
+                                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF114177),
+                              ),
+                            ),
+                            const SizedBox(height: 20),
+                            Text(
+                              'Belum Ada Kendaraan Terdaftar',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 18,
+                                fontWeight: FontWeight.bold,
+                                color: theme.textPrimary,
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              'Tambahkan nomor plat kendaraan Anda untuk kemudahan deteksi otomatis gate ANPR dan reservasi slot parkir.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: theme.textSecondary,
+                                height: 1.5,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ] else ...[
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 20),
                     child: Container(
@@ -759,6 +806,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
+                  ],
                 ],
               ),
               Positioned(

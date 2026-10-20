@@ -14,11 +14,12 @@ class ParkingDetailBackend extends ChangeNotifier {
 
   Map<String, dynamic>? _locationDetail;
   Map<String, dynamic>? get locationDetail => _locationDetail;
+  bool get hasLocation => _locationDetail != null;
 
-  int _totalSlots = 42;
+  int _totalSlots = 0;
   int get totalSlots => _totalSlots;
 
-  int _availableSlots = 14;
+  int _availableSlots = 0;
   int get availableSlots => _availableSlots;
 
   /// Memuat informasi detail tempat parkir & ketersediaan slot aktual
@@ -51,7 +52,7 @@ class ParkingDetailBackend extends ChangeNotifier {
           _totalSlots = slotsData.length;
           _availableSlots = slotsData.where((s) => s['status'] == 'available').length;
         } else {
-          _availableSlots = (_totalSlots * 0.35).round();
+          _availableSlots = 0;
         }
       }
     } catch (e) {

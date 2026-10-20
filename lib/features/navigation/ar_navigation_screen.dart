@@ -26,16 +26,16 @@ class ArNavigationScreen extends StatefulWidget {
 class _ArNavigationScreenState extends State<ArNavigationScreen> {
   final MapController _mapController = MapController();
 
-  late LatLng _userPos;
-  late LatLng _destPos;
-  late String _destName;
-  late String _destType;
+  LatLng _userPos = const LatLng(-6.1774, 106.7907);
+  LatLng _destPos = const LatLng(-6.1788, 106.7916);
+  String _destName = '';
+  String _destType = '';
 
   // Rute Jalan Asli OSRM (100% Gratis & Open Source)
   List<LatLng> _routePoints = [];
   bool _isLoadingRoute = true;
-  double _totalDistanceMeters = 1200.0;
-  int _totalDurationSeconds = 240;
+  double _totalDistanceMeters = 0.0;
+  int _totalDurationSeconds = 0;
 
   // Turn-by-Turn Maneuvers
   List<Map<String, dynamic>> _steps = [];
@@ -48,20 +48,23 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
   void initState() {
     super.initState();
 
-    // 1. Tentukan Titik Awal Pengguna (Peta tetap berada di sini)
-    _userPos = widget.userPosition ?? const LatLng(-6.1774, 106.7907);
+    if (widget.destinationParking == null) {
+      _isLoadingRoute = false;
+      return;
+    }
+
+    // 1. Tentukan Titik Awal Pengguna
+    if (widget.userPosition != null) {
+      _userPos = widget.userPosition!;
+    }
 
     // 2. Tentukan Titik Tujuan Parkir
-    final pData = widget.destinationParking;
-    if (pData != null && pData['point'] is LatLng) {
+    final pData = widget.destinationParking!;
+    if (pData['point'] is LatLng) {
       _destPos = pData['point'] as LatLng;
-      _destName = (pData['name'] ?? 'Tujuan Parkir').toString();
-      _destType = (pData['type'] ?? 'Area Parkir').toString();
-    } else {
-      _destPos = const LatLng(-6.1788, 106.7916);
-      _destName = 'Mall Taman Anggrek Basement';
-      _destType = 'Parkiran Mall';
     }
+    _destName = (pData['name'] ?? 'Tujuan Parkir').toString();
+    _destType = (pData['type'] ?? 'Area Parkir').toString();
 
     // 3. Ambil Rute Mengemudi Asli OSRM
     _fetchRoadRoute();
@@ -359,6 +362,82 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
+
+        if (widget.destinationParking == null) {
+          return Scaffold(
+            backgroundColor: isDark ? theme.bg : const Color(0xFFF6F3EC),
+            appBar: AppBar(
+              backgroundColor: Colors.transparent,
+              elevation: 0,
+              leading: IconButton(
+                icon: Icon(Icons.arrow_back, color: isDark ? Colors.white : Colors.black),
+                onPressed: () => Navigator.pop(context),
+              ),
+              title: Text(
+                'Navigasi Panduan Rute',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 18,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+            ),
+            body: Center(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.all(24),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1EEE7),
+                        shape: BoxShape.circle,
+                      ),
+                      child: Icon(
+                        Icons.navigation_outlined,
+                        size: 64,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      'Tujuan Parkir Belum Dipilih',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Silakan pilih tempat parkir tujuan dari peta atau beranda terlebih dahulu untuk memulai panduan rute turn-by-turn.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    ElevatedButton.icon(
+                      onPressed: () => Navigator.pop(context),
+                      icon: const Icon(Icons.map_outlined, size: 18),
+                      label: const Text('Pilih Tempat Parkir'),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
+                        foregroundColor: isDark ? Colors.black : Colors.white,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          );
+        }
+
         final maneuver = _currentManeuver;
 
         return Scaffold(

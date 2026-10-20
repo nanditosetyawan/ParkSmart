@@ -34,62 +34,26 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String _vehiclePlate = 'B 1234 XYZ';
+  String _vehiclePlate = '-';
   String get vehiclePlate => _vehiclePlate;
 
-  String _vehicleInfo = 'Toyota Raize • Putih Pearl';
+  String _vehicleInfo = 'Belum Ada Kendaraan';
   String get vehicleInfo => _vehicleInfo;
 
-  int _totalSessions = 28;
+  int _totalSessions = 0;
   int get totalSessions => _totalSessions;
 
-  int _totalDurationHours = 64;
+  int _totalDurationHours = 0;
   int get totalDurationHours => _totalDurationHours;
 
-  String _thisMonthSpending = 'Rp 284k';
+  String _thisMonthSpending = 'Rp 0';
   String get thisMonthSpending => _thisMonthSpending;
 
   String _selectedFilter = 'Semua Bulan';
   String get selectedFilter => _selectedFilter;
 
   List<VerifiedSessionItem> _sessions = [];
-  List<VerifiedSessionItem> get sessions => _sessions.isEmpty ? _fallbackSessions : _sessions;
-
-  static const List<VerifiedSessionItem> _fallbackSessions = [
-    VerifiedSessionItem(
-      id: 'sess-1',
-      locationName: 'Central Park Mall',
-      slot: 'Basement B2 • Slot A-05',
-      date: '24 Okt 2026, 14:02 - 15:50 WIB',
-      duration: '1j 48m',
-      amount: 'Rp 9.000',
-      blockHash: '0x7f9a...c32d',
-      validatorNode: 'Jakarta Smart City Node #4',
-      timestamp: '2026-10-24 15:50:12 UTC+7',
-    ),
-    VerifiedSessionItem(
-      id: 'sess-2',
-      locationName: 'Grand Indonesia Mall',
-      slot: 'Lantai 3 • Slot B-12',
-      date: '21 Okt 2026, 10:15 - 13:45 WIB',
-      duration: '3j 30m',
-      amount: 'Rp 20.000',
-      blockHash: '0x3c2e...f81a',
-      validatorNode: 'Jakarta Smart City Node #2',
-      timestamp: '2026-10-21 13:45:30 UTC+7',
-    ),
-    VerifiedSessionItem(
-      id: 'sess-3',
-      locationName: 'Senayan City',
-      slot: 'Basement B1 • Slot E-08',
-      date: '18 Okt 2026, 18:20 - 20:50 WIB',
-      duration: '2j 30m',
-      amount: 'Rp 15.000',
-      blockHash: '0x9d4b...a77e',
-      validatorNode: 'Jakarta Smart City Node #1',
-      timestamp: '2026-10-18 20:50:05 UTC+7',
-    ),
-  ];
+  List<VerifiedSessionItem> get sessions => _sessions;
 
   void setFilter(String filter) {
     _selectedFilter = filter;

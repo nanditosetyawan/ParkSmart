@@ -80,8 +80,8 @@ class PinSettingsBackend extends ChangeNotifier {
         userRow = await _client.from('users').select('id, pin_hash').limit(1).maybeSingle();
       }
 
-      final currentPin = userRow?['pin_hash']?.toString() ?? '1234';
-      if (oldPin != currentPin && oldPin != '1234') {
+      final currentPin = userRow?['pin_hash']?.toString();
+      if (currentPin != null && currentPin.isNotEmpty && oldPin != currentPin) {
         _errorMessage = 'PIN lama salah!';
         return false;
       }

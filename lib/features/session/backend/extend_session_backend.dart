@@ -15,17 +15,19 @@ class ExtendSessionBackend extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   String? _sessionId;
+  bool get hasSessionToExtend => _sessionId != null;
+
   String get slotCode => _slotCode;
-  String _slotCode = 'Slot A-05';
+  String _slotCode = '-';
 
   String get floorInfo => _floorInfo;
-  String _floorInfo = 'Lantai B2 • Pilar 14';
+  String _floorInfo = '-';
 
   String get remainingTimeFormatted => _remainingTimeFormatted;
-  String _remainingTimeFormatted = '01:41:19';
+  String _remainingTimeFormatted = '00:00:00';
 
   String get currentDeadline => _currentDeadline;
-  String _currentDeadline = '16:02 WIB';
+  String _currentDeadline = '-';
 
   DateTime? _expectedCheckOut;
 

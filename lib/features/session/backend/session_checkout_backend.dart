@@ -12,40 +12,40 @@ class SessionCheckoutBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String _userName = 'Nandito Setyawan';
+  String _userName = 'Pengguna';
   String get userName => _userName;
 
-  String _gateExitName = 'Gate Exit 02';
+  String _gateExitName = '-';
   String get gateExitName => _gateExitName;
 
-  String _vehicleName = 'Toyota Raize';
+  String _vehicleName = '-';
   String get vehicleName => _vehicleName;
 
-  String _plateNumber = 'B 1234 XYZ';
+  String _plateNumber = '-';
   String get plateNumber => _plateNumber;
 
-  String _locationName = 'Central Park Mall';
+  String _locationName = '-';
   String get locationName => _locationName;
 
-  String _slotCode = 'A-05';
+  String _slotCode = '-';
   String get slotCode => _slotCode;
 
-  String _floorName = 'Basement B2';
+  String _floorName = '-';
   String get floorName => _floorName;
 
-  String _totalDuration = '1 Jam 48 Menit';
+  String _totalDuration = '-';
   String get totalDuration => _totalDuration;
 
-  String _timeRange = '14:02 - 15:50';
+  String _timeRange = '-';
   String get timeRange => _timeRange;
 
-  double _parkingRate = 10000;
+  double _parkingRate = 0;
   double get parkingRate => _parkingRate;
 
-  double _sensorFee = 1000;
+  double _sensorFee = 0;
   double get sensorFee => _sensorFee;
 
-  double _discountAmount = 2000;
+  double _discountAmount = 0;
   double get discountAmount => _discountAmount;
 
   double get totalPayment => (_parkingRate + _sensorFee) - _discountAmount;
@@ -55,6 +55,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
 
   String? _activeSessionId;
   String? get activeSessionId => _activeSessionId;
+  bool get hasSession => _activeSessionId != null;
 
   /// Memuat detail sesi yang akan / baru saja selesai checkout
   Future<void> fetchCheckoutDetails({String? sessionId}) async {

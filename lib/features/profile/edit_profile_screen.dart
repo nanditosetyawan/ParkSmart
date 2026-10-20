@@ -3,17 +3,18 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/theme_service.dart';
 import 'backend/edit_profile_backend.dart';
+import 'backend/profile_backend.dart';
 
 class EditProfileScreen extends StatefulWidget {
-  final String initialName;
-  final String initialEmail;
-  final String initialPhone;
+  final String? initialName;
+  final String? initialEmail;
+  final String? initialPhone;
 
   const EditProfileScreen({
     super.key,
-    this.initialName = 'Arya Raditya',
-    this.initialEmail = 'arya.raditya@gmail.com',
-    this.initialPhone = '+62 812-3456-7890',
+    this.initialName,
+    this.initialEmail,
+    this.initialPhone,
   });
 
   @override
@@ -35,12 +36,12 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.initialName);
-    _emailController = TextEditingController(text: widget.initialEmail);
-    _phoneController = TextEditingController(text: widget.initialPhone);
-    _addressController =
-        TextEditingController(text: 'Jl. Sudirman Kav. 52, Jakarta Selatan');
-    _birthDateController = TextEditingController(text: '14 Mei 1998');
+    final p = ProfileBackend.instance;
+    _nameController = TextEditingController(text: widget.initialName ?? p.name);
+    _emailController = TextEditingController(text: widget.initialEmail ?? p.email);
+    _phoneController = TextEditingController(text: widget.initialPhone ?? p.phone);
+    _addressController = TextEditingController(text: '');
+    _birthDateController = TextEditingController(text: '');
   }
 
   @override

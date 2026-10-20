@@ -41,9 +41,12 @@ class PinBackend extends ChangeNotifier {
         },
       );
 
-      // Default PIN jika belum diatur di database adalah '1234'
-      final validPin = pinData ?? '1234';
-      final isMatch = (pin == validPin);
+      if (pinData == null || pinData.isEmpty) {
+        _errorMessage = 'PIN transaksi belum diatur. Silakan buat PIN terlebih dahulu.';
+        return false;
+      }
+
+      final isMatch = (pin == pinData);
 
       if (!isMatch) {
         _errorMessage = 'PIN yang dimasukkan salah. Coba lagi.';
@@ -51,8 +54,8 @@ class PinBackend extends ChangeNotifier {
       return isMatch;
     } catch (e) {
       debugPrint('[PinBackend] Error verifikasi PIN: $e');
-      // Fallback untuk offline/dev: jika PIN 1234 anggap benar
-      return pin == '1234';
+      _errorMessage = 'Gagal memverifikasi PIN. Silakan periksa koneksi Anda.';
+      return false;
     } finally {
       _isProcessing = false;
       notifyListeners();

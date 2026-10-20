@@ -3,6 +3,7 @@ import '../../core/services/theme_service.dart';
 import '../session/expiring_session_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/notification_backend.dart';
+import '../home/backend/home_backend.dart';
 
 class NotificationScreen extends StatefulWidget {
   const NotificationScreen({super.key});
@@ -138,107 +139,118 @@ class _NotificationScreenState extends State<NotificationScreen> {
                 return ListView(
                   padding: const EdgeInsets.all(20),
                   children: [
-                    // Simulated Push Notification entry for Expiring Session
-                    GestureDetector(
-                      onTap: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpiringSessionScreen()));
-                      },
-                      child: Container(
-                        padding: const EdgeInsets.all(20),
-                        margin: const EdgeInsets.only(bottom: 24),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF1E232B) : const Color(0xFF1C1C18),
-                          borderRadius: BorderRadius.circular(24),
-                          border: isDark ? Border.all(color: theme.border) : null,
-                          boxShadow: [
-                            BoxShadow(
-                              color: isDark ? Colors.black38 : const Color(0xFF1C1C18).withValues(alpha: 0.15),
-                              blurRadius: 20,
-                              offset: const Offset(0, 10),
-                            )
-                          ],
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.1),
-                                shape: BoxShape.circle,
+                    // Sesi Berakhir Segera hanya tampil jika ada sesi aktif di database
+                    if (HomeBackend.instance.activeSession != null)
+                      GestureDetector(
+                        onTap: () {
+                          Navigator.push(context, MaterialPageRoute(builder: (_) => const ExpiringSessionScreen()));
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(20),
+                          margin: const EdgeInsets.only(bottom: 24),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF1E232B) : const Color(0xFF1C1C18),
+                            borderRadius: BorderRadius.circular(24),
+                            border: isDark ? Border.all(color: theme.border) : null,
+                            boxShadow: [
+                              BoxShadow(
+                                color: isDark ? Colors.black38 : const Color(0xFF1C1C18).withValues(alpha: 0.15),
+                                blurRadius: 20,
+                                offset: const Offset(0, 10),
+                              )
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 52,
+                                height: 52,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.1),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.timer_outlined, color: Colors.white, size: 24),
                               ),
-                              child: const Icon(Icons.timer_outlined, color: Colors.white, size: 24),
-                            ),
-                            const SizedBox(width: 16),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'Sesi Berakhir Segera',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 16,
-                                      fontWeight: FontWeight.bold,
-                                      color: Colors.white,
+                              const SizedBox(width: 16),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      'Sesi Berakhir Segera',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 16,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    'Ketuk untuk melihat detail',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      color: Colors.white.withValues(alpha: 0.7),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      'Ketuk untuk melihat detail',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        color: Colors.white.withValues(alpha: 0.7),
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
-                            ),
-                            Container(
-                              width: 32,
-                              height: 32,
-                              decoration: BoxDecoration(
-                                color: Colors.white.withValues(alpha: 0.15),
-                                shape: BoxShape.circle,
+                              Container(
+                                width: 32,
+                                height: 32,
+                                decoration: BoxDecoration(
+                                  color: Colors.white.withValues(alpha: 0.15),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: const Icon(Icons.chevron_right, color: Colors.white, size: 18),
                               ),
-                              child: const Icon(Icons.chevron_right, color: Colors.white, size: 18),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
                     Text('Pemberitahuan Sistem (Supabase Live)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: textHeader)),
                     const SizedBox(height: 16),
 
                     if (notifications.isEmpty) ...[
-                      // Fallback cards jika offline/kosong
-                      _buildNotification(
-                        icon: Icons.access_time_filled,
-                        color: const Color(0xFFD94B4B),
-                        title: 'Waktu Parkir Hampir Habis',
-                        message: 'Sesi parkir Anda di Grand Indonesia akan berakhir dalam 15 menit. Ketuk untuk perpanjang.',
-                        time: '15 Menit Lalu',
-                        isNew: true,
-                        cardBg: cardBg,
-                        cardBorder: cardBorder,
-                        textMain: textMain,
-                        textSub: textSub,
-                        textHeader: textHeader,
-                        onTap: null,
-                      ),
-                      _buildNotification(
-                        icon: Icons.local_offer_rounded,
-                        color: const Color(0xFF2A9D8F),
-                        title: 'Promo Akhir Pekan',
-                        message: 'Dapatkan diskon 20% untuk parkir di seluruh mall area Jakarta Pusat menggunakan ParkSmart Pay.',
-                        time: '1 Hari Lalu',
-                        isNew: false,
-                        cardBg: cardBg,
-                        cardBorder: cardBorder,
-                        textMain: textMain,
-                        textSub: textSub,
-                        textHeader: textHeader,
-                        onTap: null,
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 40, horizontal: 20),
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 64,
+                              height: 64,
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.notifications_none_rounded,
+                                size: 32,
+                                color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF114177),
+                              ),
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              'Belum Ada Notifikasi',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textMain,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            Text(
+                              'Pemberitahuan resmi seputar reservasi, timer parkir, dan promo akun Anda akan masuk di sini.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                color: textSub,
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ] else ...[
                       // Live Supabase cards

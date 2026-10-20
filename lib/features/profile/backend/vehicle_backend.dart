@@ -80,49 +80,11 @@ class VehicleBackend extends ChangeNotifier {
       if (res != null && (res as List).isNotEmpty) {
         _vehicles = res.map((item) => VehicleItem.fromMap(item as Map<String, dynamic>)).toList();
       } else {
-        // Fallback default jika tabel belum ada kendaraan spesifik
-        _vehicles = [
-          VehicleItem(
-            id: 'd0000000-0000-0000-0000-000000000001',
-            brand: 'Honda',
-            model: 'HR-V SE',
-            plateNumber: 'B 8899 DTO',
-            vehicleType: 'mobil',
-            category: 'suv',
-            color: 'Abu-Abu Metalik',
-            plateExpiry: '08 • 29',
-            isDefault: true,
-          ),
-          VehicleItem(
-            id: 'd0000000-0000-0000-0000-000000000004',
-            brand: 'Yamaha',
-            model: 'NMAX 155 Connected',
-            plateNumber: 'AB 1234 NMX',
-            vehicleType: 'motor',
-            category: 'motor',
-            color: 'Hitam Doff',
-            plateExpiry: '06 • 27',
-            isDefault: false,
-          ),
-        ];
+        _vehicles = [];
       }
     } catch (e) {
-      debugPrint('VehicleBackend fetchVehicles error (fallback active): $e');
-      if (_vehicles.isEmpty) {
-        _vehicles = [
-          VehicleItem(
-            id: 'd0000000-0000-0000-0000-000000000001',
-            brand: 'Honda',
-            model: 'HR-V SE',
-            plateNumber: 'B 8899 DTO',
-            vehicleType: 'mobil',
-            category: 'suv',
-            color: 'Abu-Abu Metalik',
-            plateExpiry: '08 • 29',
-            isDefault: true,
-          ),
-        ];
-      }
+      debugPrint('VehicleBackend fetchVehicles error: $e');
+      _vehicles = [];
     } finally {
       _isLoading = false;
       notifyListeners();

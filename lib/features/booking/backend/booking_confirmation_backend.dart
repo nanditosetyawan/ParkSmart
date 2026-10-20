@@ -15,30 +15,31 @@ class BookingConfirmationBackend extends ChangeNotifier {
 
   Map<String, dynamic>? _latestBooking;
   Map<String, dynamic>? get latestBooking => _latestBooking;
+  bool get hasBooking => _latestBooking != null;
 
-  String _bookingCode = '#PS-88210-CP';
+  String _bookingCode = '-';
   String get bookingCode => _bookingCode;
 
   String _ticketStatus = TicketMark.ready;
   String get ticketStatus => _ticketStatus;
 
-  String _locationName = 'Central Park Mall';
+  String _locationName = '-';
   String get locationName => _locationName;
   String get locationTitle => _locationName;
 
-  String _locationSub = 'South Lobby, Basement B2';
+  String _locationSub = '-';
   String get locationSub => _locationSub;
 
-  String _slotCode = 'A-05';
+  String _slotCode = '-';
   String get slotCode => _slotCode;
 
-  String _vehicleName = 'Toyota Raize';
+  String _vehicleName = '-';
   String get vehicleName => _vehicleName;
 
-  String _plateNumber = 'B 1234 XYZ';
+  String _plateNumber = '-';
   String get plateNumber => _plateNumber;
 
-  String _validTime = '14:00 - 16:00';
+  String _validTime = '-';
   String get validTime => _validTime;
 
   /// Memuat detail tiket reservasi terbaru dari Supabase (Targeted Column Query)

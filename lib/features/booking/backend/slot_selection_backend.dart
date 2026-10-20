@@ -72,13 +72,13 @@ class SlotSelectionBackend extends ChangeNotifier {
       (s) => (s['slot_code'] as String?)?.toUpperCase() == slotCode.toUpperCase(),
       orElse: () => {},
     );
-    if (match.isEmpty) return true; // Default available if not explicitly occupied
+    if (match.isEmpty) return false;
     return match['status'] == 'available';
   }
 
   /// Menghitung jumlah slot tersedia di lantai aktif
   int get availableCount {
-    if (_slots.isEmpty) return 28;
+    if (_slots.isEmpty) return 0;
     return _slots.where((s) => s['status'] == 'available').length;
   }
 }

@@ -22,20 +22,20 @@ class CheckoutBackend extends ChangeNotifier {
   List<Map<String, dynamic>> _userVehicles = [];
   List<Map<String, dynamic>> get userVehicles => _userVehicles;
 
-  double _walletBalance = 150000;
+  double _walletBalance = 0;
   double get walletBalance => _walletBalance;
 
   // Detail booking aktif
-  String _locationName = 'Central Park Mall';
+  String _locationName = '-';
   String get locationName => _locationName;
 
   String? _locationId;
   String? get locationId => _locationId;
 
-  String _slotCode = 'A-05';
+  String _slotCode = '-';
   String get slotCode => _slotCode;
 
-  String _floorName = 'Lantai B2';
+  String _floorName = '-';
   String get floorName => _floorName;
 
   int _durationHours = 2;
@@ -80,7 +80,7 @@ class CheckoutBackend extends ChangeNotifier {
           .maybeSingle();
 
       if (userRes != null) {
-        _walletBalance = (userRes['wallet_balance'] as num?)?.toDouble() ?? 150000;
+        _walletBalance = (userRes['wallet_balance'] as num?)?.toDouble() ?? 0.0;
       }
 
       // 2. Ambil daftar kendaraan user (Targeted Column Query)
@@ -94,13 +94,7 @@ class CheckoutBackend extends ChangeNotifier {
       if (_userVehicles.isNotEmpty) {
         _selectedVehicle = _userVehicles.first;
       } else {
-        _selectedVehicle = {
-          'id': null,
-          'brand': 'Toyota',
-          'model': 'Raize 1.0T GR Sport',
-          'plate_number': 'B 1234 XYZ',
-          'color': 'Putih Mutiara',
-        };
+        _selectedVehicle = null;
       }
     } catch (e) {
       debugPrint('[CheckoutBackend] fetchCheckoutData error: $e');

@@ -14,14 +14,14 @@ class ProfileBackend extends ChangeNotifier {
   String _userId = 'c0000000-0000-0000-0000-000000000001';
   String get userId => _userId;
 
-  String _name = 'Nandito Setyawan';
-  String _email = 'dito@parksmart.id';
+  String _name = 'Jokowi Dodo';
+  String _email = 'jokowi.dodo@gmail.com';
   String _phone = '+62 812-3456-7890';
-  String _memberTier = 'GOLD';
-  int _totalParking = 48;
-  int _totalSavings = 124000;
-  int _walletBalance = 250000;
-  String _primaryVehicle = 'Honda HR-V SE (B 8899 DTO)';
+  String _memberTier = 'MEMBER';
+  int _totalParking = 0;
+  int _totalSavings = 0;
+  int _walletBalance = 0;
+  String _primaryVehicle = 'Belum Ada Kendaraan';
 
   String get name => _name;
   String get email => _email;

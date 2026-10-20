@@ -180,7 +180,69 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                 ),
 
                 Expanded(
-                  child: Stack(
+                  child: !ActiveSessionBackend.instance.hasActiveSession
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.no_crash_outlined,
+                                    size: 40,
+                                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF114177),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  'Tidak Ada Sesi Parkir Aktif',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 20,
+                                    fontWeight: FontWeight.bold,
+                                    color: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Saat kendaraan Anda check-in di gate parkir, timer dan detail spot akan muncul secara otomatis di sini.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 28),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.white : const Color(0xFF114177),
+                                      borderRadius: BorderRadius.circular(20),
+                                    ),
+                                    child: Text(
+                                      'Kembali ke Beranda',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.black : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : Stack(
                     children: [
                       SingleChildScrollView(
                         padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 120),

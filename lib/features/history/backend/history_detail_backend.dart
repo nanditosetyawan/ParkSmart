@@ -12,18 +12,21 @@ class HistoryDetailBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String _transactionCode = 'PS-88210';
-  String _locationName = 'Central Park Mall';
-  String _locationDetail = 'South Lobby, Basement B2, Slot A-05';
-  String _vehicleInfo = 'Toyota Raize (B 1234 XYZ)';
-  String _checkInTime = '14:30 WIB';
-  String _checkOutTime = '16:45 WIB';
-  String _duration = '2 Jam 15 Menit';
-  String _paymentMethod = 'ParkSmart Pay';
-  int _baseFee = 16000;
-  int _serviceFee = 2000;
-  int _discount = 4000;
-  int _totalAmount = 14000;
+  bool _hasData = false;
+  bool get hasData => _hasData;
+
+  String _transactionCode = '-';
+  String _locationName = '-';
+  String _locationDetail = '-';
+  String _vehicleInfo = '-';
+  String _checkInTime = '-';
+  String _checkOutTime = '-';
+  String _duration = '-';
+  String _paymentMethod = '-';
+  int _baseFee = 0;
+  int _serviceFee = 0;
+  int _discount = 0;
+  int _totalAmount = 0;
   String _status = TicketMark.selesai;
 
   String get transactionCode => _transactionCode;
@@ -54,6 +57,7 @@ class HistoryDetailBackend extends ChangeNotifier {
           .maybeSingle();
 
       if (res != null) {
+        _hasData = true;
         _transactionCode = res['session_code'] ?? _transactionCode;
         _vehicleInfo = '${res['vehicle_desc'] ?? 'Mobil'} (${res['plate_number'] ?? 'B 1234 XYZ'})';
         if (res['total_fee'] != null) {
@@ -88,6 +92,7 @@ class HistoryDetailBackend extends ChangeNotifier {
             .maybeSingle();
 
         if (bRes != null) {
+          _hasData = true;
           _transactionCode = bRes['booking_code'] ?? _transactionCode;
           _totalAmount = (double.tryParse(bRes['total_price'].toString()) ?? _totalAmount.toDouble()).toInt();
           _status = TicketMark.resolve(

@@ -4,6 +4,7 @@ import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../history/history_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'backend/profile_backend.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
@@ -13,12 +14,12 @@ class PaymentMethodsScreen extends StatefulWidget {
 }
 
 class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
-  int _balance = 145000;
-  bool _autoDebet = true;
+  int _balance = 0;
+  bool _autoDebet = false;
   String _selectedMethod = 'parksmart_pay';
 
   // Set metode yang sudah tersimpan di Metode Tersimpan
-  final Set<String> _savedMethods = {'gopay'};
+  final Set<String> _savedMethods = {};
 
   @override
   void initState() {
@@ -30,9 +31,11 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
   Future<void> _loadBalance() async {
     final prefs = await SharedPreferences.getInstance();
+    final profileBal = ProfileBackend.instance.walletBalance;
+    final savedBal = prefs.getInt('user_wallet_balance');
     if (mounted) {
       setState(() {
-        _balance = prefs.getInt('user_wallet_balance') ?? 145000;
+        _balance = savedBal ?? profileBal;
       });
     }
   }

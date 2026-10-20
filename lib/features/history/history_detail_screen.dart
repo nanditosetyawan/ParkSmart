@@ -84,10 +84,64 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                 ),
 
                 Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    children: [
-                      const SizedBox(height: 10),
+                  child: !backend.isLoading && !backend.hasData
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.all(24),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1EEE7),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.receipt_long_outlined,
+                                    size: 64,
+                                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  'Riwayat Transaksi Tidak Ditemukan',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: textMain,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'ID transaksi tidak valid atau data riwayat parkir belum tercatat.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    color: textSub,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                ElevatedButton.icon(
+                                  onPressed: () => Navigator.pop(context),
+                                  icon: const Icon(Icons.arrow_back, size: 18),
+                                  label: const Text('Kembali'),
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
+                                    foregroundColor: isDark ? Colors.black : Colors.white,
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : ListView(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          children: [
+                            const SizedBox(height: 10),
                       RichText(
                         text: TextSpan(
                           style: GoogleFonts.plusJakartaSans(

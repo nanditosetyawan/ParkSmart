@@ -5,6 +5,7 @@ import 'active_session_screen.dart';
 import 'session_checkout_screen.dart';
 import '../pin/pin_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../home/backend/home_backend.dart';
 
 class ExpiringSessionScreen extends StatefulWidget {
   const ExpiringSessionScreen({super.key});
@@ -111,7 +112,69 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                 ),
 
                 Expanded(
-                  child: SingleChildScrollView(
+                  child: HomeBackend.instance.activeSession == null
+                      ? Center(
+                          child: Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 32),
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 80,
+                                  height: 80,
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    Icons.timer_off_outlined,
+                                    size: 40,
+                                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF114177),
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                Text(
+                                  'Tidak Ada Sesi Hampir Berakhir',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.bold,
+                                    color: textMain,
+                                  ),
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  'Peringatan ini akan aktif otomatis ketika waktu sesi parkir Anda tersisa kurang dari 15 menit.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    color: textSub,
+                                    height: 1.5,
+                                  ),
+                                ),
+                                const SizedBox(height: 24),
+                                GestureDetector(
+                                  onTap: () => Navigator.pop(context),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                                    decoration: BoxDecoration(
+                                      color: isDark ? Colors.white : const Color(0xFF114177),
+                                      borderRadius: BorderRadius.circular(16),
+                                    ),
+                                    child: Text(
+                                      'Kembali',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: isDark ? Colors.black : Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        )
+                      : SingleChildScrollView(
                     padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                     child: Column(
                       children: [

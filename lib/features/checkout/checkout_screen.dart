@@ -324,7 +324,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           Text(
                                             CheckoutBackend.instance.selectedVehicle != null
                                                 ? '${CheckoutBackend.instance.selectedVehicle!['brand'] ?? ''} ${CheckoutBackend.instance.selectedVehicle!['model'] ?? ''}'.trim()
-                                                : 'Toyota Raize',
+                                                : 'Pilih Kendaraan Anda',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
@@ -343,8 +343,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       ),
                                       child: Text(
                                         CheckoutBackend.instance.selectedVehicle != null
-                                            ? (CheckoutBackend.instance.selectedVehicle!['plate_number'] ?? 'B 1234 XYZ')
-                                            : 'B 1234 XYZ',
+                                            ? (CheckoutBackend.instance.selectedVehicle!['plate_number'] ?? '-')
+                                            : '+ Pilih',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w700,

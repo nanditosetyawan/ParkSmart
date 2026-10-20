@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
-import 'package:latlong2/latlong.dart';
 import '../../core/services/theme_service.dart';
 import '../parking/parking_detail_screen.dart';
 import 'backend/favorite_backend.dart';
@@ -13,66 +12,16 @@ class FavoriteScreen extends StatefulWidget {
 }
 
 class _FavoriteScreenState extends State<FavoriteScreen> {
-  final List<Map<String, dynamic>> _allFavorites = [
-    {
-      'name': 'Central Park Mall Parking',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1788, 106.7916),
-      'slots': 42,
-      'isEv': true,
-      'distance': '350m',
-      'price': 'Rp 5.000 / jam',
-      'rating': 4.7,
-      'reviews': '1.420',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'Grand Indonesia West Mall',
-      'type': 'Parkiran Mall',
-      'point': const LatLng(-6.1953, 106.8208),
-      'slots': 8,
-      'isEv': false,
-      'distance': '850m',
-      'price': 'Rp 6.000 / jam',
-      'rating': 4.8,
-      'reviews': '1.820',
-      'hours': 'Buka • Tutup pukul 22.00 WIB',
-      'photos': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'name': 'EV Fast Charging Hub Tomang',
-      'type': 'Parkir Khusus EV',
-      'point': const LatLng(-6.1740, 106.7940),
-      'slots': 6,
-      'isEv': true,
-      'distance': '1.1km',
-      'price': 'Rp 8.000 / jam',
-      'rating': 4.8,
-      'reviews': '340',
-      'hours': 'Buka 24 Jam',
-      'photos': [
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-  ];
-
+  final List<Map<String, dynamic>> _allFavorites = [];
   List<Map<String, dynamic>> _displayedFavorites = [];
   final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
-    _displayedFavorites = List.from(_allFavorites);
-
     // Ambil data tempat favorit live dari backend Supabase
     FavoriteBackend.instance.fetchFavorites().then((_) {
-      if (mounted && FavoriteBackend.instance.favorites.isNotEmpty) {
+      if (mounted) {
         setState(() {
           _allFavorites.clear();
           _allFavorites.addAll(FavoriteBackend.instance.favorites);
@@ -181,9 +130,45 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
               Expanded(
                 child: _displayedFavorites.isEmpty
                     ? Center(
-                        child: Text(
-                          'Tidak ditemukan tempat parkir.',
-                          style: GoogleFonts.inter(color: textSub, fontSize: 14),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(horizontal: 32),
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 72,
+                                height: 72,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEFF6FF),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.bookmark_border_rounded,
+                                  size: 36,
+                                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF114177),
+                                ),
+                              ),
+                              const SizedBox(height: 20),
+                              Text(
+                                'Belum Ada Tempat Favorit',
+                                style: GoogleFonts.inter(
+                                  color: textMain,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 8),
+                              Text(
+                                'Simpan lokasi parkir langganan Anda dengan menekan ikon bookmark pada halaman detail parkir.',
+                                textAlign: TextAlign.center,
+                                style: GoogleFonts.inter(
+                                  color: textSub,
+                                  fontSize: 13,
+                                  height: 1.5,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       )
                     : ListView.builder(

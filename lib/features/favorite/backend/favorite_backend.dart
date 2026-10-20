@@ -54,9 +54,12 @@ class FavoriteBackend extends ChangeNotifier {
             ],
           };
         }).toList();
+      } else {
+        _favorites = [];
       }
     } catch (e) {
       debugPrint('[FavoriteBackend] fetchFavorites error: $e');
+      _favorites = [];
     } finally {
       _isLoading = false;
       notifyListeners();
