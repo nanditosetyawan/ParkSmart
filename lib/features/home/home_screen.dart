@@ -2066,9 +2066,20 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     final reviewsVal = loc['review_count']?.toString() ?? '100';
                     final facilities = (loc['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
                     final isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
-                    final img = (loc['image_url'] != null && loc['image_url'].toString().isNotEmpty)
-                        ? loc['image_url'].toString()
-                        : 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80';
+                    List<String> photos = [];
+                    if (loc['images'] is List) {
+                      photos = (loc['images'] as List)
+                          .map((e) => e.toString().trim())
+                          .where((e) => e.isNotEmpty)
+                          .toList();
+                    }
+                    if (photos.isEmpty && loc['image_url'] != null && loc['image_url'].toString().trim().isNotEmpty) {
+                      photos.add(loc['image_url'].toString().trim());
+                    }
+                    if (photos.isEmpty) {
+                      photos.add('https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80');
+                    }
+                    final primaryImg = photos.first;
 
                     final locData = {
                       'id': loc['id'],
@@ -2082,7 +2093,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'rating': ratingVal,
                       'reviews': reviewsVal,
                       'hours': loc['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
-                      'photos': [img],
+                      'photos': photos,
                       'facilities': facilities,
                     };
 
@@ -2092,7 +2103,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                         title: loc['name'] ?? 'Spot Parkir',
                         subtitle: '${loc['city'] ?? 'Jakarta'} • $capacity slot kapasitas',
                         price: 'Rp ${rate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
-                        imageUrl: img,
+                        imageUrl: primaryImg,
                         rating: ratingVal.toStringAsFixed(1),
                         isEv: isEv,
                         locData: locData,

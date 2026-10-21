@@ -218,6 +218,7 @@ class AdminCustomerProfilesBackend extends ChangeNotifier {
           'email': email,
           'phone': phone,
           'avatar': avatarLetter,
+          'avatar_url': row['avatar_url']?.toString(),
           'status': statusLabel,
           'kycStatus': kycStatus,
           'kycSubmittedAt': kycSubmittedAt ?? '-',

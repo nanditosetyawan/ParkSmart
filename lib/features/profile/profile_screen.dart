@@ -30,51 +30,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Widget _buildMemberBadge(String tier) {
-    if (tier == 'GOLD') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF9E7719), // Dark gold
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
-            Text('MEMBER GOLD', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-          ],
-        ),
-      );
-    } else if (tier == 'SILVER') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF9E9E9E), // Solid dull silver, no gradient, looks worse
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Icon(Icons.star_border, size: 16, color: Colors.white),
-            const SizedBox(width: 6),
-            Text('MEMBER SILVER', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-          ],
-        ),
-      );
-    } else if (tier == 'BRONZE') {
-      return Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-        decoration: BoxDecoration(
-          color: const Color(0xFF6B4423), // Dark, dull bronze/brown
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Text('MEMBER BRONZE', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white, letterSpacing: 0.5)),
-      );
-    }
-
-    // Default: PLATINUM dengan animasi kilau dari kiri ke kanan
-    return const _PlatinumShimmerBadge();
+    return _ShimmerMemberBadge(tier: tier);
   }
 
   @override
@@ -145,9 +101,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             width: 96, height: 96,
                             padding: const EdgeInsets.all(4),
                             decoration: BoxDecoration(color: ThemeService.instance.chipBg, shape: BoxShape.circle, border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.8))),
-                            child: const CircleAvatar(
-                              backgroundImage: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuBN229OME29oeIA03JEkx6qFXdwAiS9tjF2BpuYl0hvR-KRhMbz_TvFM6WCf8r3FfXONbNsAuRJAFymMuLXfHc9_GTa3l48rS4pmj3LFXkDTJQw34ftZgSowlpEj41hbbTvfBKg3P2JHB5MfmHQNghgDyk3ewQpsqLqxRHecKK3Y9QxSY1Og5axl9wsXmXNuN4ylTP0yU_d0SB-yYJ_riMPPALuIk5G7brwi5Pkb555Yu3zsk6gd9w-'),
-                            ),
+                            child: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
+                                ? CircleAvatar(
+                                    backgroundImage: NetworkImage(profile.avatarUrl!),
+                                  )
+                                : CircleAvatar(
+                                    backgroundColor: const Color(0xFF114177),
+                                    child: Text(
+                                      profile.name.trim().isNotEmpty ? profile.name.trim()[0].toUpperCase() : 'J',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 32,
+                                        fontWeight: FontWeight.bold,
+                                        color: Colors.white,
+                                      ),
+                                    ),
+                                  ),
                           ),
                           const SizedBox(height: 16),
                           Text(profile.name, style: GoogleFonts.plusJakartaSans(fontSize: 24, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
@@ -510,15 +478,16 @@ class _MenuItem extends StatelessWidget {
   }
 }
 
-// ─── LENCANA MEMBER PLATINUM DENGAN EFEK KILAU BERGERAK KIRI KE KANAN ───
-class _PlatinumShimmerBadge extends StatefulWidget {
-  const _PlatinumShimmerBadge();
+// ─── LENCANA MEMBER DENGAN EFEK KILAU CAHAYA BERGERAK (SEMUA TIER) ───
+class _ShimmerMemberBadge extends StatefulWidget {
+  final String tier;
+  const _ShimmerMemberBadge({required this.tier});
 
   @override
-  State<_PlatinumShimmerBadge> createState() => _PlatinumShimmerBadgeState();
+  State<_ShimmerMemberBadge> createState() => _ShimmerMemberBadgeState();
 }
 
-class _PlatinumShimmerBadgeState extends State<_PlatinumShimmerBadge>
+class _ShimmerMemberBadgeState extends State<_ShimmerMemberBadge>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _shimmerAnim;
@@ -543,12 +512,52 @@ class _PlatinumShimmerBadgeState extends State<_PlatinumShimmerBadge>
 
   @override
   Widget build(BuildContext context) {
+    final normTier = widget.tier.trim().toUpperCase();
+    final List<Color> gradientColors;
+    final Color shadowColor;
+    final String label;
+
+    if (normTier == 'BRONZE') {
+      label = 'MEMBER BRONZE';
+      gradientColors = const [
+        Color(0xFF8C532B), // Bronze copper edge
+        Color(0xFFBF7B46), // Rich metallic bronze highlight
+        Color(0xFF6E3E1C), // Deep bronze shadow
+      ];
+      shadowColor = const Color(0xFFBF7B46).withValues(alpha: 0.45);
+    } else if (normTier == 'SILVER') {
+      label = 'MEMBER SILVER';
+      gradientColors = const [
+        Color(0xFF7E8B9B), // Silver edge
+        Color(0xFFBDC7D0), // Lustrous silver center
+        Color(0xFF6C7887), // Rich shadow edge
+      ];
+      shadowColor = const Color(0xFFBDC7D0).withValues(alpha: 0.5);
+    } else if (normTier == 'GOLD') {
+      label = 'MEMBER GOLD';
+      gradientColors = const [
+        Color(0xFFC5942B), // Deep rich gold
+        Color(0xFFFFD56B), // Brilliant gold highlight
+        Color(0xFF9E6E17), // Antique gold shadow
+      ];
+      shadowColor = const Color(0xFFFFD56B).withValues(alpha: 0.5);
+    } else {
+      // PLATINUM (default)
+      label = 'MEMBER PLATINUM';
+      gradientColors = const [
+        Color(0xFFA2AAB3), // Platinum darker edge
+        Color(0xFFD4D8DD), // Platinum body
+        Color(0xFF8B95A1), // Platinum darker edge
+      ];
+      shadowColor = const Color(0xFFE0E5E9).withValues(alpha: 0.6);
+    }
+
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFFE0E5E9).withValues(alpha: 0.6),
+            color: shadowColor,
             blurRadius: 8,
             spreadRadius: 1,
           ),
@@ -558,19 +567,15 @@ class _PlatinumShimmerBadgeState extends State<_PlatinumShimmerBadge>
         borderRadius: BorderRadius.circular(20),
         child: Stack(
           children: [
-            // Latar Asli Platinum dengan tipografi
+            // Latar Badge Gradien sesuai Tier
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-              decoration: const BoxDecoration(
+              decoration: BoxDecoration(
                 gradient: LinearGradient(
                   begin: Alignment.topLeft,
                   end: Alignment.bottomRight,
-                  colors: [
-                    Color(0xFFA2AAB3), // Platinum darker edge
-                    Color(0xFFD4D8DD), // Platinum body
-                    Color(0xFF8B95A1), // Platinum darker edge
-                  ],
-                  stops: [0.0, 0.5, 1.0],
+                  colors: gradientColors,
+                  stops: const [0.0, 0.5, 1.0],
                 ),
               ),
               child: Row(
@@ -579,7 +584,7 @@ class _PlatinumShimmerBadgeState extends State<_PlatinumShimmerBadge>
                   const Icon(Icons.workspace_premium, size: 16, color: Colors.white),
                   const SizedBox(width: 6),
                   Text(
-                    'MEMBER PLATINUM',
+                    label,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -591,7 +596,7 @@ class _PlatinumShimmerBadgeState extends State<_PlatinumShimmerBadge>
               ),
             ),
 
-            // Efek Kilau / Shimmer Meluncur dari Kiri ke Kanan
+            // Efek Kilau / Shimmer Cahaya Meluncur dari Kiri ke Kanan
             Positioned.fill(
               child: AnimatedBuilder(
                 animation: _shimmerAnim,

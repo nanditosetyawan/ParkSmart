@@ -564,13 +564,32 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
                   border: Border.all(color: const Color(0xFFE2E8F0)),
                 ),
                 alignment: Alignment.center,
-                child: Text(
-                  item['avatar'],
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF0F172A),
-                  ),
+                child: ClipOval(
+                  child: (item['avatar_url'] != null && item['avatar_url'].toString().isNotEmpty)
+                      ? Image.network(
+                          item['avatar_url'].toString(),
+                          width: 38,
+                          height: 38,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Center(
+                            child: Text(
+                              item['avatar'],
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF0F172A),
+                              ),
+                            ),
+                          ),
+                        )
+                      : Text(
+                          item['avatar'],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF0F172A),
+                          ),
+                        ),
                 ),
               ),
               const SizedBox(width: 12),

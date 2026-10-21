@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk CheckoutScreen (lib/features/checkout/checkout_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk keamanan & efisiensi
@@ -14,7 +15,12 @@ class CheckoutBackend extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   String? _userId;
-  String get userId => _userId ?? 'a0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11';
+  String get userId {
+    if (_userId != null && _userId!.isNotEmpty) return _userId!;
+    final pid = ProfileBackend.instance.userId;
+    if (pid.isNotEmpty) return pid;
+    return 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba';
+  }
 
   Map<String, dynamic>? _selectedVehicle;
   Map<String, dynamic>? get selectedVehicle => _selectedVehicle;
@@ -124,19 +130,26 @@ class CheckoutBackend extends ChangeNotifier {
 
       // 1. Ambil location_id jika belum terisi
       String? actualLocId = _locationId;
-      if (actualLocId == null) {
+      if (actualLocId == null || actualLocId.isEmpty) {
         final loc = await _client
             .from('parking_locations')
-            .select('id')
+            .select('id, name')
             .order('rating', ascending: false)
             .limit(1)
             .maybeSingle();
         actualLocId = loc?['id'] as String?;
+        if (loc != null && _locationName == '-') {
+          _locationName = loc['name']?.toString() ?? 'ParkSmart';
+        }
+      }
+
+      if (actualLocId == null) {
+        throw Exception('Lokasi parkir tidak ditemukan di database.');
       }
 
       // 2. Ambil slot_id jika ada
       String? actualSlotId;
-      if (actualLocId != null) {
+      if (_slotCode != '-' && _slotCode.isNotEmpty) {
         final slotRes = await _client
             .from('parking_slots')
             .select('id')
@@ -150,7 +163,7 @@ class CheckoutBackend extends ChangeNotifier {
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
         'user_id': userId,
-        'location_id': actualLocId ?? 'b1eebc99-9c0b-4ef8-bb6d-6bb9bd380a22',
+        'location_id': actualLocId,
         'slot_id': actualSlotId,
         'vehicle_id': _selectedVehicle?['id'],
         'booking_type': 'reservation',
@@ -161,7 +174,7 @@ class CheckoutBackend extends ChangeNotifier {
         'payment_status': 'paid',
         'booking_status': 'upcoming',
         'qr_code_hash': 'PARKSMART-$bookingCode',
-      }).select('id, booking_code, total_price, start_time, end_time').maybeSingle();
+      }).select('id, booking_code, total_price, start_time, end_time, location_id, slot_id').maybeSingle();
 
       // 4. Catat transaksi pembayaran di tabel payments
       if (bookingInsert != null) {
@@ -174,15 +187,31 @@ class CheckoutBackend extends ChangeNotifier {
           'amount': totalPayment,
           'description': 'Reservasi Parkir $_locationName Slot $_slotCode',
           'status': 'success',
+          'completed_at': DateTime.now().toIso8601String(),
         });
 
-        // 5. Kurangi saldo wallet user jika mencukupi
-        final newBalance = (_walletBalance - totalPayment).clamp(0, double.infinity);
+        // 5. Kurangi saldo wallet user jika mencukupi & perbarui total_parking_count
+        final userRes = await _client
+            .from('users')
+            .select('wallet_balance, total_parking_count')
+            .eq('id', userId)
+            .maybeSingle();
+        final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
+        final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
+        final newBalance = (currentBal - totalPayment).clamp(0.0, double.infinity);
         await _client.from('users').update({
           'wallet_balance': newBalance,
+          'total_parking_count': currentCount + 1,
         }).eq('id', userId);
 
-        _walletBalance = newBalance.toDouble();
+        _walletBalance = newBalance;
+        ProfileBackend.instance.setLoggedInUser(
+          id: userId,
+          fullName: ProfileBackend.instance.name,
+          email: ProfileBackend.instance.email,
+          phone: ProfileBackend.instance.phone,
+          walletBalance: newBalance.toInt(),
+        );
 
         // 6. Tandai slot sebagai reserved
         if (actualSlotId != null) {

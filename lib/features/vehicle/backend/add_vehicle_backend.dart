@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/supabase_storage_service.dart';
 import '../../profile/backend/vehicle_backend.dart';
+import '../../profile/backend/profile_backend.dart';
 
 class AddVehicleBackend extends ChangeNotifier {
   static final AddVehicleBackend instance = AddVehicleBackend._();
@@ -29,7 +30,7 @@ class AddVehicleBackend extends ChangeNotifier {
 
     try {
       final user = _client.auth.currentUser;
-      final userId = user?.id ?? 'c0000000-0000-0000-0000-000000000001';
+      final userId = user?.id ?? ProfileBackend.instance.userId;
 
       final type = category == 'motor' ? 'motor' : 'mobil';
 

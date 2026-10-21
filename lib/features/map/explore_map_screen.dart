@@ -1506,7 +1506,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                                   Navigator.push(
                                                     context,
                                                     MaterialPageRoute(
-                                                      builder: (_) => const ParkingDetailScreen(),
+                                                      builder: (_) => ParkingDetailScreen(
+                                                        locationId: loc['id']?.toString(),
+                                                      ),
                                                     ),
                                                   );
                                                 },

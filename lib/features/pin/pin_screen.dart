@@ -28,11 +28,26 @@ class _PinScreenState extends State<PinScreen> {
   final TextEditingController _pinController = TextEditingController();
   final FocusNode _focusNode = FocusNode();
   bool _isProcessing = false;
+  late bool _isCreatingPin;
 
   @override
   void initState() {
     super.initState();
+    final isCreateType = widget.transactionType.toLowerCase().contains('buat') ||
+        widget.transactionType.toLowerCase().contains('reset');
+    _isCreatingPin = isCreateType;
     NotificationService().requestPermissions();
+    _checkPinStatus();
+  }
+
+  Future<void> _checkPinStatus() async {
+    final hasPin = await PinBackend.instance.hasPin();
+    if (!mounted) return;
+    if (!hasPin && !_isCreatingPin) {
+      setState(() {
+        _isCreatingPin = true;
+      });
+    }
   }
 
   void _onPinChanged(String value) async {
@@ -42,7 +57,85 @@ class _PinScreenState extends State<PinScreen> {
       });
       _focusNode.unfocus();
 
-      // Verifikasi PIN dengan database via PinBackend
+      // Kasus 1: Sedang dalam alur Buat PIN Baru
+      if (_isCreatingPin) {
+        final success = await PinBackend.instance.updatePin(value);
+        if (!mounted) return;
+
+        setState(() {
+          _isProcessing = false;
+        });
+
+        if (!success) {
+          _pinController.clear();
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                PinBackend.instance.errorMessage ?? 'Gagal membuat PIN. Silakan coba lagi.',
+                style: GoogleFonts.plusJakartaSans(),
+              ),
+              backgroundColor: const Color(0xFFEF4444),
+            ),
+          );
+          _focusNode.requestFocus();
+          return;
+        }
+
+        // Jika navigasi dari menu Profile (bukan alur pembayaran/booking)
+        final isProfileSetup = widget.transactionType.toLowerCase().contains('buat') ||
+            widget.transactionType.toLowerCase().contains('reset') ||
+            widget.transactionType.toLowerCase().contains('ganti');
+
+        if (isProfileSetup) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'PIN keamanan berhasil disimpan!',
+                style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
+              ),
+              backgroundColor: const Color(0xFF10B981),
+            ),
+          );
+          await NotificationService().showNotification(
+            id: 101,
+            title: 'PIN Berhasil Disimpan',
+            body: 'PIN keamanan Anda telah berhasil diperbarui.',
+          );
+          await Future.delayed(const Duration(milliseconds: 600));
+          if (mounted) {
+            if (widget.backToHome) {
+              Navigator.pushAndRemoveUntil(
+                context,
+                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                (route) => false,
+              );
+            } else {
+              Navigator.pop(context);
+            }
+          }
+          return;
+        }
+
+        // Jika alur checkout/transaksi parkir: alihkan ke verifikasi konfirmasi
+        setState(() {
+          _isCreatingPin = false;
+        });
+        _pinController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'PIN berhasil dibuat! Masukkan kembali PIN untuk konfirmasi pembayaran.',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        _focusNode.requestFocus();
+        return;
+      }
+
+      // Kasus 2: Verifikasi PIN untuk transaksi
       final isValid = await PinBackend.instance.verifyPin(value);
       if (!mounted) return;
 
@@ -60,6 +153,7 @@ class _PinScreenState extends State<PinScreen> {
             backgroundColor: const Color(0xFFEF4444),
           ),
         );
+        _focusNode.requestFocus();
         return;
       }
 
@@ -229,14 +323,18 @@ class _PinScreenState extends State<PinScreen> {
                       border: isDark ? Border.all(color: const Color(0xFF2DD4BF).withValues(alpha: 0.3)) : null,
                     ),
                     child: Icon(
-                      Icons.shield_outlined,
+                      _isCreatingPin ? Icons.lock_reset_rounded : Icons.shield_outlined,
                       size: 38,
                       color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF1C1D1F),
                     ),
                   ),
                   const SizedBox(height: 24),
                   Text(
-                    widget.customTitle ?? 'Masukkan PIN',
+                    _isCreatingPin
+                        ? (widget.customTitle != null && widget.customTitle!.toLowerCase().contains('buat')
+                            ? widget.customTitle!
+                            : 'Buat PIN Baru')
+                        : (widget.customTitle ?? 'Masukkan PIN'),
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 24,
                       fontWeight: FontWeight.bold,
@@ -245,7 +343,10 @@ class _PinScreenState extends State<PinScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Masukkan 4 digit PIN keamanan Anda',
+                    _isCreatingPin
+                        ? 'Tentukan 4 digit PIN keamanan baru Anda'
+                        : 'Masukkan 4 digit PIN keamanan Anda',
+                    textAlign: TextAlign.center,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 14,
                       color: isDark ? theme.textMuted : const Color(0xFF76777B),
@@ -331,6 +432,50 @@ class _PinScreenState extends State<PinScreen> {
                       ],
                     ),
                   ),
+
+                  const SizedBox(height: 24),
+                  if (_isProcessing)
+                    const SizedBox(
+                      height: 36,
+                      width: 36,
+                      child: CircularProgressIndicator(strokeWidth: 2.5),
+                    )
+                  else if (_isCreatingPin)
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isCreatingPin = false;
+                          _pinController.clear();
+                        });
+                        _focusNode.requestFocus();
+                      },
+                      child: Text(
+                        'Sudah punya PIN? Masukkan PIN',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
+                        ),
+                      ),
+                    )
+                  else
+                    TextButton(
+                      onPressed: () {
+                        setState(() {
+                          _isCreatingPin = true;
+                          _pinController.clear();
+                        });
+                        _focusNode.requestFocus();
+                      },
+                      child: Text(
+                        'Belum punya atau lupa PIN? Buat PIN Baru',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
+                        ),
+                      ),
+                    ),
 
                   const Spacer(),
                 ],

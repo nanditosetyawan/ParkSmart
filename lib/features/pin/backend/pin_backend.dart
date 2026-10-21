@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
+import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk PinScreen
 /// Menangani verifikasi PIN transaksi dan keamanan dengan tabel `public.users.pin_hash`.
@@ -17,6 +18,33 @@ class PinBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  /// Memeriksa apakah pengguna sudah memiliki PIN terdaftar
+  Future<bool> hasPin({String? userId}) async {
+    try {
+      final uid = userId ?? _client.auth.currentUser?.id ?? ProfileBackend.instance.userId;
+      final queryKey = 'user_pin_${uid.isNotEmpty ? uid : 'default'}';
+
+      final pinData = await DatabaseCacheBalancerService.instance.getBalanced<String?>(
+        queryKey: queryKey,
+        ttl: const Duration(minutes: 5),
+        queryFn: () async {
+          if (uid.isNotEmpty) {
+            final res = await _client.from('users').select('pin_hash').eq('id', uid).maybeSingle();
+            return res?['pin_hash']?.toString();
+          } else {
+            final res = await _client.from('users').select('pin_hash').limit(1).maybeSingle();
+            return res?['pin_hash']?.toString();
+          }
+        },
+      );
+
+      return pinData != null && pinData.trim().isNotEmpty;
+    } catch (e) {
+      debugPrint('[PinBackend] hasPin check error: $e');
+      return false;
+    }
+  }
+
   /// Memverifikasi PIN input pengguna terhadap `users.pin_hash`
   Future<bool> verifyPin(String pin, {String? userId}) async {
     _isProcessing = true;
@@ -24,14 +52,14 @@ class PinBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id;
-      
+      final uid = userId ?? _client.auth.currentUser?.id ?? ProfileBackend.instance.userId;
+
       // Ambil user dari cache balancer
       final pinData = await DatabaseCacheBalancerService.instance.getBalanced<String?>(
-        queryKey: 'user_pin_${uid ?? 'default'}',
-        ttl: const Duration(minutes: 10),
+        queryKey: 'user_pin_${uid.isNotEmpty ? uid : 'default'}',
+        ttl: const Duration(minutes: 5),
         queryFn: () async {
-          if (uid != null) {
+          if (uid.isNotEmpty) {
             final res = await _client.from('users').select('pin_hash').eq('id', uid).maybeSingle();
             return res?['pin_hash']?.toString();
           } else {
@@ -69,9 +97,9 @@ class PinBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id;
+      final uid = userId ?? _client.auth.currentUser?.id ?? ProfileBackend.instance.userId;
 
-      if (uid != null) {
+      if (uid.isNotEmpty) {
         await _client.from('users').update({
           'pin_hash': newPin,
           'updated_at': DateTime.now().toIso8601String(),
@@ -88,7 +116,8 @@ class PinBackend extends ChangeNotifier {
       }
 
       // Invalidasi cache pin
-      await DatabaseCacheBalancerService.instance.invalidate('user_pin_${uid ?? 'default'}');
+      await DatabaseCacheBalancerService.instance.invalidate('user_pin_${uid.isNotEmpty ? uid : 'default'}');
+      await DatabaseCacheBalancerService.instance.invalidate('user_pin_default');
       return true;
     } catch (e) {
       debugPrint('[PinBackend] Gagal update PIN: $e');

@@ -26,6 +26,34 @@ class SlotSelectionBackend extends ChangeNotifier {
     notifyListeners();
   }
 
+  List<String> get floors {
+    if (_currentLocation != null && _currentLocation!['floors'] is List && (_currentLocation!['floors'] as List).isNotEmpty) {
+      return List<String>.from(_currentLocation!['floors']);
+    }
+    return ['Lantai 1'];
+  }
+
+  List<Map<String, dynamic>> get zoneASlots {
+    return _slots.where((s) {
+      final zone = s['zone']?.toString();
+      final code = (s['slot_code'] as String?)?.toUpperCase() ?? '';
+      if (zone == 'zoneA') return true;
+      if (zone == 'zoneB') return false;
+      return code.startsWith('A');
+    }).toList();
+  }
+
+  List<Map<String, dynamic>> get zoneBSlots {
+    return _slots.where((s) {
+      final zone = s['zone']?.toString();
+      final code = (s['slot_code'] as String?)?.toUpperCase() ?? '';
+      final type = s['slot_type']?.toString().toLowerCase() ?? '';
+      if (zone == 'zoneB') return true;
+      if (zone == 'zoneA') return false;
+      return code.startsWith('B') || type == 'ev';
+    }).toList();
+  }
+
   /// Memuat data slot untuk lokasi dan lantai tertentu dari Supabase
   Future<void> fetchSlots({String? locationId, String? floorName}) async {
     _isLoading = true;
@@ -35,26 +63,27 @@ class SlotSelectionBackend extends ChangeNotifier {
       // 1. Ambil info ringkas lokasi (Targeted Column Query)
       var locQuery = _client
           .from('parking_locations')
-          .select('id, name, address, hourly_rate_mobil, total_capacity');
+          .select('id, name, address, hourly_rate_mobil, total_capacity, floors');
 
       if (locationId != null) {
         _currentLocation = await locQuery.eq('id', locationId).maybeSingle();
       } else {
-        _currentLocation = await locQuery.order('rating', ascending: false).limit(1).maybeSingle();
+        _currentLocation ??= await locQuery.order('rating', ascending: false).limit(1).maybeSingle();
       }
 
-      // 2. Ambil data slot parkir (Targeted Column Query)
+      // 2. Tentukan lantai aktif
+      final activeFloor = floorName ?? (floors.isNotEmpty ? floors.first : 'Lantai 1');
+
+      // 3. Ambil data slot parkir aktual dari Supabase
       var slotQuery = _client
           .from('parking_slots')
-          .select('id, location_id, floor_name, slot_code, slot_type, status, current_vehicle_plate');
+          .select('id, location_id, floor_name, zone, slot_code, slot_type, status, current_plate_number');
 
       if (_currentLocation != null && _currentLocation!['id'] != null) {
         slotQuery = slotQuery.eq('location_id', _currentLocation!['id']);
       }
 
-      if (floorName != null && floorName.isNotEmpty) {
-        slotQuery = slotQuery.eq('floor_name', floorName);
-      }
+      slotQuery = slotQuery.eq('floor_name', activeFloor);
 
       final response = await slotQuery.order('slot_code', ascending: true);
       _slots = List<Map<String, dynamic>>.from(response);
@@ -73,12 +102,13 @@ class SlotSelectionBackend extends ChangeNotifier {
       orElse: () => {},
     );
     if (match.isEmpty) return false;
-    return match['status'] == 'available';
+    final status = match['status']?.toString().toLowerCase();
+    return status == 'available';
   }
 
   /// Menghitung jumlah slot tersedia di lantai aktif
   int get availableCount {
     if (_slots.isEmpty) return 0;
-    return _slots.where((s) => s['status'] == 'available').length;
+    return _slots.where((s) => s['status']?.toString().toLowerCase() == 'available').length;
   }
 }

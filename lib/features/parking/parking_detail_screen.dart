@@ -23,11 +23,20 @@ class ParkingDetailScreen extends StatefulWidget {
 
 class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   bool _bookmarked = false;
+  late final PageController _heroPhotoController;
+  int _currentPhotoIndex = 0;
 
   @override
   void initState() {
     super.initState();
+    _heroPhotoController = PageController();
     ParkingDetailBackend.instance.fetchLocationDetail(locationId: widget.locationId);
+  }
+
+  @override
+  void dispose() {
+    _heroPhotoController.dispose();
+    super.dispose();
   }
 
   @override
@@ -130,129 +139,196 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         // Hero image
-                        Container(
-                          height: 320,
-                          decoration: BoxDecoration(
-                            borderRadius: AppRadii.xl2Radius,
-                            border: Border.all(
-                              color: isDark ? theme.border : const Color(0xFFEAE5DC).withValues(alpha: 0.5),
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.06),
-                                offset: const Offset(0, 8),
-                                blurRadius: 30,
+                        Builder(
+                          builder: (context) {
+                            final loc = backend.locationDetail;
+                            List<String> photos = [];
+                            if (loc != null && loc['images'] is List) {
+                              photos = (loc['images'] as List)
+                                  .map((e) => e.toString().trim())
+                                  .where((e) => e.isNotEmpty)
+                                  .toList();
+                            }
+                            if (photos.isEmpty && loc != null && loc['image_url'] != null && loc['image_url'].toString().trim().isNotEmpty) {
+                              photos.add(loc['image_url'].toString().trim());
+                            }
+                            if (photos.isEmpty) {
+                              photos.add('https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80');
+                            }
+
+                            final ratingStr = (loc?['rating'] as num?)?.toStringAsFixed(1) ?? '4.8';
+                            final typeStr = loc?['type']?.toString() ?? 'Basement B2';
+                            final isOpen24 = loc?['status'] == 'active';
+                            final facilities = (loc?['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
+                            final isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
+
+                            return Container(
+                              height: 320,
+                              decoration: BoxDecoration(
+                                borderRadius: AppRadii.xl2Radius,
+                                border: Border.all(
+                                  color: isDark ? theme.border : const Color(0xFFEAE5DC).withValues(alpha: 0.5),
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.06),
+                                    offset: const Offset(0, 8),
+                                    blurRadius: 30,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: ClipRRect(
-                            borderRadius: AppRadii.xl2Radius,
-                            child: Stack(
-                              fit: StackFit.expand,
-                              children: [
-                                Image.network(
-                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuC16Ol5F2vqF-rrwb2NSlClwfgx4cZLEdCjAmYv0fIi8P73BzoBWClV_VIe4LbU7tiVCWFQ90ca_gZFputPKT7ndqGMzrKIdzAHMVqhYpZQvzuETqY_XoCyIk9lTgv0wZAv6PzegW0J23RJqfYNW7E-Vg0g0OKAvsSlroKUXBr-ByDMjRuW9v6cG1rBVS1pBc7H6xJhYhAtEgLqLmaEEQtvGVBXocMbNqbwaM_evXAvOIwvBxuj-HGg',
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) => Container(
-                                    color: isDark ? const Color(0xFF1E293B) : const Color(0xFFECE8E0),
-                                  ),
-                                ),
-                                // gradient overlay bottom-up
-                                DecoratedBox(
-                                  decoration: BoxDecoration(
-                                    gradient: LinearGradient(
-                                      begin: Alignment.topCenter,
-                                      end: Alignment.bottomCenter,
-                                      colors: [
-                                        AppColors.primary.withValues(alpha: 0.0),
-                                        AppColors.primary.withValues(alpha: 0.7),
-                                      ],
-                                      stops: const [0.4, 1.0],
-                                    ),
-                                  ),
-                                ),
-                                // Top badges
-                                Positioned(
-                                  top: 16,
-                                  left: 16,
-                                  right: 16,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      const Visibility(
-                                        visible: false,
-                                        maintainSize: true,
-                                        maintainAnimation: true,
-                                        maintainState: true,
-                                        child: _HeroPill(
-                                          color: Colors.transparent,
-                                          child: SizedBox(width: 100),
-                                        ),
-                                      ),
-                                      _HeroPill(
-                                        color: AppColors.primary.withValues(alpha: 0.7),
-                                        child: Row(
-                                          children: [
-                                            Icon(Icons.roofing, size: 15, color: AppColors.white),
-                                            const SizedBox(width: 4),
-                                            Text('Basement B2', style: AppTypography.caption(color: AppColors.white)),
-                                          ],
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                                // Bottom badges
-                                Positioned(
-                                  bottom: 20,
-                                  left: 20,
-                                  right: 20,
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Row(
-                                        children: [
-                                          _HeroPill(
-                                            color: AppColors.white.withValues(alpha: 0.2),
-                                            border: AppColors.white.withValues(alpha: 0.2),
-                                            child: Row(
-                                              children: [
-                                                Icon(Icons.schedule, size: 14, color: AppColors.white),
-                                                const SizedBox(width: 4),
-                                                Text('24 Jam', style: AppTypography.caption(color: AppColors.white)),
-                                              ],
+                              child: ClipRRect(
+                                borderRadius: AppRadii.xl2Radius,
+                                child: Stack(
+                                  fit: StackFit.expand,
+                                  children: [
+                                    PageView.builder(
+                                      controller: _heroPhotoController,
+                                      itemCount: photos.length,
+                                      onPageChanged: (idx) {
+                                        setState(() => _currentPhotoIndex = idx);
+                                      },
+                                      itemBuilder: (context, idx) {
+                                        return Image.network(
+                                          photos[idx],
+                                          fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            color: isDark ? const Color(0xFF1E293B) : const Color(0xFFECE8E0),
+                                            child: const Center(
+                                              child: Icon(Icons.local_parking, size: 48, color: Color(0xFF9CA3AF)),
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
+                                        );
+                                      },
+                                    ),
+                                    // gradient overlay bottom-up
+                                    DecoratedBox(
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            AppColors.primary.withValues(alpha: 0.0),
+                                            AppColors.primary.withValues(alpha: 0.7),
+                                          ],
+                                          stops: const [0.4, 1.0],
+                                        ),
+                                      ),
+                                    ),
+                                    // Top badges
+                                    Positioned(
+                                      top: 16,
+                                      left: 16,
+                                      right: 16,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          if (photos.length > 1)
+                                            _HeroPill(
+                                              color: Colors.black.withValues(alpha: 0.5),
+                                              child: Row(
+                                                children: [
+                                                  const Icon(Icons.photo_library_outlined, size: 14, color: Colors.white),
+                                                  const SizedBox(width: 5),
+                                                  Text(
+                                                    '${_currentPhotoIndex + 1}/${photos.length}',
+                                                    style: AppTypography.caption(color: Colors.white).copyWith(fontWeight: FontWeight.w600),
+                                                  ),
+                                                ],
+                                              ),
+                                            )
+                                          else
+                                            const SizedBox(),
                                           _HeroPill(
-                                            color: AppColors.white.withValues(alpha: 0.2),
-                                            border: AppColors.white.withValues(alpha: 0.2),
+                                            color: AppColors.primary.withValues(alpha: 0.7),
                                             child: Row(
                                               children: [
-                                                Icon(Icons.ev_station, size: 14, color: AppColors.white),
+                                                Icon(Icons.roofing, size: 15, color: AppColors.white),
                                                 const SizedBox(width: 4),
-                                                Text('EV Ready', style: AppTypography.caption(color: AppColors.white)),
+                                                Text(typeStr, style: AppTypography.caption(color: AppColors.white)),
                                               ],
                                             ),
                                           ),
                                         ],
                                       ),
-                                      _HeroPill(
-                                        color: AppColors.white,
+                                    ),
+                                    // Bottom badges
+                                    Positioned(
+                                      bottom: 20,
+                                      left: 20,
+                                      right: 20,
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              _HeroPill(
+                                                color: AppColors.white.withValues(alpha: 0.2),
+                                                border: AppColors.white.withValues(alpha: 0.2),
+                                                child: Row(
+                                                  children: [
+                                                    Icon(Icons.schedule, size: 14, color: AppColors.white),
+                                                    const SizedBox(width: 4),
+                                                    Text(isOpen24 ? '24 Jam' : 'Tutup Sementara', style: AppTypography.caption(color: AppColors.white)),
+                                                  ],
+                                                ),
+                                              ),
+                                              if (isEv) ...[
+                                                const SizedBox(width: 8),
+                                                _HeroPill(
+                                                  color: AppColors.white.withValues(alpha: 0.2),
+                                                  border: AppColors.white.withValues(alpha: 0.2),
+                                                  child: Row(
+                                                    children: [
+                                                      Icon(Icons.ev_station, size: 14, color: AppColors.white),
+                                                      const SizedBox(width: 4),
+                                                      Text('EV Ready', style: AppTypography.caption(color: AppColors.white)),
+                                                    ],
+                                                  ),
+                                                ),
+                                              ],
+                                            ],
+                                          ),
+                                          _HeroPill(
+                                            color: AppColors.white,
+                                            child: Row(
+                                              children: [
+                                                const Icon(Icons.star, size: 14, color: Colors.amber),
+                                                const SizedBox(width: 4),
+                                                Text(ratingStr, style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700)),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    // Dots indicator if multiple photos
+                                    if (photos.length > 1)
+                                      Positioned(
+                                        bottom: 6,
+                                        left: 0,
+                                        right: 0,
                                         child: Row(
-                                          children: [
-                                            const Icon(Icons.star, size: 14, color: Colors.amber),
-                                            const SizedBox(width: 4),
-                                            Text('4.8', style: AppTypography.caption().copyWith(fontWeight: FontWeight.w700)),
-                                          ],
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: List.generate(photos.length, (dotIdx) {
+                                            final isSel = dotIdx == _currentPhotoIndex;
+                                            return Container(
+                                              margin: const EdgeInsets.symmetric(horizontal: 2.5),
+                                              width: isSel ? 16 : 6,
+                                              height: 5,
+                                              decoration: BoxDecoration(
+                                                color: isSel ? Colors.white : Colors.white.withValues(alpha: 0.45),
+                                                borderRadius: BorderRadius.circular(3),
+                                              ),
+                                            );
+                                          }),
                                         ),
                                       ),
-                                    ],
-                                  ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
+                              ),
+                            );
+                          },
                         ),
 
                         // Title & metadata

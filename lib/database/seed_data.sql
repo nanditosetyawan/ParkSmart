@@ -9,7 +9,7 @@ INSERT INTO public.admins (
     id, email, full_name, phone, role, division, status, password
 ) VALUES
 (
-    'b0000000-0000-0000-0000-000000000001', 'superadmin@parksmart.id', 'Gibran Widodo', '+62 812-0000-0001',
+    'a78f3e2b-4c59-4d81-9b16-83f1245890ab', 'superadmin@parksmart.id', 'Gibran Widodo', '+62 812-0000-0001',
     'super_admin', 'Sistem & Super Admin', 'active', 'superadmin123'
 )
 ON CONFLICT (email) DO NOTHING;
@@ -19,7 +19,7 @@ INSERT INTO public.users (
     id, email, phone, full_name, wallet_balance, points, member_tier, total_parking_count, total_savings, status, password
 ) VALUES
 (
-    'c0000000-0000-0000-0000-000000000001', 'jokowi.dodo@gmail.com', '+62 811-2345-6789',
+    'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba', 'jokowi.dodo@gmail.com', '+62 811-2345-6789',
     'Jokowi Dodo', 0.00, 0, 'BRONZE', 0, 0.00, 'active', 'user123'
 )
 ON CONFLICT (email) DO NOTHING;
@@ -36,7 +36,7 @@ VALUES
         "is_crypto_blockchain_audit_live": true
     }'::jsonb,
     'Saklar fitur sistem aplikasi ParkSmart ID',
-    'b0000000-0000-0000-0000-000000000001'
+    'a78f3e2b-4c59-4d81-9b16-83f1245890ab'
 ),
 (
     'ai_config',
@@ -49,7 +49,7 @@ VALUES
         "is_autonomous_pricing_enabled": true
     }'::jsonb,
     'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing',
-    'b0000000-0000-0000-0000-000000000001'
+    'a78f3e2b-4c59-4d81-9b16-83f1245890ab'
 )
 ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,

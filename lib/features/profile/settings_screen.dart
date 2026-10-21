@@ -8,6 +8,7 @@ import 'pin_settings_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import 'backend/profile_backend.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -17,9 +18,10 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _userName = 'Arya Raditya';
-  String _userEmail = 'arya.raditya@gmail.com';
-  String _userPhone = '+62 812-3456-7890';
+  String _userName = 'Jokowi Dodo';
+  String _userEmail = 'jokowi.dodo@gmail.com';
+  String _userPhone = '+62 811-2345-6789';
+  String? _avatarUrl;
 
   @override
   void initState() {
@@ -27,6 +29,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _loadUserProfile();
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
+    ProfileBackend.instance.addListener(_onProfileChanged);
   }
 
   void _onCurrencyChanged() {
@@ -37,17 +40,51 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (mounted) setState(() {});
   }
 
+  void _onProfileChanged() {
+    if (mounted) {
+      setState(() {
+        _userName = ProfileBackend.instance.name;
+        _userEmail = ProfileBackend.instance.email;
+        _userPhone = ProfileBackend.instance.phone;
+        _avatarUrl = ProfileBackend.instance.avatarUrl;
+      });
+    }
+  }
+
   @override
   void dispose() {
     CurrencyService.instance.removeListener(_onCurrencyChanged);
     ThemeService.instance.removeListener(_onThemeChanged);
+    ProfileBackend.instance.removeListener(_onProfileChanged);
     super.dispose();
+  }
+
+  Widget _buildFallbackAvatar(double size) {
+    final initial = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'J';
+    return Container(
+      width: size,
+      height: size,
+      decoration: const BoxDecoration(
+        color: Color(0xFF114177),
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: size * 0.4,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
     bool faceEnabled = prefs.getBool('face_id_enabled') ?? false;
-    final fpEnabled = prefs.getBool('fingerprint_enabled') ?? true;
+    final fpEnabled = prefs.getBool('fingerprint_enabled') ?? false;
 
     // Validasi apakah hardware perangkat benar-benar memiliki sensor Face ID terdaftar
     if (faceEnabled) {
@@ -63,11 +100,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
       } catch (_) {}
     }
 
+    final profile = ProfileBackend.instance;
+    await profile.fetchProfile();
+
+    final prefName = prefs.getString('user_profile_name');
+    final name = (prefName != null && prefName.isNotEmpty && prefName != 'Arya Raditya')
+        ? prefName
+        : profile.name;
+    final prefEmail = prefs.getString('user_profile_email');
+    final email = (prefEmail != null && prefEmail.isNotEmpty && !prefEmail.contains('arya.raditya'))
+        ? prefEmail
+        : profile.email;
+    final prefPhone = prefs.getString('user_profile_phone');
+    final phone = (prefPhone != null && prefPhone.isNotEmpty)
+        ? prefPhone
+        : profile.phone;
+
     if (mounted) {
       setState(() {
-        _userName = prefs.getString('user_profile_name') ?? 'Arya Raditya';
-        _userEmail = prefs.getString('user_profile_email') ?? 'arya.raditya@gmail.com';
-        _userPhone = prefs.getString('user_profile_phone') ?? '+62 812-3456-7890';
+        _userName = name;
+        _userEmail = email;
+        _userPhone = phone;
+        _avatarUrl = profile.avatarUrl;
         _faceIdEnabled = faceEnabled;
         _fingerprintEnabled = fpEnabled;
       });
@@ -75,7 +129,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   bool _faceIdEnabled = false;
-  bool _fingerprintEnabled = true;
+  bool _fingerprintEnabled = false;
   bool _notifEnabled = true;
   String _cacheSize = '128.4 MB tersimpan';
   bool _isCacheCleared = false;
@@ -158,6 +212,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!val) {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('fingerprint_enabled', false);
+      await prefs.remove('biometric_user_email');
+      await prefs.remove('biometric_user_id');
       setState(() => _fingerprintEnabled = false);
       _showSuccessToast('Sidik Jari dinonaktifkan');
       return;
@@ -197,12 +253,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (authenticated) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('fingerprint_enabled', true);
+        final currentEmail = ProfileBackend.instance.email;
+        final currentUserId = ProfileBackend.instance.userId;
+        await prefs.setString('biometric_user_email', currentEmail);
+        await prefs.setString('biometric_user_id', currentUserId);
         setState(() => _fingerprintEnabled = true);
-        _showSuccessToast('Sidik Jari sistem Android berhasil diaktifkan');
+        _showSuccessToast('Sidik Jari berhasil diaktifkan untuk akun $currentEmail');
       } else {
         setState(() => _fingerprintEnabled = false);
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('fingerprint_enabled', false);
+        await prefs.remove('biometric_user_email');
+        await prefs.remove('biometric_user_id');
       }
     } on PlatformException catch (e) {
       debugPrint('Fingerprint error: ${e.message}');
@@ -215,6 +277,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _fingerprintEnabled = false);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('fingerprint_enabled', false);
+      await prefs.remove('biometric_user_email');
+      await prefs.remove('biometric_user_id');
     } catch (e) {
       _showBiometricSystemOffDialog(
         title: 'Pengaturan Sidik Jari Sistem Mati',
@@ -225,6 +289,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
       setState(() => _fingerprintEnabled = false);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('fingerprint_enabled', false);
+      await prefs.remove('biometric_user_email');
+      await prefs.remove('biometric_user_id');
     }
   }
 
@@ -1192,12 +1258,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       children: [
                         Stack(
                           children: [
-                            Container(
-                              width: 56, height: 56,
-                              decoration: BoxDecoration(
-                                shape: BoxShape.circle,
-                                image: const DecorationImage(image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuDpCYtgl-hGVXRQdhh0hHqX3XniI-C7Lxg0yDeOLXcMqOjE46TInnh-OrhgMgEuWTCRGldtvleaFHMYyWaQJ1mquPwZd7Wml55E3cC1V_VeKZ8d3xzBuHnAybOMqARFWoTE_k9nnrnzlSBgmrSJf0f_4mfvGIQfY0UR4vW0oNI3neJvNiqlN6jEnILQFveVtdwSEsvQSXEw1pAGo4CXJcw1vAUCCtRHm53H5N4XDk72XHIaYnPJnTlD'), fit: BoxFit.cover),
-                              ),
+                            ClipOval(
+                              child: _avatarUrl != null && _avatarUrl!.isNotEmpty
+                                  ? Image.network(
+                                      _avatarUrl!,
+                                      width: 56,
+                                      height: 56,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(56),
+                                    )
+                                  : _buildFallbackAvatar(56),
                             ),
                             Positioned(
                               bottom: 0, right: 0,

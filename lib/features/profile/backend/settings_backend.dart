@@ -2,6 +2,8 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
 
+import 'profile_backend.dart';
+
 /// Backend khusus untuk SettingsScreen
 /// Menghubungkan pengaturan aplikasi profil dengan tabel `public.users` dan `public.system_settings`.
 class SettingsBackend extends ChangeNotifier {
@@ -17,9 +19,10 @@ class SettingsBackend extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   Map<String, dynamic> _userSettings = {
-    'full_name': 'Arya Raditya',
-    'email': 'arya.raditya@gmail.com',
-    'phone': '+62 812-3456-7890',
+    'full_name': 'Jokowi Dodo',
+    'email': 'jokowi.dodo@gmail.com',
+    'phone': '+62 811-2345-6789',
+    'avatar_url': null,
     'is_biometric_enabled': true,
   };
   Map<String, dynamic> get userSettings => _userSettings;
@@ -31,22 +34,22 @@ class SettingsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id;
+      final uid = userId ?? _client.auth.currentUser?.id ?? ProfileBackend.instance.userId;
 
       final data = await DatabaseCacheBalancerService.instance.getBalanced<Map<String, dynamic>?>(
-        queryKey: 'user_profile_settings_${uid ?? 'default'}',
+        queryKey: 'user_profile_settings_${uid.isNotEmpty ? uid : 'default'}',
         ttl: const Duration(minutes: 5),
         queryFn: () async {
-          if (uid != null) {
+          if (uid.isNotEmpty) {
             return await _client
                 .from('users')
-                .select('full_name, email, phone, is_biometric_enabled')
+                .select('full_name, email, phone, avatar_url, is_biometric_enabled')
                 .eq('id', uid)
                 .maybeSingle();
           } else {
             return await _client
                 .from('users')
-                .select('full_name, email, phone, is_biometric_enabled')
+                .select('full_name, email, phone, avatar_url, is_biometric_enabled')
                 .limit(1)
                 .maybeSingle();
           }
@@ -58,6 +61,7 @@ class SettingsBackend extends ChangeNotifier {
           'full_name': data['full_name'] ?? _userSettings['full_name'],
           'email': data['email'] ?? _userSettings['email'],
           'phone': data['phone'] ?? _userSettings['phone'],
+          'avatar_url': data['avatar_url'] ?? _userSettings['avatar_url'],
           'is_biometric_enabled': data['is_biometric_enabled'] ?? true,
         };
       }

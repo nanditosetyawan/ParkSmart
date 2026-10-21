@@ -215,23 +215,49 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
       // 3. Reservasi Masuk Real dari Database
       final bookingsRes = await _client
           .from('bookings')
-          .select('id, booking_code, start_time, duration_hours, total_price, payment_status, booking_status, created_at')
+          .select('''
+            id,
+            booking_code,
+            start_time,
+            duration_hours,
+            total_price,
+            payment_status,
+            booking_status,
+            created_at,
+            users(full_name, phone),
+            parking_locations(name),
+            parking_slots(slot_code, floor_name),
+            vehicles(plate_number, vehicle_type)
+          ''')
           .order('created_at', ascending: false);
 
       if (bookingsRes.isNotEmpty) {
         _liveBookings = bookingsRes.map<Map<String, dynamic>>((row) {
-          final isConfirmed = row['booking_status'] == 'confirmed';
-          final price = (row['total_price'] as num?)?.toInt() ?? 25000;
+          final isConfirmed = row['booking_status'] == 'active' || row['booking_status'] == 'upcoming';
+          final price = (row['total_price'] as num?)?.toInt() ?? 0;
+          final userData = row['users'] as Map<String, dynamic>?;
+          final locData = row['parking_locations'] as Map<String, dynamic>?;
+          final slotData = row['parking_slots'] as Map<String, dynamic>?;
+          final vehData = row['vehicles'] as Map<String, dynamic>?;
+
+          final userName = userData?['full_name']?.toString() ?? 'Pelanggan ParkSmart';
+          final userPhone = userData?['phone']?.toString() ?? '-';
+          final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
+          final slotCode = slotData?['slot_code']?.toString() ?? '-';
+          final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
+          final plate = vehData?['plate_number']?.toString() ?? '-';
+          final vType = vehData?['vehicle_type']?.toString().toLowerCase() == 'motor' ? 'Motor' : 'Mobil';
+
           return {
             'id': row['booking_code']?.toString() ?? 'BKG-001',
             'code': row['booking_code']?.toString() ?? 'PRK-001',
-            'name': 'Pelanggan ParkSmart',
-            'phone': '+62 812-xxxx-xxxx',
-            'location': 'Lokasi Parkir',
-            'slot': 'Slot Terpilih',
-            'floor': 'Area Parkir',
-            'vehicleType': 'Mobil',
-            'plate': 'B 1234 XYZ',
+            'name': userName,
+            'phone': userPhone,
+            'location': locName,
+            'slot': slotCode,
+            'floor': floorName,
+            'vehicleType': vType,
+            'plate': plate,
             'time': '${row['start_time']?.toString().split('T').last.substring(0, 5) ?? '08:00'} WIB',
             'duration': '${row['duration_hours'] ?? 2} jam',
             'status': isConfirmed ? 'Dikonfirmasi' : 'Menunggu',

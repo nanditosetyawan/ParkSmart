@@ -62,7 +62,7 @@ class AdminTransactionsBackend extends ChangeNotifier {
             completed_at,
             booking_id,
             session_id,
-            users(full_name, phone),
+            users(full_name, phone, avatar_url),
             bookings(
               booking_code,
               booking_status,
@@ -112,6 +112,7 @@ class AdminTransactionsBackend extends ChangeNotifier {
           final userData = row['users'] as Map<String, dynamic>?;
           final userName = userData?['full_name'] ?? 'Pelanggan ParkSmart';
           final userPhone = userData?['phone'] ?? '-';
+          final userAvatarUrl = userData?['avatar_url']?.toString();
           final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'P';
 
           final bData = row['bookings'] as Map<String, dynamic>?;
@@ -143,7 +144,7 @@ class AdminTransactionsBackend extends ChangeNotifier {
 
           return {
             'id': row['transaction_code']?.toString() ?? 'TRX-001',
-            'user': {'name': userName, 'phone': userPhone, 'avatar': initial},
+            'user': {'name': userName, 'phone': userPhone, 'avatar': initial, 'avatarUrl': userAvatarUrl},
             'type': type,
             'location': locationName,
             'slot': slotCode,

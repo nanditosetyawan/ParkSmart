@@ -34,7 +34,7 @@ class AdminWalletBackend extends ChangeNotifier {
     try {
       final res = await _client
           .from('users')
-          .select('id, full_name, email, phone, wallet_balance')
+          .select('id, full_name, email, phone, wallet_balance, avatar_url')
           .order('full_name', ascending: true);
 
       if (res.isNotEmpty) {
@@ -50,6 +50,7 @@ class AdminWalletBackend extends ChangeNotifier {
             'phone': row['phone']?.toString() ?? '-',
             'balance': bal,
             'avatar': initial,
+            'avatar_url': row['avatar_url']?.toString(),
           };
         }).toList();
       } else {
@@ -84,7 +85,7 @@ class AdminWalletBackend extends ChangeNotifier {
       try {
         final injRes = await _client
             .from('payments')
-            .select('id, transaction_code, amount, description, created_at, users(full_name, email)')
+            .select('id, transaction_code, amount, description, created_at, users(full_name, email, avatar_url)')
             .eq('transaction_type', 'wallet_injection')
             .order('created_at', ascending: false)
             .limit(10);
@@ -94,6 +95,7 @@ class AdminWalletBackend extends ChangeNotifier {
             final u = row['users'] as Map<String, dynamic>?;
             final uName = u?['full_name']?.toString() ?? 'Pengguna';
             final uEmail = u?['email']?.toString() ?? '-';
+            final uAvatar = u?['avatar_url']?.toString();
             final amt = (row['amount'] as num?)?.toInt() ?? 0;
             final reason = row['description']?.toString() ?? 'Injeksi Saldo Manual';
             final timeStr = row['created_at'] != null ? row['created_at'].toString().substring(0, 16) : '-';
@@ -101,6 +103,7 @@ class AdminWalletBackend extends ChangeNotifier {
             return {
               'userName': uName,
               'userEmail': uEmail,
+              'userAvatar': uAvatar,
               'amount': amt,
               'reason': reason,
               'time': timeStr,

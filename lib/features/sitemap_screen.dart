@@ -10,8 +10,6 @@ import 'admin/super_admin/admin_ai_config_screen.dart';
 
 // Admin - Operations
 import 'admin/operations/admin_operations_dashboard_screen.dart';
-import 'admin/operations/admin_locations_screen.dart';
-import 'admin/operations/admin_slot_management_screen.dart';
 import 'admin/operations/admin_active_users_screen.dart';
 
 import 'admin/operations/admin_bookings_screen.dart';
@@ -273,9 +271,7 @@ class SitemapScreen extends StatelessWidget {
               // ─── ADMIN CLUSTER 2: OPERASIONAL & FASILITAS ───
               _buildCategory('11. Admin: Operasional & Fasilitas Parkir', [
                 _Item('Dashboard Khusus Operasional', 'operations/admin_operations_dashboard_screen.dart', (c) => const AdminOperationsDashboardScreen(), role: 'Operations', isNew: true),
-                _Item('Kelola Master Lokasi Parkir', 'operations/admin_locations_screen.dart', (c) => const LocationsScreen(), role: 'Operations'),
-                _Item('Kelola Denah Lantai & Tarif Parkir', 'operations/manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
-                _Item('Manajemen Slot & Sensor IoT', 'operations/admin_slot_management_screen.dart', (c) => const SlotManagementScreen(), role: 'Operations'),
+                _Item('Kelola Titik Parkir, Denah & Tarif', 'operations/manage_parking_screen.dart', (c) => const ManageParkingScreen(), role: 'Operations'),
                 _Item('Monitoring Kendaraan Aktif & Overstay', 'operations/admin_active_users_screen.dart', (c) => const ActiveUsersScreen(), role: 'Operations'),
                 _Item('Manajemen Data Reservasi & Booking', 'operations/admin_bookings_screen.dart', (c) => const AdminBookingsScreen(), role: 'Operations'),
                 _Item('Pusat Notifikasi Operasional', 'operations/admin_operations_notifications_screen.dart', (c) => const AdminOperationsNotificationsScreen(), role: 'Operations'),

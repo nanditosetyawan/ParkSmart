@@ -88,7 +88,7 @@ class AdminFeedbackBackend extends ChangeNotifier {
       // 1. Ambil data feedback ulasan dari customer_feedbacks
       final res = await _client
           .from('customer_feedbacks')
-          .select('id, rating, comment, admin_reply, is_resolved, created_at, users(full_name, phone), parking_locations(name)')
+          .select('id, rating, comment, admin_reply, is_resolved, created_at, users(full_name, phone, avatar_url), parking_locations(name)')
           .order('created_at', ascending: false);
 
       if (res.isNotEmpty) {
@@ -105,6 +105,7 @@ class AdminFeedbackBackend extends ChangeNotifier {
             'id': row['id']?.toString() ?? 'FDB-000',
             'user': userName,
             'avatar': initial,
+            'avatar_url': userData?['avatar_url']?.toString(),
             'rating': (row['rating'] as num?)?.toInt() ?? 5,
             'location': locName,
             'date': row['created_at'] != null ? _formatDate(row['created_at']) : 'Hari ini',

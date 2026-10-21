@@ -26,10 +26,8 @@ class SlotSelectionScreen extends StatefulWidget {
 }
 
 class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
-  String? _selectedSlot = 'A-05';
-  int _selectedFloor = 1; // B2 is index 1
-
-  final _floors = ['Lantai B1', 'Lantai B2', 'Lantai B3', 'Lantai B4 (Khusus Valet)'];
+  String? _selectedSlot;
+  int _selectedFloor = 0;
 
   @override
   void initState() {
@@ -50,7 +48,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
     }
 
     // Ambil data slot parkir aktual dari backend Supabase
-    SlotSelectionBackend.instance.fetchSlots(floorName: _floors[_selectedFloor]);
+    SlotSelectionBackend.instance.fetchSlots();
   }
 
   @override
@@ -223,11 +221,19 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                           );
                                         },
                                       ),
-                                      Text(
-                                        'Siap pakai di ${_floors[_selectedFloor]}',
-                                        style: AppTypography.bodySm(
-                                          color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                        ),
+                                      Builder(
+                                        builder: (context) {
+                                          final floors = SlotSelectionBackend.instance.floors;
+                                          final fName = (floors.isNotEmpty && _selectedFloor < floors.length)
+                                              ? floors[_selectedFloor]
+                                              : 'Lantai 1';
+                                          return Text(
+                                            'Siap pakai di $fName',
+                                            style: AppTypography.bodySm(
+                                              color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -266,7 +272,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Zona A lebih dekat ke Lobby Tribeca & Central Park Lift.',
+                                        'Zona A untuk Mobil Reguler. Zona B untuk Stasiun EV Charging & Campuran.',
                                         style: AppTypography.bodySm(
                                           color: isDark ? Colors.white : const Color(0xFF45474A),
                                         ),
@@ -281,199 +287,280 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
 
                         // Floor selector tabs
                         const SizedBox(height: 16),
-                        SizedBox(
-                          height: 44,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _floors.length,
-                            separatorBuilder: (context, index) => const SizedBox(width: 8),
-                            itemBuilder: (_, i) {
-                              final active = i == _selectedFloor;
-                              return GestureDetector(
-                                onTap: () => setState(() {
-                                  _selectedFloor = i;
-                                  _selectedSlot = null;
-                                  SlotSelectionBackend.instance.fetchSlots(floorName: _floors[i]);
-                                }),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-                                  decoration: BoxDecoration(
-                                    color: active
-                                        ? (isDark ? Colors.white : _kPrimaryContainer)
-                                        : (isDark ? theme.card : _kSurfaceContainerLowest),
-                                    borderRadius: AppRadii.pillRadius,
-                                    border: isDark && !active ? Border.all(color: theme.border) : null,
-                                    boxShadow: const [AppShadows.soft],
-                                  ),
-                                  child: Row(
-                                    children: [
-                                      Text(
-                                        _floors[i],
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: active
-                                              ? (isDark ? Colors.black : const Color(0xFFFCF9F2))
-                                              : (isDark ? Colors.white : const Color(0xFF45474A)),
-                                        ),
+                        Builder(
+                          builder: (context) {
+                            final floors = SlotSelectionBackend.instance.floors;
+                            if (_selectedFloor >= floors.length) {
+                              _selectedFloor = 0;
+                            }
+                            return SizedBox(
+                              height: 44,
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: floors.length,
+                                separatorBuilder: (context, index) => const SizedBox(width: 8),
+                                itemBuilder: (_, i) {
+                                  final active = i == _selectedFloor;
+                                  return GestureDetector(
+                                    onTap: () => setState(() {
+                                      _selectedFloor = i;
+                                      _selectedSlot = null;
+                                      SlotSelectionBackend.instance.fetchSlots(floorName: floors[i]);
+                                    }),
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                                      decoration: BoxDecoration(
+                                        color: active
+                                            ? (isDark ? Colors.white : _kPrimaryContainer)
+                                            : (isDark ? theme.card : _kSurfaceContainerLowest),
+                                        borderRadius: AppRadii.pillRadius,
+                                        border: isDark && !active ? Border.all(color: theme.border) : null,
+                                        boxShadow: const [AppShadows.soft],
                                       ),
-                                      if (active) ...[
-                                        const SizedBox(width: 6),
-                                        Container(
-                                          width: 6,
-                                          height: 6,
-                                          decoration: BoxDecoration(
-                                            color: isDark ? const Color(0xFF9A442D) : const Color(0xFFFC9174),
-                                            shape: BoxShape.circle,
+                                      child: Row(
+                                        children: [
+                                          Text(
+                                            floors[i],
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 14,
+                                              fontWeight: FontWeight.w600,
+                                              color: active
+                                                  ? (isDark ? Colors.black : const Color(0xFFFCF9F2))
+                                                  : (isDark ? Colors.white : const Color(0xFF45474A)),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Terpilih',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w500,
-                                            color: isDark ? Colors.black87 : const Color(0xFFFCF9F2).withValues(alpha: 0.8),
-                                          ),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              );
-                            },
-                          ),
+                                          if (active) ...[
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              width: 6,
+                                              height: 6,
+                                              decoration: BoxDecoration(
+                                                color: isDark ? const Color(0xFF9A442D) : const Color(0xFFFC9174),
+                                                shape: BoxShape.circle,
+                                              ),
+                                            ),
+                                            const SizedBox(width: 4),
+                                            Text(
+                                              'Terpilih',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w500,
+                                                color: isDark ? Colors.black87 : const Color(0xFFFCF9F2).withValues(alpha: 0.8),
+                                              ),
+                                            ),
+                                          ],
+                                        ],
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
                         ),
 
                         // Parking map canvas
                         const SizedBox(height: 16),
-                        Container(
-                          padding: const EdgeInsets.all(16),
-                          decoration: BoxDecoration(
-                            color: isDark ? theme.surfaceField : _kSurfaceContainerLow,
-                            borderRadius: BorderRadius.circular(16),
-                            border: isDark ? Border.all(color: theme.border) : null,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.04),
-                                offset: const Offset(0, 2),
-                                blurRadius: 8,
-                              ),
-                            ],
-                          ),
-                          child: Column(
-                            children: [
-                              // Zone A
-                              _ZoneLabel(
-                                label: 'Zona A',
-                                count: '${['A-03', 'A-04', 'A-05', 'A-06'].where((s) => SlotSelectionBackend.instance.isSlotAvailable(s)).length} Tersedia',
-                                isDark: isDark,
-                              ),
-                              const SizedBox(height: 8),
-                              GridView.count(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 3 / 4,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: [
-                                  _buildSlot('A-03', SlotSelectionBackend.instance.isSlotAvailable('A-03'), isSelected: _selectedSlot == 'A-03', isDark: isDark),
-                                  _buildSlot('A-04', SlotSelectionBackend.instance.isSlotAvailable('A-04'), isSelected: _selectedSlot == 'A-04', isDark: isDark),
-                                  _buildSlot('A-05', SlotSelectionBackend.instance.isSlotAvailable('A-05'), isSelected: _selectedSlot == 'A-05', isDark: isDark),
-                                  _buildSlot('A-06', SlotSelectionBackend.instance.isSlotAvailable('A-06'), isSelected: _selectedSlot == 'A-06', isDark: isDark),
+                        Builder(
+                          builder: (context) {
+                            final floors = SlotSelectionBackend.instance.floors;
+                            final activeFloorName = (floors.isNotEmpty && _selectedFloor < floors.length)
+                                ? floors[_selectedFloor]
+                                : 'Lantai 1';
+                            final zoneASlots = SlotSelectionBackend.instance.zoneASlots;
+                            final zoneBSlots = SlotSelectionBackend.instance.zoneBSlots;
+
+                            final zoneAAvailable = zoneASlots.where((s) => s['status']?.toString().toLowerCase() == 'available').length;
+                            final zoneBAvailable = zoneBSlots.where((s) => s['status']?.toString().toLowerCase() == 'available').length;
+
+                            return Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: isDark ? theme.surfaceField : _kSurfaceContainerLow,
+                                borderRadius: BorderRadius.circular(16),
+                                border: isDark ? Border.all(color: theme.border) : null,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withValues(alpha: 0.04),
+                                    offset: const Offset(0, 2),
+                                    blurRadius: 8,
+                                  ),
                                 ],
                               ),
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  // Zone A Header
+                                  _ZoneLabel(
+                                    label: 'Zona A (Posisi Atas)',
+                                    count: '$zoneAAvailable Tersedia',
+                                    isDark: isDark,
+                                  ),
+                                  const SizedBox(height: 8),
 
-                              // Circulation aisle
-                              const SizedBox(height: 12),
-                              Container(
-                                height: 40,
-                                decoration: BoxDecoration(
-                                  color: isDark ? theme.card : _kSurfaceContainerHigh.withValues(alpha: 0.5),
-                                  borderRadius: BorderRadius.circular(10),
-                                  border: isDark ? Border.all(color: theme.border) : null,
-                                ),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    Icon(
-                                      Icons.east,
-                                      size: 14,
-                                      color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                    ),
-                                    const SizedBox(width: 6),
-                                    Text(
-                                      'Jalur Sirkulasi B2',
-                                      style: AppTypography.caption(
-                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                  // Baris Slot Zona A (Swipeable Horizontal, Tanpa Overflow)
+                                  if (zoneASlots.isEmpty)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? theme.card : Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: isDark ? theme.border : const Color(0xFFE5E7EB)),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          Icon(Icons.crop_free_rounded, size: 28, color: isDark ? theme.textMuted : const Color(0xFF94A3B8)),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'Belum ada slot di Zona A ($activeFloorName)',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? Colors.white : const Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      child: Row(
+                                        children: zoneASlots.map((slot) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(right: 10),
+                                            child: SizedBox(
+                                              width: 78,
+                                              height: 104,
+                                              child: _buildSlotCard(slot, isDark: isDark),
+                                            ),
+                                          );
+                                        }).toList(),
                                       ),
                                     ),
-                                    const SizedBox(width: 6),
-                                    Icon(
-                                      Icons.navigation_outlined,
-                                      size: 14,
-                                      color: isDark ? theme.textMuted : const Color(0xFF45474A),
+
+                                  // Circulation aisle
+                                  const SizedBox(height: 14),
+                                  Container(
+                                    height: 40,
+                                    decoration: BoxDecoration(
+                                      color: isDark ? theme.card : _kSurfaceContainerHigh.withValues(alpha: 0.5),
+                                      borderRadius: BorderRadius.circular(10),
+                                      border: isDark ? Border.all(color: theme.border) : null,
                                     ),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      'Satu Arah',
-                                      style: AppTypography.caption(
-                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                    child: Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Icon(
+                                          Icons.east,
+                                          size: 14,
+                                          color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          'Jalur Sirkulasi $activeFloorName',
+                                          style: AppTypography.caption(
+                                            color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Icon(
+                                          Icons.navigation_outlined,
+                                          size: 14,
+                                          color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          'Satu Arah',
+                                          style: AppTypography.caption(
+                                            color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // Zone B Header
+                                  _ZoneLabel(
+                                    label: 'Zona B (Posisi Bawah - EV Ready)',
+                                    count: '$zoneBAvailable Tersedia',
+                                    isDark: isDark,
+                                  ),
+                                  const SizedBox(height: 8),
+
+                                  // Baris Slot Zona B (Swipeable Horizontal, Tanpa Overflow)
+                                  if (zoneBSlots.isEmpty)
+                                    Container(
+                                      width: double.infinity,
+                                      padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? theme.card : Colors.white,
+                                        borderRadius: BorderRadius.circular(12),
+                                        border: Border.all(color: isDark ? theme.border : const Color(0xFFE5E7EB)),
+                                      ),
+                                      child: Column(
+                                        children: [
+                                          const Icon(Icons.bolt_outlined, size: 28, color: Color(0xFF17A18A)),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'Belum ada slot di Zona B ($activeFloorName)',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? Colors.white : const Color(0xFF64748B),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    )
+                                  else
+                                    SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      physics: const BouncingScrollPhysics(),
+                                      child: Row(
+                                        children: zoneBSlots.map((slot) {
+                                          return Padding(
+                                            padding: const EdgeInsets.only(right: 10),
+                                            child: SizedBox(
+                                              width: 78,
+                                              height: 104,
+                                              child: _buildSlotCard(slot, isDark: isDark),
+                                            ),
+                                          );
+                                        }).toList(),
                                       ),
                                     ),
-                                  ],
-                                ),
-                              ),
-                              const SizedBox(height: 12),
 
-                              // Zone B
-                              _ZoneLabel(
-                                label: 'Zona B',
-                                count: '${['B-01', 'B-02', 'B-03', 'B-04'].where((s) => SlotSelectionBackend.instance.isSlotAvailable(s)).length} Tersedia',
-                                isDark: isDark,
-                              ),
-                              const SizedBox(height: 8),
-                              GridView.count(
-                                crossAxisCount: 4,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 3 / 4,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
-                                children: [
-                                  _buildSlot('B-01', SlotSelectionBackend.instance.isSlotAvailable('B-01'), isSelected: _selectedSlot == 'B-01', isDark: isDark),
-                                  _buildSlot('B-02', SlotSelectionBackend.instance.isSlotAvailable('B-02'), isSelected: _selectedSlot == 'B-02', isDark: isDark),
-                                  _buildSlot('B-03', SlotSelectionBackend.instance.isSlotAvailable('B-03'), isEV: true, isSelected: _selectedSlot == 'B-03', isDark: isDark),
-                                  _buildSlot('B-04', SlotSelectionBackend.instance.isSlotAvailable('B-04'), isEV: true, isSelected: _selectedSlot == 'B-04', isDark: isDark),
-                                ],
-                              ),
-
-                              // Legend
-                              const SizedBox(height: 16),
-                              Row(
-                                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                                children: [
-                                  _LegendItem(
-                                    color: isDark ? theme.card : _kSurfaceContainerLowest,
-                                    label: 'Tersedia',
-                                    border: isDark ? Colors.white : const Color(0xFFC6C6CA),
-                                    isDark: isDark,
-                                  ),
-                                  _LegendItem(
-                                    color: isDark ? const Color(0xFF1E293B) : _kSurfaceContainerHigh.withValues(alpha: 0.6),
-                                    label: 'Terisi Mobil',
-                                    isDark: isDark,
-                                  ),
-                                  _LegendItem(
-                                    color: isDark ? Colors.white : _kPrimaryContainer,
-                                    label: 'Pilihan Anda',
-                                    isDark: isDark,
+                                  // Legend
+                                  const SizedBox(height: 16),
+                                  Row(
+                                    mainAxisAlignment: MainAxisAlignment.spaceAround,
+                                    children: [
+                                      _LegendItem(
+                                        color: isDark ? theme.card : _kSurfaceContainerLowest,
+                                        label: 'Tersedia',
+                                        border: isDark ? Colors.white : const Color(0xFFC6C6CA),
+                                        isDark: isDark,
+                                      ),
+                                      _LegendItem(
+                                        color: isDark ? const Color(0xFF1E293B) : _kSurfaceContainerHigh.withValues(alpha: 0.6),
+                                        label: 'Terisi Mobil',
+                                        isDark: isDark,
+                                      ),
+                                      _LegendItem(
+                                        color: const Color(0xFF114177),
+                                        label: 'Pilihan Anda',
+                                        isDark: isDark,
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                            ],
-                          ),
+                            );
+                          },
                         ),
 
                         const SizedBox(height: 120),
@@ -599,9 +686,18 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                         ),
                         GestureDetector(
                           onTap: () {
+                            final floors = SlotSelectionBackend.instance.floors;
+                            final activeFloorName = (floors.isNotEmpty && _selectedFloor < floors.length)
+                                ? floors[_selectedFloor]
+                                : 'Lantai 1';
+                            final loc = SlotSelectionBackend.instance.currentLocation;
+                            final rate = (loc?['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0;
                             CheckoutBackend.instance.setBookingDetails(
-                              slotCode: _selectedSlot ?? 'A-05',
-                              floorName: _floors[_selectedFloor],
+                              locationId: loc?['id']?.toString(),
+                              locationName: loc?['name']?.toString() ?? 'Pakuwon Mall',
+                              slotCode: _selectedSlot ?? 'A-01',
+                              floorName: activeFloorName,
+                              hourlyRate: rate,
                             );
                             Navigator.push(
                               context,
@@ -646,140 +742,141 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
     );
   }
 
-  Widget _buildSlot(String id, bool isAvailable, {bool isSelected = false, bool isEV = false, bool isDark = false}) {
+  Widget _buildSlotCard(Map<String, dynamic> slot, {bool isDark = false}) {
     final theme = ThemeService.instance;
-    final selected = isSelected;
-    Color bg;
-    Color? border;
-    Widget icon;
-    Widget label;
+    final String slotCode = slot['slot_code']?.toString() ?? slot['code']?.toString() ?? '-';
+    final statusStr = (slot['status']?.toString() ?? 'available').toLowerCase();
+    final bool isAvailable = statusStr == 'available';
+    final bool isSelected = _selectedSlot == slotCode;
 
-    if (selected) {
-      bg = isDark ? Colors.white : _kPrimaryContainer;
-      border = null;
-      icon = Icon(
-        Icons.check_circle,
-        size: 18,
-        color: isDark ? Colors.black : const Color(0xFFFCF9F2),
-      );
-      label = Text(
-        'Pilihan',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 9,
-          fontWeight: FontWeight.w700,
-          color: isDark ? Colors.black : const Color(0xFFFCF9F2),
-        ),
-      );
+    final slotTypeStr = (slot['slot_type']?.toString() ?? slot['type']?.toString() ?? 'mobil').toLowerCase();
+    final bool isEV = slotTypeStr == 'ev';
+    final bool isDifabel = slotTypeStr == 'difabel' || slotTypeStr.contains('disabilitas');
+    final bool isMotor = slotTypeStr == 'motor';
+    final bool isVip = slotTypeStr == 'vip';
+
+    final Color badgeColor = isEV
+        ? const Color(0xFF17A18A)
+        : (isDifabel
+            ? const Color(0xFF8B5CF6)
+            : (isMotor
+                ? const Color(0xFFF59E0B)
+                : (isVip ? const Color(0xFFEAB308) : const Color(0xFF114177))));
+
+    String typeLabel = 'Reguler';
+    if (isEV) {
+      typeLabel = '⚡ EV';
+    } else if (isDifabel) {
+      typeLabel = '♿ Difabel';
+    } else if (isMotor) {
+      typeLabel = '🛵 Motor';
+    } else if (isVip) {
+      typeLabel = '👑 VIP';
+    }
+
+    Color bg;
+    Border? border;
+
+    if (isSelected) {
+      bg = const Color(0xFF114177);
+      border = Border.all(color: const Color(0xFF114177), width: 1.5);
     } else if (!isAvailable) {
-      bg = isDark ? const Color(0xFF1E293B) : _kSurfaceContainerHigh.withValues(alpha: 0.6);
-      border = null;
-      icon = Icon(
-        Icons.directions_car,
-        size: 18,
-        color: isDark ? theme.textMuted : const Color(0xFF45474A),
-      );
-      label = Text(
-        'Terisi',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 9,
-          fontWeight: FontWeight.w500,
-          color: isDark ? theme.textMuted : const Color(0xFF45474A),
-        ),
-      );
+      bg = isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9);
+      border = Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0));
     } else {
-      bg = isDark ? theme.card : _kSurfaceContainerLowest;
-      border = isDark ? Colors.white : const Color(0xFFC6C6CA);
-      icon = isEV
-          ? Container(
-              width: 24,
-              height: 24,
-              decoration: const BoxDecoration(color: _kTertiaryFixed, shape: BoxShape.circle),
-              child: const Icon(Icons.bolt, size: 14, color: Color(0xFF002115)),
-            )
-          : const SizedBox();
-      label = Text(
-        'Siap',
-        style: GoogleFonts.plusJakartaSans(
-          fontSize: 9,
-          fontWeight: FontWeight.w500,
-          color: isDark ? theme.textMuted : const Color(0xFF45474A),
-        ),
+      bg = isDark ? theme.card : (isEV ? const Color(0xFFE8F7F4) : Colors.white);
+      border = Border.all(
+        color: isEV ? const Color(0xFF17A18A) : (isDark ? theme.border : const Color(0xFFE5E7EB)),
+        width: isEV ? 1.5 : 1,
       );
     }
 
     return GestureDetector(
-      onTap: isAvailable ? () => setState(() => _selectedSlot = selected ? null : id) : null,
+      onTap: isAvailable ? () => setState(() => _selectedSlot = isSelected ? null : slotCode) : null,
       child: AnimatedScale(
-        scale: selected ? 1.05 : 1.0,
+        scale: isSelected ? 1.05 : 1.0,
         duration: const Duration(milliseconds: 180),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                color: bg,
-                borderRadius: BorderRadius.circular(16),
-                border: border != null
-                    ? Border.all(
-                        color: border,
-                        width: (isDark && border == Colors.white) ? 1.5 : 1.0,
-                      )
-                    : null,
-                boxShadow: selected
-                    ? [
-                        BoxShadow(
-                          color: (isDark ? Colors.white : _kPrimaryContainer).withValues(alpha: 0.2),
-                          offset: const Offset(0, 4),
-                          blurRadius: 12,
-                        ),
-                      ]
-                    : const [AppShadows.soft],
-              ),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  const SizedBox(height: 8),
-                  Text(
-                    id,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      color: selected
-                          ? (isDark ? Colors.black : const Color(0xFFFCF9F2))
-                          : (isDark ? Colors.white : const Color(0xFF1C1C18)),
+        child: Container(
+          width: 78,
+          height: 104,
+          decoration: BoxDecoration(
+            color: bg,
+            borderRadius: BorderRadius.circular(14),
+            border: border,
+            boxShadow: isSelected
+                ? [
+                    BoxShadow(
+                      color: const Color(0xFF114177).withValues(alpha: 0.3),
+                      offset: const Offset(0, 4),
+                      blurRadius: 10,
                     ),
-                  ),
-                  icon,
-                  Padding(padding: const EdgeInsets.only(bottom: 6), child: label),
-                ],
-              ),
-            ),
-            if (selected)
-              Positioned(
-                top: -10,
-                left: 0,
-                right: 0,
-                child: Center(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF9A442D),
-                      borderRadius: AppRadii.pillRadius,
-                    ),
-                    child: Text(
-                      'Dipilih',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 8,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: 0.5,
-                      ),
-                    ),
+                  ]
+                : const [AppShadows.soft],
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              // Badge Type
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 2),
+                decoration: BoxDecoration(
+                  color: isSelected
+                      ? Colors.white.withValues(alpha: 0.2)
+                      : badgeColor.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Text(
+                  typeLabel,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.bold,
+                    color: isSelected ? Colors.white : badgeColor,
                   ),
                 ),
               ),
-          ],
+              const SizedBox(height: 6),
+              Text(
+                slotCode,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 13,
+                  fontWeight: FontWeight.bold,
+                  color: isSelected ? Colors.white : (isDark ? Colors.white : const Color(0xFF1A1A18)),
+                ),
+              ),
+              const SizedBox(height: 4),
+              if (isSelected)
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(Icons.check_circle, size: 10, color: Colors.white),
+                    const SizedBox(width: 3),
+                    Text(
+                      'Pilihan',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 8.5, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                  ],
+                )
+              else if (!isAvailable)
+                Text(
+                  'Terisi',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w600,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                  ),
+                )
+              else
+                Text(
+                  'Tersedia',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 8.5,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF17A18A),
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );

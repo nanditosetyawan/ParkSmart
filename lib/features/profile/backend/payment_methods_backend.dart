@@ -107,7 +107,7 @@ class PaymentMethodsBackend extends ChangeNotifier {
           await _client
               .from('users')
               .update({'wallet_balance': newBalance})
-              .eq('id', 'c0000000-0000-0000-0000-000000000001');
+              .eq('id', ProfileBackend.instance.userId);
         }
 
         // Catat di tabel payments

@@ -42,7 +42,7 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStateMixin {
   bool _obscure = true;
   bool _remember = false;
-  bool _fingerprintEnabled = true;
+  bool _fingerprintEnabled = false;
   bool _faceIdEnabled = false;
 
   final TextEditingController _emailController = TextEditingController();
@@ -141,8 +141,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   Future<void> _loadSavedCredentials() async {
     final prefs = await SharedPreferences.getInstance();
     final bool remember = prefs.getBool('remember_me') ?? false;
-    final bool fp = prefs.getBool('fingerprint_enabled') ?? true;
+    final bool fp = prefs.getBool('fingerprint_enabled') ?? false;
     final bool face = prefs.getBool('face_id_enabled') ?? false;
+    final String? bioEmail = prefs.getString('biometric_user_email');
 
     if (mounted) {
       setState(() {
@@ -154,6 +155,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           final String? savedPassword = prefs.getString('saved_password');
           if (_emailController.text.isEmpty && savedEmail != null) _emailController.text = savedEmail;
           if (savedPassword != null) _passwordController.text = savedPassword;
+        } else if (_fingerprintEnabled && bioEmail != null && bioEmail.isNotEmpty) {
+          // Sidik jari aktif: otomatis isi field email, password kosong
+          if (_emailController.text.isEmpty) {
+            _emailController.text = bioEmail;
+          }
         }
       });
 
@@ -179,13 +185,35 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         biometricOnly: true,
       );
       if (didAuth && mounted) {
+        final targetEmail = _emailController.text.trim();
+        if (targetEmail.isNotEmpty) {
+          try {
+            final userResponse = await Supabase.instance.client
+                .from('users')
+                .select('id, full_name, email, phone, member_tier, wallet_balance, status, ban_reason')
+                .eq('email', targetEmail)
+                .maybeSingle();
+            if (userResponse != null && mounted) {
+              ProfileBackend.instance.setLoggedInUser(
+                id: userResponse['id'].toString(),
+                fullName: userResponse['full_name'] ?? 'Pengguna',
+                email: userResponse['email'] ?? targetEmail,
+                phone: userResponse['phone'] ?? '',
+                memberTier: userResponse['member_tier']?.toString().toUpperCase() ?? 'BRONZE',
+                walletBalance: userResponse['wallet_balance'] != null
+                    ? (double.tryParse(userResponse['wallet_balance'].toString()) ?? 0).toInt()
+                    : 0,
+              );
+            }
+          } catch (_) {}
+        }
         if (_remember) {
           await _saveCredentials();
         }
         await SessionService.instance.startSession(
           userType: 'user',
-          identifier: _emailController.text.isNotEmpty ? _emailController.text : 'user@parksmart.id',
-          userName: 'Pengguna',
+          identifier: targetEmail.isNotEmpty ? targetEmail : 'user@parksmart.id',
+          userName: ProfileBackend.instance.name,
         );
         if (mounted) {
           Navigator.pushReplacement(
@@ -319,7 +347,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       if (email.toLowerCase() == 'jokowi.dodo@gmail.com' &&
           (password == 'user123' || password == 'user 123')) {
         ProfileBackend.instance.setLoggedInUser(
-          id: 'c0000000-0000-0000-0000-000000000001',
+          id: 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba',
           fullName: 'Jokowi Dodo',
           email: 'jokowi.dodo@gmail.com',
           phone: '+62 811-2345-6789',
@@ -930,43 +958,131 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                             // Secondary auth buttons (Biometrik & Google)
                             Row(
                               children: [
-                                if (_fingerprintEnabled) ...[
-                                  Expanded(
-                                    child: _SecondaryButton(
-                                      label: 'Biometrik',
-                                      icon: Icons.fingerprint,
-                                      isDark: isDark,
-                                      onTap: () async {
-                                        final LocalAuthentication auth = LocalAuthentication();
-                                        try {
-                                          final bool didAuthenticate = await auth.authenticate(
-                                            localizedReason: 'Gunakan sidik jari untuk masuk',
-                                            biometricOnly: true,
-                                          );
-                                          if (didAuthenticate && context.mounted) {
-                                            if (_remember) {
-                                              await _saveCredentials();
-                                            }
-                                            await SessionService.instance.startSession(
-                                              userType: 'user',
-                                              identifier: _emailController.text.isNotEmpty ? _emailController.text : 'user@parksmart.id',
-                                              userName: 'Pengguna',
+                                  if (_fingerprintEnabled) ...[
+                                    Expanded(
+                                      child: _SecondaryButton(
+                                        label: 'Biometrik',
+                                        icon: Icons.fingerprint,
+                                        isDark: isDark,
+                                        onTap: () async {
+                                          final prefs = await SharedPreferences.getInstance();
+                                          final String? bioEmail = prefs.getString('biometric_user_email');
+                                          final targetEmail = _emailController.text.trim().isNotEmpty
+                                              ? _emailController.text.trim()
+                                              : (bioEmail ?? '');
+
+                                          if (!context.mounted) return;
+
+                                          if (targetEmail.isEmpty) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              const SnackBar(
+                                                content: Text('Silakan masukkan email akun yang terdaftar terlebih dahulu.'),
+                                                backgroundColor: Colors.orangeAccent,
+                                              ),
                                             );
+                                            return;
+                                          }
+
+                                          // Validasi jika email yang diketik di layar berbeda dari akun yang di-bind ke sidik jari perangkat ini
+                                          if (bioEmail != null && bioEmail.isNotEmpty && targetEmail.toLowerCase() != bioEmail.toLowerCase()) {
+                                            ScaffoldMessenger.of(context).showSnackBar(
+                                              SnackBar(
+                                                content: Text('Sensor sidik jari ini tertaut dengan akun $bioEmail. Silakan masukkan kata sandi untuk akun $targetEmail.'),
+                                                backgroundColor: Colors.orangeAccent,
+                                                duration: const Duration(seconds: 4),
+                                              ),
+                                            );
+                                            return;
+                                          }
+
+                                          final LocalAuthentication auth = LocalAuthentication();
+                                          try {
+                                            final bool didAuthenticate = await auth.authenticate(
+                                              localizedReason: 'Gunakan sidik jari untuk masuk ke akun $targetEmail',
+                                              biometricOnly: true,
+                                            );
+                                            if (didAuthenticate && context.mounted) {
+                                              // Ambil profil akun asli dari database Supabase
+                                              final userResponse = await Supabase.instance.client
+                                                  .from('users')
+                                                  .select('id, full_name, email, phone, member_tier, wallet_balance, status, ban_reason')
+                                                  .eq('email', targetEmail)
+                                                  .maybeSingle();
+
+                                              if (!context.mounted) return;
+
+                                              if (userResponse != null) {
+                                                if (userResponse['status'] == 'banned' || userResponse['status'] == 'inactive') {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Akun dinonaktifkan: ${userResponse['ban_reason'] ?? 'Hubungi CS'}'),
+                                                      backgroundColor: Colors.redAccent,
+                                                    ),
+                                                  );
+                                                  return;
+                                                }
+
+                                                ProfileBackend.instance.setLoggedInUser(
+                                                  id: userResponse['id'].toString(),
+                                                  fullName: userResponse['full_name'] ?? 'Pengguna',
+                                                  email: userResponse['email'] ?? targetEmail,
+                                                  phone: userResponse['phone'] ?? '',
+                                                  memberTier: userResponse['member_tier']?.toString().toUpperCase() ?? 'BRONZE',
+                                                  walletBalance: userResponse['wallet_balance'] != null
+                                                      ? (double.tryParse(userResponse['wallet_balance'].toString()) ?? 0).toInt()
+                                                      : 0,
+                                                );
+
+                                                if (_remember) {
+                                                  await _saveCredentials();
+                                                }
+
+                                                await SessionService.instance.startSession(
+                                                  userType: 'user',
+                                                  identifier: targetEmail,
+                                                  userName: userResponse['full_name'] ?? 'Pengguna',
+                                                );
+
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Selamat datang kembali, ${userResponse['full_name']}!'),
+                                                      backgroundColor: const Color(0xFF0D9488),
+                                                      duration: const Duration(seconds: 2),
+                                                    ),
+                                                  );
+                                                  Navigator.pushReplacement(
+                                                    context,
+                                                    MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                                  );
+                                                }
+                                              } else {
+                                                if (context.mounted) {
+                                                  ScaffoldMessenger.of(context).showSnackBar(
+                                                    SnackBar(
+                                                      content: Text('Akun $targetEmail tidak ditemukan dalam sistem.'),
+                                                      backgroundColor: Colors.redAccent,
+                                                    ),
+                                                  );
+                                                }
+                                              }
+                                            }
+                                          } catch (e) {
+                                            debugPrint('Fingerprint auth error: $e');
                                             if (context.mounted) {
-                                              Navigator.pushReplacement(
-                                                context,
-                                                MaterialPageRoute(builder: (_) => const HomeScreen()),
+                                              ScaffoldMessenger.of(context).showSnackBar(
+                                                SnackBar(
+                                                  content: Text('Gagal verifikasi sidik jari: $e'),
+                                                  backgroundColor: Colors.redAccent,
+                                                ),
                                               );
                                             }
                                           }
-                                        } catch (e) {
-                                          debugPrint(e.toString());
-                                        }
-                                      },
+                                        },
+                                      ),
                                     ),
-                                  ),
-                                  const SizedBox(width: 12),
-                                ],
+                                    const SizedBox(width: 12),
+                                  ],
                                 Expanded(
                                   child: _SecondaryButton(
                                     label: 'Google',

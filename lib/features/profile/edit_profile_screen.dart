@@ -1,5 +1,7 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/theme_service.dart';
 import 'backend/edit_profile_backend.dart';
@@ -30,8 +32,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   String _selectedGender = 'Laki-laki';
   bool _isLoading = false;
 
-  final String _profileImageUrl =
-      'https://lh3.googleusercontent.com/aida-public/AB6AXuDpCYtgl-hGVXRQdhh0hHqX3XniI-C7Lxg0yDeOLXcMqOjE46TInnh-OrhgMgEuWTCRGldtvleaFHMYyWaQJ1mquPwZd7Wml55E3cC1V_VeKZ8d3xzBuHnAybOMqARFWoTE_k9nnrnzlSBgmrSJf0f_4mfvGIQfY0UR4vW0oNI3neJvNiqlN6jEnILQFveVtdwSEsvQSXEw1pAGo4CXJcw1vAUCCtRHm53H5N4XDk72XHIaYnPJnTlD';
+  String? _profileImageUrl;
+  Uint8List? _localAvatarBytes;
 
   @override
   void initState() {
@@ -42,6 +44,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     _phoneController = TextEditingController(text: widget.initialPhone ?? p.phone);
     _addressController = TextEditingController(text: '');
     _birthDateController = TextEditingController(text: '');
+    _profileImageUrl = p.avatarUrl;
   }
 
   @override
@@ -83,10 +86,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
       await prefs.setString('user_profile_address', _addressController.text.trim());
       await prefs.setString('user_profile_birthdate', _birthDateController.text.trim());
 
+      if (_profileImageUrl != null) {
+        await prefs.setString('user_profile_avatar_url', _profileImageUrl!);
+      }
+
       await EditProfileBackend.instance.updateProfile(
         fullName: name,
         email: email,
         phone: phone,
+        avatarUrl: _profileImageUrl,
         gender: _selectedGender,
         address: _addressController.text.trim(),
         birthDate: _birthDateController.text.trim(),
@@ -207,7 +215,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               onTap: () {
                 Navigator.pop(ctx);
-                _showToast('Kamera dibuka...');
+                _pickAndUploadPhoto(ImageSource.camera);
               },
             ),
             ListTile(
@@ -232,10 +240,74 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               onTap: () {
                 Navigator.pop(ctx);
-                _showToast('Membuka galeri foto...');
+                _pickAndUploadPhoto(ImageSource.gallery);
               },
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickAndUploadPhoto(ImageSource source) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? file = await picker.pickImage(
+        source: source,
+        maxWidth: 1000,
+        maxHeight: 1000,
+        imageQuality: 80,
+      );
+      if (file == null) return;
+
+      final bytes = await file.readAsBytes();
+      setState(() {
+        _localAvatarBytes = bytes;
+        _isLoading = true;
+      });
+
+      final url = await EditProfileBackend.instance.uploadAvatar(bytes);
+      if (url != null) {
+        setState(() {
+          _profileImageUrl = url;
+        });
+        // Simpan langsung ke database agar sinkron ke seluruh aplikasi
+        await EditProfileBackend.instance.updateProfile(
+          fullName: _nameController.text.trim(),
+          email: _emailController.text.trim(),
+          phone: _phoneController.text.trim(),
+          avatarUrl: url,
+          gender: _selectedGender,
+          address: _addressController.text.trim(),
+          birthDate: _birthDateController.text.trim(),
+        );
+        _showToast('Foto profil berhasil diunggah dan disimpan!');
+      } else {
+        _showToast('Gagal mengunggah foto profil', isError: true);
+      }
+    } catch (e) {
+      debugPrint('[EditProfileScreen] Error pick image: $e');
+      _showToast('Terjadi kesalahan saat memilih gambar', isError: true);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Widget _buildFallbackAvatar(double size) {
+    final name = _nameController.text.trim();
+    final initial = name.isNotEmpty ? name[0].toUpperCase() : 'J';
+    return Container(
+      width: size,
+      height: size,
+      color: const Color(0xFF114177),
+      child: Center(
+        child: Text(
+          initial,
+          style: GoogleFonts.plusJakartaSans(
+            fontSize: size * 0.38,
+            fontWeight: FontWeight.bold,
+            color: Colors.white,
+          ),
         ),
       ),
     );
@@ -333,10 +405,24 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       offset: const Offset(0, 4),
                                     ),
                                   ],
-                                  image: DecorationImage(
-                                    image: NetworkImage(_profileImageUrl),
-                                    fit: BoxFit.cover,
-                                  ),
+                                ),
+                                child: ClipOval(
+                                  child: _localAvatarBytes != null
+                                      ? Image.memory(
+                                          _localAvatarBytes!,
+                                          width: 100,
+                                          height: 100,
+                                          fit: BoxFit.cover,
+                                        )
+                                      : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
+                                          ? Image.network(
+                                              _profileImageUrl!,
+                                              width: 100,
+                                              height: 100,
+                                              fit: BoxFit.cover,
+                                              errorBuilder: (context, error, stackTrace) => _buildFallbackAvatar(100),
+                                            )
+                                          : _buildFallbackAvatar(100),
                                 ),
                               ),
                               Positioned(

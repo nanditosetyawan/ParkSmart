@@ -25,7 +25,7 @@ class ExploreMapBackend extends ChangeNotifier {
       // Targeted Column Query: Hanya mengambil kolom yang dibutuhkan oleh marker peta & pop-up
       var query = _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_ev, rating, review_count, status, image_url, facilities');
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_ev, rating, review_count, status, image_url, images, facilities');
 
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         query = query.ilike('name', '%${searchQuery.trim()}%');
@@ -41,6 +41,20 @@ class ExploreMapBackend extends ChangeNotifier {
         final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
         final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
 
+        List<String> photos = [];
+        if (row['images'] is List) {
+          photos = (row['images'] as List)
+              .map((e) => e.toString().trim())
+              .where((e) => e.isNotEmpty)
+              .toList();
+        }
+        if (photos.isEmpty && row['image_url'] != null && row['image_url'].toString().trim().isNotEmpty) {
+          photos.add(row['image_url'].toString().trim());
+        }
+        if (photos.isEmpty) {
+          photos.add('https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80');
+        }
+
         return {
           'id': row['id'],
           'name': row['name'] ?? 'Spot Parkir',
@@ -53,12 +67,8 @@ class ExploreMapBackend extends ChangeNotifier {
           'rating': (row['rating'] as num?)?.toDouble() ?? 4.5,
           'reviews': '${row['review_count'] ?? 0}',
           'hours': row['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
-          'photos': [
-            if (row['image_url'] != null && row['image_url'].toString().isNotEmpty)
-              row['image_url'].toString()
-            else
-              'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-          ],
+          'photos': photos,
+          'image_url': photos.first,
           'facilities': facilities,
         };
       }).toList();

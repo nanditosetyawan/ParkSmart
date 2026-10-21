@@ -28,7 +28,7 @@ class ManageParkingBackend extends ChangeNotifier {
     try {
       final res = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, province, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images, image_url')
+          .select('id, code, name, type, city, province, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images, image_url, floors')
           .order('name', ascending: true);
 
       if (res.isNotEmpty) {
@@ -53,6 +53,11 @@ class ManageParkingBackend extends ChangeNotifier {
             displayStatus = 'Maintenance';
           }
 
+          List<String> floorsList = ['Lantai 1'];
+          if (row['floors'] is List && (row['floors'] as List).isNotEmpty) {
+            floorsList = List<String>.from(row['floors']);
+          }
+
           return {
             'id': row['id']?.toString() ?? '',
             'code': row['code']?.toString() ?? '',
@@ -64,9 +69,9 @@ class ManageParkingBackend extends ChangeNotifier {
             'latitude': (row['latitude'] as num?)?.toDouble() ?? -6.1754,
             'longitude': (row['longitude'] as num?)?.toDouble() ?? 106.7933,
             'totalSlots': total,
-            'occupiedSlots': (total * 0.7).round(),
+            'occupiedSlots': 0,
             'status': displayStatus,
-            'floors': ['Lantai B1', 'Lantai B2', 'Lantai B3'],
+            'floors': floorsList,
             'operatingHours': row['operating_hours']?.toString() ?? 'Buka 24 Jam',
             'baseRate': (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000,
             'evRate': (row['hourly_rate_ev'] as num?)?.toInt() ?? 7500,
@@ -87,6 +92,185 @@ class ManageParkingBackend extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  // ==================== REALTIME DATABASE SLOTS ====================
+  final Map<String, List<Map<String, dynamic>>> _locationSlots = {};
+
+  /// Memuat semua slot dari database Supabase `public.parking_slots`
+  Future<void> fetchSlotsForLocation(String locationId) async {
+    try {
+      final res = await _client
+          .from('parking_slots')
+          .select('id, location_id, floor_name, zone, slot_code, slot_type, status, current_plate_number')
+          .eq('location_id', locationId)
+          .order('slot_code', ascending: true);
+
+      _locationSlots[locationId] = List<Map<String, dynamic>>.from(res);
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] fetchSlotsForLocation error: $e');
+    }
+  }
+
+  /// Menghitung total slot yang sudah dibuat di lokasi ini pada SEMUA lantai
+  int getTotalSlotsCount(String locationId) {
+    return _locationSlots[locationId]?.length ?? 0;
+  }
+
+  /// Mengambil daftar slot untuk lantai dan zona tertentu
+  List<Map<String, dynamic>> getSlotsFor(String locationId, String floorName, String zone) {
+    final all = _locationSlots[locationId] ?? [];
+    return all.where((s) => s['floor_name'] == floorName && s['zone'] == zone).toList();
+  }
+
+  /// Tambah tingkat lantai baru ke database (Maksimal 4)
+  Future<bool> addFloor(String locationId, String floorName) async {
+    try {
+      final loc = locations.firstWhere((l) => l['id'] == locationId, orElse: () => {});
+      if (loc.isEmpty) return false;
+      final List<String> currentFloors = List<String>.from(loc['floors'] ?? ['Lantai 1']);
+      if (currentFloors.length >= 4) {
+        _errorMessage = 'Maksimal 4 tingkat lantai parkir.';
+        notifyListeners();
+        return false;
+      }
+      if (!currentFloors.contains(floorName)) {
+        currentFloors.add(floorName);
+        await _client.from('parking_locations').update({'floors': currentFloors}).eq('id', locationId);
+        await fetchLocations();
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] addFloor error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Tambah slot parkir baru ke database dengan batas total kapasitas
+  Future<bool> addSlot({
+    required String locationId,
+    required String floorName,
+    required String zone,
+    required String slotCode,
+    required String slotType,
+    String status = 'Tersedia',
+    String? plate,
+  }) async {
+    try {
+      final loc = locations.firstWhere((l) => l['id'] == locationId, orElse: () => {});
+      final cap = (loc['totalSlots'] as num?)?.toInt() ?? 0;
+      final currentCount = getTotalSlotsCount(locationId);
+
+      if (currentCount >= cap) {
+        _errorMessage = 'Batas kapasitas ($cap slot) tercapai untuk lokasi ini. Tidak dapat menambah slot lagi.';
+        notifyListeners();
+        return false;
+      }
+
+      String dbSlotType = 'mobil';
+      final lowerType = slotType.toLowerCase();
+      if (lowerType.contains('ev')) {
+        dbSlotType = 'ev';
+      } else if (lowerType.contains('motor')) {
+        dbSlotType = 'motor';
+      } else if (lowerType.contains('disabilitas') || lowerType.contains('difabel')) {
+        dbSlotType = 'difabel';
+      } else if (lowerType.contains('vip')) {
+        dbSlotType = 'vip';
+      }
+
+      String dbStatus = 'available';
+      final lowerStatus = status.toLowerCase();
+      if (lowerStatus == 'terisi' || lowerStatus == 'occupied') {
+        dbStatus = 'occupied';
+      } else if (lowerStatus == 'maintenance') {
+        dbStatus = 'maintenance';
+      } else if (lowerStatus == 'reserved') {
+        dbStatus = 'reserved';
+      }
+
+      await _client.from('parking_slots').insert({
+        'location_id': locationId,
+        'floor_name': floorName,
+        'zone': zone,
+        'slot_code': slotCode,
+        'slot_type': dbSlotType,
+        'status': dbStatus,
+        if (plate != null && plate.isNotEmpty) 'current_plate_number': plate,
+      });
+
+      await fetchSlotsForLocation(locationId);
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] addSlot error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Hapus slot dari database
+  Future<bool> deleteSlot(String slotId, String locationId) async {
+    try {
+      await _client.from('parking_slots').delete().eq('id', slotId);
+      await fetchSlotsForLocation(locationId);
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] deleteSlot error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update data slot di database
+  Future<bool> updateSlot({
+    required String slotId,
+    required String locationId,
+    required String slotType,
+    required String status,
+    String? plate,
+  }) async {
+    try {
+      String dbSlotType = 'mobil';
+      final lowerType = slotType.toLowerCase();
+      if (lowerType.contains('ev')) {
+        dbSlotType = 'ev';
+      } else if (lowerType.contains('motor')) {
+        dbSlotType = 'motor';
+      } else if (lowerType.contains('disabilitas') || lowerType.contains('difabel')) {
+        dbSlotType = 'difabel';
+      } else if (lowerType.contains('vip')) {
+        dbSlotType = 'vip';
+      }
+
+      String dbStatus = 'available';
+      final lowerStatus = status.toLowerCase();
+      if (lowerStatus == 'terisi' || lowerStatus == 'occupied') {
+        dbStatus = 'occupied';
+      } else if (lowerStatus == 'maintenance') {
+        dbStatus = 'maintenance';
+      } else if (lowerStatus == 'reserved') {
+        dbStatus = 'reserved';
+      }
+
+      await _client.from('parking_slots').update({
+        'slot_type': dbSlotType,
+        'status': dbStatus,
+        'current_plate_number': (dbStatus == 'occupied') ? plate : null,
+      }).eq('id', slotId);
+
+      await fetchSlotsForLocation(locationId);
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] updateSlot error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
     }
   }
 
@@ -118,6 +302,7 @@ class ManageParkingBackend extends ChangeNotifier {
         'status': 'active',
         'image_url': primaryImage,
         'images': images,
+        'floors': ['Lantai 1'],
         'facilities': ['CCTV 24 Jam', 'Covered Parking', if (locData['isEvReady'] == true) 'EV Charging Station'],
       };
 

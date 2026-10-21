@@ -187,27 +187,59 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
                         ),
                         child: Row(
                           children: [
-                            Container(
-                              width: 52,
-                              height: 52,
-                              decoration: BoxDecoration(
-                                gradient: const LinearGradient(
-                                  colors: [Color(0xFF114177), Color(0xFF1E60AA)],
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                ),
-                                borderRadius: BorderRadius.circular(14),
-                              ),
-                              child: Center(
-                                child: Text(
-                                  customer['avatar'],
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 20,
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(14),
+                              child: (customer['avatar_url'] != null && customer['avatar_url'].toString().isNotEmpty)
+                                  ? Image.network(
+                                      customer['avatar_url'].toString(),
+                                      width: 52,
+                                      height: 52,
+                                      fit: BoxFit.cover,
+                                      errorBuilder: (context, error, stackTrace) => Container(
+                                        width: 52,
+                                        height: 52,
+                                        decoration: BoxDecoration(
+                                          gradient: const LinearGradient(
+                                            colors: [Color(0xFF114177), Color(0xFF1E60AA)],
+                                            begin: Alignment.topLeft,
+                                            end: Alignment.bottomRight,
+                                          ),
+                                          borderRadius: BorderRadius.circular(14),
+                                        ),
+                                        child: Center(
+                                          child: Text(
+                                            customer['avatar'],
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 20,
+                                              fontWeight: FontWeight.bold,
+                                              color: Colors.white,
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    )
+                                  : Container(
+                                      width: 52,
+                                      height: 52,
+                                      decoration: BoxDecoration(
+                                        gradient: const LinearGradient(
+                                          colors: [Color(0xFF114177), Color(0xFF1E60AA)],
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(14),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          customer['avatar'],
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.bold,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
                             ),
                             const SizedBox(width: 14),
                             Expanded(
@@ -691,15 +723,35 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
                                     color: const Color(0xFF114177).withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(12),
                                   ),
-                                  child: Center(
-                                    child: Text(
-                                      c['avatar'],
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 17,
-                                        fontWeight: FontWeight.bold,
-                                        color: const Color(0xFF114177),
-                                      ),
-                                    ),
+                                  child: ClipRRect(
+                                    borderRadius: BorderRadius.circular(12),
+                                    child: (c['avatar_url'] != null && c['avatar_url'].toString().isNotEmpty)
+                                        ? Image.network(
+                                            c['avatar_url'].toString(),
+                                            width: 44,
+                                            height: 44,
+                                            fit: BoxFit.cover,
+                                            errorBuilder: (context, error, stackTrace) => Center(
+                                              child: Text(
+                                                c['avatar'],
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: const Color(0xFF114177),
+                                                ),
+                                              ),
+                                            ),
+                                          )
+                                        : Center(
+                                            child: Text(
+                                              c['avatar'],
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 17,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF114177),
+                                              ),
+                                            ),
+                                          ),
                                   ),
                                 ),
                                 const SizedBox(width: 12),

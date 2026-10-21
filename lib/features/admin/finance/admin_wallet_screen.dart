@@ -183,7 +183,12 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                                   leading: CircleAvatar(
                                     radius: 17,
                                     backgroundColor: isSelected ? const Color(0xFF114177) : const Color(0xFFE3EEFF),
-                                    child: Text(u['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF114177))),
+                                    backgroundImage: (u['avatar_url'] != null && u['avatar_url'].toString().isNotEmpty)
+                                        ? NetworkImage(u['avatar_url'].toString())
+                                        : null,
+                                    child: (u['avatar_url'] == null || u['avatar_url'].toString().isEmpty)
+                                        ? Text(u['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: isSelected ? Colors.white : const Color(0xFF114177)))
+                                        : null,
                                   ),
                                   title: Row(
                                     children: [
@@ -693,7 +698,12 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                                       CircleAvatar(
                                         radius: 14,
                                         backgroundColor: const Color(0xFFE3EEFF),
-                                        child: Text(u['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                                        backgroundImage: (u['avatar_url'] != null && u['avatar_url'].toString().isNotEmpty)
+                                            ? NetworkImage(u['avatar_url'].toString())
+                                            : null,
+                                        child: (u['avatar_url'] == null || u['avatar_url'].toString().isEmpty)
+                                            ? Text(u['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)))
+                                            : null,
                                       ),
                                       const SizedBox(width: 10),
                                       Expanded(
@@ -789,14 +799,19 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                             CircleAvatar(
                               radius: 20,
                               backgroundColor: const Color(0xFF114177).withValues(alpha: 0.12),
-                              child: Text(
-                                _selectedUser!['avatar'],
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 14,
-                                  fontWeight: FontWeight.bold,
-                                  color: const Color(0xFF114177),
-                                ),
-                              ),
+                              backgroundImage: (_selectedUser!['avatar_url'] != null && _selectedUser!['avatar_url'].toString().isNotEmpty)
+                                  ? NetworkImage(_selectedUser!['avatar_url'].toString())
+                                  : null,
+                              child: (_selectedUser!['avatar_url'] == null || _selectedUser!['avatar_url'].toString().isEmpty)
+                                  ? Text(
+                                      _selectedUser!['avatar'],
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        color: const Color(0xFF114177),
+                                      ),
+                                    )
+                                  : null,
                             ),
                             const SizedBox(width: 12),
                             Expanded(
@@ -1036,14 +1051,27 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFD1F2EB),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  child: const Icon(Icons.check_circle_outline, size: 20, color: Color(0xFF17A18A)),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: (inj['userAvatar'] != null && inj['userAvatar'].toString().isNotEmpty)
+                      ? Image.network(
+                          inj['userAvatar'].toString(),
+                          width: 38,
+                          height: 38,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) => Container(
+                            width: 38,
+                            height: 38,
+                            color: const Color(0xFFD1F2EB),
+                            child: const Icon(Icons.check_circle_outline, size: 20, color: Color(0xFF17A18A)),
+                          ),
+                        )
+                      : Container(
+                          width: 38,
+                          height: 38,
+                          color: const Color(0xFFD1F2EB),
+                          child: const Icon(Icons.check_circle_outline, size: 20, color: Color(0xFF17A18A)),
+                        ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(

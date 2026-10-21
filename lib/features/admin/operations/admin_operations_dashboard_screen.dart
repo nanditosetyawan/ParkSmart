@@ -6,8 +6,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'admin_operations_notifications_screen.dart';
-import 'admin_locations_screen.dart';
-import 'admin_slot_management_screen.dart';
 import 'admin_active_users_screen.dart';
 import 'admin_bookings_screen.dart';
 import 'manage_parking_screen.dart';
@@ -2056,7 +2054,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               ],
             ),
             TextButton.icon(
-              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen())),
+              onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageParkingScreen(initialTabIndex: 0))),
               icon: const Icon(Icons.list_alt, size: 14, color: Color(0xFF114177)),
               label: Text('Semua', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
             ),
@@ -2154,7 +2152,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 if (_operationalLocations.isEmpty) ...[
                   const SizedBox(height: 16),
                   ElevatedButton.icon(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen())),
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageParkingScreen(initialTabIndex: 0))),
                     icon: const Icon(Icons.add_location_alt_rounded, size: 16, color: Colors.white),
                     label: Text(
                       'Kelola Titik Parkir',
@@ -2277,7 +2275,16 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     width: double.infinity,
                     height: 38,
                     child: ElevatedButton.icon(
-                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ManageParkingScreen(
+                            initialTabIndex: 1,
+                            initialLocationId: loc['db_id']?.toString() ?? loc['id']?.toString(),
+                            initialLocationName: loc['name']?.toString(),
+                          ),
+                        ),
+                      ),
                       icon: const Icon(Icons.grid_on_rounded, size: 14, color: Colors.white),
                       label: Text(
                         'Buka Denah & Status Slot',

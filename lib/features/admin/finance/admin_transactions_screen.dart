@@ -262,7 +262,28 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                 // User
                 Row(
                   children: [
-                    Container(width: 44, height: 44, decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(12)), child: Center(child: Text(txn['user']['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF114177))))),
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(12),
+                      child: (txn['user']['avatarUrl'] != null && txn['user']['avatarUrl'].toString().isNotEmpty)
+                          ? Image.network(
+                              txn['user']['avatarUrl'].toString(),
+                              width: 44,
+                              height: 44,
+                              fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 44,
+                                height: 44,
+                                decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(12)),
+                                child: Center(child: Text(txn['user']['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF114177)))),
+                              ),
+                            )
+                          : Container(
+                              width: 44,
+                              height: 44,
+                              decoration: BoxDecoration(color: const Color(0xFFE3EEFF), borderRadius: BorderRadius.circular(12)),
+                              child: Center(child: Text(txn['user']['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF114177)))),
+                            ),
+                    ),
                     const SizedBox(width: 12),
                     Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
                       Text(txn['user']['name'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
@@ -671,14 +692,19 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                 CircleAvatar(
                   radius: 10,
                   backgroundColor: const Color(0xFFE3EEFF),
-                  child: Text(
-                    t['user']['avatar'],
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 9.5,
-                      fontWeight: FontWeight.bold,
-                      color: const Color(0xFF114177),
-                    ),
-                  ),
+                  backgroundImage: (t['user']['avatarUrl'] != null && t['user']['avatarUrl'].toString().isNotEmpty)
+                      ? NetworkImage(t['user']['avatarUrl'].toString())
+                      : null,
+                  child: (t['user']['avatarUrl'] == null || t['user']['avatarUrl'].toString().isEmpty)
+                      ? Text(
+                          t['user']['avatar'],
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 9.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF114177),
+                          ),
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 6),
                 Flexible(

@@ -8,7 +8,16 @@ import '../../../../core/services/parking_image_service.dart';
 import 'backend/manage_parking_backend.dart';
 
 class ManageParkingScreen extends StatefulWidget {
-  const ManageParkingScreen({super.key});
+  final int initialTabIndex;
+  final String? initialLocationId;
+  final String? initialLocationName;
+
+  const ManageParkingScreen({
+    super.key,
+    this.initialTabIndex = 0,
+    this.initialLocationId,
+    this.initialLocationName,
+  });
 
   @override
   State<ManageParkingScreen> createState() => _ManageParkingScreenState();
@@ -20,83 +29,54 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   String _searchQuery = '';
   String _selectedStatusFilter = 'Semua';
-  String _selectedLocationId = 'loc_1';
-  int _selectedFloorIndex = 1; // Default to Lantai B2 (which has EV)
+  String _selectedLocationId = '';
+  int _selectedFloorIndex = 0; // Default to first floor
 
   // Master Data Lokasi Parkir dari Backend
   List<Map<String, dynamic>> get _locations => ManageParkingBackend.instance.locations;
 
-  // Denah Tata Letak Slot per Lantai (Sinkron dengan Denah Booking User di slot_selection_screen)
-  late Map<String, Map<String, Map<String, List<Map<String, dynamic>>>>> _floorLayouts;
-
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
-    _initFloorLayouts();
+    _tabController = TabController(
+      length: 2,
+      vsync: this,
+      initialIndex: widget.initialTabIndex.clamp(0, 1),
+    );
+    if (widget.initialLocationId != null && widget.initialLocationId!.isNotEmpty) {
+      _selectedLocationId = widget.initialLocationId!;
+    }
     ManageParkingBackend.instance.addListener(_onBackendUpdated);
-    ManageParkingBackend.instance.fetchLocations();
+    ManageParkingBackend.instance.fetchLocations().then((_) {
+      _applyInitialLocation();
+    });
+  }
+
+  void _applyInitialLocation() {
+    if (_locations.isEmpty) return;
+    if (widget.initialLocationId != null && _locations.any((l) => l['id'] == widget.initialLocationId)) {
+      _selectedLocationId = widget.initialLocationId!;
+    } else if (widget.initialLocationName != null) {
+      final match = _locations.firstWhere(
+        (l) => l['name'].toString().toLowerCase().contains(widget.initialLocationName!.toLowerCase()),
+        orElse: () => _locations.first,
+      );
+      _selectedLocationId = match['id'];
+    } else if (_selectedLocationId.isEmpty || !_locations.any((l) => l['id'] == _selectedLocationId)) {
+      _selectedLocationId = _locations.first['id'];
+    }
+    ManageParkingBackend.instance.fetchSlotsForLocation(_selectedLocationId);
+    if (mounted) setState(() {});
   }
 
   void _onBackendUpdated() {
     if (mounted) {
-      setState(() {
-        if (_locations.isNotEmpty && !_locations.any((l) => l['id'] == _selectedLocationId)) {
-          _selectedLocationId = _locations.first['id'];
-        }
-      });
+      if (_locations.isNotEmpty && (_selectedLocationId.isEmpty || !_locations.any((l) => l['id'] == _selectedLocationId))) {
+        _selectedLocationId = _locations.first['id'];
+        ManageParkingBackend.instance.fetchSlotsForLocation(_selectedLocationId);
+      }
+      setState(() {});
     }
-  }
-
-  void _initFloorLayouts() {
-    _floorLayouts = {
-      'loc_1': {
-        'Lantai B1': {
-          'zoneA': [
-            {'code': 'A-01', 'type': 'Reguler', 'status': 'Terisi', 'plate': 'B 1928 KPL', 'price': 5000},
-            {'code': 'A-02', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'A-03', 'type': 'Reguler', 'status': 'Terisi', 'plate': 'B 2234 ABC', 'price': 5000},
-            {'code': 'A-04', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-          ],
-          'zoneB': [
-            {'code': 'B-01', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'B-02', 'type': 'Reguler', 'status': 'Terisi', 'plate': 'B 8831 ZZZ', 'price': 5000},
-            {'code': 'B-03', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'B-04', 'type': 'Disabilitas', 'status': 'Tersedia', 'price': 5000},
-          ],
-        },
-        'Lantai B2': {
-          // Posisi Atas: Parkir Biasa / Mobil Reguler
-          'zoneA': [
-            {'code': 'A-01', 'type': 'Reguler', 'status': 'Terisi', 'plate': 'B 1234 SKP', 'price': 5000},
-            {'code': 'A-02', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'A-03', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'A-04', 'type': 'Reguler', 'status': 'Terisi', 'plate': 'B 5532 PLM', 'price': 5000},
-          ],
-          // Posisi Bawah: Terpisah untuk Stasiun Parkir EV
-          'zoneB': [
-            {'code': 'B-01', 'type': 'Reguler', 'status': 'Terisi', 'plate': 'D 8888 ABC', 'price': 5000},
-            {'code': 'B-02', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'B-03', 'type': 'EV', 'status': 'Tersedia', 'price': 7500, 'charger': 'AC 22 kW'},
-            {'code': 'B-04', 'type': 'EV', 'status': 'Terisi', 'plate': 'B 1111 ION', 'price': 7500, 'charger': 'DC Fast 50 kW'},
-          ],
-        },
-        'Lantai B3': {
-          'zoneA': [
-            {'code': 'A-01', 'type': 'Motor', 'status': 'Terisi', 'plate': 'B 4412 XYZ', 'price': 2000},
-            {'code': 'A-02', 'type': 'Motor', 'status': 'Tersedia', 'price': 2000},
-            {'code': 'A-03', 'type': 'Motor', 'status': 'Terisi', 'plate': 'B 6678 QWE', 'price': 2000},
-            {'code': 'A-04', 'type': 'Motor', 'status': 'Tersedia', 'price': 2000},
-          ],
-          'zoneB': [
-            {'code': 'B-01', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'B-02', 'type': 'Reguler', 'status': 'Tersedia', 'price': 5000},
-            {'code': 'B-03', 'type': 'VIP', 'status': 'Terisi', 'plate': 'RI 1', 'price': 15000},
-            {'code': 'B-04', 'type': 'VIP', 'status': 'Tersedia', 'price': 15000},
-          ],
-        },
-      },
-    };
   }
 
   @override
@@ -657,31 +637,19 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
       );
     }
 
-    final List<String> floors = List<String>.from(loc['floors'] ?? ['Lantai B1', 'Lantai B2']);
+    final List<String> floors = List<String>.from(loc['floors'] ?? ['Lantai 1']);
     if (_selectedFloorIndex >= floors.length) {
       _selectedFloorIndex = 0;
     }
     final activeFloorName = floors[_selectedFloorIndex];
 
-    // Ambil denah slot dari layout map
-    final locationLayout = _floorLayouts[loc['id']] ?? {};
-    final floorLayout = locationLayout[activeFloorName] ?? {
-      'zoneA': [
-        {'code': 'A-01', 'type': 'Reguler', 'status': 'Tersedia', 'price': loc['baseRate']},
-        {'code': 'A-02', 'type': 'Reguler', 'status': 'Tersedia', 'price': loc['baseRate']},
-        {'code': 'A-03', 'type': 'Reguler', 'status': 'Tersedia', 'price': loc['baseRate']},
-        {'code': 'A-04', 'type': 'Reguler', 'status': 'Tersedia', 'price': loc['baseRate']},
-      ],
-      'zoneB': [
-        {'code': 'B-01', 'type': 'Reguler', 'status': 'Tersedia', 'price': loc['baseRate']},
-        {'code': 'B-02', 'type': 'Reguler', 'status': 'Tersedia', 'price': loc['baseRate']},
-        {'code': 'B-03', 'type': 'EV', 'status': 'Tersedia', 'price': loc['evRate'], 'charger': 'AC 22 kW'},
-        {'code': 'B-04', 'type': 'EV', 'status': 'Tersedia', 'price': loc['evRate'], 'charger': 'DC Fast 50 kW'},
-      ],
-    };
+    // Ambil data kapasitas gedung dan slot aktual dari database Supabase
+    final int totalCap = (loc['totalSlots'] as num?)?.toInt() ?? 0;
+    final int totalCreated = ManageParkingBackend.instance.getTotalSlotsCount(loc['id']);
+    final int remainingQuota = (totalCap - totalCreated).clamp(0, totalCap);
 
-    final zoneASlots = floorLayout['zoneA'] ?? [];
-    final zoneBSlots = floorLayout['zoneB'] ?? [];
+    final zoneASlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneA');
+    final zoneBSlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneB');
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -722,6 +690,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     _selectedLocationId = v;
                     _selectedFloorIndex = 0;
                   });
+                  ManageParkingBackend.instance.fetchSlotsForLocation(v);
                 }
               },
             ),
@@ -729,7 +698,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         ),
         const SizedBox(height: 14),
 
-        // 2. Tab Pemilih Lantai (Lantai B1, B2, B3) + Tombol Tambah Lantai Baru
+        // 2. Tab Pemilih Lantai (Default 1 Lantai, Maksimal 4 Lantai) + Tombol Tambah Lantai
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -737,23 +706,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               'Tingkat Lantai Parkir:',
               style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
             ),
-            InkWell(
-              onTap: () => _showAddFloorDialog(loc),
-              borderRadius: BorderRadius.circular(8),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                child: Row(
-                  children: [
-                    const Icon(Icons.add_circle_outline, size: 15, color: Color(0xFF114177)),
-                    const SizedBox(width: 4),
-                    Text(
-                      'Tambah Lantai',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
-                    ),
-                  ],
+            if (floors.length < 4)
+              InkWell(
+                onTap: () => _showAddFloorDialog(loc),
+                borderRadius: BorderRadius.circular(8),
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.add_circle_outline, size: 15, color: Color(0xFF114177)),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Tambah Lantai',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                      ),
+                    ],
+                  ),
                 ),
               ),
-            ),
           ],
         ),
         const SizedBox(height: 8),
@@ -799,47 +769,60 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             },
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
-        // 3. Banner Panduan Desain Slot (Atas = Parkir Biasa, Bawah = Parkir EV)
+        // Indikator Kapasitas Slot (Terikat Total Kapasitas Lokasi)
         Container(
-          padding: const EdgeInsets.all(14),
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
-            color: const Color(0xFFEBF3FC),
-            borderRadius: BorderRadius.circular(14),
-            border: Border.all(color: const Color(0xFFBFDBFE)),
+            color: const Color(0xFFF8FAFC),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFE2E8F0)),
           ),
-          child: Row(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Container(
-                width: 36,
-                height: 36,
-                decoration: BoxDecoration(color: const Color(0xFF114177), borderRadius: BorderRadius.circular(10)),
-                child: const Icon(Icons.architecture_rounded, color: Colors.white, size: 20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.pie_chart_outline_rounded, size: 16, color: Color(0xFF114177)),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Alokasi Slot Terpasang:',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
+                      ),
+                    ],
+                  ),
+                  Text(
+                    '$totalCreated / $totalCap Slot (${remainingQuota == 0 ? "Penuh" : "Sisa $remainingQuota"})',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11.5,
+                      fontWeight: FontWeight.bold,
+                      color: remainingQuota == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Desain Denah Tata Letak: $activeFloorName',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      'Posisi Atas dialokasikan untuk Parkir Mobil Biasa. Posisi Bawah disiapkan terpisah untuk Stasiun EV Charging.',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF1E3A8A)),
-                    ),
-                  ],
+              const SizedBox(height: 6),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(4),
+                child: LinearProgressIndicator(
+                  value: totalCap > 0 ? (totalCreated / totalCap).clamp(0.0, 1.0) : 0.0,
+                  minHeight: 6,
+                  backgroundColor: const Color(0xFFE2E8F0),
+                  valueColor: AlwaysStoppedAnimation<Color>(
+                    remainingQuota == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                  ),
                 ),
               ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 14),
 
-        // 4. KANVAS DENAH INTERAKTIF (PERSIS SEPERTI DI SISI USER BOOKING)
+        // 3. KANVAS DENAH INTERAKTIF (PERSIS SEPERTI DI SISI USER BOOKING)
         Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -869,7 +852,25 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     ],
                   ),
                   InkWell(
-                    onTap: () => _showAddSlotToZoneDialog(loc['id'], activeFloorName, 'zoneA'),
+                    onTap: () {
+                      if (totalCreated >= totalCap) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: const Color(0xFFDC2626),
+                            content: Text('Batas kapasitas ($totalCap slot) untuk gedung ini sudah tercapai!'),
+                          ),
+                        );
+                        return;
+                      }
+                      _showAddSlotToZoneDialog(
+                        loc['id'],
+                        activeFloorName,
+                        'zoneA',
+                        totalCreated,
+                        totalCap,
+                        defaultCode: 'A-0${zoneASlots.length + 1}',
+                      );
+                    },
                     child: Row(
                       children: [
                         const Icon(Icons.add, size: 14, color: Color(0xFF114177)),
@@ -881,16 +882,49 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               ),
               const SizedBox(height: 10),
 
-              // Grid Slot Zona A (Posisi Atas)
-              GridView.count(
-                crossAxisCount: 4,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 3 / 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: zoneASlots.map((slot) => _buildVisualSlotItem(slot, loc['id'], activeFloorName, 'zoneA')).toList(),
-              ),
+              // Baris Slot Zona A (Swipeable Horizontal, Tanpa Overflow)
+              if (zoneASlots.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.crop_free_rounded, size: 28, color: Color(0xFF94A3B8)),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Zona A masih kosong',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tekan "+ Tambah Slot" untuk menambah slot di lantai ini.',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: zoneASlots.map((slot) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: SizedBox(
+                          width: 78,
+                          height: 104,
+                          child: _buildVisualSlotItem(slot, loc['id'], activeFloorName, 'zoneA'),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
 
               const SizedBox(height: 16),
 
@@ -935,7 +969,26 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     ],
                   ),
                   InkWell(
-                    onTap: () => _showAddSlotToZoneDialog(loc['id'], activeFloorName, 'zoneB', defaultIsEv: true),
+                    onTap: () {
+                      if (totalCreated >= totalCap) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            backgroundColor: const Color(0xFFDC2626),
+                            content: Text('Batas kapasitas ($totalCap slot) untuk gedung ini sudah tercapai!'),
+                          ),
+                        );
+                        return;
+                      }
+                      _showAddSlotToZoneDialog(
+                        loc['id'],
+                        activeFloorName,
+                        'zoneB',
+                        totalCreated,
+                        totalCap,
+                        defaultIsEv: true,
+                        defaultCode: 'B-0${zoneBSlots.length + 1}',
+                      );
+                    },
                     child: Row(
                       children: [
                         const Icon(Icons.add, size: 14, color: Color(0xFF17A18A)),
@@ -947,16 +1000,49 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               ),
               const SizedBox(height: 10),
 
-              // Grid Slot Zona B (Posisi Bawah - EV Station)
-              GridView.count(
-                crossAxisCount: 4,
-                crossAxisSpacing: 10,
-                mainAxisSpacing: 10,
-                childAspectRatio: 3 / 4,
-                shrinkWrap: true,
-                physics: const NeverScrollableScrollPhysics(),
-                children: zoneBSlots.map((slot) => _buildVisualSlotItem(slot, loc['id'], activeFloorName, 'zoneB')).toList(),
-              ),
+              // Baris Slot Zona B (Swipeable Horizontal, Tanpa Overflow)
+              if (zoneBSlots.isEmpty)
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF9FAFB),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Column(
+                    children: [
+                      const Icon(Icons.bolt_outlined, size: 28, color: Color(0xFF17A18A)),
+                      const SizedBox(height: 6),
+                      Text(
+                        'Zona B masih kosong',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF64748B)),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Tekan "+ Tambah Slot EV" untuk menambah slot EV di lantai ini.',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                )
+              else
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  physics: const BouncingScrollPhysics(),
+                  child: Row(
+                    children: zoneBSlots.map((slot) {
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 10),
+                        child: SizedBox(
+                          width: 78,
+                          height: 104,
+                          child: _buildVisualSlotItem(slot, loc['id'], activeFloorName, 'zoneB'),
+                        ),
+                      );
+                    }).toList(),
+                  ),
+                ),
 
               const SizedBox(height: 16),
               const Divider(color: Color(0xFFF3F4F6), height: 1),
@@ -976,23 +1062,25 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         ),
         const SizedBox(height: 20),
 
-        // Tombol Simpan Konfigurasi Denah
-        ElevatedButton.icon(
-          onPressed: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                backgroundColor: const Color(0xFF17A18A),
-                behavior: SnackBarBehavior.floating,
-                content: Text('Konfigurasi denah $activeFloorName (${loc['name']}) berhasil disimpan dan disinkronkan ke user!'),
+        // Tombol Simpan / Status Sinkronisasi
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFFF0FDF4),
+            borderRadius: BorderRadius.circular(12),
+            border: Border.all(color: const Color(0xFFBBF7D0)),
+          ),
+          child: Row(
+            children: [
+              const Icon(Icons.cloud_done_rounded, size: 20, color: Color(0xFF16A34A)),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  'Seluruh slot dan denah langsung tersinkronisasi otomatis dengan database Supabase & aplikasi pengguna.',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: const Color(0xFF15803D)),
+                ),
               ),
-            );
-          },
-          icon: const Icon(Icons.cloud_done_rounded, size: 18, color: Colors.white),
-          label: Text('Simpan & Sinkronkan Denah ke Peta User', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white)),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFF114177),
-            minimumSize: const Size(double.infinity, 48),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ],
           ),
         ),
       ],
@@ -1012,13 +1100,40 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   // Visual Item Slot Interaktif pada Kanvas Denah
   Widget _buildVisualSlotItem(Map<String, dynamic> slot, String locId, String floorName, String zoneKey) {
-    final bool isOccupied = slot['status'] == 'Terisi';
-    final bool isEV = slot['type'] == 'EV';
-    final Color primaryColor = isEV ? const Color(0xFF17A18A) : const Color(0xFF114177);
+    final statusStr = (slot['status']?.toString() ?? 'available').toLowerCase();
+    final bool isOccupied = statusStr == 'occupied' || statusStr == 'terisi';
+    final slotTypeStr = (slot['slot_type']?.toString() ?? slot['type']?.toString() ?? 'mobil').toLowerCase();
+    final bool isEV = slotTypeStr == 'ev';
+    final bool isDifabel = slotTypeStr == 'difabel' || slotTypeStr.contains('disabilitas');
+    final bool isMotor = slotTypeStr == 'motor';
+    final bool isVip = slotTypeStr == 'vip';
+
+    final Color primaryColor = isEV
+        ? const Color(0xFF17A18A)
+        : (isDifabel
+            ? const Color(0xFF8B5CF6)
+            : (isMotor
+                ? const Color(0xFFF59E0B)
+                : (isVip ? const Color(0xFFEAB308) : const Color(0xFF114177))));
+
+    String typeLabel = 'Reguler';
+    if (isEV) {
+      typeLabel = '⚡ EV';
+    } else if (isDifabel) {
+      typeLabel = '♿ Difabel';
+    } else if (isMotor) {
+      typeLabel = '🛵 Motor';
+    } else if (isVip) {
+      typeLabel = '👑 VIP';
+    }
+
+    final String slotCode = slot['slot_code']?.toString() ?? slot['code']?.toString() ?? '-';
+    final String? plateNumber = slot['current_plate_number']?.toString() ?? slot['plate']?.toString();
 
     return GestureDetector(
       onTap: () => _showEditSlotModal(slot, locId, floorName, zoneKey),
       child: Container(
+        width: 78,
         decoration: BoxDecoration(
           color: isOccupied
               ? const Color(0xFFFDE8E4)
@@ -1034,7 +1149,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
           ],
         ),
-        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+        padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
@@ -1046,19 +1161,19 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 borderRadius: BorderRadius.circular(4),
               ),
               child: Text(
-                isEV ? '⚡ EV' : slot['type'],
+                typeLabel,
                 style: GoogleFonts.plusJakartaSans(fontSize: 8.5, fontWeight: FontWeight.bold, color: primaryColor),
               ),
             ),
-            const SizedBox(height: 4),
+            const SizedBox(height: 6),
             Text(
-              slot['code'],
-              style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+              slotCode,
+              style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
             ),
-            const SizedBox(height: 2),
+            const SizedBox(height: 4),
             if (isOccupied)
               Text(
-                slot['plate'] ?? 'Terisi',
+                (plateNumber != null && plateNumber.isNotEmpty) ? plateNumber : 'Terisi',
                 style: GoogleFonts.jetBrainsMono(fontSize: 8, fontWeight: FontWeight.w600, color: const Color(0xFFD94B4B)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
@@ -1066,7 +1181,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             else
               Text(
                 'Tersedia',
-                style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.w600, color: const Color(0xFF17A18A)),
+                style: GoogleFonts.plusJakartaSans(fontSize: 8.5, fontWeight: FontWeight.w600, color: const Color(0xFF17A18A)),
               ),
           ],
         ),
@@ -1572,10 +1687,26 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   // 3. MODAL EDIT DETAIL SLOT PADA DENAH
   void _showEditSlotModal(Map<String, dynamic> slot, String locId, String floorName, String zoneKey) {
-    String type = slot['type'];
-    String status = slot['status'];
-    final priceCtrl = TextEditingController(text: slot['price']?.toString() ?? '5000');
-    final plateCtrl = TextEditingController(text: slot['plate'] ?? '');
+    final slotId = slot['id']?.toString() ?? '';
+    final code = slot['slot_code']?.toString() ?? slot['code']?.toString() ?? 'Slot';
+    final rawType = (slot['slot_type']?.toString() ?? slot['type']?.toString() ?? 'mobil').toLowerCase();
+    String type = 'Reguler';
+    if (rawType == 'ev') {
+      type = 'EV';
+    } else if (rawType == 'difabel' || rawType.contains('disabilitas')) {
+      type = 'Disabilitas';
+    } else if (rawType == 'motor') {
+      type = 'Motor';
+    } else if (rawType == 'vip') {
+      type = 'VIP';
+    }
+
+    final rawStatus = (slot['status']?.toString() ?? 'available').toLowerCase();
+    String status = (rawStatus == 'occupied' || rawStatus == 'terisi')
+        ? 'Terisi'
+        : ((rawStatus == 'maintenance') ? 'Maintenance' : 'Tersedia');
+
+    final plateCtrl = TextEditingController(text: slot['current_plate_number']?.toString() ?? slot['plate']?.toString() ?? '');
 
     showModalBottomSheet(
       context: context,
@@ -1591,7 +1722,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Konfigurasi Slot: ${slot['code']}', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold)),
+                  Text('Konfigurasi Slot: $code', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold)),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
@@ -1602,53 +1733,70 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               const SizedBox(height: 14),
               DropdownButtonFormField<String>(
                 initialValue: type,
-                decoration: InputDecoration(labelText: 'Tipe Parkir Slot', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                decoration: InputDecoration(
+                  labelText: 'Tipe Parkir Slot',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
                 items: ['Reguler', 'EV', 'VIP', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                 onChanged: (v) => setSheetState(() => type = v ?? 'Reguler'),
               ),
               const SizedBox(height: 10),
               DropdownButtonFormField<String>(
                 initialValue: status,
-                decoration: InputDecoration(labelText: 'Status Ketersediaan', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                decoration: InputDecoration(
+                  labelText: 'Status Ketersediaan',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
                 items: ['Tersedia', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) => setSheetState(() => status = v ?? 'Tersedia'),
               ),
-              const SizedBox(height: 10),
-              if (status == 'Terisi') _buildInputField('Plat Kendaraan yang Parkir', plateCtrl, Icons.badge_outlined),
-              _buildInputField('Tarif Parkir Khusus (Rp/Jam)', priceCtrl, Icons.payments_outlined, keyboardType: TextInputType.number),
-              const SizedBox(height: 14),
+              if (status == 'Terisi') ...[
+                const SizedBox(height: 10),
+                _buildInputField('Plat Kendaraan yang Parkir', plateCtrl, Icons.badge_outlined),
+              ],
+              const SizedBox(height: 18),
               Row(
                 children: [
                   Expanded(
                     child: OutlinedButton(
-                      onPressed: () {
-                        setState(() {
-                          _floorLayouts[locId]?[floorName]?[zoneKey]?.removeWhere((s) => s['code'] == slot['code']);
-                        });
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.pop(ctx);
-                        ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Slot ${slot['code']} dihapus dari denah')));
+                        if (slotId.isNotEmpty) {
+                          await ManageParkingBackend.instance.deleteSlot(slotId, locId);
+                          messenger.showSnackBar(SnackBar(content: Text('Slot $code berhasil dihapus')));
+                        }
                       },
-                      style: OutlinedButton.styleFrom(side: const BorderSide(color: Color(0xFFD94B4B)), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      style: OutlinedButton.styleFrom(
+                        side: const BorderSide(color: Color(0xFFD94B4B)),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                       child: Text('Hapus Slot', style: GoogleFonts.plusJakartaSans(color: const Color(0xFFD94B4B), fontWeight: FontWeight.bold)),
                     ),
                   ),
                   const SizedBox(width: 10),
                   Expanded(
                     child: ElevatedButton(
-                      onPressed: () {
-                        setState(() {
-                          slot['type'] = type;
-                          slot['status'] = status;
-                          slot['price'] = int.tryParse(priceCtrl.text) ?? slot['price'];
-                          if (status == 'Terisi') {
-                            slot['plate'] = plateCtrl.text.isEmpty ? 'B 9999 PLT' : plateCtrl.text;
-                          } else {
-                            slot.remove('plate');
-                          }
-                        });
+                      onPressed: () async {
+                        final messenger = ScaffoldMessenger.of(context);
                         Navigator.pop(ctx);
+                        if (slotId.isNotEmpty) {
+                          await ManageParkingBackend.instance.updateSlot(
+                            slotId: slotId,
+                            locationId: locId,
+                            slotType: type,
+                            status: status,
+                            plate: plateCtrl.text.trim(),
+                          );
+                          messenger.showSnackBar(SnackBar(content: Text('Slot $code berhasil diperbarui')));
+                        }
                       },
-                      style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF114177),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      ),
                       child: Text('Simpan', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
                     ),
                   ),
@@ -1661,9 +1809,20 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     );
   }
 
-  // 4. DIALOG TAMBAH TINGKAT LANTAI BARU
+  // 4. DIALOG TAMBAH TINGKAT LANTAI BARU (MAKSIMAL 4 LANTAI)
   void _showAddFloorDialog(Map<String, dynamic> loc) {
-    final floorCtrl = TextEditingController(text: 'Lantai 3');
+    final List<String> currentFloors = List<String>.from(loc['floors'] ?? ['Lantai 1']);
+    if (currentFloors.length >= 4) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          backgroundColor: Color(0xFFDC2626),
+          content: Text('Maksimal 4 tingkat lantai parkir sudah tercapai.'),
+        ),
+      );
+      return;
+    }
+    final nextNumber = currentFloors.length + 1;
+    final floorCtrl = TextEditingController(text: 'Lantai $nextNumber');
 
     showDialog(
       context: context,
@@ -1672,11 +1831,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         title: Text('Tambah Tingkat Lantai', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
         content: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildInputField('Nama Lantai (cth: Lantai 3, Basement 4)', floorCtrl, Icons.layers),
+            _buildInputField('Nama Lantai (cth: Lantai 2, Basement 1)', floorCtrl, Icons.layers),
             const SizedBox(height: 6),
             Text(
-              'Lantai baru akan disiapkan dengan denah default Posisi Atas (Reguler) dan Posisi Bawah (EV Station).',
+              'Tingkat lantai baru akan tersimpan permanen di database. Maksimal 4 lantai.',
               style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
             ),
           ],
@@ -1684,17 +1844,19 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B)))),
           ElevatedButton(
-            onPressed: () {
-              if (floorCtrl.text.isNotEmpty) {
-                final newFloor = floorCtrl.text;
-                setState(() {
-                  (loc['floors'] as List).add(newFloor);
-                  _selectedFloorIndex = (loc['floors'] as List).length - 1;
-                });
+            onPressed: () async {
+              if (floorCtrl.text.trim().isNotEmpty) {
+                final newFloor = floorCtrl.text.trim();
                 Navigator.pop(ctx);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(backgroundColor: const Color(0xFF17A18A), content: Text('Lantai "$newFloor" berhasil ditambahkan!')),
-                );
+                final ok = await ManageParkingBackend.instance.addFloor(loc['id'], newFloor);
+                if (ok && mounted) {
+                  setState(() {
+                    _selectedFloorIndex = currentFloors.length;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(backgroundColor: const Color(0xFF17A18A), content: Text('Lantai "$newFloor" berhasil ditambahkan!')),
+                  );
+                }
               }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
@@ -1706,23 +1868,54 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   }
 
   // 5. TAMBAH SLOT BARU KE ZONA ATAS / BAWAH
-  void _showAddSlotToZoneDialog(String locId, String floorName, String zoneKey, {bool defaultIsEv = false}) {
-    final codeCtrl = TextEditingController(text: zoneKey == 'zoneA' ? 'A-05' : (defaultIsEv ? 'B-05' : 'B-05'));
+  void _showAddSlotToZoneDialog(
+    String locId,
+    String floorName,
+    String zoneKey,
+    int totalCreated,
+    int totalCap, {
+    bool defaultIsEv = false,
+    String defaultCode = '',
+  }) {
+    final codeCtrl = TextEditingController(
+      text: defaultCode.isNotEmpty ? defaultCode : (zoneKey == 'zoneA' ? 'A-01' : 'B-01'),
+    );
     String type = defaultIsEv ? 'EV' : 'Reguler';
+    final remaining = (totalCap - totalCreated).clamp(0, totalCap);
 
     showDialog(
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(18)),
-          title: Text(zoneKey == 'zoneA' ? 'Tambah Slot ke Posisi Atas' : 'Tambah Slot ke Posisi Bawah', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)),
+          title: Text(
+            zoneKey == 'zoneA' ? 'Tambah Slot ke Posisi Atas' : 'Tambah Slot ke Posisi Bawah',
+            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           content: Column(
             mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                margin: const EdgeInsets.only(bottom: 12),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEFF6FF),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: Text(
+                  'Sisa Kuota Lokasi: $remaining dari $totalCap Slot',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1E40AF)),
+                ),
+              ),
               _buildInputField('Nomor / Kode Slot', codeCtrl, Icons.pin),
               DropdownButtonFormField<String>(
                 initialValue: type,
-                decoration: InputDecoration(labelText: 'Tipe Slot', border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)), contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8)),
+                decoration: InputDecoration(
+                  labelText: 'Tipe Slot',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                ),
                 items: ['Reguler', 'EV', 'VIP', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
                 onChanged: (v) => setDState(() => type = v ?? 'Reguler'),
               ),
@@ -1731,26 +1924,30 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           actions: [
             TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B)))),
             ElevatedButton(
-              onPressed: () {
-                if (codeCtrl.text.isNotEmpty) {
-                  setState(() {
-                    if (_floorLayouts[locId] == null) _floorLayouts[locId] = {};
-                    if (_floorLayouts[locId]![floorName] == null) {
-                      _floorLayouts[locId]![floorName] = {'zoneA': [], 'zoneB': []};
-                    }
-                    _floorLayouts[locId]![floorName]![zoneKey]?.add({
-                      'code': codeCtrl.text,
-                      'type': type,
-                      'status': 'Tersedia',
-                      'price': type == 'EV' ? 7500 : 5000,
-                      if (type == 'EV') 'charger': 'AC 22 kW',
-                    });
-                  });
+              onPressed: () async {
+                if (codeCtrl.text.trim().isNotEmpty) {
+                  final messenger = ScaffoldMessenger.of(context);
+                  final code = codeCtrl.text.trim().toUpperCase();
                   Navigator.pop(ctx);
+                  final ok = await ManageParkingBackend.instance.addSlot(
+                    locationId: locId,
+                    floorName: floorName,
+                    zone: zoneKey,
+                    slotCode: code,
+                    slotType: type,
+                  );
+                  if (!ok) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFFDC2626),
+                        content: Text(ManageParkingBackend.instance.errorMessage ?? 'Gagal menambah slot.'),
+                      ),
+                    );
+                  }
                 }
               },
               style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: Text('Tambahkan', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
+              child: Text('Simpan', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),

@@ -2,8 +2,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'admin_active_users_screen.dart';
-import 'admin_slot_management_screen.dart';
-import 'admin_locations_screen.dart';
+import 'manage_parking_screen.dart';
 import 'backend/admin_operations_notifications_backend.dart';
 
 class OperationNotificationItem {
@@ -55,9 +54,9 @@ class _AdminOperationsNotificationsScreenState extends State<AdminOperationsNoti
     if (item.actionTarget == 'active_users') {
       Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen()));
     } else if (item.actionTarget == 'slot_mgmt') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageParkingScreen(initialTabIndex: 1)));
     } else if (item.actionTarget == 'locations') {
-      Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen()));
+      Navigator.push(context, MaterialPageRoute(builder: (_) => const ManageParkingScreen(initialTabIndex: 0)));
     }
   }
 

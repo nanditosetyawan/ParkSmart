@@ -80,7 +80,7 @@ class HomeBackend extends ChangeNotifier {
     try {
       final data = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, rating, review_count, status, image_url, facilities')
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, rating, review_count, status, image_url, images, facilities')
           .order('rating', ascending: false)
           .limit(10);
 

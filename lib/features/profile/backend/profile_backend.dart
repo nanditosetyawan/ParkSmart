@@ -11,12 +11,13 @@ class ProfileBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String _userId = 'c0000000-0000-0000-0000-000000000001';
+  String _userId = 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba';
   String get userId => _userId;
 
   String _name = 'Jokowi Dodo';
   String _email = 'jokowi.dodo@gmail.com';
-  String _phone = '+62 812-3456-7890';
+  String _phone = '+62 811-2345-6789';
+  String? _avatarUrl;
   String _memberTier = 'MEMBER';
   int _totalParking = 0;
   int _totalSavings = 0;
@@ -26,6 +27,7 @@ class ProfileBackend extends ChangeNotifier {
   String get name => _name;
   String get email => _email;
   String get phone => _phone;
+  String? get avatarUrl => _avatarUrl;
   String get memberTier => _memberTier;
   int get totalParking => _totalParking;
   int get totalSavings => _totalSavings;
@@ -37,6 +39,7 @@ class ProfileBackend extends ChangeNotifier {
     required String fullName,
     required String email,
     required String phone,
+    String? avatarUrl,
     String? memberTier,
     int? walletBalance,
   }) {
@@ -44,6 +47,7 @@ class ProfileBackend extends ChangeNotifier {
     _name = fullName;
     _email = email;
     _phone = phone;
+    if (avatarUrl != null) _avatarUrl = avatarUrl;
     if (memberTier != null) _memberTier = memberTier;
     if (walletBalance != null) _walletBalance = walletBalance;
     notifyListeners();
@@ -59,7 +63,7 @@ class ProfileBackend extends ChangeNotifier {
 
       // Ambil data user dari tabel users
       dynamic query = _client.from('users').select(
-        'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance',
+        'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance, avatar_url',
       );
 
       if (authUserId != null) {
@@ -78,6 +82,7 @@ class ProfileBackend extends ChangeNotifier {
         _name = data['full_name'] ?? _name;
         _email = data['email'] ?? _email;
         _phone = data['phone'] ?? _phone;
+        _avatarUrl = data['avatar_url']?.toString();
         _memberTier = (data['member_tier'] ?? _memberTier).toString().toUpperCase();
         _totalParking = data['total_parking_count'] ?? _totalParking;
         if (data['total_savings'] != null) {
