@@ -836,20 +836,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // ZONA A: POSISI ATAS (PARKIR BIASA / MOBIL REGULER)
+              // ZONA A: POSISI ATAS
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                        child: Text('ZONA A (POSISI ATAS)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('Parkir Mobil Reguler', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text('ZONA A (POSISI ATAS)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
                   ),
                   InkWell(
                     onTap: () {
@@ -953,20 +947,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
               const SizedBox(height: 16),
 
-              // ZONA B: POSISI BAWAH (STASIUN KHUSUS EV CHARGING & CAMPURAN)
+              // ZONA B: POSISI BAWAH
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                        decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                        child: Text('ZONA B (POSISI BAWAH)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
-                      ),
-                      const SizedBox(width: 8),
-                      Text('Stasiun Parkir Khusus EV', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                    ],
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(color: const Color(0xFF17A18A).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
+                    child: Text('ZONA B (POSISI BAWAH)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
                   ),
                   InkWell(
                     onTap: () {
@@ -985,14 +973,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                         'zoneB',
                         totalCreated,
                         totalCap,
-                        defaultIsEv: true,
+                        defaultIsEv: false,
                         defaultCode: 'B-0${zoneBSlots.length + 1}',
                       );
                     },
                     child: Row(
                       children: [
                         const Icon(Icons.add, size: 14, color: Color(0xFF17A18A)),
-                        Text('Tambah Slot EV', style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
+                        Text('Tambah Slot', style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
                       ],
                     ),
                   ),
@@ -1020,7 +1008,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Tekan "+ Tambah Slot EV" untuk menambah slot EV di lantai ini.',
+                        'Tekan "+ Tambah Slot" untuk menambah slot di lantai ini.',
                         style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF94A3B8)),
                       ),
                     ],
@@ -1360,15 +1348,20 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   };
 
                   final messenger = ScaffoldMessenger.of(context);
-                  final ok = await ManageParkingBackend.instance.addParkingLocation(newLoc);
+                  final newLocId = await ManageParkingBackend.instance.addParkingLocation(newLoc);
                   setDialogState(() => isSaving = false);
 
                   if (ctx.mounted) Navigator.pop(ctx);
-                  if (ok) {
+                  if (newLocId != null) {
+                    setState(() {
+                      _selectedLocationId = newLocId;
+                    });
+                    await ManageParkingBackend.instance.fetchSlotsForLocation(newLocId);
+                    _tabController.animateTo(1); // Langsung pindah ke tab denah untuk alokasi slot
                     messenger.showSnackBar(
                       SnackBar(
                         backgroundColor: const Color(0xFF17A18A),
-                        content: Text('Lokasi "${newLoc['name']}" berhasil disimpan ke Supabase!'),
+                        content: Text('Lokasi "${newLoc['name']}" berhasil dibuat! Silakan tambah slot pada denah.'),
                       ),
                     );
                   } else {
@@ -1585,15 +1578,41 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   ),
                 );
                 if (confirm == true) {
-                  final allImages = List<String>.from(loc['images'] ?? []);
-                  await ManageParkingBackend.instance.deleteParkingLocation(loc['id'], imagesToDelete: allImages);
+                  final allImages = <String>{
+                    ...existingImages,
+                    ...newlyUploadedUrls,
+                    if (loc['imageUrl'] != null) loc['imageUrl'].toString(),
+                    if (loc['image_url'] != null) loc['image_url'].toString(),
+                  }.where((u) => u.isNotEmpty).toList();
+
+                  setDialogState(() => isSaving = true);
+                  final ok = await ManageParkingBackend.instance.deleteParkingLocation(loc['id'], imagesToDelete: allImages);
+                  setDialogState(() => isSaving = false);
                   if (ctx.mounted) Navigator.pop(ctx);
-                  messenger.showSnackBar(
-                    SnackBar(
-                      backgroundColor: const Color(0xFF17A18A),
-                      content: Text('Lokasi "${loc['name']}" dan fotonya berhasil dihapus!'),
-                    ),
-                  );
+                  if (ok) {
+                    setState(() {
+                      if (_selectedLocationId == loc['id']) {
+                        final remaining = ManageParkingBackend.instance.locations;
+                        _selectedLocationId = remaining.isNotEmpty ? remaining.first['id'] : '';
+                      }
+                    });
+                    if (_selectedLocationId.isNotEmpty) {
+                      ManageParkingBackend.instance.fetchSlotsForLocation(_selectedLocationId);
+                    }
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF17A18A),
+                        content: Text('Lokasi "${loc['name']}" dan seluruh datanya berhasil dihapus!'),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: Colors.redAccent,
+                        content: Text('Gagal menghapus lokasi: ${ManageParkingBackend.instance.errorMessage ?? "Error database"}'),
+                      ),
+                    );
+                  }
                 }
               },
               icon: const Icon(Icons.delete_outline, color: Color(0xFFD94B4B), size: 16),

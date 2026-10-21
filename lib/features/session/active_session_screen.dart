@@ -403,44 +403,54 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'LOKASI PARKIR',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 11,
-                                              fontWeight: FontWeight.w600,
-                                              color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
-                                              letterSpacing: 1.0,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 4),
-                                          Text(
-                                            ActiveSessionBackend.instance.locationName,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 20,
-                                              fontWeight: FontWeight.bold,
-                                              color: isDark ? Colors.white : const Color(0xFF1C1D1F),
-                                              letterSpacing: -0.5,
-                                            ),
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Row(
-                                            children: [
-                                              const Icon(Icons.storefront, size: 14, color: Color(0xFFE07A5F)),
-                                              const SizedBox(width: 6),
-                                              Text(
-                                                '${ActiveSessionBackend.instance.locationSub} • Pilar No. 14',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 13,
-                                                  color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
-                                                ),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              'LOKASI PARKIR',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.w600,
+                                                color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
+                                                letterSpacing: 1.0,
                                               ),
-                                            ],
-                                          ),
-                                        ],
+                                            ),
+                                            const SizedBox(height: 4),
+                                            Text(
+                                              ActiveSessionBackend.instance.locationName,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 20,
+                                                fontWeight: FontWeight.bold,
+                                                color: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                                                letterSpacing: -0.5,
+                                              ),
+                                            ),
+                                            const SizedBox(height: 6),
+                                            Row(
+                                              crossAxisAlignment: CrossAxisAlignment.start,
+                                              children: [
+                                                const Padding(
+                                                  padding: EdgeInsets.only(top: 2),
+                                                  child: Icon(Icons.storefront, size: 14, color: Color(0xFFE07A5F)),
+                                                ),
+                                                const SizedBox(width: 6),
+                                                Expanded(
+                                                  child: Text(
+                                                    '${ActiveSessionBackend.instance.locationSub} • Pilar No. 14',
+                                                    style: GoogleFonts.plusJakartaSans(
+                                                      fontSize: 13,
+                                                      color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
+                                                    ),
+                                                    softWrap: true,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
                                       ),
+                                      const SizedBox(width: 12),
                                       Column(
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [

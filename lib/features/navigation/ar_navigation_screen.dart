@@ -42,6 +42,8 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
   int _currentStepIndex = 0;
   bool _isMuted = false;
 
+  DateTime? _lastRerouteTime;
+  bool _isGpsLocked = false;
   StreamSubscription<Position>? _positionSub;
 
   @override
@@ -53,12 +55,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
       return;
     }
 
-    // 1. Tentukan Titik Awal Pengguna
-    if (widget.userPosition != null) {
-      _userPos = widget.userPosition!;
-    }
-
-    // 2. Tentukan Titik Tujuan Parkir
+    // 1. Tentukan Titik Tujuan Parkir
     final pData = widget.destinationParking!;
     if (pData['point'] is LatLng) {
       _destPos = pData['point'] as LatLng;
@@ -66,11 +63,17 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
     _destName = (pData['name'] ?? 'Tujuan Parkir').toString();
     _destType = (pData['type'] ?? 'Area Parkir').toString();
 
-    // 3. Ambil Rute Mengemudi Asli OSRM
-    _fetchRoadRoute();
+    // 2. Tentukan Titik Awal Pengguna
+    if (widget.userPosition != null) {
+      _userPos = widget.userPosition!;
+      _isGpsLocked = true;
+    } else {
+      // Default awal berada di sekitar tujuan parkir (bukan koordinat asal-asalan Jakarta)
+      _userPos = _destPos;
+    }
 
-    // 4. Dengarkan Pergerakan GPS Real-Time
-    _startLocationTracking();
+    // 3. Ambil GPS riil dan rute jalan raya OSRM
+    _initRealGpsAndRoute();
   }
 
   @override
@@ -80,7 +83,42 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
     super.dispose();
   }
 
+  /// Inisialisasi posisi GPS pengguna secara riil dan hitung rute tercepat
+  Future<void> _initRealGpsAndRoute() async {
+    setState(() => _isLoadingRoute = true);
+
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 4),
+          ),
+        );
+        _userPos = LatLng(pos.latitude, pos.longitude);
+        _isGpsLocked = true;
+      }
+    } catch (e) {
+      debugPrint('[ArNavigation] GPS init error: $e');
+    }
+
+    // Ambil rute jalan raya OSRM dari posisi GPS riil
+    await _fetchRoadRoute();
+
+    // Pusatkan peta ke posisi GPS pengguna
+    _centerOnUser();
+
+    // Dengarkan pergerakan GPS pengguna secara real-time
+    _startLocationTracking();
+  }
+
   void _startLocationTracking() {
+    _positionSub?.cancel();
     _positionSub = Geolocator.getPositionStream(
       locationSettings: const LocationSettings(
         accuracy: LocationAccuracy.high,
@@ -93,12 +131,15 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
     });
   }
 
-  /// Fungsi saat posisi GPS pengguna bergerak
+  /// Fungsi saat posisi GPS pengguna bergerak atau posisi GPS riil terdeteksi
   void _onUserMoved(LatLng newPos) {
+    if (!mounted) return;
+
     setState(() {
       _userPos = newPos;
+      _isGpsLocked = true;
 
-      // Pangkas garis penunjuk rute lama-lama berkurang mengikuti pergerakan pengguna ke tujuan
+      // Pangkas garis penunjuk rute mengikuti pergerakan pengguna ke tujuan
       if (_routePoints.length > 1) {
         int closestIdx = 0;
         double minDistance = double.infinity;
@@ -112,10 +153,17 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
           }
         }
 
-        // Hanya jika pengguna memang berada di jalur jalan (< 40m) dan maju
-        if (minDistance < 40 && closestIdx > 0) {
+        // Jika jarak ke rute terdekat > 50m (misal baru dapat lock GPS riil dari lokasi awal yang rancu atau belok keluar rute),
+        // otomatis hitung ulang rute jalan tercepat dari posisi baru pengguna
+        if (minDistance > 50) {
+          final now = DateTime.now();
+          if (_lastRerouteTime == null || now.difference(_lastRerouteTime!).inSeconds >= 3) {
+            _lastRerouteTime = now;
+            _fetchRoadRoute();
+          }
+        } else if (closestIdx > 0) {
           _routePoints = [newPos, ..._routePoints.sublist(closestIdx)];
-        } else if (_routePoints.isNotEmpty && minDistance < 40) {
+        } else if (_routePoints.isNotEmpty) {
           _routePoints[0] = newPos;
         }
 
@@ -128,6 +176,8 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
         _totalDistanceMeters = remainingMeters;
         _totalDurationSeconds =
             ((remainingMeters / 1000) / 25 * 3600).round();
+      } else if (!_isLoadingRoute) {
+        _fetchRoadRoute();
       }
 
       // Cek kemajuan belokan
@@ -244,17 +294,84 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
       }
     }
 
+    // Fallback darurat: jika server routing publik OSRM timeout / terkendala koneksi,
+    // buat jalur penghubung langsung agar garis rute biru TIDAK HILANG dari peta
+    if (_routePoints.isEmpty) {
+      final fallbackDistance = const Distance().as(LengthUnit.Meter, _userPos, _destPos);
+      _routePoints = [_userPos, _destPos];
+      _totalDistanceMeters = fallbackDistance;
+      _totalDurationSeconds = ((fallbackDistance / 1000) / 25 * 3600).round();
+      _steps = [
+        {
+          'type': 'depart',
+          'modifier': 'straight',
+          'name': 'Arahkan ke $_destName',
+          'distance': fallbackDistance,
+          'location': _destPos,
+        },
+        {
+          'type': 'arrive',
+          'modifier': '',
+          'name': _destName,
+          'distance': 0.0,
+          'location': _destPos,
+        },
+      ];
+    }
+
     if (mounted) {
       setState(() {
         _isLoadingRoute = false;
       });
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Koneksi rute jalan terhambat. Silakan coba kembali.'),
-          duration: Duration(seconds: 2),
-        ),
-      );
+      _centerOnUser();
     }
+  }
+
+  /// Memperbarui posisi GPS riil dan menghitung ulang rute jalan tercepat
+  Future<void> _refreshGpsAndRoute() async {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Row(
+          children: [
+            SizedBox(
+              width: 16,
+              height: 16,
+              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+            ),
+            SizedBox(width: 10),
+            Text('Memperbarui GPS & menghitung rute tercepat...'),
+          ],
+        ),
+        duration: Duration(seconds: 2),
+      ),
+    );
+
+    try {
+      LocationPermission permission = await Geolocator.checkPermission();
+      if (permission == LocationPermission.denied) {
+        permission = await Geolocator.requestPermission();
+      }
+      if (permission == LocationPermission.whileInUse ||
+          permission == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: const LocationSettings(
+            accuracy: LocationAccuracy.high,
+            timeLimit: Duration(seconds: 5),
+          ),
+        );
+        if (mounted) {
+          setState(() {
+            _userPos = LatLng(pos.latitude, pos.longitude);
+            _isGpsLocked = true;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[ArNavigation] Manual refresh GPS error: $e');
+    }
+
+    await _fetchRoadRoute();
+    _centerOnUser();
   }
 
   /// Peta TETAP berada di posisi GPS pengguna
@@ -725,11 +842,11 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 Icon(
                                   Icons.navigation_rounded,
                                   size: 14,
-                                  color: isDark ? const Color(0xFFF87171) : const Color(0xFF9A442D),
+                                  color: _isGpsLocked ? const Color(0xFF10B981) : (isDark ? const Color(0xFFF87171) : const Color(0xFF9A442D)),
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'Rute Tercepat',
+                                  _isGpsLocked ? 'GPS Terkunci' : 'Mencari GPS...',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -816,37 +933,62 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                   child: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      // Tombol My Location GPS (Tombol Samping Kanan)
+                      // Tombol Floating Aksi: Refresh Rute & My Location GPS
                       Align(
                         alignment: Alignment.centerRight,
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: isDark ? theme.card : Colors.white,
-                            shape: BoxShape.circle,
-                            border: isDark ? Border.all(color: theme.border) : null,
-                            boxShadow: [
-                              BoxShadow(
-                                color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            // 1. Tombol Hitung Ulang Rute Tercepat
+                            Container(
+                              margin: const EdgeInsets.only(bottom: 10),
+                              decoration: BoxDecoration(
+                                color: isDark ? theme.card : Colors.white,
+                                shape: BoxShape.circle,
+                                border: isDark ? Border.all(color: theme.border) : null,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: IconButton(
-                            icon: Icon(
-                              Icons.my_location,
-                              color: isDark ? theme.iconColor : const Color(0xFF1C1D1F),
-                            ),
-                            onPressed: () {
-                              _centerOnUser();
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Peta dipusatkan ke posisi Anda'),
-                                  duration: Duration(milliseconds: 800),
+                              child: IconButton(
+                                tooltip: 'Hitung Ulang Rute Tercepat',
+                                icon: const Icon(
+                                  Icons.refresh_rounded,
+                                  color: Color(0xFF1A73E8),
+                                  size: 22,
                                 ),
-                              );
-                            },
-                          ),
+                                onPressed: _refreshGpsAndRoute,
+                              ),
+                            ),
+                            // 2. Tombol Pusatkan GPS & Perbarui Posisi
+                            Container(
+                              decoration: BoxDecoration(
+                                color: isDark ? theme.card : Colors.white,
+                                shape: BoxShape.circle,
+                                border: isDark ? Border.all(color: theme.border) : null,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black12,
+                                    blurRadius: 8,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: IconButton(
+                                tooltip: 'Pusatkan ke Posisi GPS Anda',
+                                icon: Icon(
+                                  Icons.my_location,
+                                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1D1F),
+                                  size: 22,
+                                ),
+                                onPressed: _refreshGpsAndRoute,
+                              ),
+                            ),
+                          ],
                         ),
                       ),
 
@@ -1072,7 +1214,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         ),
                         onTap: () {
                           Navigator.pop(ctx);
-                          _fetchRoadRoute();
+                          _refreshGpsAndRoute();
                         },
                       ),
                       ListTile(
@@ -1090,7 +1232,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         ),
                         onTap: () {
                           Navigator.pop(ctx);
-                          _centerOnUser();
+                          _refreshGpsAndRoute();
                         },
                       ),
                       ListTile(

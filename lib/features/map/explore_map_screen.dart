@@ -205,9 +205,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   @override
   void initState() {
     super.initState();
-    // Titik awal peta default: Jakarta
+    // Titik awal peta default: Jakarta (akan diperbarui otomatis dengan GPS perangkat riil)
     _currentPosition = const LatLng(-6.1754, 106.7933);
     _fetchWeather(_currentPosition!);
+    _autoDetectGpsLocation();
 
     if (widget.initialSelectedParking != null) {
       final loc = widget.initialSelectedParking!;
@@ -253,6 +254,31 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     _sheetController.dispose();
     _placeDetailsController.dispose();
     super.dispose();
+  }
+
+  /// Deteksi otomatis posisi GPS pengguna saat membuka peta
+  Future<void> _autoDetectGpsLocation() async {
+    try {
+      LocationPermission perm = await Geolocator.checkPermission();
+      if (perm == LocationPermission.denied) {
+        perm = await Geolocator.requestPermission();
+      }
+      if (perm == LocationPermission.whileInUse || perm == LocationPermission.always) {
+        final pos = await Geolocator.getCurrentPosition(
+          locationSettings: LocationSettings(
+            accuracy: kIsWeb ? LocationAccuracy.medium : LocationAccuracy.high,
+            timeLimit: const Duration(seconds: 4),
+          ),
+        );
+        if (mounted) {
+          setState(() {
+            _currentPosition = LatLng(pos.latitude, pos.longitude);
+            _isGpsActive = true;
+          });
+          _fetchWeather(_currentPosition!);
+        }
+      }
+    } catch (_) {}
   }
 
   Future<void> _toggleGpsTracking() async {
@@ -453,6 +479,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     _mapController.move(target, 15.5);
   }
 
+  /// Menghitung titik kamera peta yang digeser ke arah selatan (offset ~2 cm ke atas layar),
+  /// sehingga pin lokasi parkir berada tepat di tengah area peta terbuka di atas bottom sheet.
+  LatLng _getOffsetCenterForParking(LatLng point, {double offsetPixels = 135.0, double zoom = 17.0}) {
+    final latRad = point.latitude * pi / 180.0;
+    final metersPerPixel = 156543.03392 * cos(latRad) / pow(2, zoom);
+    final latDelta = (offsetPixels * metersPerPixel) / 111139.0;
+    return LatLng(point.latitude - latDelta, point.longitude);
+  }
+
   void _onParkingMarkerTapped(Map<String, dynamic> loc) {
     setState(() {
       _selectedParking = loc;
@@ -468,7 +503,12 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       }
     });
     // Auto zoom dekat ke titik yang diklik (zoom 17.0)
-    _mapController.move(loc['point'] as LatLng, 17.0);
+    // Geser kamera ke selatan (offset ~2 cm / 135px) agar pin marker tampil di atas panel bottom sheet
+    if (loc['point'] != null) {
+      final originalPoint = loc['point'] as LatLng;
+      final cameraCenter = _getOffsetCenterForParking(originalPoint, offsetPixels: 135.0, zoom: 17.0);
+      _mapController.move(cameraCenter, 17.0);
+    }
   }
 
   void _openVoiceSearchDialog() {
@@ -671,15 +711,22 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 minZoom: 4.0,
                 maxZoom: 19.0,
                 onTap: (tapPosition, point) {
-                  if (_selectedParking != null) {
-                    _unselectParking();
-                  }
                   _searchFocusNode.unfocus();
                   if (_isSearching) {
                     setState(() {
                       _isSearching = false;
                       _filteredSuggestions = [];
                     });
+                  }
+                  // Jika panel detail parkir sedang terbuka lebar, tap map mengecilkannya ke mentok bawah 0.22 (bukan unselect)
+                  if (_selectedParking != null && _placeDetailsController.isAttached) {
+                    if (_placeDetailsController.size > 0.30) {
+                      _placeDetailsController.animateTo(
+                        0.22,
+                        duration: const Duration(milliseconds: 250),
+                        curve: Curves.easeOutCubic,
+                      );
+                    }
                   }
                 },
               ),
@@ -1271,13 +1318,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               double targetSize;
                               if (velocity < -200 || currentSize > 0.65) {
                                 targetSize = 1.0; // Menutup sampai searchbar
-                              } else if (velocity > 350 && currentSize < 0.40) {
-                                _unselectParking();
-                                return;
-                              } else if (currentSize < 0.35) {
-                                targetSize = 0.22;
+                              } else if (velocity > 200 || currentSize < 0.35) {
+                                targetSize = 0.22; // Mentok bawah (nyangkut, tetap ter-select untuk zoom in/out peta)
                               } else {
-                                targetSize = 0.50;
+                                targetSize = 0.50; // Posisi normal setengah layar
                               }
                               _placeDetailsController.animateTo(
                                 targetSize,
@@ -1289,14 +1333,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           child: Column(
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Drag handle pill dengan kursor grab & tap untuk toggle 0.50 <-> 1.0
+                              // Drag handle pill dengan kursor grab & tap untuk toggle
                               MouseRegion(
                                 cursor: SystemMouseCursors.grab,
                                 child: InkWell(
                                   borderRadius: BorderRadius.circular(10),
                                   onTap: () {
                                     if (_placeDetailsController.isAttached) {
-                                      final targetSize = _placeDetailsController.size < 0.75 ? 1.0 : 0.50;
+                                      final current = _placeDetailsController.size;
+                                      final targetSize = current <= 0.30 ? 0.50 : (current < 0.75 ? 1.0 : 0.50);
                                       _placeDetailsController.animateTo(
                                         targetSize,
                                         duration: const Duration(milliseconds: 280),
@@ -1471,7 +1516,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                                     MaterialPageRoute(
                                                       builder: (_) => ArNavigationScreen(
                                                         destinationParking: _selectedParking,
-                                                        userPosition: _currentPosition,
+                                                        userPosition: _isGpsActive ? _currentPosition : null,
                                                       ),
                                                     ),
                                                   );
@@ -1722,7 +1767,21 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               ];
                               final String img = photos.first;
                               final String name = loc['name'] as String;
-                              final String dist = (loc['distance'] as String?) ?? '350m';
+                              final LatLng? pt = loc['point'] as LatLng?;
+                              String dist = (loc['distance'] as String?) ?? '1.2 km';
+                              if (_currentPosition != null && pt != null) {
+                                final dMeters = Geolocator.distanceBetween(
+                                  _currentPosition!.latitude,
+                                  _currentPosition!.longitude,
+                                  pt.latitude,
+                                  pt.longitude,
+                                );
+                                if (dMeters < 1000) {
+                                  dist = '${dMeters.round()}m';
+                                } else {
+                                  dist = '${(dMeters / 1000).toStringAsFixed(1)} km';
+                                }
+                              }
                               final int slots = (loc['slots'] as int?) ?? 20;
                               final String subtitleText = '$dist • $slots slot tersedia';
                               final String price = loc['price'] as String;

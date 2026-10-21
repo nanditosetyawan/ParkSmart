@@ -161,8 +161,21 @@ class ManageParkingBackend extends ChangeNotifier {
     String? plate,
   }) async {
     try {
-      final loc = locations.firstWhere((l) => l['id'] == locationId, orElse: () => {});
-      final cap = (loc['totalSlots'] as num?)?.toInt() ?? 0;
+      // 1. Verifikasi keberadaan lokasi di database Supabase untuk mencegah foreign key violation
+      final locCheck = await _client
+          .from('parking_locations')
+          .select('id, total_capacity')
+          .eq('id', locationId)
+          .maybeSingle();
+
+      if (locCheck == null) {
+        await fetchLocations();
+        _errorMessage = 'Lokasi parkir ini tidak ditemukan di database atau telah dihapus. Silakan pilih kembali lokasi parkir.';
+        notifyListeners();
+        return false;
+      }
+
+      final cap = (locCheck['total_capacity'] as num?)?.toInt() ?? 0;
       final currentCount = getTotalSlotsCount(locationId);
 
       if (currentCount >= cap) {
@@ -275,7 +288,7 @@ class ManageParkingBackend extends ChangeNotifier {
   }
 
   /// Tambah lokasi parkir baru ke Supabase database `public.parking_locations`
-  Future<bool> addParkingLocation(Map<String, dynamic> locData) async {
+  Future<String?> addParkingLocation(Map<String, dynamic> locData) async {
     try {
       final totalSlots = locData['totalSlots'] as int? ?? 100;
       final images = List<String>.from(locData['images'] ?? []);
@@ -306,14 +319,15 @@ class ManageParkingBackend extends ChangeNotifier {
         'facilities': ['CCTV 24 Jam', 'Covered Parking', if (locData['isEvReady'] == true) 'EV Charging Station'],
       };
 
-      await _client.from('parking_locations').insert(row);
+      final insertRes = await _client.from('parking_locations').insert(row).select('id').maybeSingle();
+      final newId = insertRes?['id']?.toString();
       await fetchLocations();
-      return true;
+      return newId;
     } catch (e) {
       debugPrint('[ManageParkingBackend] addParkingLocation error: $e');
       _errorMessage = e.toString();
       notifyListeners();
-      return false;
+      return null;
     }
   }
 
@@ -376,13 +390,63 @@ class ManageParkingBackend extends ChangeNotifier {
     }
   }
 
-  /// Hapus lokasi parkir beserta semua fotonya di Supabase Storage
+  /// Hapus lokasi parkir beserta semua fotonya di Supabase Storage dan seluruh child records
   Future<bool> deleteParkingLocation(String id, {List<String>? imagesToDelete}) async {
     try {
-      if (imagesToDelete != null && imagesToDelete.isNotEmpty) {
-        await ParkingImageService.deleteMultipleLocationImages(imagesToDelete);
+      // 1. Kumpulkan seluruh URL gambar lokasi dari parameter dan database
+      final Set<String> images = Set<String>.from(imagesToDelete ?? []);
+      try {
+        final locRes = await _client
+            .from('parking_locations')
+            .select('image_url, images')
+            .eq('id', id)
+            .maybeSingle();
+        if (locRes != null) {
+          final pUrl = locRes['image_url']?.toString();
+          if (pUrl != null && pUrl.isNotEmpty) images.add(pUrl);
+          if (locRes['images'] is List) {
+            for (var img in (locRes['images'] as List)) {
+              if (img != null && img.toString().isNotEmpty) {
+                images.add(img.toString());
+              }
+            }
+          }
+        }
+      } catch (e) {
+        debugPrint('[ManageParkingBackend] Ambil gambar sebelum hapus warning: $e');
       }
+
+      // 2. Bersihkan file sampah di Supabase Storage
+      if (images.isNotEmpty) {
+        try {
+          await ParkingImageService.deleteMultipleLocationImages(images);
+        } catch (e) {
+          debugPrint('[ManageParkingBackend] deleteMultipleLocationImages warning: $e');
+        }
+      }
+
+      // 3. Bersihkan record anak terkait (slot, sesi, reservasi)
+      try {
+        await _client.from('parking_slots').delete().eq('location_id', id);
+      } catch (e) {
+        debugPrint('[ManageParkingBackend] Hapus parking_slots warning: $e');
+      }
+      try {
+        await _client.from('parking_sessions').delete().eq('location_id', id);
+      } catch (e) {
+        debugPrint('[ManageParkingBackend] Hapus parking_sessions warning: $e');
+      }
+      try {
+        await _client.from('bookings').delete().eq('location_id', id);
+      } catch (e) {
+        debugPrint('[ManageParkingBackend] Hapus bookings warning: $e');
+      }
+
+      // 4. Hapus data utama lokasi di tabel public.parking_locations
       await _client.from('parking_locations').delete().eq('id', id);
+
+      // 5. Bersihkan cache slot lokal dan muat ulang daftar lokasi
+      _locationSlots.remove(id);
       await fetchLocations();
       return true;
     } catch (e) {

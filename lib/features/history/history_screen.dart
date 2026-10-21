@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -187,17 +188,18 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                               );
                             }),
+                          SizedBox(height: math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76),
                         ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const Positioned(
-                bottom: 24,
+              Positioned(
+                bottom: math.max(MediaQuery.of(context).padding.bottom + 12, 24),
                 left: 20,
                 right: 20,
-                child: Center(
+                child: const Center(
                   child: BottomDockNavigation(activeTab: DockTab.history),
                 ),
               ),

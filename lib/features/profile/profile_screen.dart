@@ -1,3 +1,4 @@
+import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import '../../widgets/bottom_dock_navigation.dart';
@@ -221,15 +222,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       ),
                     ),
                   ),
+                  SizedBox(height: math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76),
                 ],
               ),
             ),
           ],
         ),
       ),
-          // ─── Dark floating dock navigation (fixed bottom) ────────
+          // ─── Dark floating dock navigation (fixed bottom with safe area) ────────
           Positioned(
-            bottom: 24,
+            bottom: math.max(MediaQuery.of(context).padding.bottom + 12, 24),
             left: 20,
             right: 20,
             child: Center(

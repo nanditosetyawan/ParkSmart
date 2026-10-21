@@ -1,6 +1,7 @@
 // PS-05 Slot Selection
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
 import '../../core/services/theme_service.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -20,7 +21,10 @@ const _kSurfaceContainerHigh = Color(0xFFEBE8E1);
 const _kSurfaceContainerLowest = Color(0xFFFFFFFF);
 
 class SlotSelectionScreen extends StatefulWidget {
-  const SlotSelectionScreen({super.key});
+  final String? locationId;
+  final String? locationName;
+  const SlotSelectionScreen({super.key, this.locationId, this.locationName});
+
   @override
   State<SlotSelectionScreen> createState() => _SlotSelectionScreenState();
 }
@@ -28,6 +32,7 @@ class SlotSelectionScreen extends StatefulWidget {
 class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
   String? _selectedSlot;
   int _selectedFloor = 0;
+  Position? _userPosition;
 
   @override
   void initState() {
@@ -47,8 +52,48 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
       });
     }
 
-    // Ambil data slot parkir aktual dari backend Supabase
-    SlotSelectionBackend.instance.fetchSlots();
+    _loadUserGps();
+    final targetLocId = widget.locationId ?? CheckoutBackend.instance.locationId;
+    SlotSelectionBackend.instance.fetchSlots(locationId: targetLocId);
+  }
+
+  Future<void> _loadUserGps() async {
+    try {
+      final pos = await Geolocator.getLastKnownPosition() ??
+          await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 3),
+            ),
+          );
+      if (mounted) {
+        setState(() {
+          _userPosition = pos;
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _getDistanceText(Map<String, dynamic>? loc) {
+    if (loc == null) return '350m';
+    final locLat = (loc['latitude'] as num?)?.toDouble();
+    final locLng = (loc['longitude'] as num?)?.toDouble();
+    if (locLat == null || locLng == null) return '350m';
+
+    if (_userPosition != null) {
+      final meters = Geolocator.distanceBetween(
+        _userPosition!.latitude,
+        _userPosition!.longitude,
+        locLat,
+        locLng,
+      );
+      if (meters < 1000) {
+        return '${meters.round()}m';
+      } else {
+        return '${(meters / 1000).toStringAsFixed(1)} km';
+      }
+    }
+    return '1.2 km';
   }
 
   @override
@@ -184,14 +229,22 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                     children: [
                                       const Icon(Icons.location_on, size: 18, color: Color(0xFFFB923C)),
                                       const SizedBox(width: 6),
-                                      Text(
-                                        '${SlotSelectionBackend.instance.currentLocation?['name'] ?? 'Central Park Mall'} • 350m',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          letterSpacing: 0.5,
-                                          color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                        ),
+                                      ListenableBuilder(
+                                        listenable: SlotSelectionBackend.instance,
+                                        builder: (context, _) {
+                                          final loc = SlotSelectionBackend.instance.currentLocation;
+                                          final locName = loc?['name']?.toString() ?? widget.locationName ?? 'Lokasi Parkir';
+                                          final dist = _getDistanceText(loc);
+                                          return Text(
+                                            '$locName • $dist',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              letterSpacing: 0.5,
+                                              color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                            ),
+                                          );
+                                        },
                                       ),
                                     ],
                                   ),
@@ -305,7 +358,11 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                     onTap: () => setState(() {
                                       _selectedFloor = i;
                                       _selectedSlot = null;
-                                      SlotSelectionBackend.instance.fetchSlots(floorName: floors[i]);
+                                      final targetId = widget.locationId ?? CheckoutBackend.instance.locationId;
+                                      SlotSelectionBackend.instance.fetchSlots(
+                                        locationId: targetId,
+                                        floorName: floors[i],
+                                      );
                                     }),
                                     child: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
@@ -563,7 +620,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                           },
                         ),
 
-                        const SizedBox(height: 120),
+                        SizedBox(height: MediaQuery.of(context).padding.bottom + 140),
                       ],
                     ),
                   ),
@@ -627,7 +684,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
               // Bottom floating summary / CTA
               if (_selectedSlot != null)
                 Positioned(
-                  bottom: 16,
+                  bottom: MediaQuery.of(context).padding.bottom + 16,
                   left: AppSpacing.pageH,
                   right: AppSpacing.pageH,
                   child: Container(

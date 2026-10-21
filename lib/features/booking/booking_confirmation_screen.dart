@@ -215,68 +215,53 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Row(
-                                children: [
-                                  Icon(
-                                    Icons.local_parking,
-                                    size: 20,
-                                    color: isDark ? const Color(0xFFFB923C) : AppColors.secondary,
-                                  ),
-                                  const SizedBox(width: 8),
-                                  Text(
-                                    'DIGITAL PARKING PASS',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w600,
-                                      color: isDark ? theme.textSecondary : const Color(0xFF62615B),
-                                      letterSpacing: 1.0,
+                              Flexible(
+                                child: Row(
+                                  children: [
+                                    Icon(
+                                      Icons.local_parking,
+                                      size: 20,
+                                      color: isDark ? const Color(0xFFFB923C) : AppColors.secondary,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              Row(
-                                children: [
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                    decoration: BoxDecoration(
-                                      color: TicketMark.getBgColor(BookingConfirmationBackend.instance.ticketStatus, isDark: isDark),
-                                      borderRadius: AppRadii.pillRadius,
-                                      border: Border.all(color: TicketMark.getBorderColor(BookingConfirmationBackend.instance.ticketStatus, isDark: isDark)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(TicketMark.getIcon(BookingConfirmationBackend.instance.ticketStatus), size: 12, color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus)),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          BookingConfirmationBackend.instance.ticketStatus,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.bold,
-                                            color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus),
-                                          ),
+                                    const SizedBox(width: 8),
+                                    Flexible(
+                                      child: Text(
+                                        'DIGITAL PARKING PASS',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? theme.textSecondary : const Color(0xFF62615B),
+                                          letterSpacing: 1.0,
                                         ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: Colors.white,
-                                      borderRadius: AppRadii.pillRadius,
-                                      border: isDark ? null : Border.all(color: const Color(0xFFE5E2DB)),
-                                    ),
-                                    child: Text(
-                                      BookingConfirmationBackend.instance.bookingCode,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.w700,
-                                        color: Colors.black,
+                                        overflow: TextOverflow.ellipsis,
                                       ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                decoration: BoxDecoration(
+                                  color: TicketMark.getBgColor(BookingConfirmationBackend.instance.ticketStatus, isDark: isDark),
+                                  borderRadius: AppRadii.pillRadius,
+                                  border: Border.all(color: TicketMark.getBorderColor(BookingConfirmationBackend.instance.ticketStatus, isDark: isDark)),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(TicketMark.getIcon(BookingConfirmationBackend.instance.ticketStatus), size: 12, color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus)),
+                                    const SizedBox(width: 4),
+                                    Text(
+                                      BookingConfirmationBackend.instance.ticketStatus,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.bold,
+                                        color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus),
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             ],
                           ),
@@ -356,7 +341,64 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 16),
+                              const SizedBox(height: 12),
+                              // Plat Nomor di bawah tulisan Lantai 1 dan di atas Kendaraan
+                              Container(
+                                width: double.infinity,
+                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                                decoration: BoxDecoration(
+                                  color: isDark ? theme.surfaceField : const Color(0xFFF6F4EE),
+                                  borderRadius: BorderRadius.circular(10),
+                                  border: Border.all(
+                                    color: isDark ? theme.border : const Color(0xFFE5E2DB),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Row(
+                                      children: [
+                                        Icon(
+                                          Icons.credit_card_outlined,
+                                          size: 16,
+                                          color: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
+                                        ),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          'PLAT NOMOR',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.5,
+                                            color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
+                                      decoration: BoxDecoration(
+                                        color: isDark ? const Color(0xFF1E293B) : Colors.white,
+                                        borderRadius: BorderRadius.circular(6),
+                                        border: Border.all(
+                                          color: isDark ? const Color(0xFF334155) : const Color(0xFFD1D5DB),
+                                          width: 1.2,
+                                        ),
+                                      ),
+                                      child: Text(
+                                        BookingConfirmationBackend.instance.plateNumber,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: 0.8,
+                                          color: isDark ? Colors.white : Colors.black,
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const SizedBox(height: 12),
                               Row(
                                 children: [
                                   Expanded(
@@ -364,7 +406,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                       icon: Icons.directions_car,
                                       label: 'Kendaraan',
                                       title: BookingConfirmationBackend.instance.vehicleName,
-                                      subtitle: BookingConfirmationBackend.instance.plateNumber,
+                                      subtitle: 'Kode: ${BookingConfirmationBackend.instance.bookingCode}',
                                       subtitleColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
                                     ),
                                   ),

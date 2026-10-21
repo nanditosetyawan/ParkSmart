@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import 'active_session_screen.dart';
 import '../booking/backend/booking_confirmation_backend.dart';
+import 'backend/checkin_backend.dart';
 
 class CheckinScreen extends StatefulWidget {
   const CheckinScreen({super.key});
@@ -20,6 +21,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     BookingConfirmationBackend.instance.fetchLatestBooking();
+    CheckinBackend.instance.fetchCheckinTicket();
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -38,7 +40,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
 
   void _handleCheckin() async {
     setState(() => _isLoading = true);
-    await Future.delayed(const Duration(seconds: 2));
+    await CheckinBackend.instance.processGateCheckin();
     if (mounted) {
       setState(() => _isLoading = false);
       _showGateOpenModal();

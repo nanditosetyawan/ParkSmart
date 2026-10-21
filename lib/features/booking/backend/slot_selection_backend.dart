@@ -63,12 +63,17 @@ class SlotSelectionBackend extends ChangeNotifier {
       // 1. Ambil info ringkas lokasi (Targeted Column Query)
       var locQuery = _client
           .from('parking_locations')
-          .select('id, name, address, hourly_rate_mobil, total_capacity, floors');
+          .select('id, name, address, latitude, longitude, hourly_rate_mobil, total_capacity, floors');
 
       if (locationId != null) {
         _currentLocation = await locQuery.eq('id', locationId).maybeSingle();
       } else {
-        _currentLocation ??= await locQuery.order('rating', ascending: false).limit(1).maybeSingle();
+        _currentLocation ??= await locQuery.order('created_at', ascending: false).limit(1).maybeSingle();
+      }
+
+      if (_currentLocation == null) {
+        _slots = [];
+        return;
       }
 
       // 2. Tentukan lantai aktif
@@ -77,18 +82,15 @@ class SlotSelectionBackend extends ChangeNotifier {
       // 3. Ambil data slot parkir aktual dari Supabase
       var slotQuery = _client
           .from('parking_slots')
-          .select('id, location_id, floor_name, zone, slot_code, slot_type, status, current_plate_number');
-
-      if (_currentLocation != null && _currentLocation!['id'] != null) {
-        slotQuery = slotQuery.eq('location_id', _currentLocation!['id']);
-      }
-
-      slotQuery = slotQuery.eq('floor_name', activeFloor);
+          .select('id, location_id, floor_name, zone, slot_code, slot_type, status, current_plate_number')
+          .eq('location_id', _currentLocation!['id'])
+          .eq('floor_name', activeFloor);
 
       final response = await slotQuery.order('slot_code', ascending: true);
       _slots = List<Map<String, dynamic>>.from(response);
     } catch (e) {
       debugPrint('[SlotSelectionBackend] fetchSlots error: $e');
+      _slots = [];
     } finally {
       _isLoading = false;
       notifyListeners();

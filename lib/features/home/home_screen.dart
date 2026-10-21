@@ -1074,9 +1074,9 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
 
 
-          // ─── Dark floating dock navigation (fixed bottom) ────────
+          // ─── Dark floating dock navigation (fixed bottom with safe area) ────────
           Positioned(
-            bottom: 24,
+            bottom: math.max(MediaQuery.of(context).padding.bottom + 12, 24),
             left: AppSpacing.pageH,
             right: AppSpacing.pageH,
             child: Center(
@@ -2111,7 +2111,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     );
                   },
                 ),
-            const SizedBox(height: 36),
+            SizedBox(height: math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76),
           ],
         );
       },

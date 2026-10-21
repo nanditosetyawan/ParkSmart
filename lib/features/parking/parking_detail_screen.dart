@@ -1,6 +1,7 @@
-// PS-04 Parking Detail
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:geolocator/geolocator.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../favorite/favorite_screen.dart';
 import '../../theme/app_colors.dart';
@@ -25,12 +26,56 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   bool _bookmarked = false;
   late final PageController _heroPhotoController;
   int _currentPhotoIndex = 0;
+  Position? _userPosition;
 
   @override
   void initState() {
     super.initState();
     _heroPhotoController = PageController();
     ParkingDetailBackend.instance.fetchLocationDetail(locationId: widget.locationId);
+    _loadUserGps();
+  }
+
+  Future<void> _loadUserGps() async {
+    try {
+      final pos = await Geolocator.getLastKnownPosition() ??
+          await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.medium,
+              timeLimit: Duration(seconds: 3),
+            ),
+          );
+      if (mounted) {
+        setState(() {
+          _userPosition = pos;
+        });
+      }
+    } catch (_) {}
+  }
+
+  String _getDistanceAndDuration(Map<String, dynamic>? loc) {
+    if (loc == null) return '350m (3 mnt)';
+    final locLat = (loc['latitude'] as num?)?.toDouble();
+    final locLng = (loc['longitude'] as num?)?.toDouble();
+    if (locLat == null || locLng == null) return '350m (3 mnt)';
+
+    if (_userPosition != null) {
+      final meters = Geolocator.distanceBetween(
+        _userPosition!.latitude,
+        _userPosition!.longitude,
+        locLat,
+        locLng,
+      );
+      final String distStr;
+      if (meters < 1000) {
+        distStr = '${meters.round()}m';
+      } else {
+        distStr = '${(meters / 1000).toStringAsFixed(1)} km';
+      }
+      final int mins = (meters / 500).round().clamp(1, 180);
+      return '$distStr ($mins mnt)';
+    }
+    return '1.2 km (5 mnt)';
   }
 
   @override
@@ -333,41 +378,55 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
 
                         // Title & metadata
                         const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
-                              decoration: BoxDecoration(borderRadius: AppRadii.pillRadius),
-                              child: Text(
-                                'Lobi Utama Mall',
-                                style: AppTypography.caption(
-                                  color: isDark ? Colors.white : Colors.black,
-                                ).copyWith(fontWeight: FontWeight.w600),
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '•',
-                              style: AppTypography.caption(
-                                color: isDark ? theme.textMuted : AppColors.textMuted,
-                              ),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              '350m (3 mnt)',
-                              style: AppTypography.caption(
-                                color: isDark ? Colors.white : Colors.black,
-                              ).copyWith(fontWeight: FontWeight.w600),
-                            ),
-                          ],
+                        ListenableBuilder(
+                          listenable: ParkingDetailBackend.instance,
+                          builder: (context, _) {
+                            final loc = ParkingDetailBackend.instance.locationDetail;
+                            final facilityType = (loc?['type']?.toString().trim().isNotEmpty == true)
+                                ? loc!['type'].toString().trim()
+                                : 'Fasilitas Parkir';
+                            final distDuration = _getDistanceAndDuration(loc);
+
+                            return Row(
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
+                                  decoration: BoxDecoration(
+                                    color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1EEE7),
+                                    borderRadius: AppRadii.pillRadius,
+                                  ),
+                                  child: Text(
+                                    facilityType,
+                                    style: AppTypography.caption(
+                                      color: isDark ? Colors.white : Colors.black,
+                                    ).copyWith(fontWeight: FontWeight.w600),
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  '•',
+                                  style: AppTypography.caption(
+                                    color: isDark ? theme.textMuted : AppColors.textMuted,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  distDuration,
+                                  style: AppTypography.caption(
+                                    color: isDark ? Colors.white : Colors.black,
+                                  ).copyWith(fontWeight: FontWeight.w600),
+                                ),
+                              ],
+                            );
+                          },
                         ),
                         const SizedBox(height: 10),
                         ListenableBuilder(
                           listenable: ParkingDetailBackend.instance,
                           builder: (context, _) {
                             final loc = ParkingDetailBackend.instance.locationDetail;
-                            final name = loc?['name'] as String? ?? 'Central Park Mall';
-                            final address = loc?['address'] as String? ?? 'Jl. Letjen S. Parman Kav. 28, South Lobby B2, Jakarta Barat';
+                            final name = loc?['name'] as String? ?? 'Lokasi Parkir';
+                            final address = loc?['address'] as String? ?? '-';
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,22 +496,29 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                         listenable: ParkingDetailBackend.instance,
                                         builder: (context, _) {
                                           final available = ParkingDetailBackend.instance.availableSlots;
-                                          return Text(
-                                            '$available Slot',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 32,
-                                              fontWeight: FontWeight.w700,
-                                              letterSpacing: -0.5,
-                                              color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                                            ),
+                                          final floors = ParkingDetailBackend.instance.floors;
+                                          final primaryFloor = floors.isNotEmpty ? floors.first : 'Lantai 1';
+                                          return Column(
+                                            crossAxisAlignment: CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                '$available Slot',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 32,
+                                                  fontWeight: FontWeight.w700,
+                                                  letterSpacing: -0.5,
+                                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                                ),
+                                              ),
+                                              Text(
+                                                available > 0 ? 'Siap pakai di $primaryFloor' : 'Belum ada slot yang dialokasikan',
+                                                style: AppTypography.bodySm(
+                                                  color: isDark ? theme.textMuted : AppColors.textSecondary,
+                                                ),
+                                              ),
+                                            ],
                                           );
                                         },
-                                      ),
-                                      Text(
-                                        'Siap pakai di Basement B2',
-                                        style: AppTypography.bodySm(
-                                          color: isDark ? theme.textMuted : AppColors.textSecondary,
-                                        ),
                                       ),
                                     ],
                                   ),
@@ -504,26 +570,34 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 ),
                               ),
                               const SizedBox(height: 8),
-                              Row(
-                                crossAxisAlignment: CrossAxisAlignment.baseline,
-                                textBaseline: TextBaseline.alphabetic,
-                                children: [
-                                  Text(
-                                    'Rp 5.000',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 28,
-                                      fontWeight: FontWeight.w800,
-                                      letterSpacing: -0.5,
-                                      color: const Color(0xFFD96B43),
-                                    ),
-                                  ),
-                                  Text(
-                                    ' / jam pertama',
-                                    style: AppTypography.bodySm(
-                                      color: isDark ? theme.textMuted : AppColors.textSecondary,
-                                    ),
-                                  ),
-                                ],
+                              ListenableBuilder(
+                                listenable: ParkingDetailBackend.instance,
+                                builder: (context, _) {
+                                  final loc = ParkingDetailBackend.instance.locationDetail;
+                                  final rateMobil = (loc?['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+                                  final rateStr = CurrencyService.instance.format(rateMobil);
+                                  return Row(
+                                    crossAxisAlignment: CrossAxisAlignment.baseline,
+                                    textBaseline: TextBaseline.alphabetic,
+                                    children: [
+                                      Text(
+                                        rateStr,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 28,
+                                          fontWeight: FontWeight.w800,
+                                          letterSpacing: -0.5,
+                                          color: const Color(0xFFD96B43),
+                                        ),
+                                      ),
+                                      Text(
+                                        ' / jam pertama',
+                                        style: AppTypography.bodySm(
+                                          color: isDark ? theme.textMuted : AppColors.textSecondary,
+                                        ),
+                                      ),
+                                    ],
+                                  );
+                                },
                               ),
                               const SizedBox(height: 12),
                               _InfoRow(
@@ -543,7 +617,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                         // Amenities
                         const SizedBox(height: 16),
                         Container(
-                          padding: const EdgeInsets.all(20),
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
                           decoration: BoxDecoration(
                             color: isDark ? theme.card : AppColors.surfaceCard,
                             borderRadius: AppRadii.xl2Radius,
@@ -552,6 +626,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                           ),
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
                                 'FASILITAS',
@@ -559,24 +634,34 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                   color: isDark ? theme.textMuted : AppColors.textSecondary,
                                 ),
                               ),
-                              const SizedBox(height: 12),
-                              GridView.count(
-                                crossAxisCount: 2,
-                                crossAxisSpacing: 10,
-                                mainAxisSpacing: 10,
-                                childAspectRatio: 3.2,
-                                shrinkWrap: true,
-                                physics: const NeverScrollableScrollPhysics(),
+                              const SizedBox(height: 10),
+                              Row(
                                 children: [
-                                  _AmenityChip(icon: Icons.videocam_outlined, label: 'CCTV 24 Jam', isDark: isDark),
-                                  _AmenityChip(icon: Icons.ev_station, label: 'EV Charging', isDark: isDark),
-                                  _AmenityChip(icon: Icons.accessible, label: 'Disabilitas', isDark: isDark),
-                                  _AmenityChip(icon: Icons.elevator_outlined, label: 'Akses Lift', isDark: isDark),
+                                  Expanded(
+                                    child: _AmenityChip(icon: Icons.videocam_outlined, label: 'CCTV 24 Jam', isDark: isDark),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _AmenityChip(icon: Icons.ev_station, label: 'EV Charging', isDark: isDark),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 10),
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _AmenityChip(icon: Icons.accessible, label: 'Disabilitas', isDark: isDark),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: _AmenityChip(icon: Icons.elevator_outlined, label: 'Akses Lift', isDark: isDark),
+                                  ),
                                 ],
                               ),
                             ],
                           ),
                         ),
+                        SizedBox(height: MediaQuery.of(context).padding.bottom + 90),
                       ],
                     ),
                   ),
@@ -664,15 +749,23 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                   color: isDark ? theme.textMuted : AppColors.textSecondary,
                                 ),
                               ),
-                              Text(
-                                'Rp 5.000 / jam',
-                                style: GoogleFonts.plusJakartaSans(
-                                  fontSize: 18,
-                                  fontWeight: FontWeight.w800,
-                                  letterSpacing: -0.3,
-                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                                ),
-                              ),
+                               ListenableBuilder(
+                                 listenable: ParkingDetailBackend.instance,
+                                 builder: (context, _) {
+                                   final loc = ParkingDetailBackend.instance.locationDetail;
+                                   final rateMobil = (loc?['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+                                   final rateStr = CurrencyService.instance.format(rateMobil);
+                                   return Text(
+                                     '$rateStr / jam',
+                                     style: GoogleFonts.plusJakartaSans(
+                                       fontSize: 18,
+                                       fontWeight: FontWeight.w800,
+                                       letterSpacing: -0.3,
+                                       color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                     ),
+                                   );
+                                 },
+                               ),
                             ],
                           ),
                         ),
@@ -694,17 +787,34 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 }
                                 final loc = ParkingDetailBackend.instance.locationDetail;
                                 if (loc != null) {
+                                  if (ParkingDetailBackend.instance.availableSlots <= 0) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        backgroundColor: Color(0xFFDC2626),
+                                        content: Text('Belum ada slot parkir yang dialokasikan di lokasi ini.'),
+                                      ),
+                                    );
+                                    return;
+                                  }
+                                  final locId = loc['id']?.toString();
+                                  final locName = loc['name']?.toString() ?? 'Lokasi Parkir';
+                                  final hourly = (loc['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0;
                                   CheckoutBackend.instance.setBookingDetails(
-                                    locationId: loc['id']?.toString(),
-                                    locationName: loc['name']?.toString() ?? 'Central Park Mall',
-                                    hourlyRate: (loc['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0,
+                                    locationId: locId,
+                                    locationName: locName,
+                                    hourlyRate: hourly,
                                   );
-                                  SlotSelectionBackend.instance.fetchSlots(locationId: loc['id']?.toString());
+                                  SlotSelectionBackend.instance.fetchSlots(locationId: locId);
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => SlotSelectionScreen(
+                                        locationId: locId,
+                                        locationName: locName,
+                                      ),
+                                    ),
+                                  );
                                 }
-                                Navigator.push(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const SlotSelectionScreen()),
-                                );
                               },
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isDark ? Colors.white : AppColors.primary,

@@ -22,6 +22,13 @@ class ParkingDetailBackend extends ChangeNotifier {
   int _availableSlots = 0;
   int get availableSlots => _availableSlots;
 
+  List<String> get floors {
+    if (_locationDetail != null && _locationDetail!['floors'] is List && (_locationDetail!['floors'] as List).isNotEmpty) {
+      return List<String>.from(_locationDetail!['floors']);
+    }
+    return ['Lantai 1'];
+  }
+
   /// Memuat informasi detail tempat parkir & ketersediaan slot aktual
   Future<void> fetchLocationDetail({String? locationId}) async {
     _isLoading = true;
@@ -31,15 +38,15 @@ class ParkingDetailBackend extends ChangeNotifier {
       // 1. Targeted Column Query: Detail Lokasi
       var locQuery = _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities');
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, floors');
 
       final locData = locationId != null
           ? await locQuery.eq('id', locationId).maybeSingle()
-          : await locQuery.order('rating', ascending: false).limit(1).maybeSingle();
+          : await locQuery.order('created_at', ascending: false).limit(1).maybeSingle();
 
       if (locData != null) {
         _locationDetail = locData;
-        _totalSlots = (locData['total_capacity'] as int?) ?? _totalSlots;
+        _totalSlots = (locData['total_capacity'] as int?) ?? 0;
 
         // 2. Targeted Column Query: Slot parkir untuk menghitung slot kosong
         final actualLocId = locData['id'];
@@ -54,9 +61,16 @@ class ParkingDetailBackend extends ChangeNotifier {
         } else {
           _availableSlots = 0;
         }
+      } else {
+        _locationDetail = null;
+        _totalSlots = 0;
+        _availableSlots = 0;
       }
     } catch (e) {
       debugPrint('[ParkingDetailBackend] fetchLocationDetail error: $e');
+      _locationDetail = null;
+      _totalSlots = 0;
+      _availableSlots = 0;
     } finally {
       _isLoading = false;
       notifyListeners();

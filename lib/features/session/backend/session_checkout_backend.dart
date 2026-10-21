@@ -127,6 +127,68 @@ class SessionCheckoutBackend extends ChangeNotifier {
             _floorName = slot['floor_name']?.toString() ?? _floorName;
           }
         }
+      } else {
+        // Fallback: periksa tabel bookings jika pengguna langsung checkout dari reservasi aktif
+        final booking = await _client
+            .from('bookings')
+            .select('id, booking_code, location_id, slot_id, vehicle_id, start_time, end_time, total_price, booking_status')
+            .inFilter('booking_status', ['upcoming', 'active'])
+            .order('start_time', ascending: false)
+            .limit(1)
+            .maybeSingle();
+
+        if (booking != null) {
+          _activeSessionId = booking['id']?.toString();
+          _parkingRate = (booking['total_price'] as num?)?.toDouble() ?? _parkingRate;
+
+          if (booking['start_time'] != null) {
+            final inTime = DateTime.tryParse(booking['start_time'].toString())?.toLocal();
+            final outTime = booking['end_time'] != null
+                ? DateTime.tryParse(booking['end_time'].toString())?.toLocal()
+                : DateTime.now();
+
+            if (inTime != null && outTime != null) {
+              final diff = outTime.difference(inTime);
+              final hrs = diff.inHours;
+              final mins = diff.inMinutes % 60;
+              _totalDuration = '$hrs Jam $mins Menit';
+              _timeRange = '${inTime.hour.toString().padLeft(2, '0')}:${inTime.minute.toString().padLeft(2, '0')} - ${outTime.hour.toString().padLeft(2, '0')}:${outTime.minute.toString().padLeft(2, '0')}';
+            }
+          }
+
+          if (booking['location_id'] != null) {
+            final loc = await _client
+                .from('parking_locations')
+                .select('name')
+                .eq('id', booking['location_id'])
+                .maybeSingle();
+            if (loc != null) _locationName = loc['name']?.toString() ?? _locationName;
+          }
+
+          if (booking['slot_id'] != null) {
+            final slot = await _client
+                .from('parking_slots')
+                .select('slot_code, floor_name')
+                .eq('id', booking['slot_id'])
+                .maybeSingle();
+            if (slot != null) {
+              _slotCode = slot['slot_code']?.toString() ?? _slotCode;
+              _floorName = slot['floor_name']?.toString() ?? _floorName;
+            }
+          }
+
+          if (booking['vehicle_id'] != null) {
+            final veh = await _client
+                .from('vehicles')
+                .select('plate_number, brand, model')
+                .eq('id', booking['vehicle_id'])
+                .maybeSingle();
+            if (veh != null) {
+              _plateNumber = veh['plate_number']?.toString() ?? _plateNumber;
+              _vehicleName = '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim();
+            }
+          }
+        }
       }
     } catch (e) {
       debugPrint('[SessionCheckoutBackend] fetchCheckoutDetails error: $e');
@@ -141,11 +203,29 @@ class SessionCheckoutBackend extends ChangeNotifier {
     if (_activeSessionId == null) return true;
 
     try {
+      final now = DateTime.now().toUtc().toIso8601String();
+
+      // 1. Coba update parking_sessions jika id adalah id session
       await _client.from('parking_sessions').update({
         'status': 'completed',
-        'check_out_time': DateTime.now().toUtc().toIso8601String(),
+        'check_out_time': now,
         'total_fee': totalPayment,
       }).eq('id', _activeSessionId!);
+
+      // 2. Coba update bookings jika id adalah booking id atau terkait
+      await _client.from('bookings').update({
+        'booking_status': 'completed',
+      }).eq('id', _activeSessionId!);
+
+      // 3. Kembalikan status slot menjadi available
+      if (_slotCode != '-' && _slotCode.isNotEmpty) {
+        await _client.from('parking_slots').update({
+          'status': 'available',
+          'current_plate_number': null,
+          'occupied_since': null,
+        }).eq('slot_code', _slotCode);
+      }
+
       return true;
     } catch (e) {
       debugPrint('[SessionCheckoutBackend] completeSessionCheckout error: $e');
