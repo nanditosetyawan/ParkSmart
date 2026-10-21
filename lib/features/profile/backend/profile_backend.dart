@@ -24,6 +24,12 @@ class ProfileBackend extends ChangeNotifier {
   int _walletBalance = 0;
   String _primaryVehicle = 'Belum Ada Kendaraan';
 
+  String _saranKuliah = '';
+  String get saranKuliah => _saranKuliah;
+
+  String _pesanKuliah = '';
+  String get pesanKuliah => _pesanKuliah;
+
   String get name => _name;
   String get email => _email;
   String get phone => _phone;
@@ -63,7 +69,7 @@ class ProfileBackend extends ChangeNotifier {
 
       // Ambil data user dari tabel users
       dynamic query = _client.from('users').select(
-        'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance, avatar_url',
+        'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance, avatar_url, saran_kuliah, pesan_kuliah',
       );
 
       if (authUserId != null) {
@@ -91,6 +97,8 @@ class ProfileBackend extends ChangeNotifier {
         if (data['wallet_balance'] != null) {
           _walletBalance = (double.tryParse(data['wallet_balance'].toString()) ?? 250000).toInt();
         }
+        _saranKuliah = data['saran_kuliah']?.toString() ?? '';
+        _pesanKuliah = data['pesan_kuliah']?.toString() ?? '';
 
         // Ambil kendaraan utama dari tabel vehicles
         try {
@@ -111,6 +119,36 @@ class ProfileBackend extends ChangeNotifier {
       }
     } catch (e) {
       debugPrint('ProfileBackend fetchProfile error (using fallback): $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
+    }
+  }
+
+  /// Menyimpan saran & pesan perkuliahan Pemrograman Aplikasi Mobile ke Supabase
+  Future<bool> saveKuliahFeedback({
+    required String saran,
+    required String pesan,
+  }) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final s = saran.trim();
+      final p = pesan.trim();
+
+      await _client.from('users').update({
+        'saran_kuliah': s,
+        'pesan_kuliah': p,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', _userId);
+
+      _saranKuliah = s;
+      _pesanKuliah = p;
+      return true;
+    } catch (e) {
+      debugPrint('[ProfileBackend] saveKuliahFeedback error: $e');
+      return false;
     } finally {
       _isLoading = false;
       notifyListeners();

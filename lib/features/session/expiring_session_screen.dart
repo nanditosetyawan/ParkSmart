@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import 'active_session_screen.dart';
 import 'session_checkout_screen.dart';
 import '../pin/pin_screen.dart';
@@ -54,7 +55,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -288,7 +289,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 Expanded(
                                   child: _ExtensionButton(
                                     time: '+30 Menit',
-                                    price: 'Rp 2.500',
+                                    price: CurrencyService.instance.format(2500),
                                     isSelected: _selectedExtIndex == 0,
                                     isDark: isDark,
                                     onTap: () => setState(() => _selectedExtIndex = 0),
@@ -298,7 +299,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 Expanded(
                                   child: _ExtensionButton(
                                     time: '+1 Jam',
-                                    price: 'Rp 5.000',
+                                    price: CurrencyService.instance.format(5000),
                                     isSelected: _selectedExtIndex == 1,
                                     isDark: isDark,
                                     onTap: () => setState(() => _selectedExtIndex = 1),
@@ -308,7 +309,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 Expanded(
                                   child: _ExtensionButton(
                                     time: '+2 Jam',
-                                    price: 'Rp 10.000',
+                                    price: CurrencyService.instance.format(10000),
                                     isSelected: _selectedExtIndex == 2,
                                     isDark: isDark,
                                     onTap: () => setState(() => _selectedExtIndex = 2),
@@ -372,9 +373,19 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 ],
                               ),
                               Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Divider(color: divider, height: 1)),
-                              _DetailRow(icon: Icons.pin_drop, label: 'Lokasi Slot', value: 'Central Park Mall • Slot A-05', isDark: isDark),
+                              _DetailRow(
+                                icon: Icons.pin_drop,
+                                label: 'Lokasi Slot',
+                                value: '${HomeBackend.instance.activeSession?['location_name'] ?? 'Pakuwon Mall'} • Slot ${HomeBackend.instance.activeSession?['slot_code'] ?? 'A-01'}',
+                                isDark: isDark,
+                              ),
                               const SizedBox(height: 12),
-                              _DetailRow(icon: Icons.directions_car, label: 'Kendaraan', value: 'Toyota Raize • B 1234 XYZ', isDark: isDark),
+                              _DetailRow(
+                                icon: Icons.directions_car,
+                                label: 'Kendaraan',
+                                value: '${(HomeBackend.instance.activeSession?['vehicle_desc'] != null && HomeBackend.instance.activeSession!['vehicle_desc'].toString().isNotEmpty) ? HomeBackend.instance.activeSession!['vehicle_desc'] : 'Toyota Land Cruiser'} • ${(HomeBackend.instance.activeSession?['plate_number'] != null && HomeBackend.instance.activeSession!['plate_number'].toString().isNotEmpty) ? HomeBackend.instance.activeSession!['plate_number'] : 'B 1945 RI'}',
+                                isDark: isDark,
+                              ),
                               Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Divider(color: divider, height: 1)),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -387,7 +398,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                     ],
                                   ),
                                   Text(
-                                    'Rp 9.000',
+                                    CurrencyService.instance.format(9000),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 17,
                                       fontWeight: FontWeight.w800,
@@ -429,7 +440,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                       ),
                                       if (_selectedPaymentMethod == 'ParkSmart Wallet')
                                         Text(
-                                          'Saldo Aktif: Rp 45.000',
+                                          'Saldo Aktif: ${CurrencyService.instance.format(45000)}',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF1F4F3C),
@@ -524,7 +535,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Denda overstay otomatis Rp 5.000/jam via ParkSmart Wallet',
+                              'Denda overstay otomatis ${CurrencyService.instance.format(5000)}/jam via ParkSmart Wallet',
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,

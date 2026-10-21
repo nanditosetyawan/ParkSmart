@@ -28,7 +28,13 @@ class FeedbackBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final activeUserId = ProfileBackend.instance.userId;
+      String activeUserId = ProfileBackend.instance.userId;
+      if (activeUserId.isEmpty || activeUserId.startsWith('usr_mock')) {
+        final uRes = await _client.from('users').select('id').limit(1).maybeSingle();
+        if (uRes != null && uRes['id'] != null) {
+          activeUserId = uRes['id'].toString();
+        }
+      }
 
       String fullComment = comment.trim();
       if (selectedTopics != null && selectedTopics.isNotEmpty) {

@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/utils/ticket_status_helper.dart';
 import '../pin/pin_screen.dart';
 import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
@@ -37,7 +39,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, CheckoutBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -380,8 +382,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     child: Column(
                       children: [
-                        _priceRow('Tarif Parkir', 'Rp ${CheckoutBackend.instance.subtotal.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}', isDark: isDark),
-                        _priceRow('Biaya Layanan', 'Rp ${CheckoutBackend.instance.serviceFee.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}', isDark: isDark),
+                        _priceRow('Tarif Parkir', CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
+                        _priceRow('Biaya Layanan', CurrencyService.instance.format(CheckoutBackend.instance.serviceFee), isDark: isDark),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Divider(
@@ -401,7 +403,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               ),
                             ),
                             Text(
-                              'Rp ${CheckoutBackend.instance.totalPayment.toInt().toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
+                              CurrencyService.instance.format(CheckoutBackend.instance.totalPayment),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.w800,
@@ -481,22 +483,30 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         onPressed: () async {
                           final booking = await CheckoutBackend.instance.confirmAndCreateBooking();
                           final veh = CheckoutBackend.instance.selectedVehicle;
+                          final vehicleName = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Land Cruiser';
+                          final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
+                          final bId = booking?['id']?.toString();
+
                           BookingConfirmationBackend.instance.setConfirmedPass(
                             bookingCode: booking?['booking_code'] ?? '#PS-88210-CP',
                             locationName: CheckoutBackend.instance.locationName,
                             locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
                             slotCode: CheckoutBackend.instance.slotCode,
-                            vehicleName: veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Raize',
-                            plateNumber: veh != null ? (veh['plate_number'] ?? 'B 1234 XYZ') : 'B 1234 XYZ',
+                            vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota Land Cruiser',
+                            plateNumber: plateNumber,
                             validTime: '14:00 - 16:00',
+                            bookingId: bId,
+                            ticketStatus: TicketMark.belumDibayar,
+                            totalPrice: CheckoutBackend.instance.totalPayment,
                           );
 
                           if (context.mounted) {
                             Navigator.pushReplacement(
                               context,
                               MaterialPageRoute(
-                                builder: (_) => const PinScreen(
-                                  nextScreen: BookingConfirmationScreen(),
+                                builder: (_) => PinScreen(
+                                  bookingId: bId,
+                                  nextScreen: BookingConfirmationScreen(bookingId: bId),
                                   transactionType: 'parkir',
                                 ),
                               ),

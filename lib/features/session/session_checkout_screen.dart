@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import '../profile/feedback_screen.dart' as feedback;
 import 'backend/session_checkout_backend.dart';
 
@@ -21,7 +22,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, SessionCheckoutBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, SessionCheckoutBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final backend = SessionCheckoutBackend.instance;
         final theme = ThemeService.instance;
@@ -397,9 +398,15 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                     ),
                                   ),
                                   const SizedBox(height: 8),
-                                  const _ReceiptRow(label: 'Tarif Parkir (2 Jam)', value: 'Rp 10.000'),
+                                  _ReceiptRow(
+                                    label: 'Tarif Parkir (${backend.totalDuration})',
+                                    value: CurrencyService.instance.format(backend.parkingRate > 0 ? backend.parkingRate : 10000),
+                                  ),
                                   const SizedBox(height: 4),
-                                  const _ReceiptRow(label: 'Biaya Sensor ANPR', value: 'Rp 1.000'),
+                                  _ReceiptRow(
+                                    label: 'Biaya Sensor ANPR',
+                                    value: CurrencyService.instance.format(backend.sensorFee > 0 ? backend.sensorFee : 1000),
+                                  ),
                                   const SizedBox(height: 4),
                                   Row(
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -413,7 +420,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                         ),
                                       ),
                                       Text(
-                                        '-Rp 2.000',
+                                        '-${CurrencyService.instance.format(backend.discountAmount > 0 ? backend.discountAmount : 2000)}',
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
@@ -454,7 +461,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                         ),
                                       ),
                                       Text(
-                                        'Rp 9.000',
+                                        CurrencyService.instance.format(backend.totalPayment > 0 ? backend.totalPayment : 9000),
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,

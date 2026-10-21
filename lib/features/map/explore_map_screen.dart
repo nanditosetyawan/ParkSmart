@@ -18,6 +18,8 @@ import '../home/home_screen.dart';
 import '../favorite/favorite_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
 import 'backend/explore_map_backend.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../profile/backend/feedback_backend.dart';
 
 class ExploreMapScreen extends StatefulWidget {
   final Map<String, dynamic>? initialSelectedParking;
@@ -52,7 +54,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   String _selectedReviewFilterTopic = 'Semua';
 
-  final List<Map<String, dynamic>> _userReviews = [
+  List<Map<String, dynamic>> _userReviews = [
     {
       'name': 'Budi Santoso',
       'rating': 5,
@@ -241,8 +243,76 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             }
           }
         });
+        _fetchLocationReviews(_selectedParking?['id']?.toString());
       }
     });
+  }
+
+  Future<void> _fetchLocationReviews(String? locationId) async {
+    try {
+      final res = await Supabase.instance.client
+          .from('customer_feedbacks')
+          .select('id, rating, comment, admin_reply, is_resolved, created_at, location_id, users(full_name, avatar_url)')
+          .order('created_at', ascending: false);
+
+      if (res.isNotEmpty && mounted) {
+        final List<Map<String, dynamic>> realReviews = [];
+        for (var row in res) {
+          if (locationId != null && row['location_id'] != null) {
+            if (row['location_id'].toString() != locationId) {
+              continue;
+            }
+          }
+
+          final comment = row['comment']?.toString() ?? '';
+          List<String> topics = [];
+          String cleanReview = comment;
+          if (comment.startsWith('[') && comment.contains(']')) {
+            final endIdx = comment.indexOf(']');
+            final topicsStr = comment.substring(1, endIdx);
+            topics = topicsStr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+            cleanReview = comment.substring(endIdx + 1).trim();
+          }
+
+          final userData = row['users'] as Map<String, dynamic>?;
+          final name = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
+
+          String dateStr = 'Hari ini';
+          if (row['created_at'] != null) {
+            try {
+              final dt = DateTime.parse(row['created_at'].toString()).toLocal();
+              final diff = DateTime.now().difference(dt);
+              if (diff.inMinutes < 60) {
+                dateStr = '${diff.inMinutes} menit yang lalu';
+              } else if (diff.inHours < 24) {
+                dateStr = '${diff.inHours} jam yang lalu';
+              } else if (diff.inDays < 7) {
+                dateStr = '${diff.inDays} hari yang lalu';
+              } else {
+                dateStr = '${(diff.inDays / 7).floor()} minggu yang lalu';
+              }
+            } catch (_) {}
+          }
+
+          realReviews.add({
+            'name': name,
+            'rating': (row['rating'] as num?)?.toInt() ?? 5,
+            'date': dateStr,
+            'review': cleanReview.isNotEmpty ? cleanReview : 'Pelayanan parkir sangat baik.',
+            'topics': topics.isNotEmpty ? topics : ['Akurasi Sensor ANPR', 'Kemudahan Gate'],
+            'adminReply': row['admin_reply']?.toString(),
+          });
+        }
+
+        if (realReviews.isNotEmpty) {
+          setState(() {
+            _userReviews = realReviews;
+          });
+        }
+      }
+    } catch (e) {
+      debugPrint('[ExploreMap] _fetchLocationReviews error: $e');
+    }
   }
 
   @override
@@ -493,6 +563,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       _selectedParking = loc;
       _selectedDetailTab = 0; // Otomatis tab Ringkasan
     });
+    _fetchLocationReviews(loc['id']?.toString());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_placeDetailsController.isAttached) {
         _placeDetailsController.animateTo(
@@ -1986,6 +2057,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           setState(() {
             _selectedDetailTab = index;
           });
+          if (index == 1 && _selectedParking != null) {
+            _fetchLocationReviews(_selectedParking!['id']?.toString());
+          }
         },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -2192,7 +2266,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   }
 
   // Modal untuk menulis ulasan baru dengan Topik Masukan hitam putih
-  void _showAddReviewDialog(BuildContext context) {
+  void _showAddReviewDialog(BuildContext context, Map<String, dynamic> loc) {
     int rating = 5;
     final Set<String> selectedTopics = {'Akurasi Sensor ANPR'};
     final TextEditingController textController = TextEditingController();
@@ -2397,10 +2471,11 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(23)),
                           elevation: 0,
                         ),
-                        onPressed: () {
+                        onPressed: () async {
                           final text = textController.text.trim();
+                          final messenger = ScaffoldMessenger.of(context);
                           if (text.isEmpty) {
-                            ScaffoldMessenger.of(context).showSnackBar(
+                            messenger.showSnackBar(
                               const SnackBar(
                                 content: Text('Silakan masukkan deskripsi ulasan terlebih dahulu.'),
                                 duration: Duration(seconds: 2),
@@ -2408,22 +2483,24 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             );
                             return;
                           }
-                          setState(() {
-                            _userReviews.insert(0, {
-                              'name': 'Anda (Pengguna)',
-                              'rating': rating,
-                              'date': 'Baru saja',
-                              'review': text,
-                              'topics': selectedTopics.toList(),
-                            });
-                          });
-                          Navigator.pop(modalContext);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Ulasan Anda berhasil ditambahkan!'),
-                              duration: Duration(seconds: 2),
-                            ),
+                          await FeedbackBackend.instance.submitFeedback(
+                            rating: rating,
+                            comment: text,
+                            locationId: loc['id']?.toString(),
+                            selectedTopics: selectedTopics.toList(),
                           );
+                          if (modalContext.mounted) {
+                            Navigator.pop(modalContext);
+                          }
+                          if (mounted) {
+                            _fetchLocationReviews(loc['id']?.toString());
+                            messenger.showSnackBar(
+                              const SnackBar(
+                                content: Text('Ulasan Anda berhasil ditambahkan!'),
+                                duration: Duration(seconds: 2),
+                              ),
+                            );
+                          }
                         },
                         child: Text(
                           'Kirim Ulasan',
@@ -2518,7 +2595,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
               ),
               InkWell(
                 borderRadius: BorderRadius.circular(16),
-                onTap: () => _showAddReviewDialog(context),
+                onTap: () => _showAddReviewDialog(context, loc),
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
                   decoration: BoxDecoration(
@@ -2629,6 +2706,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                   date: r['date'] as String,
                   review: r['review'] as String,
                   topics: ((r['topics'] as List<dynamic>?) ?? []).cast<String>(),
+                  adminReply: r['adminReply'] as String?,
                 ),
               );
             }),
@@ -2987,6 +3065,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     required String date,
     required String review,
     List<String> topics = const [],
+    String? adminReply,
   }) {
     final theme = ThemeService.instance;
     final isDark = theme.isDarkMode;
@@ -3110,6 +3189,56 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         ),
                       );
                     }).toList(),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          // Tanggapan Admin CS jika sudah dijawab (jika belum, TIDAK diberi keterangan 'belum dibalas')
+          if (adminReply != null && adminReply.trim().isNotEmpty) ...[
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF0FDF4),
+                borderRadius: BorderRadius.circular(12),
+                border: Border(
+                  left: BorderSide(
+                    color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF16A34A),
+                    width: 3.5,
+                  ),
+                ),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.support_agent_rounded,
+                        size: 16,
+                        color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF16A34A),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Tanggapan Resmi Admin CS',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF16A34A),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    adminReply.trim(),
+                    style: GoogleFonts.inter(
+                      fontSize: 12.5,
+                      color: isDark ? const Color(0xFFE2E8F0) : const Color(0xFF1E293B),
+                      height: 1.45,
+                    ),
                   ),
                 ],
               ),

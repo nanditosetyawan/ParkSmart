@@ -6,7 +6,8 @@ import '../booking/backend/booking_confirmation_backend.dart';
 import 'backend/checkin_backend.dart';
 
 class CheckinScreen extends StatefulWidget {
-  const CheckinScreen({super.key});
+  final String? bookingId;
+  const CheckinScreen({super.key, this.bookingId});
 
   @override
   State<CheckinScreen> createState() => _CheckinScreenState();
@@ -21,7 +22,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
   void initState() {
     super.initState();
     BookingConfirmationBackend.instance.fetchLatestBooking();
-    CheckinBackend.instance.fetchCheckinTicket();
+    CheckinBackend.instance.fetchCheckinTicket(bookingId: widget.bookingId);
     _pulseController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
@@ -101,7 +102,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
               ),
               const SizedBox(height: 8),
               Text(
-                'Silakan maju perlahan menuju Basement B2. Navigasi slot A-05 telah dipandu di layar.',
+                'Silakan maju perlahan menuju ${CheckinBackend.instance.floorName}. Navigasi slot ${CheckinBackend.instance.slotCode} telah dipandu di layar.',
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,

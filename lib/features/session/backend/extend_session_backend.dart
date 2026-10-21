@@ -66,6 +66,12 @@ class ExtendSessionBackend extends ChangeNotifier {
     },
   ];
 
+  String _vehicleName = 'Toyota Land Cruiser';
+  String get vehicleName => _vehicleName;
+
+  String _plateNumber = 'B 1945 RI';
+  String get plateNumber => _plateNumber;
+
   /// Memuat sesi parkir aktif yang dapat diperpanjang
   Future<void> fetchActiveSessionForExtend() async {
     _isLoading = true;
@@ -74,7 +80,7 @@ class ExtendSessionBackend extends ChangeNotifier {
     try {
       final session = await _client
           .from('parking_sessions')
-          .select('id, slot_id, expected_check_out_time, check_in_time, parking_fee')
+          .select('id, slot_id, expected_check_out_time, check_in_time, parking_fee, vehicle_description, plate_number, booking_id')
           .eq('status', 'active')
           .order('check_in_time', ascending: false)
           .limit(1)
@@ -82,6 +88,13 @@ class ExtendSessionBackend extends ChangeNotifier {
 
       if (session != null) {
         _sessionId = session['id']?.toString();
+
+        if (session['vehicle_description'] != null && session['vehicle_description'].toString().isNotEmpty) {
+          _vehicleName = session['vehicle_description'].toString();
+        }
+        if (session['plate_number'] != null && session['plate_number'].toString().isNotEmpty) {
+          _plateNumber = session['plate_number'].toString();
+        }
 
         if (session['expected_check_out_time'] != null) {
           _expectedCheckOut = DateTime.tryParse(session['expected_check_out_time'].toString())?.toLocal();
@@ -123,7 +136,7 @@ class ExtendSessionBackend extends ChangeNotifier {
         // Cek juga dari tabel bookings jika sesi reservasi aktif
         final booking = await _client
             .from('bookings')
-            .select('id, slot_id, location_id, end_time, start_time, total_price')
+            .select('id, slot_id, location_id, vehicle_id, end_time, start_time, total_price')
             .inFilter('booking_status', ['upcoming', 'active'])
             .order('start_time', ascending: false)
             .limit(1)
@@ -131,6 +144,20 @@ class ExtendSessionBackend extends ChangeNotifier {
 
         if (booking != null) {
           _sessionId = booking['id']?.toString();
+          if (booking['vehicle_id'] != null) {
+            final veh = await _client
+                .from('vehicles')
+                .select('brand, model, plate_number')
+                .eq('id', booking['vehicle_id'])
+                .maybeSingle();
+            if (veh != null) {
+              final b = veh['brand'] ?? '';
+              final m = veh['model'] ?? '';
+              _vehicleName = '$b $m'.trim();
+              if (_vehicleName.isEmpty) _vehicleName = 'Toyota Land Cruiser';
+              _plateNumber = veh['plate_number'] ?? _plateNumber;
+            }
+          }
           if (booking['end_time'] != null) {
             _expectedCheckOut = DateTime.tryParse(booking['end_time'].toString())?.toLocal();
             if (_expectedCheckOut != null) {

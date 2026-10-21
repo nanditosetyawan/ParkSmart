@@ -10,7 +10,8 @@ import '../navigation/ar_navigation_screen.dart';
 import 'backend/active_session_backend.dart';
 
 class ActiveSessionScreen extends StatefulWidget {
-  const ActiveSessionScreen({super.key});
+  final String? sessionId;
+  const ActiveSessionScreen({super.key, this.sessionId});
 
   @override
   State<ActiveSessionScreen> createState() => _ActiveSessionScreenState();
@@ -23,7 +24,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   void initState() {
     super.initState();
-    ActiveSessionBackend.instance.fetchActiveSession().then((_) {
+    ActiveSessionBackend.instance.fetchActiveSession(sessionId: widget.sessionId).then((_) {
       if (mounted) {
         setState(() {
           _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;

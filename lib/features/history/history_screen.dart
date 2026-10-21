@@ -3,7 +3,10 @@ import 'package:flutter/material.dart';
 import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
+import '../session/checkin_screen.dart';
+import '../pin/pin_screen.dart';
 import 'history_detail_screen.dart' as history_detail;
 import 'backend/history_backend.dart';
 
@@ -24,7 +27,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HistoryBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HistoryBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -327,6 +330,67 @@ class _HistoryCard extends StatelessWidget {
 
     return GestureDetector(
       onTap: () {
+        if (status == TicketMark.belumDibayar) {
+          showDialog(
+            context: context,
+            builder: (dialogCtx) => AlertDialog(
+              backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              title: Text(
+                'Bayar Tagihan Parkir?',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: textMain,
+                  fontSize: 18,
+                ),
+              ),
+              content: Text(
+                'Anda memiliki tagihan reservasi di $mallName ($slot) sebesar $price yang belum dibayar. Lanjutkan ke verifikasi PIN untuk pembayaran?',
+                style: GoogleFonts.plusJakartaSans(
+                  color: textSub,
+                  fontSize: 13.5,
+                  height: 1.4,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogCtx),
+                  child: Text(
+                    'Nanti Saja',
+                    style: GoogleFonts.plusJakartaSans(
+                      color: textSub,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                ),
+                ElevatedButton(
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                    foregroundColor: isDark ? Colors.black : Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                  ),
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PinScreen(
+                          transactionType: 'parkir',
+                          nextScreen: CheckinScreen(bookingId: id),
+                        ),
+                      ),
+                    );
+                  },
+                  child: Text(
+                    'Bayar Sekarang',
+                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
         Navigator.push(context, MaterialPageRoute(builder: (_) => history_detail.HistoryDetailScreen(id: id)));
       },
       child: Container(
@@ -471,12 +535,16 @@ class _HistoryCard extends StatelessWidget {
                               color: isEv ? const Color(0xFF059669) : (isDark ? const Color(0xFFE07A5F) : const Color(0xFF9A442D)),
                             ),
                             const SizedBox(width: 4),
-                            Text(
-                              slot,
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 14,
-                                fontWeight: FontWeight.bold,
-                                color: textMain,
+                            Expanded(
+                              child: Text(
+                                slot,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: textMain,
+                                ),
                               ),
                             ),
                           ],

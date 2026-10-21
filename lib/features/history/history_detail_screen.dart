@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import 'backend/history_detail_backend.dart';
@@ -22,7 +23,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HistoryDetailBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HistoryDetailBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -181,15 +182,49 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
+                                  // 1. Status Selesai / Ready / Belum Bayar di paling atas dalam card
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    decoration: BoxDecoration(
+                                      color: TicketMark.getBgColor(backend.status, isDark: isDark),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: TicketMark.getBorderColor(backend.status, isDark: isDark),
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          TicketMark.getIcon(backend.status),
+                                          size: 14,
+                                          color: TicketMark.getColor(backend.status),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Text(
+                                          backend.status,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w700,
+                                            color: TicketMark.getColor(backend.status),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  const SizedBox(height: 14),
+
+                                  // 2. Bawahnya: Nama Gedung
                                   Text(
                                     'NAMA GEDUNG',
                                     style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
+                                      fontSize: 11,
                                       fontWeight: FontWeight.bold,
                                       color: textSub,
                                       letterSpacing: 1.0,
                                     ),
                                   ),
+                                  const SizedBox(height: 2),
                                   Text(
                                     backend.locationName,
                                     style: GoogleFonts.plusJakartaSans(
@@ -198,25 +233,42 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                       color: textMain,
                                     ),
                                   ),
-                                  const SizedBox(height: 4),
+                                  const SizedBox(height: 8),
+
+                                  // 3. Bawahnya lagi: Parkirannya (Slot & Alamat tidak 1 line)
                                   Row(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    crossAxisAlignment: CrossAxisAlignment.center,
                                     children: [
-                                      Icon(Icons.location_on, size: 16, color: terracotta),
-                                      const SizedBox(width: 4),
+                                      Icon(Icons.pin_drop, size: 16, color: terracotta),
+                                      const SizedBox(width: 6),
                                       Expanded(
                                         child: Text(
-                                          backend.locationDetail,
+                                          backend.slotInfo,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13,
-                                            color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                            fontWeight: FontWeight.bold,
+                                            color: textMain,
                                           ),
                                         ),
                                       ),
                                     ],
                                   ),
+                                  const SizedBox(height: 4),
+                                  Padding(
+                                    padding: const EdgeInsets.only(left: 22),
+                                    child: Text(
+                                      backend.locationDetail,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                      ),
+                                    ),
+                                  ),
                                   const SizedBox(height: 16),
+
+                                  // Total Biaya
                                   Container(
+                                    width: double.infinity,
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
                                     decoration: BoxDecoration(
                                       color: isDark ? theme.surfaceField : Colors.white.withValues(alpha: 0.5),
@@ -236,46 +288,13 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                             letterSpacing: 1.0,
                                           ),
                                         ),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              'Rp ${backend.totalAmount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 20,
-                                                fontWeight: FontWeight.w800,
-                                                color: textMain,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 8),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                              decoration: BoxDecoration(
-                                                color: TicketMark.getBgColor(backend.status, isDark: isDark),
-                                                borderRadius: BorderRadius.circular(12),
-                                                border: Border.all(
-                                                  color: TicketMark.getBorderColor(backend.status, isDark: isDark),
-                                                ),
-                                              ),
-                                              child: Row(
-                                                children: [
-                                                  Icon(
-                                                    TicketMark.getIcon(backend.status),
-                                                    size: 13,
-                                                    color: TicketMark.getColor(backend.status),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Text(
-                                                    backend.status,
-                                                    style: GoogleFonts.plusJakartaSans(
-                                                      fontSize: 11,
-                                                      fontWeight: FontWeight.w700,
-                                                      color: TicketMark.getColor(backend.status),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
+                                        Text(
+                                          CurrencyService.instance.format(backend.totalAmount.toDouble()),
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 20,
+                                            fontWeight: FontWeight.w800,
+                                            color: textMain,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -296,7 +315,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.end,
                                       children: [
                                         Text(
-                                          '24 Oktober 2026',
+                                          backend.date,
                                           style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                         ),
                                         Text(
@@ -426,12 +445,12 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                               child: Column(
                                 children: [
                                   _BlockRow(
-                                    label: 'Block Hash',
+                                    label: 'Kode Transaksi',
                                     isDark: isDark,
                                     valueWidget: Row(
                                       children: [
                                         Text(
-                                          '0x7f9a...c32d',
+                                          backend.transactionCode,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w600,
@@ -445,14 +464,14 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                   ),
                                   Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Divider(color: divider, height: 1)),
                                   _BlockRow(
-                                    label: 'Validator Node',
+                                    label: 'Hash Transaksi',
                                     isDark: isDark,
                                     valueWidget: Text(
-                                      'Jakarta Smart City Node #4',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 13,
-                                        fontWeight: FontWeight.w600,
-                                        color: textMain,
+                                      backend.blockHash,
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                        fontFamily: 'monospace',
                                       ),
                                     ),
                                   ),
@@ -461,7 +480,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                     label: 'Timestamp',
                                     isDark: isDark,
                                     valueWidget: Text(
-                                      '2026-10-24 15:50:12 UTC+7',
+                                      backend.timestamp,
                                       style: TextStyle(
                                         fontSize: 12,
                                         color: isDark ? theme.textMuted : const Color(0xFF45474A),

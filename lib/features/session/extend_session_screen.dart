@@ -1,4 +1,5 @@
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import 'package:flutter/material.dart';
 import '../pin/pin_screen.dart';
 import '../session/active_session_screen.dart';
@@ -29,7 +30,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
     final selectedOption = _options[_selectedIndex];
 
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ExtendSessionBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ExtendSessionBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -264,7 +265,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         const Icon(Icons.verified, size: 18, color: Color(0xFF059669)),
                         const SizedBox(width: 8),
                         Text(
-                          'Toyota Raize • B 1234 XYZ',
+                          '${ExtendSessionBackend.instance.vehicleName} • ${ExtendSessionBackend.instance.plateNumber}',
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,
@@ -453,7 +454,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        option['cost'],
+                                        CurrencyService.instance.format((option['amount'] as num?)?.toDouble() ?? 5000.0),
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 18,
                                           fontWeight: FontWeight.bold,
@@ -558,7 +559,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              selectedOption['cost'],
+                              CurrencyService.instance.format((selectedOption['amount'] as num?)?.toDouble() ?? 5000.0),
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -596,7 +597,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                 ),
                                 if (_selectedPaymentMethod == 'ParkSmart Wallet')
                                   Text(
-                                    'Saldo Aktif: Rp 45.000',
+                                    'Saldo Aktif: ${CurrencyService.instance.format(45000)}',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       color: isDark ? const Color(0xFF34D399) : const Color(0xFF1F4F3C),
@@ -679,7 +680,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Konfirmasi & Bayar ${selectedOption['cost']}',
+                        'Konfirmasi & Bayar ${CurrencyService.instance.format((selectedOption['amount'] as num?)?.toDouble() ?? 5000.0)}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,

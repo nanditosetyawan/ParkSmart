@@ -31,10 +31,10 @@ class ActiveSessionBackend extends ChangeNotifier {
   String _floorName = 'Basement 2';
   String get floorName => _floorName;
 
-  String _vehicleName = 'Toyota Raize';
+  String _vehicleName = 'Kendaraan';
   String get vehicleName => _vehicleName;
 
-  String _plateNumber = 'B 1234 XYZ';
+  String _plateNumber = '-';
   String get plateNumber => _plateNumber;
 
   DateTime? _checkInTime;
@@ -43,28 +43,35 @@ class ActiveSessionBackend extends ChangeNotifier {
   DateTime? _expectedCheckOutTime;
   DateTime? get expectedCheckOutTime => _expectedCheckOutTime;
 
-  int _remainingSeconds = 3600 + (42 * 60) + 15; // default ~1h 42m
+  int _remainingSeconds = 3600;
   int get remainingSeconds => _remainingSeconds;
 
   double _currentFee = 10000;
   double get currentFee => _currentFee;
 
-  String _sessionCode = '#PS-88210-CP';
+  String _sessionCode = '-';
   String get sessionCode => _sessionCode;
 
   /// Memuat sesi parkir aktif dari Supabase
-  Future<void> fetchActiveSession() async {
+  Future<void> fetchActiveSession({String? sessionId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final session = await _client
+      var query = _client
           .from('parking_sessions')
-          .select('id, session_code, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, parking_fee, total_fee, status')
-          .eq('status', 'active')
-          .order('check_in_time', ascending: false)
-          .limit(1)
-          .maybeSingle();
+          .select('id, session_code, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, parking_fee, total_fee, status');
+
+      final dynamic session;
+      if (sessionId != null && sessionId.isNotEmpty) {
+        session = await query.eq('id', sessionId).maybeSingle();
+      } else {
+        session = await query
+            .eq('status', 'active')
+            .order('check_in_time', ascending: false)
+            .limit(1)
+            .maybeSingle();
+      }
 
       if (session != null) {
         _sessionData = session;

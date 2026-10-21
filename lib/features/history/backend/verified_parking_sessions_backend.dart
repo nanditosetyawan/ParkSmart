@@ -9,7 +9,6 @@ class VerifiedSessionItem {
   final String duration;
   final String amount;
   final String blockHash;
-  final String validatorNode;
   final String timestamp;
 
   const VerifiedSessionItem({
@@ -20,7 +19,6 @@ class VerifiedSessionItem {
     required this.duration,
     required this.amount,
     required this.blockHash,
-    required this.validatorNode,
     required this.timestamp,
   });
 }
@@ -99,7 +97,6 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
             duration: '1-3 Jam',
             amount: 'Rp ${amt.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}',
             blockHash: hash.length > 14 ? '${hash.substring(0, 6)}...${hash.substring(hash.length - 4)}' : hash,
-            validatorNode: 'Jakarta Smart City Node #1',
             timestamp: p['completed_at']?.toString() ?? DateTime.now().toIso8601String(),
           );
         }).toList();

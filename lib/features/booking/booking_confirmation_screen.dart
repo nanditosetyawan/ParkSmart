@@ -1,5 +1,7 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import '../../theme/app_colors.dart';
@@ -7,27 +9,52 @@ import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../home/home_screen.dart' as home;
+import '../pin/pin_screen.dart';
 import '../session/checkin_screen.dart';
 import 'backend/booking_confirmation_backend.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
-  const BookingConfirmationScreen({super.key});
+  final String? bookingId;
+  const BookingConfirmationScreen({super.key, this.bookingId});
 
   @override
   State<BookingConfirmationScreen> createState() => _BookingConfirmationScreenState();
 }
 
 class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
+  Timer? _timer;
+
   @override
   void initState() {
     super.initState();
-    BookingConfirmationBackend.instance.fetchLatestBooking();
+    BookingConfirmationBackend.instance.fetchLatestBooking(bookingId: widget.bookingId);
+    _timer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel();
+    super.dispose();
+  }
+
+  int _getRemainingSeconds(DateTime? createdAt) {
+    if (createdAt == null) return 179;
+    final diff = DateTime.now().difference(createdAt).inSeconds;
+    return (179 - diff).clamp(0, 179);
+  }
+
+  String _formatTimer(int seconds) {
+    final m = seconds ~/ 60;
+    final s = seconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -117,47 +144,119 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   const SizedBox(height: 16),
-                  // Header Bar
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      _NavBtn(
-                        icon: Icons.arrow_back,
-                        isDark: isDark,
-                        onTap: () => Navigator.pop(context),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF064E3B) : const Color(0xFFE8F5E9),
-                          borderRadius: AppRadii.pillRadius,
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.check_circle,
-                              size: 15,
-                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF4CAF50),
+                  Builder(
+                    builder: (context) {
+                      final isUnpaid = backend.ticketStatus == TicketMark.belumDibayar;
+                      final remainingSec = _getRemainingSeconds(backend.createdAt);
+                      final timerStr = _formatTimer(remainingSec);
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Header Bar
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              _NavBtn(
+                                icon: Icons.arrow_back,
+                                isDark: isDark,
+                                onTap: () => Navigator.pop(context),
+                              ),
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                decoration: BoxDecoration(
+                                  color: isUnpaid
+                                      ? (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2))
+                                      : (isDark ? const Color(0xFF064E3B) : const Color(0xFFE8F5E9)),
+                                  borderRadius: AppRadii.pillRadius,
+                                  border: Border.all(
+                                    color: isUnpaid
+                                        ? (isDark ? const Color(0xFFEF4444).withValues(alpha: 0.5) : const Color(0xFFFCA5A5))
+                                        : (isDark ? const Color(0xFF34D399).withValues(alpha: 0.5) : const Color(0xFFA7F3D0)),
+                                  ),
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Icon(
+                                      isUnpaid ? Icons.timer_outlined : Icons.check_circle,
+                                      size: 15,
+                                      color: isUnpaid
+                                          ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                          : (isDark ? const Color(0xFF34D399) : const Color(0xFF4CAF50)),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Text(
+                                      isUnpaid ? 'Belum Bayar • $timerStr' : 'Reservasi Berhasil',
+                                      style: AppTypography.caption(
+                                        color: isUnpaid
+                                            ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
+                                            : (isDark ? const Color(0xFF34D399) : const Color(0xFF4CAF50)),
+                                      ).copyWith(fontWeight: FontWeight.w700),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              _NavBtn(
+                                icon: Icons.share_outlined,
+                                isDark: isDark,
+                                onTap: () {},
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 28),
+
+                          if (isUnpaid) ...[
+                            Container(
+                              width: double.infinity,
+                              padding: const EdgeInsets.all(14),
+                              decoration: BoxDecoration(
+                                color: isDark ? const Color(0xFF451A03) : const Color(0xFFFEF3C7),
+                                borderRadius: BorderRadius.circular(14),
+                                border: Border.all(
+                                  color: isDark ? const Color(0xFFD97706).withValues(alpha: 0.6) : const Color(0xFFF59E0B),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.hourglass_top_rounded,
+                                    color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706),
+                                    size: 24,
+                                  ),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'Selesaikan Pembayaran ($timerStr)',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark ? const Color(0xFFFBBF24) : const Color(0xFF92400E),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'Slot parkir Anda ter-booking selama 2:59 menit. Segera selesaikan pembayaran.',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            color: isDark ? const Color(0xFFFDE68A) : const Color(0xFFB45309),
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ),
-                            const SizedBox(width: 6),
-                            Text(
-                              'Reservasi Berhasil',
-                              style: AppTypography.caption(
-                                color: isDark ? const Color(0xFF34D399) : const Color(0xFF4CAF50),
-                              ).copyWith(fontWeight: FontWeight.w600),
-                            ),
+                            const SizedBox(height: 20),
                           ],
-                        ),
-                      ),
-                      _NavBtn(
-                        icon: Icons.share_outlined,
-                        isDark: isDark,
-                        onTap: () {},
-                      ),
-                    ],
+                        ],
+                      );
+                    },
                   ),
-                  const SizedBox(height: 28),
 
                   // Hero Text
                   Text(
@@ -430,41 +529,63 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   const SizedBox(height: 24),
 
                   // CTA Buttons
-                  // Tombol Check-in: PUTIH dengan teks & panah HITAM saat dark mode
-                  SizedBox(
-                    width: double.infinity,
-                    height: 56,
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (_) => const CheckinScreen()),
-                      ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: isDark ? Colors.white : AppColors.primary,
-                        foregroundColor: isDark ? Colors.black : Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),
-                      ),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Text(
-                            'Check-in',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: isDark ? Colors.black : Colors.white,
-                            ),
+                  Builder(
+                    builder: (context) {
+                      final isUnpaid = backend.ticketStatus == TicketMark.belumDibayar;
+                      final remainingSec = _getRemainingSeconds(backend.createdAt);
+                      final timerStr = _formatTimer(remainingSec);
+
+                      return SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: isUnpaid
+                              ? () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => PinScreen(
+                                        bookingId: backend.bookingId,
+                                        transactionType: 'parkir',
+                                        nextScreen: CheckinScreen(bookingId: backend.bookingId),
+                                      ),
+                                    ),
+                                  )
+                              : () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => CheckinScreen(bookingId: backend.bookingId),
+                                    ),
+                                  ),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: isUnpaid
+                                ? const Color(0xFFDC2626)
+                                : (isDark ? Colors.white : AppColors.primary),
+                            foregroundColor: isUnpaid ? Colors.white : (isDark ? Colors.black : Colors.white),
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(borderRadius: AppRadii.pillRadius),
                           ),
-                          const SizedBox(width: 8),
-                          Icon(
-                            Icons.arrow_forward,
-                            size: 20,
-                            color: isDark ? Colors.black : Colors.white,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                isUnpaid ? 'Bayar Sekarang ($timerStr)' : 'Check-in',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                  color: isUnpaid ? Colors.white : (isDark ? Colors.black : Colors.white),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              Icon(
+                                isUnpaid ? Icons.payment_outlined : Icons.arrow_forward,
+                                size: 20,
+                                color: isUnpaid ? Colors.white : (isDark ? Colors.black : Colors.white),
+                              ),
+                            ],
                           ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
                   const SizedBox(height: 12),
 

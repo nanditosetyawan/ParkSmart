@@ -24,10 +24,33 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  late final TextEditingController _saranController;
+  late final TextEditingController _pesanController;
+  bool _isSavingKuliahFeedback = false;
+  bool _isEditingKuliahFeedback = false;
+
   @override
   void initState() {
     super.initState();
-    ProfileBackend.instance.fetchProfile();
+    _saranController = TextEditingController();
+    _pesanController = TextEditingController();
+    ProfileBackend.instance.fetchProfile().then((_) {
+      if (mounted) {
+        if (_saranController.text.isEmpty) {
+          _saranController.text = ProfileBackend.instance.saranKuliah;
+        }
+        if (_pesanController.text.isEmpty) {
+          _pesanController.text = ProfileBackend.instance.pesanKuliah;
+        }
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _saranController.dispose();
+    _pesanController.dispose();
+    super.dispose();
   }
 
   Widget _buildMemberBadge(String tier) {
@@ -194,8 +217,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       _showNotificationTestMenu(context);
                     },
                   ),
+                  const SizedBox(height: 20),
+
+                  // Input & Tampilan Saran & Pesan Kuliah Pemrograman Aplikasi Mobile
+                  _buildKuliahFeedbackSection(theme, profile, theme.isDarkMode),
                   const SizedBox(height: 24),
-                  
+
                   // Logout
                   SizedBox(
                     width: double.infinity, height: 52,
@@ -242,6 +269,346 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
       },
+    );
+  }
+
+  Widget _buildKuliahFeedbackSection(ThemeService theme, ProfileBackend profile, bool isDark) {
+    final hasSavedData = profile.saranKuliah.isNotEmpty || profile.pesanKuliah.isNotEmpty;
+    final showForm = !hasSavedData || _isEditingKuliahFeedback;
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: theme.card,
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: theme.border.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: isDark ? Colors.black.withValues(alpha: 0.25) : Colors.black.withValues(alpha: 0.03),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Header Section
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E293B) : const Color(0xFFEEF2FF),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF3B82F6).withValues(alpha: 0.4) : const Color(0xFFC7D2FE),
+                  ),
+                ),
+                child: Icon(
+                  Icons.school_rounded,
+                  size: 22,
+                  color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF4338CA),
+                ),
+              ),
+              const SizedBox(width: 14),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'PEMROGRAMAN APLIKASI MOBILE',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10.5,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? const Color(0xFF60A5FA) : const Color(0xFF4338CA),
+                        letterSpacing: 0.8,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Saran & Pesan Kuliah',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              if (hasSavedData && !showForm)
+                IconButton(
+                  tooltip: 'Ubah Saran & Pesan',
+                  icon: Icon(Icons.edit_note_rounded, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB), size: 24),
+                  onPressed: () {
+                    setState(() {
+                      _isEditingKuliahFeedback = true;
+                      _saranController.text = profile.saranKuliah;
+                      _pesanController.text = profile.pesanKuliah;
+                    });
+                  },
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // Display Saved Feedback (if available)
+          if (hasSavedData && !showForm) ...[
+            if (profile.saranKuliah.isNotEmpty) ...[
+              Text(
+                'SARAN KULIAH TERSIMPAN',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: theme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? theme.surfaceField : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: theme.border.withValues(alpha: 0.6)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.lightbulb_outline, size: 18, color: isDark ? const Color(0xFFFBBF24) : const Color(0xFFD97706)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        profile.saranKuliah,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          height: 1.5,
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (profile.pesanKuliah.isNotEmpty) ...[
+              Text(
+                'PESAN KULIAH TERSIMPAN',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 11,
+                  fontWeight: FontWeight.w700,
+                  color: theme.textSecondary,
+                  letterSpacing: 0.5,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: isDark ? theme.surfaceField : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(14),
+                  border: Border.all(color: theme.border.withValues(alpha: 0.6)),
+                ),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Icon(Icons.chat_bubble_outline_rounded, size: 18, color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669)),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        profile.pesanKuliah,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          height: 1.5,
+                          color: theme.textPrimary,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ] else ...[
+            // Input Text Fields
+            Text(
+              'Saran Perkuliahan',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _saranController,
+              maxLines: 3,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: theme.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Tuliskan saran untuk mata kuliah Pemrograman Aplikasi Mobile...',
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  color: theme.textSecondary.withValues(alpha: 0.6),
+                ),
+                filled: true,
+                fillColor: isDark ? theme.surfaceField : const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.all(12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: theme.border.withValues(alpha: 0.8)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: theme.border.withValues(alpha: 0.8)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 14),
+
+            Text(
+              'Pesan Perkuliahan',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: theme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 6),
+            TextField(
+              controller: _pesanController,
+              maxLines: 3,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: theme.textPrimary,
+              ),
+              decoration: InputDecoration(
+                hintText: 'Tuliskan pesan atau kesan Anda selama perkuliahan...',
+                hintStyle: GoogleFonts.plusJakartaSans(
+                  fontSize: 12.5,
+                  color: theme.textSecondary.withValues(alpha: 0.6),
+                ),
+                filled: true,
+                fillColor: isDark ? theme.surfaceField : const Color(0xFFF8FAFC),
+                contentPadding: const EdgeInsets.all(12),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: theme.border.withValues(alpha: 0.8)),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: theme.border.withValues(alpha: 0.8)),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(
+                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF2563EB),
+                    width: 1.5,
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            Row(
+              children: [
+                if (hasSavedData) ...[
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () {
+                        setState(() {
+                          _isEditingKuliahFeedback = false;
+                          _saranController.text = profile.saranKuliah;
+                          _pesanController.text = profile.pesanKuliah;
+                        });
+                      },
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: theme.textSecondary,
+                        side: BorderSide(color: theme.border),
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      child: Text(
+                        'Batal',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                ],
+                Expanded(
+                  flex: 2,
+                  child: ElevatedButton.icon(
+                    onPressed: _isSavingKuliahFeedback
+                        ? null
+                        : () async {
+                            setState(() => _isSavingKuliahFeedback = true);
+                            final success = await ProfileBackend.instance.saveKuliahFeedback(
+                              saran: _saranController.text,
+                              pesan: _pesanController.text,
+                            );
+                            if (mounted) {
+                              setState(() {
+                                _isSavingKuliahFeedback = false;
+                                _isEditingKuliahFeedback = false;
+                              });
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    success
+                                        ? 'Saran & pesan perkuliahan berhasil disimpan!'
+                                        : 'Gagal menyimpan, silakan coba lagi.',
+                                  ),
+                                  backgroundColor: success ? const Color(0xFF059669) : const Color(0xFFDC2626),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            }
+                          },
+                    icon: _isSavingKuliahFeedback
+                        ? const SizedBox(
+                            width: 16,
+                            height: 16,
+                            child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                          )
+                        : const Icon(Icons.save_outlined, size: 18),
+                    label: Text(
+                      _isSavingKuliahFeedback ? 'Menyimpan...' : 'Simpan Saran & Pesan',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? const Color(0xFF2563EB) : const Color(0xFF1E3A8A),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ],
+      ),
     );
   }
 }

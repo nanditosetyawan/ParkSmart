@@ -34,29 +34,45 @@ class CheckinBackend extends ChangeNotifier {
   final String _gateName = 'Gate Masuk 01';
   String get gateName => _gateName;
 
+  String _vehicleDesc = '';
+  String get vehicleDesc => _vehicleDesc;
+
   String? _bookingId;
   String? _locationId;
   String? _slotId;
+  String? _userId;
+  String? _vehicleId;
+  double _totalPrice = 11000.0;
 
   /// Memuat detail tiket yang siap check-in
-  Future<void> fetchCheckinTicket() async {
+  Future<void> fetchCheckinTicket({String? bookingId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final booking = await _client
+      var query = _client
           .from('bookings')
-          .select('id, booking_code, location_id, slot_id, vehicle_id, booking_status')
-          .inFilter('booking_status', ['upcoming', 'active'])
-          .order('created_at', ascending: false)
-          .limit(1)
-          .maybeSingle();
+          .select('id, booking_code, user_id, location_id, slot_id, vehicle_id, booking_status, total_price');
+
+      final dynamic booking;
+      if (bookingId != null && bookingId.isNotEmpty) {
+        booking = await query.eq('id', bookingId).maybeSingle();
+      } else {
+        booking = await query
+            .inFilter('booking_status', ['upcoming', 'active'])
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+      }
 
       if (booking != null) {
         _bookingId = booking['id']?.toString();
         _bookingCode = booking['booking_code']?.toString() ?? _bookingCode;
+        _userId = booking['user_id']?.toString();
+        _vehicleId = booking['vehicle_id']?.toString();
         _locationId = booking['location_id']?.toString();
         _slotId = booking['slot_id']?.toString();
+        _totalPrice = (booking['total_price'] as num?)?.toDouble() ?? _totalPrice;
 
         if (_locationId != null) {
           final loc = await _client
@@ -85,11 +101,12 @@ class CheckinBackend extends ChangeNotifier {
         if (booking['vehicle_id'] != null) {
           final veh = await _client
               .from('vehicles')
-              .select('plate_number')
+              .select('plate_number, brand, model')
               .eq('id', booking['vehicle_id'])
               .maybeSingle();
           if (veh != null) {
             _plateNumber = veh['plate_number']?.toString() ?? _plateNumber;
+            _vehicleDesc = '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim();
           }
         }
       }
@@ -124,10 +141,14 @@ class CheckinBackend extends ChangeNotifier {
         'booking_id': _bookingId,
         'location_id': _locationId ?? 'a0000000-0000-0000-0000-000000000001',
         'slot_id': _slotId,
+        'user_id': _userId,
+        'vehicle_id': _vehicleId,
         'plate_number': _plateNumber,
-        'vehicle_desc': 'Toyota Raize',
+        'vehicle_desc': _vehicleDesc.isNotEmpty ? _vehicleDesc : 'Kendaraan Pribadi',
         'check_in_time': now.toUtc().toIso8601String(),
         'expected_check_out_time': expectedOut.toUtc().toIso8601String(),
+        'parking_fee': _totalPrice,
+        'total_fee': _totalPrice,
         'status': 'active',
         'gate_in_id': _gateName,
       });

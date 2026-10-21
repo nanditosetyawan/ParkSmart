@@ -9,6 +9,7 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../checkout/checkout_screen.dart';
 import '../../core/services/maintenance_service.dart';
+import '../../core/services/currency_service.dart';
 import 'backend/slot_selection_backend.dart';
 import '../checkout/backend/checkout_backend.dart';
 
@@ -99,7 +100,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, SlotSelectionBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, SlotSelectionBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -721,7 +722,9 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Rp 5.000',
+                                  CurrencyService.instance.format(
+                                    (SlotSelectionBackend.instance.currentLocation?['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0,
+                                  ),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.w800,

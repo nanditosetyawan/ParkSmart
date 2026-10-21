@@ -964,103 +964,115 @@ class _HomeScreenState extends State<HomeScreen> {
                 ListenableBuilder(
                   listenable: HomeBackend.instance,
                   builder: (context, _) {
-                    final session = HomeBackend.instance.activeSession;
-                    if (session == null) {
-                      return const SizedBox.shrink(); // Sembunyikan total jika database kosong / tidak ada sesi aktif
+                    final sessions = HomeBackend.instance.activeSessions;
+                    if (sessions.isEmpty) {
+                      return const SizedBox.shrink(); // Sembunyikan jika tidak ada sesi parkir aktif
                     }
-
-                    final locName = session['location_name'] ?? 'Spot Parkir';
-                    final slotCode = session['slot_code'] ?? 'A-01';
-                    final floorName = session['floor_name'] ?? 'Lantai B1';
-                    final title = session['title'] ?? 'SLOT TERPESAN';
-                    final tag = session['tag'] ?? 'Sesi Parkir Aktif';
-                    final imageUrl = session['image_url'] ??
-                        'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr';
 
                     return Padding(
                       padding: const EdgeInsets.only(top: 28.0),
                       child: Padding(
                         padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(tag, style: AppTypography.headlineMd()),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
-                                child: Text(floorName, style: AppTypography.buttonSm(color: AppColors.secondary)),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 14),
-                          Container(
-                            decoration: BoxDecoration(
-                              color: AppColors.surfaceCard,
-                              borderRadius: AppRadii.xl2Radius,
-                              border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
-                              boxShadow: const [AppShadows.soft],
-                            ),
-                            padding: const EdgeInsets.all(20),
-                            child: Column(children: [
-                              Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                // Parking spot image
-                                ClipRRect(
-                                  borderRadius: AppRadii.imgRadius,
-                                  child: Image.network(
-                                    imageUrl,
-                                    width: 64, height: 64, fit: BoxFit.cover,
-                                    errorBuilder: (context, error, stackTrace) => Container(
-                                      width: 64, height: 64, color: AppColors.surfaceDim,
-                                      child: Icon(Icons.local_parking, color: AppColors.secondary),
-                                    ),
-                                  ),
-                                ),
-                                const SizedBox(width: 14),
-                                Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                  Text(title, style: AppTypography.overline(color: AppColors.secondary)),
-                                  const SizedBox(height: 2),
-                                  Text(locName, style: AppTypography.headlineSm()),
-                                  const SizedBox(height: 2),
-                                  Text('Spot $slotCode • $floorName', style: AppTypography.caption(color: AppColors.textSecondary)),
-                                ])),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Sesi Parkir Aktif (${sessions.length})', style: AppTypography.headlineMd()),
                                 Container(
-                                  width: 40, height: 40,
-                                  decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
-                                  child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
+                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                  decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
+                                  child: Text('Live', style: AppTypography.buttonSm(color: AppColors.secondary)),
                                 ),
-                              ]),
-                              const SizedBox(height: 16),
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
-                                child: Row(
-                                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      Text('SISA WAKTU', style: AppTypography.overline(color: AppColors.textSecondary)),
-                                      const SizedBox(height: 2),
-                                      _HomeSessionCountdownTimer(endTime: session['end_time']),
+                              ],
+                            ),
+                            const SizedBox(height: 14),
+                            ...sessions.map((session) {
+                              final locName = session['location_name'] ?? 'Spot Parkir';
+                              final slotCode = session['slot_code'] ?? 'A-01';
+                              final floorName = session['floor_name'] ?? 'Lantai B1';
+                              final title = session['title'] ?? 'SESI PARKIR AKTIF';
+                              final imageUrl = session['image_url'] ??
+                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr';
+
+                              return Padding(
+                                padding: const EdgeInsets.only(bottom: 14.0),
+                                child: Container(
+                                  decoration: BoxDecoration(
+                                    color: AppColors.surfaceCard,
+                                    borderRadius: AppRadii.xl2Radius,
+                                    border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
+                                    boxShadow: const [AppShadows.soft],
+                                  ),
+                                  padding: const EdgeInsets.all(20),
+                                  child: Column(children: [
+                                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                      // Parking spot image
+                                      ClipRRect(
+                                        borderRadius: AppRadii.imgRadius,
+                                        child: Image.network(
+                                          imageUrl,
+                                          width: 64, height: 64, fit: BoxFit.cover,
+                                          errorBuilder: (context, error, stackTrace) => Container(
+                                            width: 64, height: 64, color: AppColors.surfaceDim,
+                                            child: Icon(Icons.local_parking, color: AppColors.secondary),
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 14),
+                                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                        Text(title, style: AppTypography.overline(color: AppColors.secondary)),
+                                        const SizedBox(height: 2),
+                                        Text(locName, style: AppTypography.headlineSm()),
+                                        const SizedBox(height: 2),
+                                        Text('Spot $slotCode • $floorName', style: AppTypography.caption(color: AppColors.textSecondary)),
+                                      ])),
+                                      Container(
+                                        width: 40, height: 40,
+                                        decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
+                                        child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
+                                      ),
                                     ]),
-                                    GestureDetector(
-                                      onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const active.ActiveSessionScreen())),
-                                      child: Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                        decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
-                                          boxShadow: const [AppShadows.float]),
-                                        child: Row(children: [
-                                          Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
-                                          const SizedBox(width: 6),
-                                          Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
-                                        ]),
+                                    const SizedBox(height: 16),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                      decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
+                                      child: Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                            Text('SISA WAKTU', style: AppTypography.overline(color: AppColors.textSecondary)),
+                                            const SizedBox(height: 2),
+                                            _HomeSessionCountdownTimer(endTime: session['end_time']),
+                                          ]),
+                                          GestureDetector(
+                                            onTap: () => Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) => active.ActiveSessionScreen(sessionId: session['id']),
+                                              ),
+                                            ),
+                                            child: Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                              decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
+                                                boxShadow: const [AppShadows.float]),
+                                              child: Row(children: [
+                                                Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
+                                                const SizedBox(width: 6),
+                                                Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
+                                              ]),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ),
-                                  ],
+                                  ]),
                                 ),
-                              ),
-                            ]),
-                          ),
-                        ]),
+                              );
+                            }),
+                          ],
+                        ),
                       ),
                     );
                   },

@@ -30,9 +30,12 @@ class HomeBackend extends ChangeNotifier {
   List<Map<String, dynamic>> _recommendedLocations = [];
   List<Map<String, dynamic>> get recommendedLocations => _recommendedLocations;
 
+  List<Map<String, dynamic>> _activeSessions = [];
+  List<Map<String, dynamic>> get activeSessions => _activeSessions;
+
   Map<String, dynamic>? _activeSession;
   Map<String, dynamic>? get activeSession => _activeSession;
-  bool get hasActiveSession => _activeSession != null;
+  bool get hasActiveSession => _activeSessions.isNotEmpty;
 
   /// Memuat seluruh data pendukung HomeScreen dari Supabase
   Future<void> loadHomeData() async {
@@ -104,22 +107,20 @@ class HomeBackend extends ChangeNotifier {
     }
   }
 
-  /// 4. Cek apakah ada sesi parkir aktif di gerbang (parking_sessions) atau reservasi slot aktif (bookings)
+  /// 4. Ambil SEMUA sesi parkir aktif yang sudah check-in di gerbang (parking_sessions)
   Future<void> _fetchActiveSession() async {
     try {
-      // 1. Cek sesi parkir aktif di tabel parking_sessions
-      final session = await _client
+      final sessions = await _client
           .from('parking_sessions')
           .select('id, session_code, plate_number, vehicle_type, vehicle_desc, check_in_time, expected_check_out_time, parking_fee, total_fee, status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name)')
           .eq('status', 'active')
-          .order('check_in_time', ascending: false)
-          .limit(1)
-          .maybeSingle();
+          .order('check_in_time', ascending: false);
 
-      if (session != null) {
-        _activeSession = {
+      final List<Map<String, dynamic>> list = [];
+      for (var session in sessions) {
+        list.add({
           'type': 'session',
-          'id': session['id'],
+          'id': session['id']?.toString(),
           'title': 'SESI PARKIR AKTIF',
           'tag': 'Sesi Parkir Aktif',
           'location_name': session['parking_locations']?['name'] ?? 'Spot Parkir',
@@ -128,42 +129,17 @@ class HomeBackend extends ChangeNotifier {
           'slot_code': session['parking_slots']?['slot_code'] ?? 'A-01',
           'floor_name': session['parking_slots']?['floor_name'] ?? 'Lantai B1',
           'plate_number': session['plate_number'] ?? '',
+          'vehicle_desc': session['vehicle_desc'] ?? '',
           'start_time': session['check_in_time'],
           'end_time': session['expected_check_out_time'] ?? session['check_in_time'],
-        };
-        return;
+        });
       }
 
-      // 2. Cek apakah ada reservasi slot mendatang / aktif di tabel bookings
-      final booking = await _client
-          .from('bookings')
-          .select('id, booking_code, start_time, end_time, duration_hours, total_price, booking_status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name)')
-          .inFilter('booking_status', ['active', 'upcoming'])
-          .order('start_time', ascending: false)
-          .limit(1)
-          .maybeSingle();
-
-      if (booking != null) {
-        _activeSession = {
-          'type': 'booking',
-          'id': booking['id'],
-          'title': 'SLOT TERPESAN',
-          'tag': 'Slot Terpesan',
-          'location_name': booking['parking_locations']?['name'] ?? 'Spot Parkir',
-          'location_address': booking['parking_locations']?['address'] ?? '',
-          'image_url': booking['parking_locations']?['image_url'],
-          'slot_code': booking['parking_slots']?['slot_code'] ?? 'A-01',
-          'floor_name': booking['parking_slots']?['floor_name'] ?? 'Lantai B1',
-          'start_time': booking['start_time'],
-          'end_time': booking['end_time'],
-          'duration_hours': booking['duration_hours'],
-        };
-        return;
-      }
-
-      _activeSession = null;
+      _activeSessions = list;
+      _activeSession = list.isNotEmpty ? list.first : null;
     } catch (e) {
       debugPrint('[HomeBackend] _fetchActiveSession error: $e');
+      _activeSessions = [];
       _activeSession = null;
     }
   }

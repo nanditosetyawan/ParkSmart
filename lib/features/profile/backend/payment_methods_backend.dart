@@ -110,12 +110,22 @@ class PaymentMethodsBackend extends ChangeNotifier {
               .eq('id', ProfileBackend.instance.userId);
         }
 
+        // Dapatkan user_id dari tabel users
+        String actualUserId = ProfileBackend.instance.userId;
+        if (userId != null) {
+          final uRow = await _client.from('users').select('id').eq('auth_user_id', userId).maybeSingle();
+          if (uRow != null && uRow['id'] != null) {
+            actualUserId = uRow['id'].toString();
+          }
+        }
+
         // Catat di tabel payments
         await _client.from('payments').insert({
           'transaction_code': 'TOPUP-${DateTime.now().millisecondsSinceEpoch}',
+          'user_id': actualUserId,
           'amount': amount,
-          'transaction_type': 'topup',
-          'payment_method': method == 'gopay' ? 'gopay' : 'bank_transfer',
+          'transaction_type': 'wallet_topup',
+          'payment_method': method == 'gopay' ? 'gopay' : 'bank_va',
           'description': 'Top Up Saldo ParkSmart Pay',
           'status': 'success',
           'completed_at': DateTime.now().toIso8601String(),

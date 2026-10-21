@@ -5,6 +5,7 @@ import '../../core/services/theme_service.dart';
 import '../history/history_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'backend/profile_backend.dart';
+import 'backend/payment_methods_backend.dart';
 
 class PaymentMethodsScreen extends StatefulWidget {
   const PaymentMethodsScreen({super.key});
@@ -160,6 +161,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                         SharedPreferences.getInstance().then((prefs) {
                           prefs.setInt('user_wallet_balance', _balance);
                         });
+                        PaymentMethodsBackend.instance.topUp(
+                          selectedAmount,
+                          'bank_va',
+                        );
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
                             content: Text(

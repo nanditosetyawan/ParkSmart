@@ -123,7 +123,6 @@ class CheckoutBackend extends ChangeNotifier {
     try {
       final random = Random();
       final bookingCode = 'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-${random.nextInt(900) + 100}';
-      final trxCode = 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-${random.nextInt(900) + 100}';
 
       final startTime = DateTime.now();
       final endTime = startTime.add(Duration(hours: _durationHours));
@@ -159,7 +158,7 @@ class CheckoutBackend extends ChangeNotifier {
         actualSlotId = slotRes?['id'] as String?;
       }
 
-      // 3. Insert ke tabel bookings
+      // 3. Insert ke tabel bookings (status awal 'unpaid' dengan hold time 2:59 menit)
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
         'user_id': userId,
@@ -171,54 +170,16 @@ class CheckoutBackend extends ChangeNotifier {
         'end_time': endTime.toIso8601String(),
         'duration_hours': _durationHours,
         'total_price': totalPayment,
-        'payment_status': 'paid',
+        'payment_status': 'unpaid',
         'booking_status': 'upcoming',
         'qr_code_hash': 'PARKSMART-$bookingCode',
-      }).select('id, booking_code, total_price, start_time, end_time, location_id, slot_id').maybeSingle();
+      }).select('id, booking_code, total_price, start_time, end_time, location_id, slot_id, created_at').maybeSingle();
 
-      // 4. Catat transaksi pembayaran di tabel payments
-      if (bookingInsert != null) {
-        await _client.from('payments').insert({
-          'transaction_code': trxCode,
-          'user_id': userId,
-          'booking_id': bookingInsert['id'],
-          'transaction_type': 'parking_payment',
-          'payment_method': 'wallet',
-          'amount': totalPayment,
-          'description': 'Reservasi Parkir $_locationName Slot $_slotCode',
-          'status': 'success',
-          'completed_at': DateTime.now().toIso8601String(),
-        });
-
-        // 5. Kurangi saldo wallet user jika mencukupi & perbarui total_parking_count
-        final userRes = await _client
-            .from('users')
-            .select('wallet_balance, total_parking_count')
-            .eq('id', userId)
-            .maybeSingle();
-        final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
-        final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
-        final newBalance = (currentBal - totalPayment).clamp(0.0, double.infinity);
-        await _client.from('users').update({
-          'wallet_balance': newBalance,
-          'total_parking_count': currentCount + 1,
-        }).eq('id', userId);
-
-        _walletBalance = newBalance;
-        ProfileBackend.instance.setLoggedInUser(
-          id: userId,
-          fullName: ProfileBackend.instance.name,
-          email: ProfileBackend.instance.email,
-          phone: ProfileBackend.instance.phone,
-          walletBalance: newBalance.toInt(),
-        );
-
-        // 6. Tandai slot sebagai reserved
-        if (actualSlotId != null) {
-          await _client.from('parking_slots').update({
-            'status': 'reserved',
-          }).eq('id', actualSlotId);
-        }
+      // Tandai slot sebagai reserved sementara
+      if (actualSlotId != null) {
+        await _client.from('parking_slots').update({
+          'status': 'reserved',
+        }).eq('id', actualSlotId);
       }
 
       return bookingInsert ?? {
@@ -227,6 +188,7 @@ class CheckoutBackend extends ChangeNotifier {
         'total_price': totalPayment,
         'start_time': startTime.toIso8601String(),
         'end_time': endTime.toIso8601String(),
+        'created_at': DateTime.now().toIso8601String(),
       };
     } catch (e) {
       debugPrint('[CheckoutBackend] confirmAndCreateBooking error: $e');
@@ -234,6 +196,80 @@ class CheckoutBackend extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Memproses pembayaran booking setelah validasi PIN sukses
+  Future<bool> markBookingAsPaid(String bookingId) async {
+    try {
+      final bRes = await _client
+          .from('bookings')
+          .select('id, total_price, user_id, booking_code, location_id, slot_id, parking_locations(name), parking_slots(slot_code)')
+          .eq('id', bookingId)
+          .maybeSingle();
+      if (bRes == null) return false;
+
+      final price = (bRes['total_price'] as num?)?.toDouble() ?? totalPayment;
+      final actualUserId = bRes['user_id']?.toString() ?? userId;
+      final bCode = bRes['booking_code']?.toString() ?? '';
+      final locName = bRes['parking_locations']?['name']?.toString() ?? _locationName;
+      final sCode = bRes['parking_slots']?['slot_code']?.toString() ?? _slotCode;
+
+      // 1. Update booking status
+      await _client.from('bookings').update({
+        'payment_status': 'paid',
+        'booking_status': 'upcoming',
+      }).eq('id', bookingId);
+
+      // 2. Insert payments record
+      final trxCode = 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+      await _client.from('payments').insert({
+        'transaction_code': trxCode,
+        'user_id': actualUserId,
+        'booking_id': bookingId,
+        'transaction_type': 'parking_payment',
+        'payment_method': 'wallet',
+        'amount': price,
+        'description': 'Reservasi Parkir $locName Slot $sCode ($bCode)',
+        'status': 'success',
+        'completed_at': DateTime.now().toIso8601String(),
+      });
+
+      // 3. Deduct wallet
+      final userRes = await _client
+          .from('users')
+          .select('wallet_balance, total_parking_count')
+          .eq('id', actualUserId)
+          .maybeSingle();
+      final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
+      final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
+      final newBalance = (currentBal - price).clamp(0.0, double.infinity);
+      await _client.from('users').update({
+        'wallet_balance': newBalance,
+        'total_parking_count': currentCount + 1,
+      }).eq('id', actualUserId);
+
+      _walletBalance = newBalance;
+      ProfileBackend.instance.setLoggedInUser(
+        id: actualUserId,
+        fullName: ProfileBackend.instance.name,
+        email: ProfileBackend.instance.email,
+        phone: ProfileBackend.instance.phone,
+        walletBalance: newBalance.toInt(),
+      );
+
+      // 4. Ensure slot status is reserved
+      if (bRes['slot_id'] != null) {
+        await _client.from('parking_slots').update({
+          'status': 'reserved',
+        }).eq('id', bRes['slot_id']);
+      }
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('[CheckoutBackend] markBookingAsPaid error: $e');
+      return false;
     }
   }
 }

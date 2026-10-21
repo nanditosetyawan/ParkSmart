@@ -42,6 +42,15 @@ class BookingConfirmationBackend extends ChangeNotifier {
   String _validTime = '-';
   String get validTime => _validTime;
 
+  String? _bookingId;
+  String? get bookingId => _bookingId;
+
+  DateTime? _createdAt;
+  DateTime? get createdAt => _createdAt;
+
+  double _totalPrice = 11000;
+  double get totalPrice => _totalPrice;
+
   /// Memuat detail tiket reservasi terbaru dari Supabase (Targeted Column Query)
   Future<void> fetchLatestBooking({String? bookingId}) async {
     _isLoading = true;
@@ -50,7 +59,7 @@ class BookingConfirmationBackend extends ChangeNotifier {
     try {
       var query = _client
           .from('bookings')
-          .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, qr_code_hash, location_id, slot_id, vehicle_id');
+          .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, qr_code_hash, location_id, slot_id, vehicle_id, created_at');
 
       final bookingData = bookingId != null
           ? await query.eq('id', bookingId).maybeSingle()
@@ -58,6 +67,11 @@ class BookingConfirmationBackend extends ChangeNotifier {
 
       if (bookingData != null) {
         _latestBooking = bookingData;
+        _bookingId = bookingData['id']?.toString();
+        _totalPrice = (bookingData['total_price'] as num?)?.toDouble() ?? 11000.0;
+        if (bookingData['created_at'] != null) {
+          _createdAt = DateTime.tryParse(bookingData['created_at'].toString())?.toLocal();
+        }
         _bookingCode = bookingData['booking_code'] ?? _bookingCode;
         _ticketStatus = TicketMark.resolve(
           paymentStatus: bookingData['payment_status']?.toString() ?? 'paid',
@@ -111,6 +125,13 @@ class BookingConfirmationBackend extends ChangeNotifier {
             _plateNumber = veh['plate_number'] ?? _plateNumber;
           }
         }
+        if (_vehicleName == '-' || _vehicleName.isEmpty) {
+          final defVeh = await _client.from('vehicles').select('brand, model, plate_number').limit(1).maybeSingle();
+          if (defVeh != null) {
+            _vehicleName = '${defVeh['brand'] ?? 'Toyota'} ${defVeh['model'] ?? 'Land Cruiser'}'.trim();
+            _plateNumber = defVeh['plate_number'] ?? 'B 1945 RI';
+          }
+        }
       }
     } catch (e) {
       debugPrint('[BookingConfirmationBackend] fetchLatestBooking error: $e');
@@ -129,6 +150,10 @@ class BookingConfirmationBackend extends ChangeNotifier {
     required String vehicleName,
     required String plateNumber,
     required String validTime,
+    String? bookingId,
+    DateTime? createdAt,
+    String? ticketStatus,
+    double? totalPrice,
   }) {
     _bookingCode = bookingCode;
     _locationName = locationName;
@@ -137,6 +162,10 @@ class BookingConfirmationBackend extends ChangeNotifier {
     _vehicleName = vehicleName;
     _plateNumber = plateNumber;
     _validTime = validTime;
+    if (bookingId != null) _bookingId = bookingId;
+    if (createdAt != null) _createdAt = createdAt;
+    if (ticketStatus != null) _ticketStatus = ticketStatus;
+    if (totalPrice != null) _totalPrice = totalPrice;
     notifyListeners();
   }
 }
