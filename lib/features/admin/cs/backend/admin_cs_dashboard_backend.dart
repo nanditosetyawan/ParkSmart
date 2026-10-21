@@ -25,10 +25,10 @@ class AdminCsDashboardBackend extends ChangeNotifier {
     return dt.toUtc().add(const Duration(hours: 7));
   }
 
-  String totalPelanggan = '1.576 User';
-  String kepuasanCustomer = '4.8 / 5.0';
-  String ulasanMasuk = '142 Ulasan Masuk';
-  String pertumbuhanKuartalIni = '+31.8% Kuartal 4';
+  String totalPelanggan = '0 User';
+  String kepuasanCustomer = '0.0 / 5.0';
+  String ulasanMasuk = '0 Ulasan Masuk';
+  String pertumbuhanKuartalIni = '0.0% Kuartal 4';
   String get pertumbuhanBulanIni => pertumbuhanKuartalIni;
 
   int availableQuartersCount = 4;
@@ -39,43 +39,88 @@ class AdminCsDashboardBackend extends ChangeNotifier {
     {
       'quarter': 'Q1',
       'label': 'Kuartal 1 (Jan - Mar 2026)',
-      'joined': 320,
-      'cumulative': 320,
+      'joined': 0,
+      'cumulative': 0,
       'growth': 0.0,
       'growthText': 'Basis Q1',
     },
     {
       'quarter': 'Q2',
       'label': 'Kuartal 2 (Apr - Jun 2026)',
-      'joined': 410,
-      'cumulative': 730,
-      'growth': 28.1,
-      'growthText': '+28.1% vs Q1',
+      'joined': 0,
+      'cumulative': 0,
+      'growth': 0.0,
+      'growthText': '0.0% vs Q1',
     },
     {
       'quarter': 'Q3',
       'label': 'Kuartal 3 (Jul - Sep 2026)',
-      'joined': 365,
-      'cumulative': 1095,
-      'growth': -11.0,
-      'growthText': '-11.0% vs Q2',
+      'joined': 0,
+      'cumulative': 0,
+      'growth': 0.0,
+      'growthText': '0.0% vs Q2',
     },
     {
       'quarter': 'Q4',
       'label': 'Kuartal 4 (Okt - Des 2026)',
-      'joined': 481,
-      'cumulative': 1576,
-      'growth': 31.8,
-      'growthText': '+31.8% vs Q3',
+      'joined': 0,
+      'cumulative': 0,
+      'growth': 0.0,
+      'growthText': '0.0% vs Q3',
     },
   ];
-
-  List<double> quarterlyChartData = [0.45, 0.65, 0.55, 0.90];
+  List<double> quarterlyChartData = [0.0, 0.0, 0.0, 0.0];
   List<String> quarterlyXLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
 
   List<Map<String, dynamic>> get userGrowthMonthlyData => userGrowthQuarterlyData;
 
-  /// Mengambil data metrik CS dari Supabase
+  RealtimeChannel? _realtimeChannel;
+
+  /// Memulai langganan Realtime Supabase untuk perubahan di parking_locations, customer_feedbacks, dan users
+  void initRealtimeSubscription() {
+    if (_realtimeChannel != null) return;
+    try {
+      _realtimeChannel = _client.channel('public:admin_cs_dashboard')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'parking_locations',
+          callback: (payload) {
+            debugPrint('[AdminCsDashboardBackend] Realtime update dari parking_locations');
+            fetchCsDashboardData();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'customer_feedbacks',
+          callback: (payload) {
+            debugPrint('[AdminCsDashboardBackend] Realtime update dari customer_feedbacks');
+            fetchCsDashboardData();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'users',
+          callback: (payload) {
+            debugPrint('[AdminCsDashboardBackend] Realtime update dari users');
+            fetchCsDashboardData();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('[AdminCsDashboardBackend] initRealtimeSubscription error: $e');
+    }
+  }
+
+  /// Melepas langganan realtime
+  void disposeRealtime() {
+    _realtimeChannel?.unsubscribe();
+    _realtimeChannel = null;
+  }
+
+  /// Mengambil data metrik CS dari Supabase secara real-time
   Future<void> fetchCsDashboardData() async {
     _isLoading = true;
     _errorMessage = null;
@@ -100,8 +145,9 @@ class AdminCsDashboardBackend extends ChangeNotifier {
 
       // 2. Query users dari Supabase
       final userRes = await _client.from('users').select('id, created_at, status');
+      final List<int> qCounts = [0, 0, 0, 0];
+
       if (userRes.isNotEmpty) {
-        final List<int> qCounts = [0, 0, 0, 0];
         for (var u in userRes) {
           final dt = _parseToWib(u['created_at']);
           if (dt.year == currentYear) {
@@ -118,70 +164,122 @@ class AdminCsDashboardBackend extends ChangeNotifier {
           }
         }
 
-        // Susun data per kuartal
-        final List<Map<String, dynamic>> quarterlyData = [];
-        int runningCumulative = 0;
-        final List<String> qNames = ['Q1', 'Q2', 'Q3', 'Q4'];
-        final List<String> qLabels = [
-          'Kuartal 1 (Jan - Mar $currentYear)',
-          'Kuartal 2 (Apr - Jun $currentYear)',
-          'Kuartal 3 (Jul - Sep $currentYear)',
-          'Kuartal 4 (Okt - Des $currentYear)',
-        ];
-
-        for (int i = 0; i < 4; i++) {
-          final joined = qCounts[i];
-          runningCumulative += joined;
-          double growth = 0.0;
-          String growthText = 'Basis Q1';
-          if (i > 0) {
-            final prev = qCounts[i - 1];
-            if (prev > 0) {
-              growth = ((joined - prev) / prev) * 100.0;
-            } else if (joined > 0) {
-              growth = 100.0;
-            }
-            growthText = '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}% vs Q$i';
-          }
-
-          quarterlyData.add({
-            'quarter': qNames[i],
-            'label': qLabels[i],
-            'joined': joined,
-            'cumulative': runningCumulative,
-            'growth': growth,
-            'growthText': growthText,
-          });
-        }
-
-        userGrowthQuarterlyData = quarterlyData;
-
-        final maxJoined = qCounts.fold(0, (m, v) => v > m ? v : m);
-        quarterlyChartData = qCounts.map((v) {
-          if (maxJoined <= 0 || v <= 0) return 0.08;
-          return 0.18 + (v / maxJoined) * 0.77;
-        }).toList();
-
         totalPelanggan = '${_formatNumber(userRes.length)} User';
-        final latestGrowth = quarterlyData[latestQuarterIndex]['growth'] as double;
-        pertumbuhanKuartalIni = '${latestGrowth >= 0 ? '+' : ''}${latestGrowth.toStringAsFixed(1)}% Kuartal ${latestQuarterIndex + 1}';
+      } else {
+        totalPelanggan = '0 User';
       }
 
-      // 3. Query customer_feedbacks dari Supabase
+      // Susun data per kuartal
+      final List<Map<String, dynamic>> quarterlyData = [];
+      int runningCumulative = 0;
+      final List<String> qNames = ['Q1', 'Q2', 'Q3', 'Q4'];
+      final List<String> qLabels = [
+        'Kuartal 1 (Jan - Mar $currentYear)',
+        'Kuartal 2 (Apr - Jun $currentYear)',
+        'Kuartal 3 (Jul - Sep $currentYear)',
+        'Kuartal 4 (Okt - Des $currentYear)',
+      ];
+
+      for (int i = 0; i < 4; i++) {
+        final joined = qCounts[i];
+        runningCumulative += joined;
+        double growth = 0.0;
+        String growthText = 'Basis Q1';
+        if (i > 0) {
+          final prev = qCounts[i - 1];
+          if (prev > 0) {
+            growth = ((joined - prev) / prev) * 100.0;
+          } else if (joined > 0) {
+            growth = 100.0;
+          }
+          growthText = '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}% vs Q$i';
+        }
+
+        quarterlyData.add({
+          'quarter': qNames[i],
+          'label': qLabels[i],
+          'joined': joined,
+          'cumulative': runningCumulative,
+          'growth': growth,
+          'growthText': growthText,
+        });
+      }
+
+      userGrowthQuarterlyData = quarterlyData;
+
+      final maxJoined = qCounts.fold(0, (m, v) => v > m ? v : m);
+      quarterlyChartData = qCounts.map((v) {
+        if (maxJoined <= 0 || v <= 0) return 0.08;
+        return 0.18 + (v / maxJoined) * 0.77;
+      }).toList();
+
+      if (userRes.isNotEmpty) {
+        final latestGrowth = quarterlyData[latestQuarterIndex]['growth'] as double;
+        pertumbuhanKuartalIni = '${latestGrowth >= 0 ? '+' : ''}${latestGrowth.toStringAsFixed(1)}% Kuartal ${latestQuarterIndex + 1}';
+      } else {
+        pertumbuhanKuartalIni = '0.0% Kuartal ${latestQuarterIndex + 1}';
+      }
+
+      // 3. Query SEMUA lokasi parkir untuk rating bintang & ulasan kepuasan customer
       try {
-        final fbRes = await _client.from('customer_feedbacks').select('rating');
-        if (fbRes.isNotEmpty) {
-          ulasanMasuk = '${_formatNumber(fbRes.length)} Ulasan Masuk';
-          final double sumRating = fbRes.fold(0.0, (m, e) => m + ((e['rating'] as num?)?.toDouble() ?? 5.0));
-          final double avg = sumRating / fbRes.length;
+        final locRes = await _client
+            .from('parking_locations')
+            .select('id, name, rating, review_count');
+
+        // Ambil juga customer_feedbacks jika ada feedback tercatat
+        List<dynamic> fbRes = [];
+        try {
+          fbRes = await _client.from('customer_feedbacks').select('rating');
+        } catch (_) {}
+
+        int totalLocationReviews = 0;
+        double weightedRatingSum = 0.0;
+        double unweightedRatingSum = 0.0;
+        int locationsWithRating = 0;
+
+        for (var loc in locRes) {
+          final double r = (loc['rating'] as num?)?.toDouble() ?? 0.0;
+          final int c = (loc['review_count'] as num?)?.toInt() ?? 0;
+          totalLocationReviews += c;
+          weightedRatingSum += (r * c);
+          if (r > 0) {
+            unweightedRatingSum += r;
+            locationsWithRating++;
+          }
+        }
+
+        int totalFeedbackReviews = fbRes.length;
+        double feedbackRatingSum = 0.0;
+        for (var f in fbRes) {
+          feedbackRatingSum += ((f['rating'] as num?)?.toDouble() ?? 5.0);
+        }
+
+        final int totalAllReviews = totalLocationReviews + totalFeedbackReviews;
+
+        if (totalAllReviews > 0) {
+          final double totalRatingPoints = weightedRatingSum + feedbackRatingSum;
+          final double avg = totalRatingPoints / totalAllReviews;
           kepuasanCustomer = '${avg.toStringAsFixed(1)} / 5.0';
+          ulasanMasuk = '${_formatNumber(totalAllReviews)} Ulasan Masuk';
+        } else if (locationsWithRating > 0) {
+          final double avg = unweightedRatingSum / locationsWithRating;
+          kepuasanCustomer = '${avg.toStringAsFixed(1)} / 5.0';
+          ulasanMasuk = '0 Ulasan Masuk';
+        } else {
+          kepuasanCustomer = '0.0 / 5.0';
+          ulasanMasuk = '0 Ulasan Masuk';
         }
       } catch (e) {
-        debugPrint('[AdminCsDashboardBackend] feedback query error: $e');
+        debugPrint('[AdminCsDashboardBackend] locations & feedback query error: $e');
+        kepuasanCustomer = '0.0 / 5.0';
+        ulasanMasuk = '0 Ulasan Masuk';
       }
     } catch (e) {
       debugPrint('[AdminCsDashboardBackend] fetchCsDashboardData error: $e');
       _errorMessage = e.toString();
+      totalPelanggan = '0 User';
+      kepuasanCustomer = '0.0 / 5.0';
+      ulasanMasuk = '0 Ulasan Masuk';
     } finally {
       _isLoading = false;
       notifyListeners();

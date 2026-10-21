@@ -20,11 +20,13 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    AdminNotificationsBackend.instance.initRealtimeSubscription();
     AdminNotificationsBackend.instance.fetchNotifications();
   }
 
   @override
   void dispose() {
+    AdminNotificationsBackend.instance.disposeRealtime();
     _tabController.dispose();
     super.dispose();
   }
@@ -88,6 +90,11 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
                 ],
               ),
               actions: [
+                IconButton(
+                  icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF114177)),
+                  tooltip: 'Segarkan',
+                  onPressed: () => AdminNotificationsBackend.instance.fetchNotifications(),
+                ),
                 TextButton(
                   onPressed: () {
                     AdminNotificationsBackend.instance.markAllAsRead();
@@ -132,29 +139,64 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
     );
   }
 
-
   Widget _buildNotificationList(List<_NotifItem> items) {
-    if (items.isEmpty) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            const Icon(Icons.notifications_none, size: 48, color: Color(0xFF76777B)),
-            const SizedBox(height: 12),
-            Text('Tidak ada notifikasi', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF76777B))),
-          ],
-        ),
-      );
-    }
-
-    return ListView.separated(
-      padding: const EdgeInsets.all(20),
-      itemCount: items.length,
-      separatorBuilder: (context, index) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final item = items[index];
-        return _buildNotifCard(item);
-      },
+    return RefreshIndicator(
+      onRefresh: () => AdminNotificationsBackend.instance.fetchNotifications(),
+      color: const Color(0xFF114177),
+      child: items.isEmpty
+          ? ListView(
+              children: [
+                SizedBox(
+                  height: MediaQuery.of(context).size.height * 0.55,
+                  child: Center(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 32),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(16),
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFEFF6FF),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.notifications_off_outlined, size: 40, color: Color(0xFF114177)),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Belum Ada Notifikasi',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 15,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1A1A18),
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Pemberitahuan sistem, kendala operasional, dan feedback akan muncul di sini secara realtime.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: const Color(0xFF64748B),
+                              height: 1.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            )
+          : ListView.separated(
+              padding: const EdgeInsets.all(20),
+              itemCount: items.length,
+              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              itemBuilder: (context, index) {
+                final item = items[index];
+                return _buildNotifCard(item);
+              },
+            ),
     );
   }
 
@@ -232,6 +274,9 @@ class _AdminNotificationsScreenState extends State<AdminNotificationsScreen> wit
 
   List<CsNotificationItem> get _systemNotifications => _allNotifications
       .where((n) =>
+          n.notificationType == 'system' ||
+          n.notificationType == 'warning' ||
+          n.notificationType == 'overstay' ||
           n.iconColor == const Color(0xFF45474A) ||
           n.iconColor == const Color(0xFF17A18A))
       .toList();

@@ -16,65 +16,7 @@ class AllLocationsRevenueBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultLocations = [
-    {
-      'rank': 1,
-      'name': 'Central Park Mall',
-      'city': 'Jakarta Barat',
-      'address': 'Jl. Letjen S. Parman No. 28, Tanjung Duren',
-      'omzet': 'Rp 156.400.000',
-      'rawAmount': 156400000,
-      'percentage': 0.415,
-      'sessions': '4.120 sesi',
-      'growth': '+16.5%',
-    },
-    {
-      'rank': 2,
-      'name': 'Grand Indonesia',
-      'city': 'Jakarta Pusat',
-      'address': 'Jl. M.H. Thamrin No. 1, Menteng',
-      'omzet': 'Rp 98.250.000',
-      'rawAmount': 98250000,
-      'percentage': 0.261,
-      'sessions': '2.640 sesi',
-      'growth': '+14.1%',
-    },
-    {
-      'rank': 3,
-      'name': 'Malioboro Mall',
-      'city': 'Yogyakarta',
-      'address': 'Jl. Malioboro No. 52-58, Danurejan',
-      'omzet': 'Rp 34.600.000',
-      'rawAmount': 34600000,
-      'percentage': 0.092,
-      'sessions': '1.180 sesi',
-      'growth': '+8.4%',
-    },
-    {
-      'rank': 4,
-      'name': 'Galaxy Mall Surabaya',
-      'city': 'Surabaya',
-      'address': 'Jl. Dharmahusada Indah Timur No. 35-37',
-      'omzet': 'Rp 23.200.000',
-      'rawAmount': 23200000,
-      'percentage': 0.062,
-      'sessions': '790 sesi',
-      'growth': '+7.2%',
-    },
-    {
-      'rank': 5,
-      'name': 'Paris Van Java',
-      'city': 'Bandung',
-      'address': 'Jl. Sukajadi No. 131-139, Cipedes',
-      'omzet': 'Rp 19.800.000',
-      'rawAmount': 19800000,
-      'percentage': 0.053,
-      'sessions': '650 sesi',
-      'growth': '+5.8%',
-    },
-  ];
-
-  late List<Map<String, dynamic>> locations = List.from(_defaultLocations);
+  List<Map<String, dynamic>> locations = [];
 
   /// Mengambil data omzet lokasi dari Supabase
   Future<void> fetchLocationsRevenue() async {
@@ -83,37 +25,72 @@ class AllLocationsRevenueBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await _client
+      final locsRes = await _client
           .from('parking_locations')
           .select('id, name, city, address, total_capacity')
           .order('name', ascending: true);
 
-      if (res.isNotEmpty) {
-        int rank = 1;
-        locations = res.map<Map<String, dynamic>>((row) {
-          final totalCap = (row['total_capacity'] as num?)?.toInt() ?? 100;
-          final estRaw = totalCap * 400000;
-          final currentRank = rank++;
+      if (locsRes.isNotEmpty) {
+        // Ambil sesi parkir untuk mengakumulasi pendapatan riil per lokasi
+        List<dynamic> sessions = [];
+        try {
+          final sRes = await _client
+              .from('parking_sessions')
+              .select('location_id, total_fee, status');
+          sessions = sRes;
+        } catch (_) {}
+
+        final Map<String, double> revenueMap = {};
+        final Map<String, int> sessionCountMap = {};
+
+        for (var s in sessions) {
+          final locId = s['location_id']?.toString() ?? '';
+          final fee = (s['total_fee'] as num?)?.toDouble() ?? 0.0;
+          final status = s['status']?.toString().toLowerCase() ?? '';
+          if (locId.isNotEmpty) {
+            sessionCountMap[locId] = (sessionCountMap[locId] ?? 0) + 1;
+            if (status == 'completed' || status == 'paid') {
+              revenueMap[locId] = (revenueMap[locId] ?? 0.0) + fee;
+            }
+          }
+        }
+
+        final double totalAllRevenue = revenueMap.values.fold(0.0, (sum, val) => sum + val);
+
+        final List<Map<String, dynamic>> computed = locsRes.map<Map<String, dynamic>>((row) {
+          final id = row['id']?.toString() ?? '';
+          final rev = revenueMap[id] ?? 0.0;
+          final sessCount = sessionCountMap[id] ?? 0;
+          final pct = totalAllRevenue > 0 ? (rev / totalAllRevenue) : 0.0;
 
           return {
-            'rank': currentRank,
             'name': row['name']?.toString() ?? 'Lokasi Parkir',
-            'city': row['city']?.toString() ?? 'Jakarta',
+            'city': row['city']?.toString() ?? 'Indonesia',
             'address': row['address']?.toString() ?? '-',
-            'omzet': 'Rp ${_formatCurrency(estRaw)}',
-            'rawAmount': estRaw,
-            'percentage': 0.25,
-            'sessions': '${totalCap * 12} sesi',
-            'growth': '+12.5%',
+            'omzet': 'Rp ${_formatCurrency(rev.round())}',
+            'rawAmount': rev,
+            'percentage': pct,
+            'sessions': '$sessCount sesi',
+            'growth': '0.0%',
           };
         }).toList();
+
+        // Urutkan berdasarkan omzet tertinggi
+        computed.sort((a, b) => (b['rawAmount'] as num).compareTo(a['rawAmount'] as num));
+
+        // Tambahkan peringkat
+        for (int i = 0; i < computed.length; i++) {
+          computed[i]['rank'] = i + 1;
+        }
+
+        locations = computed;
+      } else {
+        locations = [];
       }
     } catch (e) {
       debugPrint('[AllLocationsRevenueBackend] fetchLocationsRevenue error: $e');
       _errorMessage = e.toString();
-      if (locations.isEmpty) {
-        locations = List.from(_defaultLocations);
-      }
+      locations = [];
     } finally {
       _isLoading = false;
       notifyListeners();

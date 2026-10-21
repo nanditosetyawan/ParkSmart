@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'admin_finance_notifications_screen.dart';
 import 'admin_wallet_screen.dart';
@@ -9,6 +11,7 @@ import 'admin_transactions_screen.dart';
 import 'revenue_screen.dart';
 import '../../sitemap_screen.dart';
 import '../../auth/login_screen.dart';
+import '../../../core/services/session_service.dart';
 import 'backend/admin_finance_dashboard_backend.dart';
 
 class AdminFinanceDashboardScreen extends StatefulWidget {
@@ -21,11 +24,43 @@ class AdminFinanceDashboardScreen extends StatefulWidget {
 class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   int? _inspectedQuarterIndex;
+  String _adminName = 'Admin Finansial';
+  String _adminEmail = 'finance@parksmart.id';
 
   @override
   void initState() {
     super.initState();
+    _loadAdminInfo();
     AdminFinanceDashboardBackend.instance.fetchFinanceDashboard();
+  }
+
+  Future<void> _loadAdminInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('current_admin_name');
+      final savedEmail = prefs.getString('current_admin_email');
+      final savedRole = prefs.getString('current_admin_role');
+      if (savedName != null && savedName.isNotEmpty && (savedRole == null || savedRole.toLowerCase().contains('finansial'))) {
+        if (mounted) {
+          setState(() {
+            _adminName = savedName;
+            if (savedEmail != null) _adminEmail = savedEmail;
+          });
+        }
+        return;
+      }
+      final res = await Supabase.instance.client
+          .from('admins')
+          .select('full_name, email')
+          .eq('role', 'finance')
+          .maybeSingle();
+      if (res != null && mounted) {
+        setState(() {
+          _adminName = res['full_name'] ?? _adminName;
+          _adminEmail = res['email'] ?? _adminEmail;
+        });
+      }
+    } catch (_) {}
   }
 
   void _onQuarterChartTouch(double localX, double canvasWidth, int pointCount, int activeCount) {
@@ -105,6 +140,19 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
             ],
           ),
           actions: [
+            IconButton(
+              icon: AdminFinanceDashboardBackend.instance.isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFD97706)),
+                    )
+                  : const Icon(Icons.refresh_rounded, color: Color(0xFF1A1A18), size: 22),
+              tooltip: 'Muat Ulang Database',
+              onPressed: AdminFinanceDashboardBackend.instance.isLoading
+                  ? null
+                  : () => AdminFinanceDashboardBackend.instance.fetchFinanceDashboard(),
+            ),
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
@@ -166,8 +214,11 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                       color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Center(
-                      child: Text('B', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    child: Center(
+                      child: Text(
+                        _adminName.isNotEmpty ? _adminName[0].toUpperCase() : 'F',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -175,8 +226,8 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Bambang Sutrisno', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                        Text('Admin Finansial & Billing', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
+                        Text(_adminName, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(_adminEmail, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
                         const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -281,6 +332,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
                     onTap: () {
+                      SessionService.instance.clearSession();
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -323,77 +375,101 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
 
   // ==================== TAB 1: RINGKASAN & ARUS KAS ====================
   Widget _buildTabCashflowAndSummary(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        // 1. Total Omzet dengan Mountain Chart Bulanan
-        _buildMountainOmzetCard(context),
-        const SizedBox(height: 12),
+    return RefreshIndicator(
+      onRefresh: () => AdminFinanceDashboardBackend.instance.fetchFinanceDashboard(),
+      color: const Color(0xFFD97706),
+      child: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          // 1. Total Omzet dengan Mountain Chart Bulanan
+          _buildMountainOmzetCard(context),
+          const SizedBox(height: 12),
 
-        // 2. Transaksi Sukses Card dengan Button
-        _buildBetterSuccessTrxCard(context),
-        const SizedBox(height: 12),
+          // 2. Transaksi Sukses Card dengan Button
+          _buildBetterSuccessTrxCard(context),
+          const SizedBox(height: 12),
 
-        // 3. Total Deposit Dompet Card dengan Button
-        _buildBetterDepositCard(context),
-        const SizedBox(height: 20),
+          // 3. Total Deposit Dompet Card dengan Button
+          _buildBetterDepositCard(context),
+          const SizedBox(height: 20),
 
-        // Transaksi Finansial Terkini
-        Text(
-          'Aktivitas Transaksi Terkini',
-          style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-        ),
-        const SizedBox(height: 8),
+          // Transaksi Finansial Terkini
+          Text(
+            'Aktivitas Transaksi Terkini',
+            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+          ),
+          const SizedBox(height: 8),
 
-        _buildTransactionFeedItem(
-          icon: Icons.qr_code_2,
-          iconBg: const Color(0xFFD1F2EB),
-          iconColor: const Color(0xFF17A18A),
-          title: 'Pembayaran QRIS Gerbang Masuk',
-          subtitle: 'Central Park Mall · Sesi #TRX-9482 (B 1234 SKP)',
-          amount: '+Rp 15.000',
-          isIncome: true,
-          time: '2 mnt lalu',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-        ),
-        const SizedBox(height: 8),
-        _buildTransactionFeedItem(
-          icon: Icons.account_balance_wallet,
-          iconBg: const Color(0xFFFEF3C7),
-          iconColor: const Color(0xFFD97706),
-          title: 'Injeksi Saldo Dompet Admin',
-          subtitle: 'Top-up oleh admin ke akun Budi Santoso',
-          amount: '+Rp 250.000',
-          isIncome: true,
-          time: '18 mnt lalu',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminWalletScreen())),
-        ),
-        const SizedBox(height: 8),
-        _buildTransactionFeedItem(
-          icon: Icons.credit_card,
-          iconBg: const Color(0xFFEBF2FA),
-          iconColor: const Color(0xFF114177),
-          title: 'Settlement Midtrans Auto-Payout',
-          subtitle: 'Rekening Operasional Bank Mandiri · Batch #ST-881',
-          amount: '+Rp 4.250.000',
-          isIncome: true,
-          time: '35 mnt lalu',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-        ),
-        const SizedBox(height: 8),
-        _buildTransactionFeedItem(
-          icon: Icons.replay,
-          iconBg: const Color(0xFFFDE8E4),
-          iconColor: const Color(0xFFD94B4B),
-          title: 'Refund Pembatalan Parkir Tiket',
-          subtitle: 'Malioboro Mall · #BK-3021 (Dibatalkan pengguna)',
-          amount: '-Rp 20.000',
-          isIncome: false,
-          time: '1 jam lalu',
-          onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminTransactionsScreen())),
-        ),
-        const SizedBox(height: 30),
-      ],
+          Builder(
+            builder: (ctx) {
+              final b = AdminFinanceDashboardBackend.instance;
+              if (b.recentTransactions.isEmpty) {
+                return Container(
+                  padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: const Color(0xFFE5E7EB)),
+                  ),
+                  child: Center(
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.receipt_long_outlined, size: 24, color: Color(0xFF76777B)),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Belum Ada Aktivitas Transaksi',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Riwayat transaksi finansial terbaru akan muncul di sini',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            color: const Color(0xFF76777B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              return Column(
+                children: b.recentTransactions.map((trx) => Padding(
+                  padding: const EdgeInsets.only(bottom: 8),
+                  child: _buildTransactionFeedItem(
+                    icon: trx['icon'] as IconData,
+                    iconBg: trx['iconBg'] as Color,
+                    iconColor: trx['iconColor'] as Color,
+                    title: trx['title'] as String,
+                    subtitle: trx['subtitle'] as String,
+                    amount: trx['amount'] as String,
+                    isIncome: trx['isIncome'] as bool,
+                    time: trx['time'] as String,
+                    onTap: () => Navigator.push(
+                      ctx,
+                      MaterialPageRoute(builder: (_) => const AdminTransactionsScreen()),
+                    ),
+                  ),
+                )).toList(),
+              );
+            },
+          ),
+          const SizedBox(height: 30),
+        ],
+      ),
     );
   }
 

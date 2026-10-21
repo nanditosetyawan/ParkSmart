@@ -2,6 +2,8 @@ import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import 'admin_operations_notifications_screen.dart';
 import 'admin_locations_screen.dart';
@@ -11,6 +13,7 @@ import 'admin_bookings_screen.dart';
 import 'manage_parking_screen.dart';
 import '../../sitemap_screen.dart';
 import '../../auth/login_screen.dart';
+import '../../../core/services/session_service.dart';
 import 'backend/admin_operations_dashboard_backend.dart';
 
 class AdminOperationsDashboardScreen extends StatefulWidget {
@@ -22,12 +25,44 @@ class AdminOperationsDashboardScreen extends StatefulWidget {
 
 class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboardScreen> {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  String _adminName = 'BAHLIL ETANOL';
+  String _adminEmail = 'bahlil@parksmart.id';
 
   @override
   void initState() {
     super.initState();
+    _loadAdminInfo();
     AdminOperationsDashboardBackend.instance.addListener(_onBackendChanged);
     AdminOperationsDashboardBackend.instance.fetchDashboardData();
+  }
+
+  Future<void> _loadAdminInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('current_admin_name');
+      final savedEmail = prefs.getString('current_admin_email');
+      final savedRole = prefs.getString('current_admin_role');
+      if (savedName != null && savedName.isNotEmpty && (savedRole == null || savedRole.toLowerCase().contains('operasional'))) {
+        if (mounted) {
+          setState(() {
+            _adminName = savedName;
+            if (savedEmail != null) _adminEmail = savedEmail;
+          });
+        }
+        return;
+      }
+      final res = await Supabase.instance.client
+          .from('admins')
+          .select('full_name, email')
+          .eq('role', 'operational')
+          .maybeSingle();
+      if (res != null && mounted) {
+        setState(() {
+          _adminName = res['full_name'] ?? _adminName;
+          _adminEmail = res['email'] ?? _adminEmail;
+        });
+      }
+    } catch (_) {}
   }
 
   void _onBackendChanged() {
@@ -66,118 +101,8 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     }
   }
 
-  final List<Map<String, dynamic>> _cityDensityList = [
-    {
-      'city': 'Jakarta',
-      'province': 'DKI Jakarta',
-      'facilities': '2 Lokasi (Central Park & GI)',
-      'facilityCount': 2,
-      'total': 750,
-      'occupied': 655,
-      'status': 'Kritis',
-      'statusColor': const Color(0xFFD94B4B),
-      'mobil': 520,
-      'motor': 100,
-      'ev': 35,
-    },
-    {
-      'city': 'Bandung',
-      'province': 'Jawa Barat',
-      'facilities': '1 Lokasi (Paris Van Java)',
-      'facilityCount': 1,
-      'total': 280,
-      'occupied': 210,
-      'status': 'Padat',
-      'statusColor': const Color(0xFFE07A5F),
-      'mobil': 145,
-      'motor': 50,
-      'ev': 15,
-    },
-    {
-      'city': 'Surabaya',
-      'province': 'Jawa Timur',
-      'facilities': '1 Lokasi (Galaxy Mall)',
-      'facilityCount': 1,
-      'total': 350,
-      'occupied': 180,
-      'status': 'Normal',
-      'statusColor': const Color(0xFF17A18A),
-      'mobil': 130,
-      'motor': 40,
-      'ev': 10,
-    },
-    {
-      'city': 'Yogyakarta',
-      'province': 'D.I. Yogyakarta',
-      'facilities': '1 Lokasi (Malioboro Mall)',
-      'facilityCount': 1,
-      'total': 200,
-      'occupied': 102,
-      'status': 'Normal',
-      'statusColor': const Color(0xFF17A18A),
-      'mobil': 65,
-      'motor': 30,
-      'ev': 7,
-    },
-  ];
-
-  final List<Map<String, dynamic>> _operationalLocations = [
-    {
-      'id': 'LOC-001',
-      'name': 'Central Park Mall',
-      'city': 'Jakarta Barat',
-      'zone': 'Basement B1 - B3',
-      'total': 300,
-      'occupied': 240,
-      'status': 'Padat',
-      'statusColor': const Color(0xFFE07A5F),
-      'mobil': 190,
-      'motor': 35,
-      'ev': 15,
-    },
-    {
-      'id': 'LOC-002',
-      'name': 'Malioboro Mall',
-      'city': 'Yogyakarta',
-      'zone': 'Area Outdoor & B1',
-      'total': 200,
-      'occupied': 102,
-      'status': 'Normal',
-      'statusColor': const Color(0xFF17A18A),
-      'mobil': 65,
-      'motor': 30,
-      'ev': 7,
-    },
-    {
-      'id': 'LOC-003',
-      'name': 'Grand Indonesia',
-      'city': 'Jakarta Pusat',
-      'zone': 'East & West Mall (B1 - B4)',
-      'total': 450,
-      'occupied': 415,
-      'status': 'Kritis',
-      'statusColor': const Color(0xFFD94B4B),
-      'mobil': 330,
-      'motor': 65,
-      'ev': 20,
-    },
-    {
-      'id': 'LOC-004',
-      'name': 'Galaxy Mall Surabaya',
-      'city': 'Surabaya',
-      'zone': 'Mall 1 - 3 (Basement)',
-      'total': 350,
-      'occupied': 180,
-      'status': 'Normal',
-      'statusColor': const Color(0xFF17A18A),
-      'mobil': 130,
-      'motor': 40,
-      'ev': 10,
-    },
-  ];
-
-
-
+  List<Map<String, dynamic>> get _cityDensityList => AdminOperationsDashboardBackend.instance.cityDensityList;
+  List<Map<String, dynamic>> get _operationalLocations => AdminOperationsDashboardBackend.instance.locations;
 
   List<Map<String, dynamic>> get _filteredLocations {
     if (_selectedStatusFilter == 'Semua') return _operationalLocations;
@@ -186,135 +111,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   int _activitySubTab = 0; // 0 = Sesi Aktif, 1 = Reservasi
 
-  final List<Map<String, dynamic>> _liveSessions = [
-    {
-      'id': 'SES-9901',
-      'plate': 'B 1234 SKP',
-      'user': 'Nanda Setiawan',
-      'phone': '0812-3456-7890',
-      'type': 'Mobil',
-      'vehicle': 'Honda CR-V Hitam',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / A-01',
-      'checkIn': '10:30 WIB',
-      'duration': '2j 15m',
-      'fee': 'Rp 13.000',
-      'isOverstay': false,
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9902',
-      'plate': 'B 5532 PLM',
-      'user': 'Rafi Maulana',
-      'phone': '0856-7890-1234',
-      'type': 'Mobil',
-      'vehicle': 'Toyota Fortuner Putih',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / C-01',
-      'checkIn': '08:00 WIB',
-      'duration': '4j 45m',
-      'fee': 'Rp 29.000',
-      'isOverstay': true,
-      'overstayDuration': '45 mnt',
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9903',
-      'plate': 'B 1111 ION',
-      'user': 'Dewi Lestari',
-      'phone': '0878-1234-5678',
-      'type': 'EV Mobil',
-      'vehicle': 'Hyundai Ioniq 5',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / B-01 (EV Fast)',
-      'checkIn': '11:15 WIB',
-      'duration': '1j 30m',
-      'fee': 'Rp 22.500',
-      'isOverstay': false,
-      'isEv': true,
-    },
-    {
-      'id': 'SES-9904',
-      'plate': 'D 8888 ABC',
-      'user': 'Fajar Ramadhan',
-      'phone': '0896-2345-6789',
-      'type': 'Motor',
-      'vehicle': 'Yamaha NMAX Hitam',
-      'location': 'Paris Van Java',
-      'slot': 'GF / M-05',
-      'checkIn': '12:00 WIB',
-      'duration': '0j 45m',
-      'fee': 'Rp 4.000',
-      'isOverstay': false,
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9905',
-      'plate': 'L 7777 WRT',
-      'user': 'Siti Rahma',
-      'phone': '0813-9876-5432',
-      'type': 'Mobil',
-      'vehicle': 'Toyota Innova Zenix',
-      'location': 'Grand Indonesia',
-      'slot': 'B1 / VIP-03',
-      'checkIn': '09:40 WIB',
-      'duration': '3j 05m',
-      'fee': 'Rp 18.000',
-      'isOverstay': false,
-      'isEv': false,
-    },
-  ];
+  List<Map<String, dynamic>> get _liveSessions => AdminOperationsDashboardBackend.instance.liveSessions;
+  List<Map<String, dynamic>> get _liveBookings => AdminOperationsDashboardBackend.instance.liveBookings;
 
-  final List<Map<String, dynamic>> _liveBookings = [
-    {
-      'id': 'BKG-2024-002',
-      'code': 'PRK-8821',
-      'name': 'Rafi Maulana',
-      'phone': '0812-3456-7890',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / A-03',
-      'floor': 'B2',
-      'vehicleType': 'Mobil',
-      'plate': 'B 1234 ABC',
-      'time': '13:00 - 15:00 WIB',
-      'duration': '2 jam',
-      'status': 'Dikonfirmasi',
-      'totalPrice': 'Rp 28.000',
-      'paymentStatus': 'Dibayar',
-    },
-    {
-      'id': 'BKG-2024-003',
-      'code': 'PRK-8822',
-      'name': 'Siti Rahma',
-      'phone': '0813-9876-5432',
-      'location': 'Grand Indonesia',
-      'slot': 'B1 / VIP-01',
-      'floor': 'B1',
-      'vehicleType': 'EV Mobil',
-      'plate': 'B 9999 EV',
-      'time': '14:30 - 17:30 WIB',
-      'duration': '3 jam',
-      'status': 'Menunggu',
-      'totalPrice': 'Rp 35.000',
-      'paymentStatus': 'Pending',
-    },
-    {
-      'id': 'BKG-2024-004',
-      'code': 'PRK-8823',
-      'name': 'Budi Santoso',
-      'phone': '0857-1122-3344',
-      'location': 'Paris Van Java',
-      'slot': 'Lt 1 / C-12',
-      'floor': 'Lantai 1',
-      'vehicleType': 'Motor',
-      'plate': 'D 4321 XYZ',
-      'time': '15:00 - 18:00 WIB',
-      'duration': '3 jam',
-      'status': 'Dikonfirmasi',
-      'totalPrice': 'Rp 12.000',
-      'paymentStatus': 'Dibayar',
-    },
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -521,6 +320,62 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   // ==================== TAB 1: GRAFIK & ANALITIK ====================
   Widget _buildTabAnalytics(BuildContext context) {
+    if (_cityDensityList.isEmpty) {
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 4,
+                  offset: const Offset(0, 2),
+                ),
+              ],
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Container(
+                  width: 56,
+                  height: 56,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF114177).withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.analytics_outlined, size: 30, color: Color(0xFF114177)),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Belum Ada Data Analitik Lapangan',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1A18),
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Data keterisian fisik dan proporsi armada akan terisi secara otomatis setelah titik tempat parkir dan sesi kendaraan ditambahkan ke database.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: const Color(0xFF76777B),
+                    height: 1.4,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      );
+    }
+
     int totalMobil = 0;
     int totalMotor = 0;
     int totalEv = 0;
@@ -529,6 +384,8 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
       totalMotor += city['motor'] as int;
       totalEv += city['ev'] as int;
     }
+
+    final totalVehicles = totalMobil + totalMotor + totalEv;
 
     return ListView(
       padding: const EdgeInsets.all(16),
@@ -585,16 +442,25 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               Text('Total jenis kendaraan dari ${_cityDensityList.length} kota operasional', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
               const SizedBox(height: 14),
 
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: Row(
-                  children: [
-                    Expanded(flex: totalMobil, child: Container(height: 12, color: const Color(0xFF114177))),
-                    Expanded(flex: totalMotor, child: Container(height: 12, color: const Color(0xFF17A18A))),
-                    Expanded(flex: totalEv, child: Container(height: 12, color: const Color(0xFFE07A5F))),
-                  ],
+              if (totalVehicles > 0)
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(6),
+                  child: Row(
+                    children: [
+                      if (totalMobil > 0) Expanded(flex: totalMobil, child: Container(height: 12, color: const Color(0xFF114177))),
+                      if (totalMotor > 0) Expanded(flex: totalMotor, child: Container(height: 12, color: const Color(0xFF17A18A))),
+                      if (totalEv > 0) Expanded(flex: totalEv, child: Container(height: 12, color: const Color(0xFFE07A5F))),
+                    ],
+                  ),
+                )
+              else
+                Container(
+                  height: 12,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE5E7EB),
+                    borderRadius: BorderRadius.circular(6),
+                  ),
                 ),
-              ),
               const SizedBox(height: 14),
 
               Row(
@@ -741,7 +607,34 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
         if (_activitySubTab == 0) ...[
           // Sesi Kendaraan Aktif
-          ..._liveSessions.map((s) {
+          if (_liveSessions.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.directions_car_outlined, size: 36, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Belum Ada Kendaraan Aktif',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tidak ada sesi parkir yang sedang berjalan di database.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._liveSessions.map((s) {
             final isOverstay = s['isOverstay'] == true;
             final isEv = s['isEv'] == true;
             return Container(
@@ -842,7 +735,34 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
           ),
         ] else ...[
           // Reservasi Masuk
-          ..._liveBookings.map((b) {
+          if (_liveBookings.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+              margin: const EdgeInsets.only(bottom: 12),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Column(
+                children: [
+                  const Icon(Icons.confirmation_number_outlined, size: 36, color: Color(0xFF94A3B8)),
+                  const SizedBox(height: 10),
+                  Text(
+                    'Belum Ada Reservasi Masuk',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Tidak ada reservasi parkir yang tercatat di database.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                  ),
+                ],
+              ),
+            )
+          else
+            ..._liveBookings.map((b) {
             final isConfirmed = b['status'] == 'Dikonfirmasi';
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -1216,13 +1136,16 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   // ==================== WIDGETS: KPI METRICS (CHART GUNUNG & OVERSTAY ALERT) ====================
   Widget _buildRealtimeKpiSection() {
+    final overstayCount = AdminOperationsDashboardBackend.instance.overstaySessionsCount;
     return Column(
       children: [
-        // 1. Chart Gunung Kendaraan Parkir 937 Unit (Bulan Ini)
+        // 1. Chart Gunung Kendaraan Parkir (Bulan Ini)
         _buildParkedVehiclesMountainChart(),
-        const SizedBox(height: 12),
-        // 2. Overstay Alert Card Menarik di bawahnya
-        _buildOverstayAlertCard(),
+        if (overstayCount > 0) ...[
+          const SizedBox(height: 12),
+          // 2. Overstay Alert Card Menarik di bawahnya
+          _buildOverstayAlertCard(),
+        ],
       ],
     );
   }
@@ -1729,6 +1652,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   // 🚨 KARTU OVERSTAY ALERT MENARIK & EYE-CATCHING DI BAWAH CHART
   Widget _buildOverstayAlertCard() {
+    final overstayCount = AdminOperationsDashboardBackend.instance.overstaySessionsCount;
+    if (overstayCount <= 0) return const SizedBox.shrink();
+
     return Container(
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -1793,7 +1719,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                             borderRadius: BorderRadius.circular(6),
                           ),
                           child: Text(
-                            '3 KENDARAAN',
+                            '$overstayCount KENDARAAN',
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 9.5,
                               fontWeight: FontWeight.bold,
@@ -1806,7 +1732,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     ),
                     const SizedBox(height: 2),
                     Text(
-                      '3 kendaraan melebihi batas kuota waktu parkir maksimal di lapangan',
+                      '$overstayCount kendaraan melebihi batas kuota waktu parkir maksimal di lapangan',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: const Color(0xFF7F1D1D),
@@ -1861,7 +1787,44 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   // ==================== WIDGETS: KEPADATAN KOTA INTERAKTIF ====================
   Widget _buildInteractiveCapacitySection() {
-    final selectedCity = _cityDensityList[_selectedChartCityIndex];
+    if (_cityDensityList.isEmpty) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFE5E7EB)),
+        ),
+        child: Column(
+          children: [
+            Container(
+              width: 52,
+              height: 52,
+              decoration: BoxDecoration(
+                color: const Color(0xFF114177).withValues(alpha: 0.08),
+                shape: BoxShape.circle,
+              ),
+              child: const Icon(Icons.location_city_rounded, size: 28, color: Color(0xFF114177)),
+            ),
+            const SizedBox(height: 12),
+            Text(
+              'Belum Ada Data Kepadatan Kota',
+              style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              'Grafik kepadatan akan otomatis dihitung saat lokasi operasional terdaftar di database.',
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B), height: 1.4),
+            ),
+          ],
+        ),
+      );
+    }
+
+    final safeIndex = _selectedChartCityIndex.clamp(0, _cityDensityList.length - 1);
+    final selectedCity = _cityDensityList[safeIndex];
 
     return Container(
       padding: const EdgeInsets.all(16),
@@ -1915,11 +1878,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
             crossAxisAlignment: CrossAxisAlignment.end,
             children: List.generate(_cityDensityList.length, (i) {
               final city = _cityDensityList[i];
-              final total = city['total'] as int;
-              final occupied = city['occupied'] as int;
-              final ratio = (occupied / total).clamp(0.0, 1.0);
-              final isSelected = i == _selectedChartCityIndex;
-              final statusColor = city['statusColor'] as Color;
+              final total = (city['total'] as num?)?.toInt() ?? 0;
+              final occupied = (city['occupied'] as num?)?.toInt() ?? 0;
+              final ratio = total > 0 ? (occupied / total).clamp(0.0, 1.0) : 0.0;
+              final isSelected = i == safeIndex;
+              final statusColor = (city['statusColor'] as Color?) ?? const Color(0xFF17A18A);
 
               return GestureDetector(
                 onTap: () {
@@ -2137,17 +2100,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         ),
         const SizedBox(height: 12),
 
-        // Kartu-Kartu Lokasi
-        ..._filteredLocations.map((loc) {
-          final total = loc['total'] as int;
-          final occupied = loc['occupied'] as int;
-          final available = total - occupied;
-          final pct = (occupied / total).clamp(0.0, 1.0);
-          final statusColor = loc['statusColor'] as Color;
-
-          return Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.all(14),
+        // Kartu-Kartu Lokasi atau Status Kosong
+        if (_filteredLocations.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(vertical: 36, horizontal: 20),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
@@ -2161,105 +2118,182 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               ],
             ),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(loc['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                          Text('${loc['city']} • ${loc['zone']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                        ],
-                      ),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: statusColor.withValues(alpha: 0.12),
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        loc['status'],
-                        style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
-                      ),
-                    ),
-                  ],
+                Container(
+                  width: 52,
+                  height: 52,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF114177).withValues(alpha: 0.08),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(Icons.local_parking_rounded, size: 28, color: Color(0xFF114177)),
                 ),
-                const SizedBox(height: 10),
-
-                // Bar Visual Kapasitas
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(6),
-                  child: LinearProgressIndicator(
-                    value: pct,
-                    backgroundColor: const Color(0xFFE5E7EB),
-                    valueColor: AlwaysStoppedAnimation<Color>(statusColor),
-                    minHeight: 7,
+                const SizedBox(height: 12),
+                Text(
+                  _operationalLocations.isEmpty
+                      ? 'Belum Ada Titik Tempat Parkir'
+                      : 'Tidak Ada Lokasi Berstatus "$_selectedStatusFilter"',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: const Color(0xFF1A1A18),
                   ),
                 ),
-                const SizedBox(height: 8),
-
-                // Status Slot & Armada
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      '$occupied / $total Terisi',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A)),
-                    ),
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF17A18A).withValues(alpha: 0.1),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        'Sisa $available Slot Kosong',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
-                      ),
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  _operationalLocations.isEmpty
+                      ? 'Database lokasi parkir masih kosong. Daftarkan lokasi baru melalui menu Pengelolaan Lokasi.'
+                      : 'Semua lokasi saat ini memiliki status ketersediaan yang lain.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11.5,
+                    color: const Color(0xFF76777B),
+                    height: 1.4,
+                  ),
                 ),
-                const SizedBox(height: 8),
-
-                // Rincian Unit Terparkir
-                Row(
-                  children: [
-                    Text('Armada: ', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                    Text('🚗 ${loc['mobil']} Mobil  ', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                    Text('🏍️ ${loc['motor']} Motor  ', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                    Text('⚡ ${loc['ev']} EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFE07A5F))),
-                  ],
-                ),
-                const SizedBox(height: 10),
-                const Divider(height: 1, color: Color(0xFFF3F4F6)),
-                const SizedBox(height: 10),
-
-                // Tombol Denah Slot Lapangan (Tunggal & Tidak Redundan)
-                SizedBox(
-                  width: double.infinity,
-                  height: 38,
-                  child: ElevatedButton.icon(
-                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
-                    icon: const Icon(Icons.grid_on_rounded, size: 14, color: Colors.white),
+                if (_operationalLocations.isEmpty) ...[
+                  const SizedBox(height: 16),
+                  ElevatedButton.icon(
+                    onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const LocationsScreen())),
+                    icon: const Icon(Icons.add_location_alt_rounded, size: 16, color: Colors.white),
                     label: Text(
-                      'Buka Denah & Status Slot',
-                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                      'Kelola Titik Parkir',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFF114177),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 10),
                       elevation: 0,
                     ),
                   ),
-                ),
+                ],
               ],
             ),
-          );
-        }),
+          )
+        else
+          ..._filteredLocations.map((loc) {
+            final total = (loc['total'] as num?)?.toInt() ?? 0;
+            final occupied = (loc['occupied'] as num?)?.toInt() ?? 0;
+            final available = total > occupied ? total - occupied : 0;
+            final pct = total > 0 ? (occupied / total).clamp(0.0, 1.0) : 0.0;
+            final statusColor = (loc['statusColor'] as Color?) ?? const Color(0xFF17A18A);
+
+            return Container(
+              margin: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(loc['name'] ?? 'Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                            Text('${loc['city'] ?? ''} • ${loc['zone'] ?? ''}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                          ],
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                        decoration: BoxDecoration(
+                          color: statusColor.withValues(alpha: 0.12),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          loc['status'] ?? 'Normal',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+
+                  // Bar Visual Kapasitas
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(6),
+                    child: LinearProgressIndicator(
+                      value: pct,
+                      backgroundColor: const Color(0xFFE5E7EB),
+                      valueColor: AlwaysStoppedAnimation<Color>(statusColor),
+                      minHeight: 7,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Status Slot & Armada
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        '$occupied / $total Terisi',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF45474A)),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF17A18A).withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          'Sisa $available Slot Kosong',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A)),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Rincian Unit Terparkir
+                  Row(
+                    children: [
+                      Text('Armada: ', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                      Text('🚗 ${loc['mobil'] ?? 0} Mobil  ', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
+                      Text('🏍️ ${loc['motor'] ?? 0} Motor  ', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
+                      Text('⚡ ${loc['ev'] ?? 0} EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFE07A5F))),
+                    ],
+                  ),
+                  const SizedBox(height: 10),
+                  const Divider(height: 1, color: Color(0xFFF3F4F6)),
+                  const SizedBox(height: 10),
+
+                  // Tombol Denah Slot Lapangan (Tunggal & Tidak Redundan)
+                  SizedBox(
+                    width: double.infinity,
+                    height: 38,
+                    child: ElevatedButton.icon(
+                      onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const SlotManagementScreen())),
+                      icon: const Icon(Icons.grid_on_rounded, size: 14, color: Colors.white),
+                      label: Text(
+                        'Buka Denah & Status Slot',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF114177),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                        elevation: 0,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          }),
       ],
     );
   }
@@ -2286,8 +2320,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                       color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Center(
-                      child: Text('R', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    child: Center(
+                      child: Text(
+                        _adminName.isNotEmpty ? _adminName[0].toUpperCase() : 'O',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -2295,8 +2332,8 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Rina Wijaya', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                        Text('Admin Operasional Lapangan', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
+                        Text(_adminName, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(_adminEmail, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
                         const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -2372,6 +2409,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
                     onTap: () {
+                      SessionService.instance.clearSession();
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginScreen()),

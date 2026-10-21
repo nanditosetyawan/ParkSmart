@@ -20,12 +20,13 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
   @override
   void initState() {
     super.initState();
+    AdminFeedbackBackend.instance.initRealtimeSubscription();
     AdminFeedbackBackend.instance.fetchFeedbacks();
   }
 
-
   @override
   void dispose() {
+    AdminFeedbackBackend.instance.disposeRealtime();
     _searchController.dispose();
     super.dispose();
   }
@@ -236,13 +237,24 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
               ),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF0F172A)),
+              tooltip: 'Segarkan',
+              onPressed: () => AdminFeedbackBackend.instance.fetchFeedbacks(),
+            ),
+            const SizedBox(width: 8),
+          ],
           bottom: const PreferredSize(
             preferredSize: Size.fromHeight(1),
             child: Divider(height: 1, color: Color(0xFFE2E8F0)),
           ),
         ),
-        body: Column(
-          children: [
+        body: RefreshIndicator(
+          onRefresh: () => AdminFeedbackBackend.instance.fetchFeedbacks(),
+          color: const Color(0xFF0F172A),
+          child: Column(
+            children: [
             // Top Section: Stat Overview & Google-Style Search Bar
             Container(
               color: Colors.white,
@@ -254,13 +266,13 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
                     children: [
                       _buildStatCard(
                         'Skor Kepuasan',
-                        '4.8',
+                        AdminFeedbackBackend.instance.averageRatingString,
                         extra: const Icon(Icons.star_rounded, size: 16, color: Color(0xFFF59E0B)),
                       ),
                       const SizedBox(width: 10),
                       _buildStatCard(
                         'Total Ulasan',
-                        '${_feedbacks.length}',
+                        '${AdminFeedbackBackend.instance.totalAllReviews > _feedbacks.length ? AdminFeedbackBackend.instance.totalAllReviews : _feedbacks.length}',
                       ),
                       const SizedBox(width: 10),
                       _buildStatCard(
@@ -363,27 +375,49 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
             Expanded(
               child: _filteredFeedbacks.isEmpty
                   ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Container(
-                            padding: const EdgeInsets.all(16),
-                            decoration: const BoxDecoration(
-                              color: Color(0xFFF1F5F9),
-                              shape: BoxShape.circle,
+                      child: SingleChildScrollView(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: const BoxDecoration(
+                                color: Color(0xFFF1F5F9),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                _searchController.text.isNotEmpty
+                                    ? Icons.search_off_rounded
+                                    : Icons.rate_review_outlined,
+                                size: 36,
+                                color: const Color(0xFF94A3B8),
+                              ),
                             ),
-                            child: const Icon(Icons.rate_review_outlined, size: 36, color: Color(0xFF94A3B8)),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            'Tidak ada ulasan yang cocok',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w600,
-                              color: const Color(0xFF64748B),
+                            const SizedBox(height: 12),
+                            Text(
+                              _searchController.text.isNotEmpty
+                                  ? 'Tidak ada ulasan yang cocok'
+                                  : 'Belum Ada Ulasan Pengguna',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1E293B),
+                              ),
                             ),
-                          ),
-                        ],
+                            const SizedBox(height: 4),
+                            Text(
+                              _searchController.text.isNotEmpty
+                                  ? 'Coba gunakan kata kunci pencarian yang lain.'
+                                  : 'Ulasan bintang dan keluhan pelanggan akan masuk secara realtime.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                color: const Color(0xFF64748B),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     )
                   : ListView.separated(
@@ -397,6 +431,7 @@ class _FeedbackAdminScreenState extends State<FeedbackAdminScreen> {
                     ),
             ),
           ],
+        ),
         ),
       ),
     );

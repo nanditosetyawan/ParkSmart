@@ -16,56 +16,7 @@ class AdminActiveUsersBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultSessions = [
-    {
-      'id': 'SES-9901',
-      'plate': 'B 1234 SKP',
-      'user': 'Nanda Setiawan',
-      'phone': '+62 812-3456-7890',
-      'type': 'Mobil',
-      'vehicle': 'Honda CR-V Hitam',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / A-01',
-      'checkIn': '10:30 WIB',
-      'duration': '2j 15m',
-      'fee': 'Rp 13.000',
-      'isOverstay': false,
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9902',
-      'plate': 'B 5532 PLM',
-      'user': 'Rafi Maulana',
-      'phone': '+62 856-7890-1234',
-      'type': 'Mobil',
-      'vehicle': 'Toyota Fortuner Putih',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / C-01',
-      'checkIn': '08:00 WIB',
-      'duration': '4j 45m',
-      'fee': 'Rp 29.000',
-      'isOverstay': true,
-      'overstayDuration': '45 mnt',
-      'isEv': false,
-    },
-    {
-      'id': 'SES-9903',
-      'plate': 'B 1111 ION',
-      'user': 'Hana Aulia',
-      'phone': '+62 878-1122-3344',
-      'type': 'EV Charging',
-      'vehicle': 'Hyundai Ioniq 5',
-      'location': 'Central Park Mall',
-      'slot': 'B2 / B-01',
-      'checkIn': '11:00 WIB',
-      'duration': '1j 45m',
-      'fee': 'Rp 22.500',
-      'isOverstay': false,
-      'isEv': true,
-    },
-  ];
-
-  late List<Map<String, dynamic>> sessions = List.from(_defaultSessions);
+  late List<Map<String, dynamic>> sessions = [];
 
   /// Mengambil sesi parkir aktif & overstay dari Supabase
   Future<void> fetchActiveSessions() async {
@@ -94,8 +45,8 @@ class AdminActiveUsersBackend extends ChangeNotifier {
             'phone': '+62 812-xxxx-xxxx',
             'type': isEv ? 'EV Charging' : 'Mobil',
             'vehicle': row['vehicle_desc']?.toString() ?? 'Kendaraan',
-            'location': 'Central Park Mall',
-            'slot': 'Lantai B2',
+            'location': 'Lokasi Parkir',
+            'slot': 'Lantai Parkir',
             'checkIn': 'Baru saja',
             'duration': '1j 30m',
             'fee': 'Rp ${fee.toStringAsFixed(0)}',
@@ -104,13 +55,12 @@ class AdminActiveUsersBackend extends ChangeNotifier {
             'isEv': isEv,
           };
         }).toList();
+      } else {
+        sessions = [];
       }
     } catch (e) {
       debugPrint('[AdminActiveUsersBackend] fetchActiveSessions error: $e');
       _errorMessage = e.toString();
-      if (sessions.isEmpty) {
-        sessions = List.from(_defaultSessions);
-      }
     } finally {
       _isLoading = false;
       notifyListeners();

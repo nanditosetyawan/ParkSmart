@@ -19,12 +19,13 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
   @override
   void initState() {
     super.initState();
+    AdminCustomerProfilesBackend.instance.initRealtimeSubscription();
     AdminCustomerProfilesBackend.instance.fetchCustomers();
   }
 
-
   @override
   void dispose() {
+    AdminCustomerProfilesBackend.instance.disposeRealtime();
     _searchController.dispose();
     super.dispose();
   }
@@ -545,9 +546,20 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
               Text('Daftar Akun Pengguna & Informasi Kendaraan', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
             ],
           ),
+          actions: [
+            IconButton(
+              icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF1A1A18)),
+              tooltip: 'Segarkan',
+              onPressed: () => AdminCustomerProfilesBackend.instance.fetchCustomers(),
+            ),
+            const SizedBox(width: 8),
+          ],
         ),
-        body: Column(
-          children: [
+        body: RefreshIndicator(
+          onRefresh: () => AdminCustomerProfilesBackend.instance.fetchCustomers(),
+          color: const Color(0xFF114177),
+          child: Column(
+            children: [
             // Search Bar Bergaya Google yang Simpel & Elegan
             Container(
               color: Colors.white,
@@ -612,9 +624,32 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF94A3B8)),
+                          Icon(
+                            _searchController.text.isNotEmpty ? Icons.search_off_rounded : Icons.people_outline_rounded,
+                            size: 48,
+                            color: const Color(0xFF94A3B8),
+                          ),
                           const SizedBox(height: 12),
-                          Text('Tidak ada pengguna yang cocok', style: GoogleFonts.plusJakartaSans(fontSize: 14, color: const Color(0xFF64748B))),
+                          Text(
+                            _searchController.text.isNotEmpty
+                                ? 'Tidak ada pengguna yang cocok'
+                                : 'Belum Ada Pengguna Terdaftar',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF1A1A18),
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            _searchController.text.isNotEmpty
+                                ? 'Coba periksa kembali ejaan atau gunakan kata kunci lain.'
+                                : 'Pengguna baru yang mendaftar akan otomatis muncul secara realtime.',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              color: const Color(0xFF64748B),
+                            ),
+                          ),
                         ],
                       ),
                     )
@@ -783,6 +818,7 @@ class _AdminCustomerProfilesScreenState extends State<AdminCustomerProfilesScree
                     ),
             ),
           ],
+        ),
         ),
       ),
     );

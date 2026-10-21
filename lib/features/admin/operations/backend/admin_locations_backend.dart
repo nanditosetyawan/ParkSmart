@@ -16,85 +16,7 @@ class AdminLocationsBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultLocations = [
-    {
-      'id': 'LOC-001',
-      'name': 'Central Park Mall',
-      'city': 'Jakarta Barat',
-      'address': 'Jl. Letjen S. Parman No. 28, Tanjung Duren',
-      'floors': 'Basement (B1 - B3)',
-      'capacity': 300,
-      'occupied': 240,
-      'carSlots': 220,
-      'motorSlots': 60,
-      'evSlots': 20,
-      'hourlyRate': 5000,
-      'status': 'Aktif Normal',
-      'statusColor': const Color(0xFF17A18A),
-    },
-    {
-      'id': 'LOC-002',
-      'name': 'Grand Indonesia',
-      'city': 'Jakarta Pusat',
-      'address': 'Jl. M.H. Thamrin No. 1, Menteng',
-      'floors': 'East & West Mall (B1 - B2)',
-      'capacity': 450,
-      'occupied': 415,
-      'carSlots': 350,
-      'motorSlots': 80,
-      'evSlots': 20,
-      'hourlyRate': 6000,
-      'status': 'Padat',
-      'statusColor': const Color(0xFFE07A5F),
-    },
-    {
-      'id': 'LOC-003',
-      'name': 'Pacific Place SCBD',
-      'city': 'Jakarta Selatan',
-      'address': 'Jl. Jend. Sudirman Kav. 52-53, SCBD',
-      'floors': 'Basement P1 - P3',
-      'capacity': 200,
-      'occupied': 200,
-      'carSlots': 160,
-      'motorSlots': 25,
-      'evSlots': 15,
-      'hourlyRate': 8000,
-      'status': 'Penuh',
-      'statusColor': const Color(0xFFD94B4B),
-    },
-    {
-      'id': 'LOC-004',
-      'name': 'Malioboro Mall',
-      'city': 'Yogyakarta',
-      'address': 'Jl. Malioboro No. 52-58, Sosromenduran',
-      'floors': 'Gedung Parkir Terpadu L1 - L3',
-      'capacity': 150,
-      'occupied': 95,
-      'carSlots': 100,
-      'motorSlots': 40,
-      'evSlots': 10,
-      'hourlyRate': 3000,
-      'status': 'Aktif Normal',
-      'statusColor': const Color(0xFF17A18A),
-    },
-    {
-      'id': 'LOC-005',
-      'name': 'Tunjungan Plaza 6',
-      'city': 'Surabaya',
-      'address': 'Jl. Embong Malang No. 21-31, Tegalsari',
-      'floors': 'Basement B1 - B4',
-      'capacity': 350,
-      'occupied': 120,
-      'carSlots': 260,
-      'motorSlots': 70,
-      'evSlots': 20,
-      'hourlyRate': 4000,
-      'status': 'Aktif Normal',
-      'statusColor': const Color(0xFF17A18A),
-    },
-  ];
-
-  late List<Map<String, dynamic>> locations = List.from(_defaultLocations);
+  late List<Map<String, dynamic>> locations = [];
 
   /// Memuat daftar lokasi parkir dari Supabase
   Future<void> fetchLocations() async {
@@ -126,7 +48,7 @@ class AdminLocationsBackend extends ChangeNotifier {
           }
 
           final totalCap = (row['total_capacity'] as num?)?.toInt() ?? 100;
-          final occupied = (totalCap * 0.75).round(); // estimasi okupansi bila belum ada realtime sensor
+          final occupied = 0; // Sesuai data aktual
 
           return {
             'id': row['id']?.toString() ?? 'LOC-000',
@@ -144,13 +66,12 @@ class AdminLocationsBackend extends ChangeNotifier {
             'statusColor': statusCol,
           };
         }).toList();
+      } else {
+        locations = [];
       }
     } catch (e) {
       debugPrint('[AdminLocationsBackend] fetchLocations error: $e');
       _errorMessage = e.toString();
-      if (locations.isEmpty) {
-        locations = List.from(_defaultLocations);
-      }
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -28,13 +28,13 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
   // 📊 State 4 Kuartal (Q1, Q2, Q3, Q4)
   int availableQuartersCount = 4;
   int latestQuarterIndex = 3;
-  List<double> quarterlyRawAmounts = [245000000, 210000000, 280000000, 315500000];
-  List<double> quarterlyChartData = [0.55, 0.38, 0.72, 0.95];
+  List<double> quarterlyRawAmounts = [0.0, 0.0, 0.0, 0.0];
+  List<double> quarterlyChartData = [0.0, 0.0, 0.0, 0.0];
   List<String> quarterlyValues = [
-    'Rp 245.000.000',
-    'Rp 210.000.000',
-    'Rp 280.000.000',
-    'Rp 315.500.000',
+    'Rp 0',
+    'Rp 0',
+    'Rp 0',
+    'Rp 0',
   ];
   List<String> quarterlyDates = [
     'Kuartal 1 (Jan - Mar 2026)',
@@ -43,7 +43,7 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
     'Kuartal 4 (Okt - Des 2026)',
   ];
   List<String> quarterlyXLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
-  List<double> quarterlyGrowths = [0.0, -14.3, 33.3, 12.7];
+  List<double> quarterlyGrowths = [0.0, 0.0, 0.0, 0.0];
 
   String get totalMonthlyOmzet => quarterlyValues[latestQuarterIndex.clamp(0, quarterlyValues.length - 1)];
   String get monthlyGrowth =>
@@ -52,59 +52,19 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
   List<double> get mountainChartData => quarterlyChartData;
   List<String> get mountainXLabels => quarterlyXLabels;
 
-  int successTrxCount = 842;
-  String successTrxVolume = 'Rp 28.450.000';
+  int successTrxCount = 0;
+  String successTrxVolume = 'Rp 0';
 
-  String totalWalletDeposit = 'Rp 54.200.000';
-  int activeWalletUsers = 320;
+  String totalWalletDeposit = 'Rp 0';
+  int activeWalletUsers = 0;
 
-  List<Map<String, dynamic>> recentTransactions = [
-    {
-      'icon': Icons.qr_code_2,
-      'iconBg': const Color(0xFFD1F2EB),
-      'iconColor': const Color(0xFF17A18A),
-      'title': 'Pembayaran QRIS Gerbang Masuk',
-      'subtitle': 'Central Park Mall · Sesi #TRX-9482 (B 1234 SKP)',
-      'amount': '+Rp 15.000',
-      'isIncome': true,
-      'time': '2 mnt lalu',
-    },
-    {
-      'icon': Icons.account_balance_wallet,
-      'iconBg': const Color(0xFFFEF3C7),
-      'iconColor': const Color(0xFFD97706),
-      'title': 'Injeksi Saldo Dompet Admin',
-      'subtitle': 'Top-up oleh admin ke akun Budi Santoso',
-      'amount': '+Rp 250.000',
-      'isIncome': true,
-      'time': '18 mnt lalu',
-    },
-    {
-      'icon': Icons.credit_card,
-      'iconBg': const Color(0xFFEBF2FA),
-      'iconColor': const Color(0xFF114177),
-      'title': 'Settlement Midtrans Auto-Payout',
-      'subtitle': 'Rekening Operasional Bank Mandiri · Batch #ST-881',
-      'amount': '+Rp 4.250.000',
-      'isIncome': true,
-      'time': '35 mnt lalu',
-    },
-    {
-      'icon': Icons.replay,
-      'iconBg': const Color(0xFFFDE8E4),
-      'iconColor': const Color(0xFFD94B4B),
-      'title': 'Refund Pembatalan Parkir Tiket',
-      'subtitle': 'Malioboro Mall · #BK-3021 (Dibatalkan pengguna)',
-      'amount': '-Rp 20.000',
-      'isIncome': false,
-      'time': '1 jam lalu',
-    },
-  ];
+  List<Map<String, dynamic>> recentTransactions = [];
 
   /// Mengambil data metrik finansial dari Supabase
   Future<void> fetchFinanceDashboard() async {
     _isLoading = true;
     _errorMessage = null;
+    recentTransactions = [];
     notifyListeners();
 
     try {
@@ -268,10 +228,16 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
         }
         totalWalletDeposit = 'Rp ${_formatCurrency(totalWallet.round())}';
         activeWalletUsers = usersRes.length;
+      } else {
+        totalWalletDeposit = 'Rp 0';
+        activeWalletUsers = 0;
       }
     } catch (e) {
       debugPrint('[AdminFinanceDashboardBackend] fetchFinanceDashboard error: $e');
       _errorMessage = e.toString();
+      recentTransactions = [];
+      successTrxCount = 0;
+      successTrxVolume = 'Rp 0';
     } finally {
       _isLoading = false;
       notifyListeners();

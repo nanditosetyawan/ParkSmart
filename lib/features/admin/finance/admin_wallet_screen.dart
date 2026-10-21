@@ -495,7 +495,10 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text('Rp 28.450.000', style: GoogleFonts.plusJakartaSans(fontSize: 16.5, fontWeight: FontWeight.w800, color: const Color(0xFF114177))),
+                        child: Text(
+                          _formatRupiah(AdminWalletBackend.instance.totalKasBalance),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 16.5, fontWeight: FontWeight.w800, color: const Color(0xFF114177)),
+                        ),
                       ),
                       const SizedBox(height: 2),
                       Text('Kas cadangan operasional', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF17A18A)), overflow: TextOverflow.ellipsis),
@@ -545,10 +548,17 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                       FittedBox(
                         fit: BoxFit.scaleDown,
                         alignment: Alignment.centerLeft,
-                        child: Text('Rp 18.500.000', style: GoogleFonts.plusJakartaSans(fontSize: 16.5, fontWeight: FontWeight.w800, color: const Color(0xFFD97706))),
+                        child: Text(
+                          _formatRupiah(AdminWalletBackend.instance.totalDepositBalance),
+                          style: GoogleFonts.plusJakartaSans(fontSize: 16.5, fontWeight: FontWeight.w800, color: const Color(0xFFD97706)),
+                        ),
                       ),
                       const SizedBox(height: 2),
-                      Text('1.240 dompet aktif pengguna', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+                      Text(
+                        '${AdminWalletBackend.instance.activeUsersCount} dompet aktif pengguna',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)),
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ],
                   ),
                 ),
@@ -726,53 +736,121 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                       borderRadius: BorderRadius.circular(14),
                       border: Border.all(color: const Color(0xFFE5E7EB)),
                     ),
-                    child: Row(
+                    child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        CircleAvatar(
-                          radius: 20,
-                          backgroundColor: const Color(0xFF114177).withValues(alpha: 0.12),
-                          child: Text(_selectedUser!['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                        // Row 1: ID panjang di atas dengan tombol ganti user di kanan
+                        Row(
+                          children: [
+                            Expanded(
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF114177).withValues(alpha: 0.08),
+                                  borderRadius: BorderRadius.circular(6),
+                                  border: Border.all(color: const Color(0xFF114177).withValues(alpha: 0.2)),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.fingerprint, size: 14, color: Color(0xFF114177)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        _selectedUser!['id'].toString().toUpperCase(),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 10.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF114177),
+                                          letterSpacing: 0.3,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            IconButton(
+                              tooltip: 'Ganti Pengguna',
+                              icon: const Icon(Icons.swap_vert_circle_outlined, color: Color(0xFF114177), size: 24),
+                              onPressed: _openUserSearchModal,
+                              padding: EdgeInsets.zero,
+                              constraints: const BoxConstraints(),
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Row(
+                        const SizedBox(height: 12),
+
+                        // Row 2: Avatar Circle di kiri dan Nama serta data profil di sampingnya
+                        Row(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            CircleAvatar(
+                              radius: 20,
+                              backgroundColor: const Color(0xFF114177).withValues(alpha: 0.12),
+                              child: Text(
+                                _selectedUser!['avatar'],
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 14,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFF114177),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Flexible(
-                                    child: Text(_selectedUser!['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13.5, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                  Text(
+                                    _selectedUser!['name'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.bold,
+                                      color: const Color(0xFF1A1A18),
+                                    ),
                                   ),
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                                    decoration: BoxDecoration(color: const Color(0xFF114177), borderRadius: BorderRadius.circular(5)),
-                                    child: Text(_selectedUser!['id'].toString().toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 9.5, fontWeight: FontWeight.bold, color: Colors.white)),
+                                  const SizedBox(height: 3),
+                                  Text(
+                                    _selectedUser!['email'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11.5,
+                                      color: const Color(0xFF45474A),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    _selectedUser!['phone'],
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      color: const Color(0xFF76777B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  Row(
+                                    children: [
+                                      Text(
+                                        'Saldo Saat Ini: ',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11.5,
+                                          color: const Color(0xFF76777B),
+                                        ),
+                                      ),
+                                      Text(
+                                        _formatRupiah(_selectedUser!['balance']),
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12.5,
+                                          fontWeight: FontWeight.bold,
+                                          color: const Color(0xFF17A18A),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ],
                               ),
-                              const SizedBox(height: 4),
-                              // Email on separate line
-                              Text(_selectedUser!['email'], style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF45474A))),
-                              const SizedBox(height: 2),
-                              // Phone on separate line
-                              Text(_selectedUser!['phone'], style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
-                              const SizedBox(height: 6),
-                              // Saldo Saat Ini on separate line
-                              Row(
-                                children: [
-                                  Text('Saldo Saat Ini: ', style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF76777B))),
-                                  Text(_formatRupiah(_selectedUser!['balance']), style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
-                                ],
-                              ),
-                            ],
-                          ),
-                        ),
-                        IconButton(
-                          tooltip: 'Ganti Pengguna',
-                          icon: const Icon(Icons.swap_vert_circle_outlined, color: Color(0xFF114177), size: 24),
-                          onPressed: _openUserSearchModal,
+                            ),
+                          ],
                         ),
                       ],
                     ),
@@ -912,14 +990,49 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
           ),
           const SizedBox(height: 12),
 
-          ..._recentInjections.map((inj) => Container(
-            margin: const EdgeInsets.only(bottom: 10),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(14),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-            ),
+          if (_recentInjections.isEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
+              child: Center(
+                child: Column(
+                  children: [
+                    Container(
+                      width: 44,
+                      height: 44,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF3F4F6),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.history_toggle_off, size: 24, color: Color(0xFF76777B)),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Belum Ada Riwayat Injeksi',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Riwayat injeksi manual admin akan tercatat di sini',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                    ),
+                  ],
+                ),
+              ),
+            )
+          else
+            ..._recentInjections.map((inj) => Container(
+              margin: const EdgeInsets.only(bottom: 10),
+              padding: const EdgeInsets.all(14),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+              ),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [

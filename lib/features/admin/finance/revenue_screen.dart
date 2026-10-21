@@ -100,8 +100,24 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
                 ),
               ),
               // Tanpa tombol 'Bulan Ini' di kanan atas sesuai instruksi
-              actions: const [
-                SizedBox(width: 8),
+              actions: [
+                IconButton(
+                  onPressed: () {
+                    RevenueBackend.instance.fetchRevenueData();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Memperbarui data pendapatan...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                        backgroundColor: const Color(0xFF114177),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF114177)),
+                  tooltip: 'Perbarui Data',
+                ),
+                const SizedBox(width: 4),
               ],
               bottom: TabBar(
                 controller: _tabController,
@@ -145,59 +161,62 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
         ? 'Kuartal 1 (Basis)'
         : '${growth >= 0 ? '+' : ''}${growth.toStringAsFixed(1)}% vs Q$activeIdx';
 
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        // Kartu Utama: Pendapatan Per Kuartal & Chart Gunung
-        Container(
-          padding: const EdgeInsets.all(18),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: const Color(0xFFE5E7EB)),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.03),
-                blurRadius: 10,
-                offset: const Offset(0, 4),
-              ),
-            ],
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Container(
-                    width: 40,
-                    height: 40,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF114177).withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+    return RefreshIndicator(
+      onRefresh: () => RevenueBackend.instance.fetchRevenueData(),
+      color: const Color(0xFF114177),
+      child: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
+          // Kartu Utama: Pendapatan Per Kuartal & Chart Gunung
+          Container(
+            padding: const EdgeInsets.all(18),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFFE5E7EB)),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.03),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF114177).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      child: const Icon(Icons.pie_chart_rounded, size: 22, color: Color(0xFF114177)),
                     ),
-                    child: const Icon(Icons.pie_chart_rounded, size: 22, color: Color(0xFF114177)),
-                  ),
-                  const SizedBox(width: 12),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'PENDAPATAN PER KUARTAL',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF76777B),
-                          letterSpacing: 0.6,
+                    const SizedBox(width: 12),
+                    Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'PENDAPATAN PER KUARTAL',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF76777B),
+                            letterSpacing: 0.6,
+                          ),
                         ),
-                      ),
-                      Text(
-                        'Tren Kinerja 4 Kuartal (2026)',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF9CA3AF)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+                        Text(
+                          'Tren Kinerja Kuartal (${RevenueBackend.instance.dynamicYear})',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF9CA3AF)),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               const SizedBox(height: 16),
 
               // Nilai Nominal Besar Dinamis
@@ -301,39 +320,27 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
         ),
         const SizedBox(height: 10),
 
-        _buildMonthlyRecapCard(
-          'Kuartal 4 (Okt - Des 2026)',
-          _quarterlyValues[3],
-          '${_quarterlyGrowths[3] >= 0 ? '+' : ''}${_quarterlyGrowths[3].toStringAsFixed(1)}%',
-          '${RevenueBackend.instance.quarterlyTrxCounts[3]} transaksi',
-          const Color(0xFF114177),
-          isCurrent: true,
-        ),
-        _buildMonthlyRecapCard(
-          'Kuartal 3 (Jul - Sep 2026)',
-          _quarterlyValues[2],
-          '${_quarterlyGrowths[2] >= 0 ? '+' : ''}${_quarterlyGrowths[2].toStringAsFixed(1)}%',
-          '${RevenueBackend.instance.quarterlyTrxCounts[2]} transaksi',
-          const Color(0xFF45474A),
-        ),
-        _buildMonthlyRecapCard(
-          'Kuartal 2 (Apr - Jun 2026)',
-          _quarterlyValues[1],
-          '${_quarterlyGrowths[1] >= 0 ? '+' : ''}${_quarterlyGrowths[1].toStringAsFixed(1)}%',
-          '${RevenueBackend.instance.quarterlyTrxCounts[1]} transaksi',
-          const Color(0xFF45474A),
-          isDrop: _quarterlyGrowths[1] < 0,
-        ),
-        _buildMonthlyRecapCard(
-          'Kuartal 1 (Jan - Mar 2026)',
-          _quarterlyValues[0],
-          'Basis Data',
-          '${RevenueBackend.instance.quarterlyTrxCounts[0]} transaksi',
-          const Color(0xFF45474A),
-        ),
+        // Rincian Riwayat Pendapatan Kuartalan Dinamis
+        ...RevenueBackend.instance.displayedQuarterIndices.map((qIdx) {
+          final isCurrent = qIdx == RevenueBackend.instance.currentQuarterIndex;
+          final growthVal = _quarterlyGrowths[qIdx];
+          final growthLabel = qIdx == 0
+              ? 'Basis Data'
+              : '${growthVal >= 0 ? '+' : ''}${growthVal.toStringAsFixed(1)}%';
+
+          return _buildMonthlyRecapCard(
+            _quarterlyDates[qIdx],
+            _quarterlyValues[qIdx],
+            growthLabel,
+            '${RevenueBackend.instance.quarterlyTrxCounts[qIdx]} transaksi',
+            isCurrent ? const Color(0xFF114177) : const Color(0xFF45474A),
+            isCurrent: isCurrent,
+            isDrop: growthVal < 0,
+          );
+        }),
         const SizedBox(height: 18),
 
-        // Kontribusi Omzet per Lokasi (Default 4 Lokasi)
+        // Kontribusi Omzet per Lokasi (Terkoneksi Dinamis ke Database)
         Container(
           padding: const EdgeInsets.all(18),
           decoration: BoxDecoration(
@@ -354,7 +361,12 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text('Kontribusi Omzet per Lokasi', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                      Text('4 Lokasi Teratas • Real-time', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                      Text(
+                        RevenueBackend.instance.top4Locations.isNotEmpty
+                            ? '${RevenueBackend.instance.top4Locations.length} Lokasi Teratas • Real-time'
+                            : '0 Lokasi • Real-time',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                      ),
                     ],
                   ),
                   TextButton(
@@ -376,21 +388,58 @@ class _RevenueScreenState extends State<RevenueScreen> with SingleTickerProvider
                 ],
               ),
               const SizedBox(height: 14),
-              _buildLocationMiniRow('Central Park Mall', 'Jakarta Barat', 'Rp 156.400.000', 0.85),
-              const SizedBox(height: 10),
-              _buildLocationMiniRow('Grand Indonesia', 'Jakarta Pusat', 'Rp 98.250.000', 0.72),
-              const SizedBox(height: 10),
-              _buildLocationMiniRow('Malioboro Mall', 'Yogyakarta', 'Rp 34.600.000', 0.40),
-              const SizedBox(height: 10),
-              _buildLocationMiniRow('Galaxy Mall Surabaya', 'Surabaya', 'Rp 23.200.000', 0.25),
-
+              if (RevenueBackend.instance.top4Locations.isEmpty) ...[
+                Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 20),
+                  child: Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 44,
+                          height: 44,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3F4F6),
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          child: const Icon(Icons.location_city_outlined, size: 22, color: Color(0xFF76777B)),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Belum Ada Kontribusi Lokasi',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          'Belum ada riwayat omzet lokasi parkir tercatat di database',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ] else ...[
+                ...RevenueBackend.instance.top4Locations.map((loc) {
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 10),
+                    child: _buildLocationMiniRow(
+                      loc['name']?.toString() ?? 'Lokasi',
+                      loc['city']?.toString() ?? '-',
+                      loc['omzet']?.toString() ?? 'Rp 0',
+                      (loc['ratio'] as num?)?.toDouble() ?? 0.0,
+                    ),
+                  );
+                }),
+              ],
             ],
           ),
         ),
         const SizedBox(height: 14),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLocationMiniRow(String name, String city, String amount, double ratio) {
     return Column(

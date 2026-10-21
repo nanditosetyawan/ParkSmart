@@ -56,16 +56,8 @@ ON CONFLICT (key) DO UPDATE SET
     description = EXCLUDED.description,
     updated_by = EXCLUDED.updated_by;
 
--- 4. SEED DATA AUDIT LOG LOGIN ADMIN (AUDIT TRAIL SUPER ADMIN)
-INSERT INTO public.admin_audit_logs (
-    id, admin_name, admin_email, role, action, device_model, ip_address, location, isp, status, is_current_session
-) VALUES
-(
-    'b4a2c453-f0c1-4502-ad87-ec6b2d84a419',
-    'Gibran Widodo', 'superadmin@parksmart.id', 'Super Admin', 'Login berhasil (Sesi Aktif)',
-    'Web Browser (Chrome/Edge)', '140.213.160.202', 'Yogyakarta, Indonesia', 'PT Telkom Indonesia', 'Berhasil', false
-)
-ON CONFLICT (id) DO NOTHING;
+-- 4. TABEL AUDIT LOG LOGIN ADMIN (AUDIT TRAIL SUPER ADMIN)
+-- Dikosongkan (0 baris) agar hanya mencatat log riil saat admin login secara langsung dari perangkat aslinya.
 
 -- ============================================================================
 -- CATATAN STATUS TABEL OPERASIONAL LAINNYA:

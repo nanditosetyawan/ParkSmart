@@ -11,6 +11,7 @@ class CsNotificationItem {
   final String time;
   bool isRead;
   final String? action;
+  final String notificationType;
 
   CsNotificationItem({
     required this.id,
@@ -22,12 +23,13 @@ class CsNotificationItem {
     required this.time,
     this.isRead = false,
     this.action,
+    this.notificationType = 'system',
   });
 }
 
 /// Backend khusus untuk AdminNotificationsScreen (admin_notifications_screen.dart)
 /// Mengelola pusat notifikasi peringatan operasional, verifikasi identitas, dan feedback customer
-/// Terkoneksi ke `public.system_notifications` di Supabase
+/// Terkoneksi secara realtime ke tabel `public.system_notifications` di Supabase
 class AdminNotificationsBackend extends ChangeNotifier {
   AdminNotificationsBackend._();
   static final AdminNotificationsBackend instance = AdminNotificationsBackend._();
@@ -40,76 +42,62 @@ class AdminNotificationsBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<CsNotificationItem> _defaultNotifications = [
-    CsNotificationItem(
-      id: 'NOTIF-001',
-      icon: Icons.warning_amber,
-      iconColor: const Color(0xFFD94B4B),
-      bgColor: const Color(0xFFFDE8E4),
-      title: '3 Kendaraan Overstay Terdeteksi',
-      body: 'Central Park Mall · 3 kendaraan melebihi batas waktu parkir yang dibayarkan.',
-      time: '2 menit lalu',
-      isRead: false,
-      action: 'Cek Overstay',
-    ),
-    CsNotificationItem(
-      id: 'NOTIF-002',
-      icon: Icons.verified_user,
-      iconColor: const Color(0xFFE07A5F),
-      bgColor: const Color(0xFFFDECE7),
-      title: '5 Verifikasi KTP Baru',
-      body: 'Ada 5 permintaan identitas pengguna baru yang menunggu tinjauan admin.',
-      time: '15 menit lalu',
-      isRead: false,
-      action: 'Tinjau KTP',
-    ),
-    CsNotificationItem(
-      id: 'NOTIF-003',
-      icon: Icons.account_balance_wallet,
-      iconColor: const Color(0xFF114177),
-      bgColor: const Color(0xFFE3EEFF),
-      title: 'Injeksi Saldo Dompet Sukses',
-      body: 'Admin berhasil menginjeksi saldo Rp 500.000 ke dompet pengguna Nanda Setiawan.',
-      time: '1 jam lalu',
-      isRead: true,
-      action: 'Cek Dompet',
-    ),
-    CsNotificationItem(
-      id: 'NOTIF-004',
-      icon: Icons.feedback,
-      iconColor: const Color(0xFF17A18A),
-      bgColor: const Color(0xFFD1F2EB),
-      title: 'Feedback Baru dari Pengguna',
-      body: 'Pengguna atas nama Rafi M memberikan apresiasi terhadap kecepatan barcode check-out.',
-      time: '2 jam lalu',
-      isRead: true,
-      action: 'Lihat Ulasan',
-    ),
-    CsNotificationItem(
-      id: 'NOTIF-005',
-      icon: Icons.local_parking,
-      iconColor: const Color(0xFF45474A),
-      bgColor: const Color(0xFFF1EEE7),
-      title: 'Fasilitas Baru Aktif',
-      body: 'Lokasi parkir Senayan City Jakarta Selatan telah terhubung ke jaringan ParkSmart.',
-      time: '4 jam lalu',
-      isRead: true,
-    ),
-    CsNotificationItem(
-      id: 'NOTIF-006',
-      icon: Icons.payments,
-      iconColor: const Color(0xFF17A18A),
-      bgColor: const Color(0xFFD1F2EB),
-      title: 'Pencapaian Omzet Harian',
-      body: 'Total pendapatan parkir hari ini mencapai Rp 4.2 Jt (12% melebihi estimasi target).',
-      time: '6 jam lalu',
-      isRead: true,
-    ),
-  ];
+  List<CsNotificationItem> allNotifications = [];
 
-  late List<CsNotificationItem> allNotifications = List.from(_defaultNotifications);
+  RealtimeChannel? _realtimeChannel;
 
-  /// Mengambil notifikasi CS dari Supabase
+  /// Memulai langganan realtime Supabase untuk perubahan di tabel system_notifications
+  void initRealtimeSubscription() {
+    if (_realtimeChannel != null) return;
+    try {
+      _realtimeChannel = _client.channel('public:admin_cs_notifications')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'system_notifications',
+          callback: (payload) {
+            debugPrint('[AdminNotificationsBackend] Realtime update dari system_notifications');
+            fetchNotifications();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('[AdminNotificationsBackend] initRealtimeSubscription error: $e');
+    }
+  }
+
+  /// Melepas langganan realtime
+  void disposeRealtime() {
+    _realtimeChannel?.unsubscribe();
+    _realtimeChannel = null;
+  }
+
+  String _formatTimeAgo(dynamic dateRaw) {
+    if (dateRaw == null) return 'Baru saja';
+    try {
+      final dt = DateTime.parse(dateRaw.toString()).toLocal();
+      final diff = DateTime.now().difference(dt);
+
+      if (diff.inSeconds < 60) {
+        return 'Baru saja';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} menit lalu';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} jam lalu';
+      } else if (diff.inDays == 1) {
+        return 'Kemarin';
+      } else if (diff.inDays < 7) {
+        return '${diff.inDays} hari lalu';
+      } else {
+        const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+        return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+      }
+    } catch (_) {
+      return 'Baru saja';
+    }
+  }
+
+  /// Mengambil notifikasi CS asli dari Supabase
   Future<void> fetchNotifications() async {
     _isLoading = true;
     _errorMessage = null;
@@ -118,27 +106,45 @@ class AdminNotificationsBackend extends ChangeNotifier {
     try {
       final res = await _client
           .from('system_notifications')
-          .select('id, title, message, notification_type, is_read, created_at')
-          .inFilter('target_role', ['all', 'cs', 'admin'])
+          .select('id, title, message, notification_type, action_type, is_read, created_at, target_role')
           .order('created_at', ascending: false);
 
       if (res.isNotEmpty) {
-        allNotifications = res.map<CsNotificationItem>((row) {
-          final isRead = row['is_read'] == true;
-          final nType = row['notification_type']?.toString().toLowerCase();
+        final filteredRows = res.where((row) {
+          final targetRole = row['target_role']?.toString().toLowerCase();
+          if (targetRole == null || targetRole.isEmpty) return true;
+          return targetRole == 'all' || targetRole == 'cs' || targetRole == 'admin' || targetRole == 'super_admin';
+        }).toList();
 
-          IconData icon = Icons.notifications_none;
+        allNotifications = filteredRows.map<CsNotificationItem>((row) {
+          final isRead = row['is_read'] == true;
+          final nType = row['notification_type']?.toString().toLowerCase() ?? 'system';
+          final action = row['action_type']?.toString();
+
+          IconData icon = Icons.notifications_none_rounded;
           Color iconColor = const Color(0xFF114177);
           Color bgColor = const Color(0xFFE3EEFF);
 
-          if (nType == 'warning' || nType == 'overstay') {
-            icon = Icons.warning_amber;
+          if (nType == 'warning' || nType == 'overstay' || nType == 'alert') {
+            icon = Icons.warning_amber_rounded;
             iconColor = const Color(0xFFD94B4B);
             bgColor = const Color(0xFFFDE8E4);
-          } else if (nType == 'feedback') {
-            icon = Icons.feedback;
+          } else if (nType == 'kyc' || nType == 'verification') {
+            icon = Icons.verified_user_rounded;
+            iconColor = const Color(0xFFE07A5F);
+            bgColor = const Color(0xFFFDECE7);
+          } else if (nType == 'wallet' || nType == 'finance' || nType == 'injection' || nType == 'payment') {
+            icon = Icons.account_balance_wallet_rounded;
+            iconColor = const Color(0xFF114177);
+            bgColor = const Color(0xFFE3EEFF);
+          } else if (nType == 'feedback' || nType == 'review') {
+            icon = Icons.rate_review_rounded;
             iconColor = const Color(0xFF17A18A);
             bgColor = const Color(0xFFD1F2EB);
+          } else {
+            icon = Icons.local_parking_rounded;
+            iconColor = const Color(0xFF45474A);
+            bgColor = const Color(0xFFF1EEE7);
           }
 
           return CsNotificationItem(
@@ -148,17 +154,19 @@ class AdminNotificationsBackend extends ChangeNotifier {
             bgColor: bgColor,
             title: row['title']?.toString() ?? 'Pemberitahuan Sistem',
             body: row['message']?.toString() ?? '-',
-            time: 'Baru saja',
+            time: _formatTimeAgo(row['created_at']),
             isRead: isRead,
+            action: (action != null && action.isNotEmpty) ? action : null,
+            notificationType: nType,
           );
         }).toList();
+      } else {
+        allNotifications = [];
       }
     } catch (e) {
       debugPrint('[AdminNotificationsBackend] fetchNotifications error: $e');
       _errorMessage = e.toString();
-      if (allNotifications.isEmpty) {
-        allNotifications = List.from(_defaultNotifications);
-      }
+      allNotifications = [];
     } finally {
       _isLoading = false;
       notifyListeners();

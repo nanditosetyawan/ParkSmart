@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../../core/utils/ticket_status_helper.dart';
 import 'backend/admin_bookings_backend.dart';
+import 'backend/admin_operations_dashboard_backend.dart';
 
 class AdminBookingsScreen extends StatefulWidget {
   const AdminBookingsScreen({super.key});
@@ -17,7 +18,14 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
   String _selectedLocationFilter = 'Semua';
   String _selectedVehicleFilter = 'Semua';
 
-  final List<String> _locationFilters = ['Semua', 'Central Park Mall', 'Grand Indonesia', 'Pacific Place SCBD', 'Malioboro Mall', 'Tunjungan Plaza 6', 'Senayan City'];
+  List<String> get _locationFilters {
+    final list = AdminOperationsDashboardBackend.instance.locations
+        .map((l) => (l['name'] as String?) ?? '')
+        .where((n) => n.isNotEmpty)
+        .toSet()
+        .toList();
+    return ['Semua', ...list];
+  }
   final List<String> _vehicleFilters = ['Semua', 'Mobil', 'Motor', 'EV'];
 
   List<Map<String, dynamic>> get _bookings => AdminBookingsBackend.instance.bookings;

@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/parking_image_service.dart';
 
 /// Backend khusus untuk ManageParkingScreen (manage_parking_screen.dart)
-/// Mengatur denah lantai, tarif dasar, tarif EV, dan fasilitas per lokasi
+/// Mengatur denah lantai, tarif dasar, tarif EV, master lokasi, dan foto Supabase Storage
 /// Terkoneksi ke `public.parking_locations` dan `public.parking_slots` di Supabase
 class ManageParkingBackend extends ChangeNotifier {
   ManageParkingBackend._();
@@ -16,61 +17,9 @@ class ManageParkingBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultLocations = [
-    {
-      'id': 'loc_1',
-      'name': 'Central Park Mall',
-      'typeLabel': 'Mall / Pusat Perbelanjaan',
-      'city': 'Jakarta Barat',
-      'address': 'Jl. Letjen S. Parman No.28, Tanjung Duren',
-      'latitude': -6.1754,
-      'longitude': 106.7933,
-      'totalSlots': 300,
-      'occupiedSlots': 240,
-      'status': 'Aktif',
-      'floors': ['Lantai B1', 'Lantai B2', 'Lantai B3'],
-      'operatingHours': '06:00 - 23:00',
-      'baseRate': 5000,
-      'evRate': 7500,
-      'motorRate': 2000,
-      'isEvReady': true,
-      'description': 'Gedung parkir multi-lantai dengan zona khusus EV charging di Lantai B2 dan sensor terpadu.',
-      'checkinRadius': 100,
-      'images': [
-        'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1573348722427-f1d6819fdf98?w=600&auto=format&fit=crop&q=80',
-        'https://images.unsplash.com/photo-1563720223185-11003d516935?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-    {
-      'id': 'loc_2',
-      'name': 'Grand Indonesia',
-      'typeLabel': 'Pusat Perbelanjaan Premium',
-      'city': 'Jakarta Pusat',
-      'address': 'Jl. M.H. Thamrin No.1, Menteng',
-      'latitude': -6.1951,
-      'longitude': 106.8230,
-      'totalSlots': 450,
-      'occupiedSlots': 415,
-      'status': 'Aktif',
-      'floors': ['Lantai B1', 'Lantai B2'],
-      'operatingHours': 'Buka 24 Jam',
-      'baseRate': 6000,
-      'evRate': 8500,
-      'motorRate': 3000,
-      'isEvReady': true,
-      'description': 'Fasilitas parkir modern di jantung ibu kota dengan akses langsung ke East & West Mall.',
-      'checkinRadius': 150,
-      'images': [
-        'https://images.unsplash.com/photo-1590674899484-d5640e854abe?w=600&auto=format&fit=crop&q=80',
-      ],
-    },
-  ];
+  List<Map<String, dynamic>> locations = [];
 
-  late List<Map<String, dynamic>> locations = List.from(_defaultLocations);
-
-  /// Memuat master lokasi dan denah
+  /// Memuat master lokasi dan denah dari Supabase
   Future<void> fetchLocations() async {
     _isLoading = true;
     _errorMessage = null;
@@ -79,23 +28,44 @@ class ManageParkingBackend extends ChangeNotifier {
     try {
       final res = await _client
           .from('parking_locations')
-          .select('id, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images')
+          .select('id, code, name, type, city, province, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images, image_url')
           .order('name', ascending: true);
 
       if (res.isNotEmpty) {
         locations = res.map<Map<String, dynamic>>((row) {
           final total = (row['total_capacity'] as num?)?.toInt() ?? 100;
+          final List<String> imagesList = [];
+          if (row['images'] is List) {
+            imagesList.addAll(List<String>.from(row['images']));
+          }
+          final primaryUrl = row['image_url']?.toString();
+          if (primaryUrl != null && primaryUrl.isNotEmpty && !imagesList.contains(primaryUrl)) {
+            imagesList.insert(0, primaryUrl);
+          }
+
+          final statusStr = row['status']?.toString().toLowerCase() ?? 'active';
+          String displayStatus = 'Aktif';
+          if (statusStr == 'crowded') {
+            displayStatus = 'Padat';
+          } else if (statusStr == 'full') {
+            displayStatus = 'Tutup';
+          } else if (statusStr == 'maintenance') {
+            displayStatus = 'Maintenance';
+          }
+
           return {
-            'id': row['id']?.toString() ?? 'loc_1',
+            'id': row['id']?.toString() ?? '',
+            'code': row['code']?.toString() ?? '',
             'name': row['name']?.toString() ?? 'Lokasi Parkir',
             'typeLabel': row['type']?.toString() ?? 'Pusat Perbelanjaan',
             'city': row['city']?.toString() ?? 'Jakarta',
+            'province': row['province']?.toString() ?? 'DKI Jakarta',
             'address': row['address']?.toString() ?? '-',
             'latitude': (row['latitude'] as num?)?.toDouble() ?? -6.1754,
             'longitude': (row['longitude'] as num?)?.toDouble() ?? 106.7933,
             'totalSlots': total,
             'occupiedSlots': (total * 0.7).round(),
-            'status': row['status'] == 'active' ? 'Aktif' : 'Nonaktif',
+            'status': displayStatus,
             'floors': ['Lantai B1', 'Lantai B2', 'Lantai B3'],
             'operatingHours': row['operating_hours']?.toString() ?? 'Buka 24 Jam',
             'baseRate': (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000,
@@ -104,9 +74,12 @@ class ManageParkingBackend extends ChangeNotifier {
             'isEvReady': true,
             'description': 'Fasilitas parkir terintegrasi sistem ParkSmart.',
             'checkinRadius': 150,
-            'images': (row['images'] is List) ? List<String>.from(row['images']) : [],
+            'images': imagesList,
+            'imageUrl': primaryUrl ?? (imagesList.isNotEmpty ? imagesList.first : ''),
           };
         }).toList();
+      } else {
+        locations = [];
       }
     } catch (e) {
       debugPrint('[ManageParkingBackend] fetchLocations error: $e');
@@ -117,7 +90,125 @@ class ManageParkingBackend extends ChangeNotifier {
     }
   }
 
-  /// Update pengaturan lokasi & tarif
+  /// Tambah lokasi parkir baru ke Supabase database `public.parking_locations`
+  Future<bool> addParkingLocation(Map<String, dynamic> locData) async {
+    try {
+      final totalSlots = locData['totalSlots'] as int? ?? 100;
+      final images = List<String>.from(locData['images'] ?? []);
+      final primaryImage = images.isNotEmpty ? images.first : null;
+      final code = 'PKR-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+
+      final row = {
+        'code': code,
+        'name': locData['name'],
+        'type': locData['typeLabel'] ?? 'Mall / Pusat Perbelanjaan',
+        'city': locData['city'] ?? 'Jakarta',
+        'province': locData['city'] ?? 'DKI Jakarta',
+        'address': locData['address'] ?? '-',
+        'latitude': locData['latitude'] ?? -6.1754,
+        'longitude': locData['longitude'] ?? 106.7933,
+        'total_capacity': totalSlots,
+        'car_slots_capacity': (totalSlots * 0.7).round(),
+        'motor_slots_capacity': (totalSlots * 0.2).round(),
+        'ev_slots_capacity': (totalSlots * 0.1).round(),
+        'hourly_rate_mobil': locData['baseRate'] ?? 5000,
+        'hourly_rate_motor': locData['motorRate'] ?? 2000,
+        'hourly_rate_ev': locData['evRate'] ?? 7500,
+        'operating_hours': locData['operatingHours'] ?? 'Buka 24 Jam',
+        'status': 'active',
+        'image_url': primaryImage,
+        'images': images,
+        'facilities': ['CCTV 24 Jam', 'Covered Parking', if (locData['isEvReady'] == true) 'EV Charging Station'],
+      };
+
+      await _client.from('parking_locations').insert(row);
+      await fetchLocations();
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] addParkingLocation error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update lengkap lokasi parkir + bersihkan foto sampah yang dihapus dari Supabase Storage
+  Future<bool> updateParkingLocationFull(
+    String id,
+    Map<String, dynamic> locData, {
+    List<String>? deletedImageUrls,
+  }) async {
+    try {
+      // 1. Eksekusi query penghapusan foto-foto yang disilang dari Supabase Storage (anti-sampah)
+      if (deletedImageUrls != null && deletedImageUrls.isNotEmpty) {
+        debugPrint('[ManageParkingBackend] Menghapus ${deletedImageUrls.length} file gambar dari storage...');
+        await ParkingImageService.deleteMultipleLocationImages(deletedImageUrls);
+      }
+
+      final images = List<String>.from(locData['images'] ?? []);
+      final primaryImage = images.isNotEmpty ? images.first : null;
+      final totalSlots = locData['totalSlots'] as int? ?? 100;
+
+      String dbStatus = 'active';
+      final s = locData['status']?.toString();
+      if (s == 'Padat') {
+        dbStatus = 'crowded';
+      } else if (s == 'Tutup') {
+        dbStatus = 'full';
+      } else if (s == 'Maintenance') {
+        dbStatus = 'maintenance';
+      }
+
+      final updateMap = {
+        'name': locData['name'],
+        'type': locData['typeLabel'],
+        'city': locData['city'],
+        'address': locData['address'],
+        'latitude': locData['latitude'],
+        'longitude': locData['longitude'],
+        'total_capacity': totalSlots,
+        'car_slots_capacity': (totalSlots * 0.7).round(),
+        'motor_slots_capacity': (totalSlots * 0.2).round(),
+        'ev_slots_capacity': (totalSlots * 0.1).round(),
+        'hourly_rate_mobil': locData['baseRate'],
+        'hourly_rate_motor': locData['motorRate'],
+        'hourly_rate_ev': locData['evRate'],
+        'operating_hours': locData['operatingHours'],
+        'status': dbStatus,
+        'image_url': primaryImage,
+        'images': images,
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
+      };
+
+      await _client.from('parking_locations').update(updateMap).eq('id', id);
+      await fetchLocations();
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] updateParkingLocationFull error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Hapus lokasi parkir beserta semua fotonya di Supabase Storage
+  Future<bool> deleteParkingLocation(String id, {List<String>? imagesToDelete}) async {
+    try {
+      if (imagesToDelete != null && imagesToDelete.isNotEmpty) {
+        await ParkingImageService.deleteMultipleLocationImages(imagesToDelete);
+      }
+      await _client.from('parking_locations').delete().eq('id', id);
+      await fetchLocations();
+      return true;
+    } catch (e) {
+      debugPrint('[ManageParkingBackend] deleteParkingLocation error: $e');
+      _errorMessage = e.toString();
+      notifyListeners();
+      return false;
+    }
+  }
+
+  /// Update pengaturan lokasi & tarif cepat
   Future<bool> updateParkingLocation(String id, Map<String, dynamic> data) async {
     final idx = locations.indexWhere((l) => l['id'] == id);
     if (idx != -1) {

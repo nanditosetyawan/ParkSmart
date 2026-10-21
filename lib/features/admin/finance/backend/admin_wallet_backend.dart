@@ -16,105 +16,14 @@ class AdminWalletBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultUsers = [
-    {
-      'id': 'usr-001',
-      'name': 'Nanda Setiawan',
-      'email': 'nanda.setiawan@gmail.com',
-      'phone': '+62 812-3456-7890',
-      'balance': 45000,
-      'avatar': 'N',
-    },
-    {
-      'id': 'usr-002',
-      'name': 'Rafi Maulana',
-      'email': 'rafi.maulana@gmail.com',
-      'phone': '+62 856-7890-1234',
-      'balance': 120000,
-      'avatar': 'R',
-    },
-    {
-      'id': 'usr-003',
-      'name': 'Siti Rahayu',
-      'email': 'siti.rahayu@gmail.com',
-      'phone': '+62 878-1122-3344',
-      'balance': 15000,
-      'avatar': 'S',
-    },
-    {
-      'id': 'usr-004',
-      'name': 'Dewi Lestari',
-      'email': 'dewi.lestari@gmail.com',
-      'phone': '+62 813-9988-7766',
-      'balance': 230000,
-      'avatar': 'D',
-    },
-    {
-      'id': 'usr-005',
-      'name': 'Budi Santoso',
-      'email': 'budi.santoso@gmail.com',
-      'phone': '+62 821-4455-6677',
-      'balance': 0,
-      'avatar': 'B',
-    },
-    {
-      'id': 'usr-006',
-      'name': 'Ahmad Fauzi',
-      'email': 'ahmad.fauzi@gmail.com',
-      'phone': '+62 812-9911-2233',
-      'balance': 85000,
-      'avatar': 'A',
-    },
-    {
-      'id': 'usr-007',
-      'name': 'Linda Wijaya',
-      'email': 'linda.wijaya@gmail.com',
-      'phone': '+62 818-4455-6677',
-      'balance': 310000,
-      'avatar': 'L',
-    },
-    {
-      'id': 'usr-008',
-      'name': 'Rizky Pratama',
-      'email': 'rizky.pratama@gmail.com',
-      'phone': '+62 877-3322-1100',
-      'balance': 12500,
-      'avatar': 'R',
-    },
-  ];
+  List<Map<String, dynamic>> users = [];
+  List<Map<String, dynamic>> recentInjections = [];
+  int totalKasBalance = 0;
 
-  final List<Map<String, dynamic>> _defaultInjections = [
-    {
-      'userName': 'Nanda Setiawan',
-      'userEmail': 'nanda.setiawan@gmail.com',
-      'amount': 500000,
-      'reason': 'Kompensasi kendala barrier gate B2',
-      'time': '1 jam lalu',
-      'admin': 'Admin Pusat (Dito)',
-      'status': 'Berhasil',
-    },
-    {
-      'userName': 'Siti Rahayu',
-      'userEmail': 'siti.rahayu@gmail.com',
-      'amount': 50000,
-      'reason': 'Bonus KYC KTP Terverifikasi',
-      'time': '3 jam lalu',
-      'admin': 'Sistem Otomatis',
-      'status': 'Berhasil',
-    },
-    {
-      'userName': 'Rafi Maulana',
-      'userEmail': 'rafi.maulana@gmail.com',
-      'amount': 100000,
-      'reason': 'Top-up Manual Kasir Kantor Parkir',
-      'time': 'Kemarin, 16:40',
-      'admin': 'Admin Lokasi (Central Park)',
-      'status': 'Berhasil',
-    },
-  ];
+  int get totalDepositBalance =>
+      users.fold<int>(0, (sum, u) => sum + ((u['balance'] as num?)?.toInt() ?? 0));
 
-  late List<Map<String, dynamic>> users = List.from(_defaultUsers);
-  late List<Map<String, dynamic>> recentInjections = List.from(_defaultInjections);
+  int get activeUsersCount => users.length;
 
   /// Mengambil data pengguna dan saldo dari Supabase
   Future<void> fetchUsers() async {
@@ -143,13 +52,74 @@ class AdminWalletBackend extends ChangeNotifier {
             'avatar': initial,
           };
         }).toList();
+      } else {
+        users = [];
+      }
+
+      // Hitung total saldo kas utama dari tabel payments
+      try {
+        final payRes = await _client
+            .from('payments')
+            .select('amount, status, transaction_type');
+        int kas = 0;
+        for (var p in payRes) {
+          final amt = (p['amount'] as num?)?.toInt() ?? 0;
+          final status = (p['status'] ?? '').toString().toLowerCase();
+          final type = (p['transaction_type'] ?? '').toString().toLowerCase();
+          if (status == 'success' || status == 'paid') {
+            if (type == 'refund') {
+              kas -= amt;
+            } else {
+              kas += amt;
+            }
+          }
+        }
+        totalKasBalance = kas > 0 ? kas : 0;
+      } catch (e) {
+        debugPrint('[AdminWalletBackend] fetchKas error: $e');
+        totalKasBalance = 0;
+      }
+
+      // Ambil log injeksi saldo dari payments
+      try {
+        final injRes = await _client
+            .from('payments')
+            .select('id, transaction_code, amount, description, created_at, users(full_name, email)')
+            .eq('transaction_type', 'wallet_injection')
+            .order('created_at', ascending: false)
+            .limit(10);
+
+        if (injRes.isNotEmpty) {
+          recentInjections = injRes.map<Map<String, dynamic>>((row) {
+            final u = row['users'] as Map<String, dynamic>?;
+            final uName = u?['full_name']?.toString() ?? 'Pengguna';
+            final uEmail = u?['email']?.toString() ?? '-';
+            final amt = (row['amount'] as num?)?.toInt() ?? 0;
+            final reason = row['description']?.toString() ?? 'Injeksi Saldo Manual';
+            final timeStr = row['created_at'] != null ? row['created_at'].toString().substring(0, 16) : '-';
+
+            return {
+              'userName': uName,
+              'userEmail': uEmail,
+              'amount': amt,
+              'reason': reason,
+              'time': timeStr,
+              'admin': 'Admin Finansial',
+              'status': 'Berhasil',
+            };
+          }).toList();
+        } else {
+          recentInjections = [];
+        }
+      } catch (e) {
+        debugPrint('[AdminWalletBackend] fetchInjections error: $e');
+        recentInjections = [];
       }
     } catch (e) {
       debugPrint('[AdminWalletBackend] fetchUsers error: $e');
       _errorMessage = e.toString();
-      if (users.isEmpty) {
-        users = List.from(_defaultUsers);
-      }
+      users = [];
+      recentInjections = [];
     } finally {
       _isLoading = false;
       notifyListeners();
@@ -194,10 +164,14 @@ class AdminWalletBackend extends ChangeNotifier {
 
       // 2. Rekam transaksi top-up di tabel payments
       await _client.from('payments').insert({
-        'payment_code': 'INJ-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+        'transaction_code': 'INJ-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
+        'user_id': userId,
+        'transaction_type': 'wallet_injection',
+        'payment_method': 'admin_manual',
         'amount': amount,
-        'payment_method': 'admin_injection',
-        'payment_status': 'success',
+        'description': reason,
+        'status': 'success',
+        'completed_at': DateTime.now().toIso8601String(),
       });
 
       return true;

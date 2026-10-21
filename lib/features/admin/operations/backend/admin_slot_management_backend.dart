@@ -16,26 +16,7 @@ class AdminSlotManagementBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultSlots = [
-    {'id': 'A-01', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'B 1234 SKP', 'duration': '1j 45m'},
-    {'id': 'A-02', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'A-03', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'A-04', 'type': 'Mobil', 'status': 'Reserved', 'plate': 'B 8899 DTO', 'duration': 'Booking 14:00'},
-    {'id': 'A-05', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'B 4412 XYZ', 'duration': '42m'},
-    {'id': 'A-06', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'B-01', 'type': 'EV Charging', 'status': 'Terisi', 'plate': 'B 1111 ION', 'duration': '2j 10m (85%)'},
-    {'id': 'B-02', 'type': 'EV Charging', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'B-03', 'type': 'VIP', 'status': 'Reserved', 'plate': 'RI 1', 'duration': 'Khusus Tamu'},
-    {'id': 'B-04', 'type': 'Disabilitas', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'B-05', 'type': 'Mobil', 'status': 'Maintenance', 'plate': null, 'duration': 'Perbaikan Marka'},
-    {'id': 'B-06', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'C-01', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'B 5532 PLM', 'duration': '3j 15m (Overstay)'},
-    {'id': 'C-02', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-    {'id': 'C-03', 'type': 'Mobil', 'status': 'Terisi', 'plate': 'D 9901 AB', 'duration': '55m'},
-    {'id': 'C-04', 'type': 'Mobil', 'status': 'Tersedia', 'plate': null, 'duration': null},
-  ];
-
-  late List<Map<String, dynamic>> slots = List.from(_defaultSlots);
+  late List<Map<String, dynamic>> slots = [];
 
   /// Mengambil data slot dari Supabase
   Future<void> fetchSlots({String? floorName}) async {
@@ -85,13 +66,12 @@ class AdminSlotManagementBackend extends ChangeNotifier {
             'duration': row['occupied_since'] != null ? 'Sedang Parkir' : null,
           };
         }).toList();
+      } else {
+        slots = [];
       }
     } catch (e) {
       debugPrint('[AdminSlotManagementBackend] fetchSlots error: $e');
       _errorMessage = e.toString();
-      if (slots.isEmpty) {
-        slots = List.from(_defaultSlots);
-      }
     } finally {
       _isLoading = false;
       notifyListeners();

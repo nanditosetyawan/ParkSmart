@@ -25,29 +25,68 @@ class RevenueBackend extends ChangeNotifier {
     return dt.toUtc().add(const Duration(hours: 7));
   }
 
+  // 📅 Tahun Dinamis
+  int _activeYear = DateTime.now().year;
+  int get dynamicYear => _activeYear;
+
+  int get currentQuarterIndex {
+    final m = _nowWib.month;
+    return ((m - 1) ~/ 3).clamp(0, 3);
+  }
+
+  int get currentQuarter => currentQuarterIndex + 1;
+
   // 📊 State 4 Kuartal (Q1, Q2, Q3, Q4) untuk Ringkasan
   int availableQuartersCount = 4;
   int latestQuarterIndex = 3;
   int availableWeeksCount = 3;
   int latestWeekIndex = 2;
 
-  List<double> quarterlyRawAmounts = [245000000, 210000000, 280000000, 315500000];
-  List<double> quarterlyChartData = [0.55, 0.38, 0.72, 0.95];
+  List<double> quarterlyRawAmounts = [0.0, 0.0, 0.0, 0.0];
+  List<double> quarterlyChartData = [0.0, 0.0, 0.0, 0.0];
   List<String> quarterlyValues = [
-    'Rp 245.000.000',
-    'Rp 210.000.000',
-    'Rp 280.000.000',
-    'Rp 315.500.000',
+    'Rp 0',
+    'Rp 0',
+    'Rp 0',
+    'Rp 0',
   ];
-  List<String> quarterlyDates = [
-    'Kuartal 1 (Jan - Mar 2026)',
-    'Kuartal 2 (Apr - Jun 2026)',
-    'Kuartal 3 (Jul - Sep 2026)',
-    'Kuartal 4 (Okt - Des 2026)',
+  late List<String> quarterlyDates = [
+    'Kuartal 1 (Jan - Mar $_activeYear)',
+    'Kuartal 2 (Apr - Jun $_activeYear)',
+    'Kuartal 3 (Jul - Sep $_activeYear)',
+    'Kuartal 4 (Okt - Des $_activeYear)',
   ];
   List<String> quarterlyXLabels = ['Q1', 'Q2', 'Q3', 'Q4'];
-  List<double> quarterlyGrowths = [0.0, -14.3, 33.3, 12.7];
-  List<int> quarterlyTrxCounts = [49, 42, 56, 64];
+  List<double> quarterlyGrowths = [0.0, 0.0, 0.0, 0.0];
+  List<int> quarterlyTrxCounts = [0, 0, 0, 0];
+
+  /// Kuartal yang ditampilkan pada rekapitulasi kuartal.
+  /// Aturan:
+  /// - Untuk tahun awal berjalan (2026): jika Q1..Q3 belum dimulai/0 transaksi, mulai dari kuartal aktif saat ini (Q4) -> hanya tampil 1 kartu.
+  /// - Saat masuk Q1 tahun depan (2027): tahun berganti jadi 2027, Q4 tahun lalu otomatis hilang, hanya Q1 yang tampil.
+  /// - Saat masuk Q2: Q1 jangan hilang dulu (tampil Q2 dan Q1).
+  /// - Saat masuk Q3: tampil Q3, Q2, Q1.
+  /// - Saat masuk Q4: tampil Q4, Q3, Q2, Q1.
+  List<int> get displayedQuarterIndices {
+    final int currentQIndex = currentQuarterIndex; // 0..3
+
+    int startQIndex = 0;
+    if (_activeYear == 2026) {
+      startQIndex = currentQIndex;
+      for (int i = 0; i < currentQIndex; i++) {
+        if (quarterlyTrxCounts[i] > 0 || quarterlyRawAmounts[i] > 0) {
+          startQIndex = i;
+          break;
+        }
+      }
+    }
+
+    final List<int> list = [];
+    for (int i = currentQIndex; i >= startQIndex; i--) {
+      list.add(i);
+    }
+    return list;
+  }
 
   List<double> get monthlyChartData => quarterlyChartData;
   List<String> get monthlyValues => quarterlyValues;
@@ -58,6 +97,8 @@ class RevenueBackend extends ChangeNotifier {
   // 🏢 State Per Lokasi (Dinamis dari Supabase)
   List<Map<String, dynamic>> availableLocations = [];
   Map<String, Map<String, dynamic>> locationDataset = {};
+  List<Map<String, dynamic>> topContributingLocations = [];
+  List<Map<String, dynamic>> get top4Locations => topContributingLocations.take(4).toList();
 
   // 🚗🏍️ State Analitik Tipe Kendaraan (Global, Sesi Selesai / Completed Saja)
   int completedMobilCount = 0;
@@ -97,7 +138,33 @@ class RevenueBackend extends ChangeNotifier {
 
     try {
       final now = _nowWib;
-      final int currentYear = now.year;
+
+      // 📅 Deteksi tahun dinamis dari transaksi Supabase terbaru
+      int calculatedYear = now.year;
+      try {
+        final latestPayment = await _client
+            .from('payments')
+            .select('created_at')
+            .order('created_at', ascending: false)
+            .limit(1)
+            .maybeSingle();
+        if (latestPayment != null && latestPayment['created_at'] != null) {
+          final dt = _parseToWib(latestPayment['created_at']);
+          calculatedYear = dt.year;
+        }
+      } catch (_) {}
+
+      _activeYear = calculatedYear;
+      final int currentYear = _activeYear;
+
+      // Perbarui label rentang tanggal kuartal dengan tahun dinamis
+      quarterlyDates = [
+        'Kuartal 1 (Jan - Mar $currentYear)',
+        'Kuartal 2 (Apr - Jun $currentYear)',
+        'Kuartal 3 (Jul - Sep $currentYear)',
+        'Kuartal 4 (Okt - Des $currentYear)',
+      ];
+
       final int nowMonth = now.month;
       final int nowDay = now.day;
 
@@ -113,7 +180,7 @@ class RevenueBackend extends ChangeNotifier {
       }
       latestQuarterIndex = availableQuartersCount - 1;
 
-      // 2. Hitung minggu aktif berjalan untuk bulan ini (Oktober 2026)
+      // 2. Hitung minggu aktif berjalan untuk bulan ini
       if (nowDay <= 7) {
         availableWeeksCount = 1;
       } else if (nowDay <= 14) {
@@ -230,6 +297,7 @@ class RevenueBackend extends ChangeNotifier {
       if (locsRes.isEmpty) {
         availableLocations = [];
         locationDataset = {};
+        topContributingLocations = [];
       } else {
         availableLocations = List<Map<String, dynamic>>.from(locsRes);
 
@@ -404,6 +472,24 @@ class RevenueBackend extends ChangeNotifier {
         }
 
         locationDataset = newDataset;
+
+        final List<Map<String, dynamic>> locList = [];
+        for (var loc in availableLocations) {
+          final String locId = loc['id'].toString();
+          final String locName = loc['name'] ?? 'Lokasi';
+          final String locCity = loc['city'] ?? '';
+          final double totalLocYear = locTotalYearSums[locId] ?? 0.0;
+          final double ratio = totalAllLocationsYear > 0 ? (totalLocYear / totalAllLocationsYear) : 0.0;
+          locList.add({
+            'name': locName,
+            'city': locCity,
+            'omzet': 'Rp ${_formatCurrency(totalLocYear.round())}',
+            'rawOmzet': totalLocYear,
+            'ratio': ratio,
+          });
+        }
+        locList.sort((a, b) => (b['rawOmzet'] as num).compareTo(a['rawOmzet'] as num));
+        topContributingLocations = locList;
       }
     } catch (e) {
       debugPrint('[RevenueBackend] fetchRevenueData error: $e');

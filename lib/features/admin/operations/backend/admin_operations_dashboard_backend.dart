@@ -1,5 +1,5 @@
 import 'dart:async';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class _SessionTimestampEvent {
@@ -38,7 +38,19 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
   int _activeSessionsCount = 0;
   int get activeSessionsCount => _activeSessionsCount;
 
-  List<Map<String, dynamic>> _locationsSummary = [];
+  List<Map<String, dynamic>> _locations = [];
+  List<Map<String, dynamic>> get locations => _locations;
+
+  List<Map<String, dynamic>> _cityDensityList = [];
+  List<Map<String, dynamic>> get cityDensityList => _cityDensityList;
+
+  List<Map<String, dynamic>> _liveSessions = [];
+  List<Map<String, dynamic>> get liveSessions => _liveSessions;
+
+  List<Map<String, dynamic>> _liveBookings = [];
+  List<Map<String, dynamic>> get liveBookings => _liveBookings;
+
+  final List<Map<String, dynamic>> _locationsSummary = [];
   List<Map<String, dynamic>> get locationsSummary => _locationsSummary;
 
   // 📈 Data Grafik Parkir 4 Minggu per Bulan (Maksimal 6 Bulan Terakhir dari Supabase)
@@ -70,10 +82,10 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Lokasi & Kapasitas
+      // 1. Lokasi & Kapasitas Real dari Database
       final locs = await _client
           .from('parking_locations')
-          .select('id, name, city, total_capacity, car_slots_capacity, motor_slots_capacity, ev_slots_capacity, status')
+          .select('id, code, name, city, province, address, total_capacity, car_slots_capacity, motor_slots_capacity, ev_slots_capacity, status')
           .order('name', ascending: true);
 
       _totalLocationsCount = locs.length;
@@ -83,26 +95,155 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
       }
       _totalSlotsCount = totalCap;
 
-      _locationsSummary = locs.map<Map<String, dynamic>>((row) {
-        return {
-          'id': row['id']?.toString() ?? '',
-          'name': row['name']?.toString() ?? 'Lokasi Parkir',
-          'city': row['city']?.toString() ?? 'Indonesia',
-          'capacity': (row['total_capacity'] as num?)?.toInt() ?? 100,
-          'status': row['status']?.toString() ?? 'active',
-        };
-      }).toList();
+      if (locs.isNotEmpty) {
+        _locations = locs.map<Map<String, dynamic>>((row) {
+          final total = (row['total_capacity'] as num?)?.toInt() ?? 0;
+          final statusDb = row['status']?.toString().toLowerCase();
+          String statusLabel = 'Normal';
+          Color statusCol = const Color(0xFF17A18A);
+          if (statusDb == 'crowded') {
+            statusLabel = 'Padat';
+            statusCol = const Color(0xFFE07A5F);
+          } else if (statusDb == 'full') {
+            statusLabel = 'Kritis';
+            statusCol = const Color(0xFFD94B4B);
+          }
 
-      // 2. Sesi Aktif & Overstay
+          return {
+            'id': row['code']?.toString() ?? row['id']?.toString() ?? 'LOC-000',
+            'db_id': row['id']?.toString(),
+            'name': row['name']?.toString() ?? 'Lokasi Parkir',
+            'city': row['city']?.toString() ?? 'Kota',
+            'province': row['province']?.toString() ?? '',
+            'zone': row['address']?.toString() ?? 'Area Parkir',
+            'total': total,
+            'occupied': 0,
+            'status': statusLabel,
+            'statusColor': statusCol,
+            'mobil': (row['car_slots_capacity'] as num?)?.toInt() ?? (total * 0.7).round(),
+            'motor': (row['motor_slots_capacity'] as num?)?.toInt() ?? (total * 0.2).round(),
+            'ev': (row['ev_slots_capacity'] as num?)?.toInt() ?? (total * 0.1).round(),
+          };
+        }).toList();
+
+        final Map<String, List<Map<String, dynamic>>> cityMap = {};
+        for (var l in _locations) {
+          final c = l['city'] as String;
+          cityMap.putIfAbsent(c, () => []).add(l);
+        }
+        _cityDensityList = cityMap.entries.map((entry) {
+          final cityName = entry.key;
+          final locList = entry.value;
+          int cityTotal = 0;
+          int cityOccupied = 0;
+          int cityMobil = 0;
+          int cityMotor = 0;
+          int cityEv = 0;
+          for (var l in locList) {
+            cityTotal += (l['total'] as int? ?? 0);
+            cityOccupied += (l['occupied'] as int? ?? 0);
+            cityMobil += (l['mobil'] as int? ?? 0);
+            cityMotor += (l['motor'] as int? ?? 0);
+            cityEv += (l['ev'] as int? ?? 0);
+          }
+          final ratio = cityTotal > 0 ? (cityOccupied / cityTotal) : 0.0;
+          String status = 'Normal';
+          Color statusColor = const Color(0xFF17A18A);
+          if (ratio >= 0.85) {
+            status = 'Kritis';
+            statusColor = const Color(0xFFD94B4B);
+          } else if (ratio >= 0.60) {
+            status = 'Padat';
+            statusColor = const Color(0xFFE07A5F);
+          }
+          return {
+            'city': cityName,
+            'province': locList.first['province'] ?? '',
+            'facilities': '${locList.length} Lokasi (${locList.map((e) => e['name']).join(', ')})',
+            'facilityCount': locList.length,
+            'total': cityTotal,
+            'occupied': cityOccupied,
+            'status': status,
+            'statusColor': statusColor,
+            'mobil': cityMobil,
+            'motor': cityMotor,
+            'ev': cityEv,
+          };
+        }).toList();
+      } else {
+        _locations = [];
+        _cityDensityList = [];
+      }
+
+      // 2. Sesi Aktif & Overstay Real dari Database
       final activeSessions = await _client
           .from('parking_sessions')
-          .select('id, is_overstay')
-          .eq('status', 'active');
+          .select('id, session_code, plate_number, vehicle_desc, vehicle_type, check_in_time, parking_fee, total_fee, is_overstay, overstay_minutes, status')
+          .inFilter('status', ['active', 'overstay'])
+          .order('check_in_time', ascending: false);
 
       _activeSessionsCount = activeSessions.length;
       _overstaySessionsCount = activeSessions.where((s) => s['is_overstay'] == true).length;
 
-      // 3. Status Slot Terisi
+      if (activeSessions.isNotEmpty) {
+        _liveSessions = activeSessions.map<Map<String, dynamic>>((row) {
+          final isEv = row['vehicle_type'] == 'ev';
+          final fee = (row['total_fee'] as num?)?.toDouble() ?? 
+                      (row['parking_fee'] as num?)?.toDouble() ?? 10000;
+          return {
+            'id': row['session_code']?.toString() ?? 'SES-000',
+            'db_id': row['id']?.toString(),
+            'plate': row['plate_number']?.toString() ?? 'B 1234 XYZ',
+            'user': 'Pengguna ParkSmart',
+            'phone': '+62 812-xxxx-xxxx',
+            'type': isEv ? 'EV Mobil' : 'Mobil',
+            'vehicle': row['vehicle_desc']?.toString() ?? 'Kendaraan',
+            'location': 'Lokasi Parkir',
+            'slot': 'Area Parkir',
+            'checkIn': 'Baru saja',
+            'duration': '1j',
+            'fee': 'Rp ${fee.toStringAsFixed(0)}',
+            'isOverstay': row['is_overstay'] == true,
+            'overstayDuration': '${row['overstay_minutes'] ?? 0} mnt',
+            'isEv': isEv,
+          };
+        }).toList();
+      } else {
+        _liveSessions = [];
+      }
+
+      // 3. Reservasi Masuk Real dari Database
+      final bookingsRes = await _client
+          .from('bookings')
+          .select('id, booking_code, start_time, duration_hours, total_price, payment_status, booking_status, created_at')
+          .order('created_at', ascending: false);
+
+      if (bookingsRes.isNotEmpty) {
+        _liveBookings = bookingsRes.map<Map<String, dynamic>>((row) {
+          final isConfirmed = row['booking_status'] == 'confirmed';
+          final price = (row['total_price'] as num?)?.toInt() ?? 25000;
+          return {
+            'id': row['booking_code']?.toString() ?? 'BKG-001',
+            'code': row['booking_code']?.toString() ?? 'PRK-001',
+            'name': 'Pelanggan ParkSmart',
+            'phone': '+62 812-xxxx-xxxx',
+            'location': 'Lokasi Parkir',
+            'slot': 'Slot Terpilih',
+            'floor': 'Area Parkir',
+            'vehicleType': 'Mobil',
+            'plate': 'B 1234 XYZ',
+            'time': '${row['start_time']?.toString().split('T').last.substring(0, 5) ?? '08:00'} WIB',
+            'duration': '${row['duration_hours'] ?? 2} jam',
+            'status': isConfirmed ? 'Dikonfirmasi' : 'Menunggu',
+            'totalPrice': 'Rp $price',
+            'paymentStatus': row['payment_status'] == 'paid' ? 'Dibayar' : 'Pending',
+          };
+        }).toList();
+      } else {
+        _liveBookings = [];
+      }
+
+      // 4. Status Slot Terisi
       final occupiedSlots = await _client
           .from('parking_slots')
           .select('id')

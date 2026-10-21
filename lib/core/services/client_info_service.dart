@@ -259,7 +259,7 @@ class ClientInfoService {
     final now = DateTime.now();
     final id = 'LOG-${now.millisecondsSinceEpoch.toString().substring(7)}';
 
-    final log = AdminLoginLog(
+    var log = AdminLoginLog(
       id: id,
       admin: adminName,
       email: adminEmail,
@@ -279,16 +279,79 @@ class ClientInfoService {
     // 1. Simpan ke Local Storage (SharedPreferences)
     await _insertLocalLog(log);
 
-    // 2. Coba kirim langsung ke Supabase jika URL & Key tersedia
-    _tryInsertToSupabase(log);
+    // 2. Kirim langsung ke Supabase (Database audit trail)
+    final synced = await _tryInsertToSupabase(log);
+    if (synced) {
+      log = AdminLoginLog(
+        id: log.id,
+        admin: log.admin,
+        email: log.email,
+        role: log.role,
+        action: log.action,
+        device: log.device,
+        ip: log.ip,
+        location: log.location,
+        isp: log.isp,
+        time: log.time,
+        timestamp: log.timestamp,
+        status: log.status,
+        isCurrentSession: log.isCurrentSession,
+        syncedToSupabase: true,
+      );
+      await _insertLocalLog(log);
+    }
 
     return log;
+  }
+
+  /// Filter untuk memastikan data mockup/dummy legacy tidak tampil
+  bool _isNotDummyLog(AdminLoginLog l) {
+    final lowerAdmin = l.admin.trim().toLowerCase();
+    if (lowerAdmin == 'rina wijaya' ||
+        lowerAdmin == 'bambang sutrisno' ||
+        lowerAdmin == 'siti rahma' ||
+        lowerAdmin == 'anisa putri') {
+      return false;
+    }
+    if (['LOG-002', 'LOG-003', 'LOG-004'].contains(l.id)) {
+      return false;
+    }
+    return true;
+  }
+
+  /// Membersihkan jejak data dummy legacy dari penyimpanan lokal SharedPreferences
+  Future<void> cleanLegacyDummyCache() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final jsonStr = prefs.getString(_kStorageKey);
+      if (jsonStr != null && jsonStr.isNotEmpty) {
+        final List<dynamic> list = jsonDecode(jsonStr);
+        final filtered = list.where((e) {
+          final admin = (e['admin']?.toString() ?? '').trim().toLowerCase();
+          final id = e['id']?.toString() ?? '';
+          if (admin == 'rina wijaya' ||
+              admin == 'bambang sutrisno' ||
+              admin == 'siti rahma' ||
+              admin == 'anisa putri') {
+            return false;
+          }
+          if (['LOG-002', 'LOG-003', 'LOG-004'].contains(id)) {
+            return false;
+          }
+          return true;
+        }).toList();
+        await prefs.setString(_kStorageKey, jsonEncode(filtered));
+      }
+    } catch (_) {}
   }
 
   /// Mengambil riwayat seluruh log audit langsung dari Supabase Database
   /// dengan fallback ke SharedPreferences jika offline
   Future<List<AdminLoginLog>> getStoredLogs() async {
-    // 1. Ambil data real-time dari Supabase
+    // 0. Bersihkan cache dummy legacy
+    await cleanLegacyDummyCache();
+
+    // 1. Ambil data real-time langsung dari Supabase Database
     try {
       final response = await Supabase.instance.client
           .from('admin_audit_logs')
@@ -296,56 +359,56 @@ class ClientInfoService {
           .order('created_at', ascending: false)
           .limit(50);
 
-      if (response.isNotEmpty) {
-        final logs = response.map<AdminLoginLog>((row) {
-          final createdAt = DateTime.tryParse(row['created_at']?.toString() ?? '') ?? DateTime.now();
-          return AdminLoginLog(
-            id: row['id']?.toString() ?? 'LOG-000',
-            admin: row['admin_name']?.toString() ?? 'Admin',
-            email: row['admin_email']?.toString() ?? 'superadmin@parksmart.id',
-            role: row['role']?.toString() ?? 'Super Admin',
-            action: row['action']?.toString() ?? 'Login berhasil',
-            device: row['device_model']?.toString() ?? 'Perangkat Cerdas',
-            ip: row['ip_address']?.toString() ?? '127.0.0.1',
-            location: row['location']?.toString() ?? 'Indonesia',
-            isp: row['isp']?.toString() ?? 'Internet Provider',
-            time: _formatRelativeTime(createdAt),
-            timestamp: createdAt,
-            status: row['status']?.toString() ?? 'Berhasil',
-            isCurrentSession: false,
+      final List<dynamic> rows = response as List<dynamic>;
+      final logs = rows.map<AdminLoginLog>((row) {
+        final createdAt = DateTime.tryParse(row['created_at']?.toString() ?? '') ?? DateTime.now();
+        return AdminLoginLog(
+          id: row['id']?.toString() ?? 'LOG-000',
+          admin: row['admin_name']?.toString() ?? 'Admin',
+          email: row['admin_email']?.toString() ?? 'superadmin@parksmart.id',
+          role: row['role']?.toString() ?? 'Super Admin',
+          action: row['action']?.toString() ?? 'Login berhasil',
+          device: row['device_model']?.toString() ?? 'Perangkat Cerdas',
+          ip: row['ip_address']?.toString() ?? '127.0.0.1',
+          location: row['location']?.toString() ?? 'Indonesia',
+          isp: row['isp']?.toString() ?? 'Internet Provider',
+          time: _formatRelativeTime(createdAt),
+          timestamp: createdAt,
+          status: row['status']?.toString() ?? 'Berhasil',
+          isCurrentSession: false,
+          syncedToSupabase: true,
+        );
+      }).where(_isNotDummyLog).toList();
+
+      // Tandai log paling atas sebagai Sesi Anda saat ini jika masih baru (< 2 jam)
+      if (logs.isNotEmpty) {
+        final first = logs.first;
+        final diff = DateTime.now().difference(first.timestamp);
+        if (diff.inHours < 2) {
+          logs[0] = AdminLoginLog(
+            id: first.id,
+            admin: first.admin,
+            email: first.email,
+            role: first.role,
+            action: first.action.contains('(Sesi Aktif)') ? first.action : '${first.action} (Sesi Aktif)',
+            device: first.device,
+            ip: first.ip,
+            location: first.location,
+            isp: first.isp,
+            time: 'Baru saja',
+            timestamp: first.timestamp,
+            status: 'Berhasil (Real-Time)',
+            isCurrentSession: true,
             syncedToSupabase: true,
           );
-        }).toList();
-
-        // Tandai log paling atas sebagai Sesi Anda saat ini jika masih baru (< 2 jam)
-        if (logs.isNotEmpty) {
-          final first = logs.first;
-          final diff = DateTime.now().difference(first.timestamp);
-          if (diff.inHours < 2) {
-            logs[0] = AdminLoginLog(
-              id: first.id,
-              admin: first.admin,
-              role: first.role,
-              action: first.action.contains('(Sesi Aktif)') ? first.action : '${first.action} (Sesi Aktif)',
-              device: first.device,
-              ip: first.ip,
-              location: first.location,
-              isp: first.isp,
-              time: 'Baru saja',
-              timestamp: first.timestamp,
-              status: 'Berhasil (Real-Time)',
-              isCurrentSession: true,
-              syncedToSupabase: true,
-            );
-          }
         }
-
-        // Cache ke local SharedPreferences
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString(_kStorageKey, jsonEncode(logs.map((e) => e.toJson()).toList()));
-
-        return logs;
       }
+
+      // Cache ke local SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString(_kStorageKey, jsonEncode(logs.map((e) => e.toJson()).toList()));
+
+      return logs;
     } catch (e) {
       debugPrint('[ClientInfoService] Supabase read error: $e. Falling back to local cache.');
     }
@@ -356,12 +419,15 @@ class ClientInfoService {
       final jsonStr = prefs.getString(_kStorageKey);
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> list = jsonDecode(jsonStr);
-        return list.map((e) => AdminLoginLog.fromJson(Map<String, dynamic>.from(e))).toList();
+        return list
+            .map((e) => AdminLoginLog.fromJson(Map<String, dynamic>.from(e)))
+            .where(_isNotDummyLog)
+            .toList();
       }
     } catch (_) {}
 
-    // Default Seed Logs jika belum ada penyimpanan lokal
-    return _getDefaultSeedLogs();
+    // Bersih 100% tanpa dummy
+    return [];
   }
 
   /// Menyimpan log baru ke daftar di SharedPreferences
@@ -372,15 +438,20 @@ class ClientInfoService {
       List<AdminLoginLog> logs = [];
       if (jsonStr != null && jsonStr.isNotEmpty) {
         final List<dynamic> list = jsonDecode(jsonStr);
-        logs = list.map((e) => AdminLoginLog.fromJson(Map<String, dynamic>.from(e))).toList();
-      } else {
-        logs = _getDefaultSeedLogs();
+        logs = list
+            .map((e) => AdminLoginLog.fromJson(Map<String, dynamic>.from(e)))
+            .where(_isNotDummyLog)
+            .toList();
       }
+
+      // Hapus jika ada duplikat ID
+      logs.removeWhere((l) => l.id == newLog.id);
 
       // Jadikan log lama isCurrentSession = false
       final updatedLogs = logs.map((l) => AdminLoginLog(
         id: l.id,
         admin: l.admin,
+        email: l.email,
         role: l.role,
         action: l.action.replaceAll(' (Sesi Aktif)', ''),
         device: l.device,
@@ -468,50 +539,5 @@ class ClientInfoService {
     if (diff.inMinutes < 60) return '${diff.inMinutes} mnt lalu';
     if (diff.inHours < 24) return '${diff.inHours} jam lalu';
     return '${diff.inDays} hari lalu';
-  }
-
-  /// Data seed awal jika baru pertama dibuka
-  List<AdminLoginLog> _getDefaultSeedLogs() {
-    return [
-      AdminLoginLog(
-        id: 'LOG-002',
-        admin: 'Rina Wijaya',
-        role: 'Admin Operasional',
-        action: 'Login berhasil',
-        device: 'Vivo Y65 (Android)',
-        ip: '114.122.45.19',
-        location: 'Surabaya, Indonesia',
-        isp: 'PT Telkom Indonesia',
-        time: '28 mnt lalu',
-        timestamp: DateTime.now().subtract(const Duration(minutes: 28)),
-        status: 'Berhasil',
-      ),
-      AdminLoginLog(
-        id: 'LOG-003',
-        admin: 'Bambang Sutrisno',
-        role: 'Admin Finansial',
-        action: 'Login berhasil',
-        device: 'Samsung Galaxy A54',
-        ip: '180.252.88.74',
-        location: 'Bandung, Indonesia',
-        isp: 'Biznet Networks',
-        time: '2 jam lalu',
-        timestamp: DateTime.now().subtract(const Duration(hours: 2)),
-        status: 'Berhasil',
-      ),
-      AdminLoginLog(
-        id: 'LOG-004',
-        admin: 'Siti Rahma',
-        role: 'Admin CS & KYC',
-        action: 'Login berhasil',
-        device: 'Xiaomi Redmi Note 12',
-        ip: '36.85.190.21',
-        location: 'Semarang, Indonesia',
-        isp: 'Indosat Ooredoo Hutchison',
-        time: '4 jam lalu',
-        timestamp: DateTime.now().subtract(const Duration(hours: 4)),
-        status: 'Berhasil',
-      ),
-    ];
   }
 }

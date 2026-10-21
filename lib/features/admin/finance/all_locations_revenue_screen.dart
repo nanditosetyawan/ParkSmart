@@ -113,7 +113,51 @@ class _AllLocationsRevenueScreenState extends State<AllLocationsRevenueScreen> {
                   const SizedBox(height: 10),
 
                   // List Seluruh Lokasi
-                  ..._locations.map((loc) => _buildLocationCard(loc)),
+                  if (_locations.isEmpty)
+                    Container(
+                      padding: const EdgeInsets.symmetric(vertical: 32, horizontal: 16),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(16),
+                        border: Border.all(color: const Color(0xFFE5E7EB)),
+                      ),
+                      child: Center(
+                        child: Column(
+                          children: [
+                            Container(
+                              width: 48,
+                              height: 48,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFF3F4F6),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(Icons.location_off_outlined, size: 24, color: Color(0xFF76777B)),
+                            ),
+                            const SizedBox(height: 12),
+                            Text(
+                              'Belum Ada Lokasi Parkir',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 14,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF1A1A18),
+                              ),
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Data peringkat kontribusi omzet akan tampil setelah lokasi dan sesi parkir terdaftar di database.',
+                              textAlign: TextAlign.center,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                color: const Color(0xFF76777B),
+                                height: 1.4,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    )
+                  else
+                    ..._locations.map((loc) => _buildLocationCard(loc)),
                 ],
               ),
             ),

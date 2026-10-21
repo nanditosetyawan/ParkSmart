@@ -18,6 +18,7 @@ import 'admin_ai_config_screen.dart';
 import '../cs/admin_notifications_screen.dart';
 import '../../../core/services/maintenance_service.dart';
 import '../../../core/services/client_info_service.dart';
+import '../../../core/services/session_service.dart';
 
 import 'admin_kyc_screen.dart';
 import 'admin_kyc_detail_modal.dart';
@@ -145,6 +146,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         await ClientInfoService.instance.getDeviceModel(forceRefresh: true);
         await ClientInfoService.instance.recordAdminLogin(
           adminName: _superAdminName,
+          adminEmail: _superAdminEmail,
           role: 'Super Admin',
           action: 'Login berhasil (Sesi Aktif)',
         );
@@ -156,6 +158,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       if (rawLogs.isEmpty) {
         await ClientInfoService.instance.recordAdminLogin(
           adminName: _superAdminName,
+          adminEmail: _superAdminEmail,
           role: 'Super Admin',
           action: 'Login berhasil (Sesi Aktif)',
         );
@@ -164,7 +167,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
 
       if (mounted) {
         setState(() {
-          _adminLogs = rawLogs.map((log) => {
+          _adminLogs = rawLogs.where((log) => !['Rina Wijaya', 'Bambang Sutrisno', 'Siti Rahma'].contains(log.admin)).map((log) => {
             'id': log.id,
             'admin': log.admin,
             'role': log.role,
@@ -215,7 +218,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               final rawLogs = await ClientInfoService.instance.getStoredLogs();
               if (mounted) {
                 setState(() {
-                  _adminLogs = rawLogs.map((log) => {
+                  _adminLogs = rawLogs.where((log) => !['Rina Wijaya', 'Bambang Sutrisno', 'Siti Rahma'].contains(log.admin)).map((log) => {
                     'id': log.id,
                     'admin': log.admin,
                     'role': log.role,
@@ -967,6 +970,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
             leading: const Icon(Icons.logout, color: Color(0xFFD94B4B)),
             title: Text('Keluar Dashboard', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
             onTap: () {
+              SessionService.instance.clearSession();
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const LoginScreen()),

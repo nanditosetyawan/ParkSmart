@@ -13,66 +13,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
   bool isLoading = false;
   String? errorMessage;
 
-  final List<Map<String, dynamic>> _defaultAdmins = [
-    {
-      'id': 'ADM-001',
-      'name': 'Gibran Widodo',
-      'email': 'superadmin@parksmart.id',
-      'phone': '+62 812-0000-0001',
-      'role': 'Super Admin',
-      'status': 'Aktif',
-      'avatar': 'G',
-      'avatarPath': null,
-      'lastLogin': '2 jam lalu',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Manajemen User & RBAC', 'Pengaturan Global', 'Konfigurasi AI', 'Audit Trail'],
-      'createdAt': '12 Jan 2024',
-    },
-    {
-      'id': 'ADM-002',
-      'name': 'Rina Wijaya',
-      'email': 'rina.ops@parksmart.id',
-      'phone': '+62 856-7890-1234',
-      'role': 'Admin Operasional',
-      'status': 'Aktif',
-      'avatar': 'R',
-      'avatarPath': null,
-      'lastLogin': 'Hari ini 08:30',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Kelola Titik Parkir', 'Master Lokasi & Kota', 'Denah Slot IoT', 'Monitoring Lapangan & Overstay'],
-      'createdAt': '05 Feb 2024',
-    },
-    {
-      'id': 'ADM-003',
-      'name': 'Bambang Sutrisno',
-      'email': 'bambang.fin@parksmart.id',
-      'phone': '+62 878-1122-3344',
-      'role': 'Admin Finansial',
-      'status': 'Aktif',
-      'avatar': 'B',
-      'avatarPath': null,
-      'lastLogin': 'Kemarin 17:15',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Laporan Pendapatan & Omzet', 'Atur Tarif Dinamis', 'Transaksi Real-time', 'Dompet Saldo', 'Booking Tiket'],
-      'createdAt': '20 Mar 2024',
-    },
-    {
-      'id': 'ADM-004',
-      'name': 'Siti Rahma',
-      'email': 'siti.cs@parksmart.id',
-      'phone': '+62 813-9988-7766',
-      'role': 'Admin CS & KYC',
-      'status': 'Aktif',
-      'avatar': 'S',
-      'avatarPath': null,
-      'lastLogin': '1 jam lalu',
-      'locations': ['Semua Lokasi'],
-      'permissions': ['Verifikasi Dokumen KYC', 'Profil Pelanggan CRM', 'Manajemen Akun User', 'Komplain & Feedback', 'Broadcast Promo', 'Arcade Poin'],
-      'createdAt': '10 Apr 2024',
-    },
-  ];
-
-  late List<Map<String, dynamic>> admins = List.from(_defaultAdmins);
+  List<Map<String, dynamic>> admins = [];
 
   /// Mengambil daftar admin dari Supabase tabel `public.admins`
   Future<void> fetchAdmins() async {
@@ -83,7 +24,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
     try {
       final response = await _client
           .from('admins')
-          .select('id, email, full_name, phone, role, division, avatar_url, status, last_login_at, created_at')
+          .select('id, email, full_name, phone, role, division, avatar_url, status, last_login_at, created_at, password')
           .order('created_at', ascending: true);
 
       if (response.isNotEmpty) {
@@ -99,6 +40,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
             'phone': row['phone'] as String? ?? '-',
             'role': roleString,
             'status': statusString,
+            'password': row['password'] as String? ?? 'superadmin123',
             'avatar': fullName.isNotEmpty ? fullName[0].toUpperCase() : 'A',
             'avatarPath': row['avatar_url'] as String?,
             'lastLogin': row['last_login_at'] != null ? 'Baru saja' : 'Belum pernah',
@@ -107,14 +49,13 @@ class AdminUserManagementBackend extends ChangeNotifier {
             'createdAt': (row['created_at'] as String?)?.split('T')[0] ?? '2024-01-01',
           };
         }).toList();
+      } else {
+        admins = [];
       }
     } catch (e) {
       debugPrint('[AdminUserManagementBackend] fetchAdmins error: $e');
       errorMessage = e.toString();
-      // Tetap gunakan fallback data default agar UI tidak kosong
-      if (admins.isEmpty) {
-        admins = List.from(_defaultAdmins);
-      }
+      admins = [];
     } finally {
       isLoading = false;
       notifyListeners();
@@ -176,14 +117,18 @@ class AdminUserManagementBackend extends ChangeNotifier {
 
     try {
       final roleDb = _mapRoleToDb(admin['role'] as String? ?? 'Admin Operasional');
-      await _client.from('admins').insert({
+      final inserted = await _client.from('admins').insert({
         'email': admin['email'] ?? 'admin@parksmart.id',
         'full_name': admin['name'] ?? 'Admin Baru',
         'phone': admin['phone'] ?? '-',
         'role': roleDb,
         'division': admin['role'] ?? 'Operasional',
         'status': admin['status'] == 'Aktif' ? 'active' : 'inactive',
-      });
+        'password': admin['password'] ?? 'superadmin123',
+      }).select().single();
+
+      admin['id'] = inserted['id']?.toString() ?? admin['id'];
+      notifyListeners();
       return true;
     } catch (e) {
       debugPrint('[AdminUserManagementBackend] addAdmin error: $e');
@@ -201,13 +146,17 @@ class AdminUserManagementBackend extends ChangeNotifier {
 
     try {
       final roleDb = _mapRoleToDb(updated['role'] as String? ?? 'Admin Operasional');
-      await _client.from('admins').update({
+      final Map<String, dynamic> updatePayload = {
         'full_name': updated['name'],
         'email': updated['email'],
         'phone': updated['phone'],
         'role': roleDb,
         'status': updated['status'] == 'Aktif' ? 'active' : 'inactive',
-      }).eq('id', id);
+      };
+      if (updated['password'] != null && updated['password'].toString().isNotEmpty) {
+        updatePayload['password'] = updated['password'];
+      }
+      await _client.from('admins').update(updatePayload).eq('id', id);
       return true;
     } catch (e) {
       debugPrint('[AdminUserManagementBackend] updateAdmin error: $e');

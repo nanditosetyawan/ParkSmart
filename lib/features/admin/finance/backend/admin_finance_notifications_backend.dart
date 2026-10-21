@@ -17,57 +17,43 @@ class AdminFinanceNotificationsBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<FinanceNotificationItem> _defaultNotifications = [
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-001',
-      title: 'Injeksi Saldo Berhasil • Rp 250.000',
-      userName: 'Budi Santoso',
-      userId: 'usr-001',
-      amount: 'Rp 250.000',
-      description:
-          'Saldo sebesar Rp 250.000 berhasil dikreditkan ke dompet akun Budi Santoso (usr-001). Buku kas dompet telah terupdate.',
-      status: 'Berhasil',
-      time: '12 mnt lalu',
-      isRead: false,
-    ),
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-002',
-      title: 'Injeksi Saldo Gagal • Rp 500.000',
-      userName: 'Andi Wijaya',
-      userId: 'usr-002',
-      amount: 'Rp 500.000',
-      description:
-          'Gagal melakukan top-up manual untuk akun Andi Wijaya (usr-002). Akun sedang dalam peninjauan verifikasi keamanan KYC.',
-      status: 'Gagal',
-      time: '45 mnt lalu',
-      isRead: false,
-    ),
-    FinanceNotificationItem(
-      id: 'NOTIF-INJ-003',
-      title: 'Injeksi Saldo Berhasil • Rp 100.000',
-      userName: 'Siti Rahayu',
-      userId: 'usr-003',
-      amount: 'Rp 100.000',
-      description:
-          'Kompensasi kendala sensor barcode gateway gate out berhasil dikreditkan ke dompet Siti Rahayu (usr-003).',
-      status: 'Berhasil',
-      time: '2 jam lalu',
-      isRead: true,
-    ),
-  ];
+  List<FinanceNotificationItem> notifications = [];
 
-  late List<FinanceNotificationItem> notifications = List.from(_defaultNotifications);
+  String _formatTimeAgo(dynamic raw) {
+    if (raw == null) return 'Baru saja';
+    try {
+      final dt = DateTime.parse(raw.toString()).toLocal();
+      final diff = DateTime.now().difference(dt);
+      if (diff.inMinutes < 1) return 'Baru saja';
+      if (diff.inMinutes < 60) return '${diff.inMinutes} mnt lalu';
+      if (diff.inHours < 24) return '${diff.inHours} jam lalu';
+      return '${diff.inDays} hari lalu';
+    } catch (_) {
+      return 'Baru saja';
+    }
+  }
 
   /// Mengambil notifikasi finansial dari Supabase
   Future<void> fetchNotifications() async {
     _isLoading = true;
     _errorMessage = null;
+    notifications = []; // Selalu reset daftar saat memulai pembaruan
     notifyListeners();
 
     try {
       final res = await _client
           .from('system_notifications')
-          .select('id, title, message, notification_type, is_read, created_at')
+          .select('''
+            id,
+            title,
+            message,
+            notification_type,
+            action_type,
+            is_read,
+            created_at,
+            recipient_user_id,
+            users:recipient_user_id(full_name)
+          ''')
           .inFilter('target_role', ['all', 'finance'])
           .order('created_at', ascending: false);
 
@@ -77,25 +63,39 @@ class AdminFinanceNotificationsBackend extends ChangeNotifier {
           final nType = row['notification_type']?.toString().toLowerCase();
           final isFail = nType == 'error' || nType == 'failed';
 
+          final userData = row['users'] as Map<String, dynamic>?;
+          final userName = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
+          final String rawUserId = row['recipient_user_id']?.toString() ?? '';
+          final userId = rawUserId.length >= 8
+              ? 'usr-${rawUserId.substring(0, 8)}'
+              : 'usr-000';
+
+          final msg = row['message']?.toString() ?? '-';
+          final title = row['title']?.toString() ?? 'Injeksi Saldo Dompet';
+
+          // Ekstrak nominal jika ada
+          final match = RegExp(r'Rp\s?[\d.,]+').firstMatch('$title $msg');
+          final amount = match?.group(0) ?? 'Rp 0';
+
           return FinanceNotificationItem(
             id: row['id']?.toString() ?? 'NOTIF-000',
-            title: row['title']?.toString() ?? 'Pemberitahuan Finansial',
-            userName: 'Pengguna Terkait',
-            userId: 'usr-000',
-            amount: 'Rp 100.000',
-            description: row['message']?.toString() ?? '-',
+            title: title,
+            userName: userName,
+            userId: userId,
+            amount: amount,
+            description: msg,
             status: isFail ? 'Gagal' : 'Berhasil',
-            time: 'Baru saja',
+            time: _formatTimeAgo(row['created_at']),
             isRead: isRead,
           );
         }).toList();
+      } else {
+        notifications = [];
       }
     } catch (e) {
       debugPrint('[AdminFinanceNotificationsBackend] fetchNotifications error: $e');
       _errorMessage = e.toString();
-      if (notifications.isEmpty) {
-        notifications = List.from(_defaultNotifications);
-      }
+      notifications = [];
     } finally {
       _isLoading = false;
       notifyListeners();

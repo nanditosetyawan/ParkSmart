@@ -17,46 +17,7 @@ class AdminOperationsNotificationsBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<OperationNotificationItem> _defaultNotifications = [
-    OperationNotificationItem(
-      id: 'NOTIF-OP-001',
-      title: 'Peringatan Overstay: 3 Kendaraan Melebihi Batas',
-      description: 'Central Park Mall (Basement B2). Kendaraan B 1234 ABC telah parkir > 8 jam melampaui batas toleransi tiket.',
-      time: '2 mnt lalu',
-      category: 'Kritis',
-      icon: Icons.warning_amber_rounded,
-      iconColor: const Color(0xFFD94B4B),
-      bgColor: const Color(0xFFFDE8E8),
-      actionLabel: 'Tinjau Sesi Parkir',
-      actionTarget: 'active_users',
-    ),
-    OperationNotificationItem(
-      id: 'NOTIF-OP-002',
-      title: 'Sensor IoT Slot Offline: 2 Sensor Lantai B1',
-      description: 'Grand Indonesia. Sensor slot B-14 dan B-15 tidak merespons ping gateway LoRaWAN selama 15 menit.',
-      time: '18 mnt lalu',
-      category: 'Perangkat',
-      icon: Icons.sensors_off_rounded,
-      iconColor: const Color(0xFFE07A5F),
-      bgColor: const Color(0xFFFBF0EA),
-      actionLabel: 'Cek Denah Slot',
-      actionTarget: 'slot_mgmt',
-    ),
-    OperationNotificationItem(
-      id: 'NOTIF-OP-003',
-      title: 'Kapasitas Kritis: Pacific Place 95% Penuh',
-      description: 'Pacific Place SCBD mencapai 190/200 slot terisi. Rekomendasikan pengalihan lalu lintas masuk ke lokasi cadangan.',
-      time: '45 mnt lalu',
-      category: 'Kapasitas',
-      icon: Icons.local_parking_rounded,
-      iconColor: const Color(0xFF17A18A),
-      bgColor: const Color(0xFFE8F6F4),
-      actionLabel: 'Atur Lokasi',
-      actionTarget: 'locations',
-    ),
-  ];
-
-  late List<OperationNotificationItem> notifications = List.from(_defaultNotifications);
+  late List<OperationNotificationItem> notifications = [];
 
   /// Mengambil notifikasi operasional dari Supabase
   Future<void> fetchNotifications() async {
@@ -107,13 +68,12 @@ class AdminOperationsNotificationsBackend extends ChangeNotifier {
             isRead: isRead,
           );
         }).toList();
+      } else {
+        notifications = [];
       }
     } catch (e) {
       debugPrint('[AdminOperationsNotificationsBackend] fetchNotifications error: $e');
       _errorMessage = e.toString();
-      if (notifications.isEmpty) {
-        notifications = List.from(_defaultNotifications);
-      }
     } finally {
       _isLoading = false;
       notifyListeners();

@@ -23,12 +23,17 @@ import '../home/home_screen.dart';
 import '../auth/register_screen.dart';
 import '../auth/forgot_password_screen.dart';
 import '../admin/super_admin/admin_dashboard_screen.dart';
+import '../admin/operations/admin_operations_dashboard_screen.dart';
+import '../admin/finance/admin_finance_dashboard_screen.dart';
+import '../admin/cs/admin_cs_dashboard_screen.dart';
 import '../profile/backend/profile_backend.dart';
 import '../../core/services/client_info_service.dart';
+import '../../core/services/session_service.dart';
 
 class LoginScreen extends StatefulWidget {
   final String? initialEmail;
-  const LoginScreen({super.key, this.initialEmail});
+  final bool sessionExpired;
+  const LoginScreen({super.key, this.initialEmail, this.sessionExpired = false});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -44,7 +49,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   final TextEditingController _passwordController = TextEditingController();
 
   // Admin Portal State
-  final TextEditingController _adminUsernameController = TextEditingController();
+  final TextEditingController _adminEmailController = TextEditingController();
   final TextEditingController _adminPasswordController = TextEditingController();
   bool _adminObscure = true;
   bool _showAdminPortal = false;
@@ -68,6 +73,37 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       _emailController.text = widget.initialEmail!;
     }
     _loadSavedCredentials();
+
+    if (widget.sessionExpired || SessionService.instance.consumeSessionExpiredOnStartup()) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Row(
+                children: [
+                  const Icon(Icons.timer_off_outlined, color: Colors.white, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Sesi Anda berakhir otomatis (tidak ada aktivitas > 30 menit). Demi keamanan, silakan masuk kembali.',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              backgroundColor: const Color(0xFFC05621),
+              behavior: SnackBarBehavior.floating,
+              duration: const Duration(seconds: 5),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+          );
+        }
+      });
+    }
 
     // Pastikan bilah status dan navigasi sistem tetap terlihat
     SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
@@ -97,7 +133,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     _scrollController.dispose();
     _emailController.dispose();
     _passwordController.dispose();
-    _adminUsernameController.dispose();
+    _adminEmailController.dispose();
     _adminPasswordController.dispose();
     super.dispose();
   }
@@ -146,6 +182,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         if (_remember) {
           await _saveCredentials();
         }
+        await SessionService.instance.startSession(
+          userType: 'user',
+          identifier: _emailController.text.isNotEmpty ? _emailController.text : 'user@parksmart.id',
+          userName: 'Pengguna',
+        );
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -254,6 +295,12 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         await _clearCredentials();
       }
 
+      await SessionService.instance.startSession(
+        userType: 'user',
+        identifier: response['email'] ?? email,
+        userName: response['full_name'] ?? 'Pengguna',
+      );
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -280,6 +327,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           walletBalance: 0,
         );
         if (_remember) await _saveCredentials();
+        await SessionService.instance.startSession(
+          userType: 'user',
+          identifier: 'jokowi.dodo@gmail.com',
+          userName: 'Jokowi Dodo',
+        );
         if (mounted) {
           Navigator.pushReplacement(
             context,
@@ -302,13 +354,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
   }
 
   Future<void> _handleAdminLogin() async {
-    final username = _adminUsernameController.text.trim();
+    final email = _adminEmailController.text.trim();
     final password = _adminPasswordController.text;
 
-    if (username.isEmpty || password.isEmpty) {
+    if (email.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('Silakan masukkan username dan password admin.'),
+          content: Text('Silakan masukkan email dan password admin.'),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -319,10 +371,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
     try {
       dynamic query = Supabase.instance.client.from('admins').select();
-      if (username.toLowerCase() == 'superadmin') {
+      if (email.toLowerCase() == 'superadmin@parksmart.id' || email.toLowerCase() == 'superadmin') {
         query = query.eq('email', 'superadmin@parksmart.id');
       } else {
-        query = query.or('email.ilike.$username,full_name.ilike.$username');
+        query = query.or('email.ilike.$email,email.ilike.$email@parksmart.id');
       }
 
       final response = await query.maybeSingle();
@@ -331,21 +383,45 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       String adminName = 'Gibran Widodo';
       String adminEmail = 'superadmin@parksmart.id';
       String role = 'Super Admin';
+      String rawRole = 'super_admin';
 
       if (response != null) {
+        if (response['status'] == 'inactive') {
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Akun admin ini dinonaktifkan atau dibekukan.'),
+                backgroundColor: Colors.redAccent,
+              ),
+            );
+          }
+          return;
+        }
+
         final dbPassword = response['password']?.toString() ?? 'superadmin123';
         if (password == dbPassword || password == 'superadmin123') {
           isValid = true;
           adminName = response['full_name'] ?? adminName;
           adminEmail = response['email'] ?? adminEmail;
-          role = (response['role'] == 'super_admin') ? 'Super Admin' : (response['role']?.toString() ?? 'Admin');
+          rawRole = response['role']?.toString().toLowerCase() ?? 'super_admin';
+          if (rawRole == 'super_admin' || rawRole == 'superadmin') {
+            role = 'Super Admin';
+          } else if (rawRole == 'operational' || rawRole == 'ops') {
+            role = 'Admin Operasional';
+          } else if (rawRole == 'finance') {
+            role = 'Admin Finansial';
+          } else if (rawRole == 'cs' || rawRole == 'support') {
+            role = 'Admin CS & KYC';
+          } else {
+            role = response['role']?.toString() ?? 'Admin';
+          }
         }
       } else {
-        if ((username.toLowerCase() == 'superadmin' ||
-             username.toLowerCase() == 'superadmin@parksmart.id' ||
-             username.toLowerCase() == 'gibran widodo') &&
+        if ((email.toLowerCase() == 'superadmin@parksmart.id' ||
+             email.toLowerCase() == 'superadmin') &&
             password == 'superadmin123') {
           isValid = true;
+          rawRole = 'super_admin';
         }
       }
 
@@ -353,13 +429,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Username atau kata sandi Super Admin salah.'),
+              content: Text('Email atau kata sandi Admin salah.'),
               backgroundColor: Colors.redAccent,
             ),
           );
         }
         return;
       }
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('current_admin_name', adminName);
+        await prefs.setString('current_admin_email', adminEmail);
+        await prefs.setString('current_admin_role', role);
+        if (rawRole == 'super_admin' || rawRole == 'superadmin') {
+          await prefs.setString('super_admin_name', adminName);
+        }
+      } catch (_) {}
+
+      await SessionService.instance.startSession(
+        userType: 'admin',
+        identifier: adminEmail,
+        userName: adminName,
+        adminRole: role,
+      );
 
       ClientInfoService.instance.recordAdminLogin(
         adminName: adminName,
@@ -368,24 +461,49 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         action: 'Login berhasil (Portal Otentikasi)',
       );
 
+      Widget targetDashboard;
+      if (rawRole == 'operational' || rawRole == 'ops') {
+        targetDashboard = const AdminOperationsDashboardScreen();
+      } else if (rawRole == 'finance') {
+        targetDashboard = const AdminFinanceDashboardScreen();
+      } else if (rawRole == 'cs' || rawRole == 'support') {
+        targetDashboard = const AdminCsDashboardScreen();
+      } else {
+        targetDashboard = const AdminDashboardScreen();
+      }
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Akses diterima. Selamat bertugas, $adminName!'),
+            content: Text('Akses diterima ($role). Selamat bertugas, $adminName!'),
             backgroundColor: const Color(0xFF0D9488),
             duration: const Duration(seconds: 2),
           ),
         );
         Navigator.pushReplacement(
           context,
-          MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
+          MaterialPageRoute(builder: (_) => targetDashboard),
         );
       }
     } catch (e) {
-      if ((username.toLowerCase() == 'superadmin' ||
-           username.toLowerCase() == 'superadmin@parksmart.id' ||
-           username.toLowerCase() == 'gibran widodo') &&
+      if ((email.toLowerCase() == 'superadmin@parksmart.id' ||
+           email.toLowerCase() == 'superadmin') &&
           password == 'superadmin123') {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          await prefs.setString('current_admin_name', 'Gibran Widodo');
+          await prefs.setString('current_admin_email', 'superadmin@parksmart.id');
+          await prefs.setString('current_admin_role', 'Super Admin');
+          await prefs.setString('super_admin_name', 'Gibran Widodo');
+        } catch (_) {}
+
+        await SessionService.instance.startSession(
+          userType: 'admin',
+          identifier: 'superadmin@parksmart.id',
+          userName: 'Gibran Widodo',
+          adminRole: 'Super Admin',
+        );
+
         ClientInfoService.instance.recordAdminLogin(
           adminName: 'Gibran Widodo',
           adminEmail: 'superadmin@parksmart.id',
@@ -829,6 +947,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             if (_remember) {
                                               await _saveCredentials();
                                             }
+                                            await SessionService.instance.startSession(
+                                              userType: 'user',
+                                              identifier: _emailController.text.isNotEmpty ? _emailController.text : 'user@parksmart.id',
+                                              userName: 'Pengguna',
+                                            );
                                             if (context.mounted) {
                                               Navigator.pushReplacement(
                                                 context,
@@ -1027,14 +1150,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                               padding: const EdgeInsets.symmetric(horizontal: 16),
                               child: Row(
                                 children: [
-                                  const Icon(Icons.person_outline, size: 19, color: Color(0xFF64748B)),
+                                  const Icon(Icons.email_outlined, size: 19, color: Color(0xFF64748B)),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: TextField(
-                                      controller: _adminUsernameController,
+                                      controller: _adminEmailController,
+                                      keyboardType: TextInputType.emailAddress,
                                       style: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF0F172A)),
                                       decoration: InputDecoration(
-                                        hintText: 'Username',
+                                        hintText: 'Email',
                                         hintStyle: GoogleFonts.inter(fontSize: 14, color: const Color(0xFF94A3B8)),
                                         border: InputBorder.none,
                                         enabledBorder: InputBorder.none,

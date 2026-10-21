@@ -19,6 +19,15 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
   DateTimeRange? _dateRange;
 
   final List<String> _statusFilters = ['Semua', 'Berhasil', 'Pending', 'Gagal', 'Dibatalkan'];
+  final List<String> _typeFilters = [
+    'Semua',
+    'Parkir',
+    'Top-up Wallet',
+    'Penalti Overstay',
+    'Refund',
+    'Cashback',
+    'Injeksi Admin',
+  ];
 
   List<Map<String, dynamic>> get _transactions =>
       AdminTransactionsBackend.instance.transactions;
@@ -29,14 +38,17 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
     AdminTransactionsBackend.instance.fetchTransactions();
   }
 
-
   @override
   void dispose() {
     _searchController.dispose();
     super.dispose();
   }
 
-  bool _isIncome(String type) => type == 'Parkir' || type == 'Top-up Wallet' || type == 'Penalty';
+  bool _isIncome(String type) =>
+      type == 'Parkir' ||
+      type == 'Top-up Wallet' ||
+      type == 'Penalty' ||
+      type == 'Penalti Overstay';
 
   List<Map<String, dynamic>> get _filteredTransactions {
     final q = _searchController.text.toLowerCase();
@@ -50,18 +62,22 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       if (!matchesSearch) return false;
 
       final matchesType = _selectedTypeFilter == 'Semua' || t['type'] == _selectedTypeFilter;
-      final matchesStatus = _selectedStatusFilter == 'Semua' || t['status'] == _selectedStatusFilter;
+      final matchesStatus = _selectedStatusFilter == 'Semua' ||
+          t['status'] == _selectedStatusFilter ||
+          (_selectedStatusFilter == 'Dibatalkan' && (t['status'] == 'Dibatalkan' || t['status'] == 'Refunded'));
 
       if (_selectedDirectionFilter == 'Masuk' && !_isIncome(t['type'])) return false;
       if (_selectedDirectionFilter == 'Keluar' && _isIncome(t['type'])) return false;
 
       if (_dateRange != null) {
-        try {
-          final created = DateTime.parse(t['createdAt']);
-          if (created.isBefore(_dateRange!.start) || created.isAfter(_dateRange!.end.add(const Duration(days: 1)))) {
+        final raw = t['rawDate'] is DateTime ? t['rawDate'] as DateTime : DateTime.tryParse(t['rawDate']?.toString() ?? '');
+        if (raw != null) {
+          final startDate = DateTime(_dateRange!.start.year, _dateRange!.start.month, _dateRange!.start.day);
+          final endDate = DateTime(_dateRange!.end.year, _dateRange!.end.month, _dateRange!.end.day, 23, 59, 59);
+          if (raw.isBefore(startDate) || raw.isAfter(endDate)) {
             return false;
           }
-        } catch (_) {}
+        }
       }
 
       return matchesType && matchesStatus;
@@ -96,6 +112,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       case 'Cashback':
         return const Color(0xFFE5A33D);
       case 'Penalty':
+      case 'Penalti Overstay':
         return const Color(0xFFD94B4B);
       case 'Injeksi Admin':
         return const Color(0xFFE07A5F);
@@ -115,6 +132,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       case 'Cashback':
         return const Color(0xFFFEF3E2);
       case 'Penalty':
+      case 'Penalti Overstay':
         return const Color(0xFFFDE8E4);
       case 'Injeksi Admin':
         return const Color(0xFFFDECE7);
@@ -164,6 +182,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       case 'Cashback':
         return Icons.card_giftcard;
       case 'Penalty':
+      case 'Penalti Overstay':
         return Icons.warning_amber;
       case 'Injeksi Admin':
         return Icons.admin_panel_settings;
@@ -737,8 +756,24 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
               Text('Riwayat Transaksi Finansial Masuk & Keluar', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
             ],
           ),
-          actions: const [
-            SizedBox(width: 8),
+          actions: [
+            IconButton(
+              onPressed: () {
+                AdminTransactionsBackend.instance.fetchTransactions();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Memperbarui transaksi...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color(0xFF114177),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF114177)),
+              tooltip: 'Perbarui Transaksi',
+            ),
+            const SizedBox(width: 4),
           ],
         ),
         body: Column(
@@ -888,6 +923,16 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
                     ),
                     const SizedBox(width: 6),
 
+                    // Dropdown Tipe
+                    _buildFilterDropdown(
+                      label: _selectedTypeFilter == 'Semua' ? 'Tipe' : _selectedTypeFilter,
+                      icon: Icons.category_outlined,
+                      isActive: _selectedTypeFilter != 'Semua',
+                      items: _typeFilters,
+                      onSelected: (val) => setState(() => _selectedTypeFilter = val),
+                    ),
+                    const SizedBox(width: 6),
+
                     // Modern Styled Date Range Picker
                     GestureDetector(
                       onTap: _pickDateRange,
@@ -981,46 +1026,65 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
             // 3. KOTAK TABEL TRANSAKSI MASUK KELUAR
             // ==========================================
             Expanded(
-              child: txns.isEmpty
-                  ? Center(
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
+              child: RefreshIndicator(
+                onRefresh: () => AdminTransactionsBackend.instance.fetchTransactions(),
+                color: const Color(0xFF114177),
+                child: txns.isEmpty
+                    ? ListView(
+                        physics: const AlwaysScrollableScrollPhysics(),
                         children: [
-                          Container(
-                            width: 60,
-                            height: 60,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFFF3F4F6),
-                              borderRadius: BorderRadius.circular(16),
+                          SizedBox(height: MediaQuery.of(context).size.height * 0.15),
+                          Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Container(
+                                  width: 60,
+                                  height: 60,
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF3F4F6),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: const Icon(Icons.receipt_long_outlined, size: 30, color: Color(0xFF76777B)),
+                                ),
+                                const SizedBox(height: 12),
+                                Text(
+                                  _hasActiveFilters ? 'Tidak ada transaksi ditemukan' : 'Belum Ada Transaksi Finansial',
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  _hasActiveFilters
+                                      ? 'Coba ubah kata kunci atau reset filter'
+                                      : 'Database riwayat transaksi saat ini masih kosong',
+                                  style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
+                                ),
+                                if (_hasActiveFilters) ...[
+                                  const SizedBox(height: 12),
+                                  ElevatedButton(
+                                    onPressed: _resetAllFilters,
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: const Color(0xFF114177),
+                                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                                      elevation: 0,
+                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                                    ),
+                                    child: Text('Reset Semua Filter', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
+                                  ),
+                                ],
+                              ],
                             ),
-                            child: const Icon(Icons.receipt_long_outlined, size: 30, color: Color(0xFF76777B)),
                           ),
-                          const SizedBox(height: 12),
-                          Text('Tidak ada transaksi ditemukan', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                          const SizedBox(height: 4),
-                          Text('Coba ubah kata kunci atau reset filter', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                          if (_hasActiveFilters) ...[
-                            const SizedBox(height: 12),
-                            ElevatedButton(
-                              onPressed: _resetAllFilters,
-                              style: ElevatedButton.styleFrom(
-                                backgroundColor: const Color(0xFF114177),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
-                                elevation: 0,
-                                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                              ),
-                              child: Text('Reset Semua Filter', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: Colors.white, fontWeight: FontWeight.bold)),
-                            ),
-                          ],
                         ],
+                      )
+                    : ListView.separated(
+                        physics: const AlwaysScrollableScrollPhysics(),
+                        padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
+                        itemCount: txns.length,
+                        separatorBuilder: (_, _) => const SizedBox(height: 10),
+                        itemBuilder: (_, i) => _buildTransactionCard(txns[i]),
                       ),
-                    )
-                  : ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(16, 4, 16, 20),
-                      itemCount: txns.length,
-                      separatorBuilder: (_, _) => const SizedBox(height: 10),
-                      itemBuilder: (_, i) => _buildTransactionCard(txns[i]),
-                    ),
+              ),
             ),
           ],
         ),

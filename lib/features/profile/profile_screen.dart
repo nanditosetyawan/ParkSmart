@@ -11,6 +11,7 @@ import 'payment_methods_screen.dart';
 import 'settings_screen.dart' as settings;
 import 'feedback_screen.dart' as feedback;
 
+import '../../core/services/session_service.dart';
 import 'edit_profile_screen.dart' as edit_profile;
 import 'backend/profile_backend.dart';
 
@@ -231,6 +232,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     width: double.infinity, height: 52,
                     child: TextButton(
                       onPressed: () {
+                        SessionService.instance.clearSession();
                         Navigator.pushAndRemoveUntil(
                           context,
                           MaterialPageRoute(builder: (context) => const auth.LoginScreen()),

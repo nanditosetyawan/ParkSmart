@@ -1,8 +1,10 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
+import '../../../../core/services/parking_image_service.dart';
 import 'backend/manage_parking_backend.dart';
 
 class ManageParkingScreen extends StatefulWidget {
@@ -32,7 +34,18 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
     _initFloorLayouts();
+    ManageParkingBackend.instance.addListener(_onBackendUpdated);
     ManageParkingBackend.instance.fetchLocations();
+  }
+
+  void _onBackendUpdated() {
+    if (mounted) {
+      setState(() {
+        if (_locations.isNotEmpty && !_locations.any((l) => l['id'] == _selectedLocationId)) {
+          _selectedLocationId = _locations.first['id'];
+        }
+      });
+    }
   }
 
   void _initFloorLayouts() {
@@ -88,12 +101,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
   @override
   void dispose() {
+    ManageParkingBackend.instance.removeListener(_onBackendUpdated);
     _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
 
-  Map<String, dynamic> get _activeLocation {
+  Map<String, dynamic>? get _activeLocation {
+    if (_locations.isEmpty) return null;
     return _locations.firstWhere(
       (l) => l['id'] == _selectedLocationId,
       orElse: () => _locations.first,
@@ -153,6 +168,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 ),
               ],
             ),
+            actions: [
+              IconButton(
+                icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF114177)),
+                tooltip: 'Segarkan',
+                onPressed: () => ManageParkingBackend.instance.fetchLocations(),
+              ),
+              const SizedBox(width: 8),
+            ],
             bottom: TabBar(
               controller: _tabController,
               labelColor: const Color(0xFF114177),
@@ -298,11 +321,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             ),
             child: Column(
               children: [
-                const Icon(Icons.search_off_rounded, size: 48, color: Color(0xFF9CA3AF)),
+                Icon(
+                  _searchQuery.isNotEmpty ? Icons.search_off_rounded : Icons.business_outlined,
+                  size: 48,
+                  color: const Color(0xFF9CA3AF),
+                ),
                 const SizedBox(height: 12),
-                Text('Tidak Ada Lokasi Ditemukan', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold)),
+                Text(
+                  _searchQuery.isNotEmpty ? 'Tidak Ada Lokasi Ditemukan' : 'Belum Ada Gedung Parkir',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                ),
                 const SizedBox(height: 4),
-                Text('Coba gunakan kata kunci pencarian atau filter yang berbeda.', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                Text(
+                  _searchQuery.isNotEmpty
+                      ? 'Coba gunakan kata kunci pencarian atau filter yang berbeda.'
+                      : 'Tekan tombol "Tambah Lokasi" di atas untuk menambahkan mitra gedung parkir pertama Anda.',
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(fontSize: 11.5, color: const Color(0xFF64748B)),
+                ),
               ],
             ),
           )
@@ -313,7 +349,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   }
 
   Widget _buildLocationCard(Map<String, dynamic> loc) {
-    final occupancy = loc['occupiedSlots'] / loc['totalSlots'];
+    final total = (loc['totalSlots'] is num && loc['totalSlots'] > 0) ? (loc['totalSlots'] as num).toInt() : 1;
+    final occupied = (loc['occupiedSlots'] is num) ? (loc['occupiedSlots'] as num).toInt() : 0;
+    final occupancy = (occupied / total).clamp(0.0, 1.0);
     final isFull = occupancy >= 0.9;
     final isEvReady = loc['isEvReady'] == true;
     final statusColor = loc['status'] == 'Padat'
@@ -564,6 +602,61 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   // ==================== TAB 2: DENAH LANTAI & DESAINER SLOT (SINKRON USER BOOKING) ====================
   Widget _buildFloorPlanDesignerTab() {
     final loc = _activeLocation;
+    if (loc == null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: const BoxDecoration(
+                  color: Color(0xFFEFF6FF),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(Icons.business_outlined, size: 40, color: Color(0xFF114177)),
+              ),
+              const SizedBox(height: 16),
+              Text(
+                'Belum Ada Gedung Parkir',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFF1A1A18),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Silakan tambahkan lokasi parkir pertama di tab "Daftar Lokasi & Tarif" terlebih dahulu untuk mendesain denah lantai & tata letak slot.',
+                textAlign: TextAlign.center,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: const Color(0xFF64748B),
+                  height: 1.4,
+                ),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: _showAddLocationDialog,
+                icon: const Icon(Icons.add_location_alt_rounded, size: 18, color: Colors.white),
+                label: Text(
+                  'Tambah Lokasi Sekarang',
+                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF114177),
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     final List<String> floors = List<String>.from(loc['floors'] ?? ['Lantai B1', 'Lantai B2']);
     if (_selectedFloorIndex >= floors.length) {
       _selectedFloorIndex = 0;
@@ -603,12 +696,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           ),
           child: DropdownButtonHideUnderline(
             child: DropdownButton<String>(
-              value: _selectedLocationId,
+              value: _locations.any((l) => l['id'] == _selectedLocationId)
+                  ? _selectedLocationId
+                  : loc['id']?.toString(),
               isExpanded: true,
               icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF114177), size: 24),
               items: _locations.map<DropdownMenuItem<String>>((l) {
                 return DropdownMenuItem<String>(
-                  value: l['id'],
+                  value: l['id']?.toString(),
                   child: Row(
                     children: [
                       const Icon(Icons.business, size: 18, color: Color(0xFF114177)),
@@ -998,10 +1093,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     bool isEvReady = true;
 
     final List<String> images = ['', '', '', ''];
+    final List<String> newlyUploadedUrls = [];
+    final Set<int> uploadingSlots = {};
     int primaryImageIndex = 0;
+    bool isSaving = false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1023,16 +1122,32 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   _buildImageSlotsSection(
                     images: images,
                     primaryImageIndex: primaryImageIndex,
+                    uploadingSlots: uploadingSlots,
                     onPrimaryChanged: (newIdx) {
                       setDialogState(() => primaryImageIndex = newIdx);
                     },
-                    onImageChanged: (slotIdx, newPath) {
+                    onImageUploaded: (slotIdx, newUrl) {
                       setDialogState(() {
-                        images[slotIdx] = newPath;
+                        images[slotIdx] = newUrl;
+                        newlyUploadedUrls.add(newUrl);
                         if (images[primaryImageIndex].isEmpty) {
                           primaryImageIndex = slotIdx;
                         }
                       });
+                    },
+                    onImageRemoved: (slotIdx) {
+                      final removed = images[slotIdx];
+                      setDialogState(() {
+                        images[slotIdx] = '';
+                        if (primaryImageIndex == slotIdx) {
+                          final next = images.indexWhere((img) => img.isNotEmpty);
+                          primaryImageIndex = next != -1 ? next : 0;
+                        }
+                      });
+                      if (removed.isNotEmpty && newlyUploadedUrls.contains(removed)) {
+                        newlyUploadedUrls.remove(removed);
+                        ParkingImageService.deleteLocationImage(removed);
+                      }
                     },
                     setDialogState: setDialogState,
                     dialogContext: ctx,
@@ -1090,12 +1205,18 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                if (newlyUploadedUrls.isNotEmpty) {
+                  ParkingImageService.deleteMultipleLocationImages(newlyUploadedUrls);
+                }
+                Navigator.pop(ctx);
+              },
               child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B))),
             ),
             ElevatedButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && slotsCtrl.text.isNotEmpty) {
+              onPressed: isSaving ? null : () async {
+                if (nameCtrl.text.trim().isNotEmpty && slotsCtrl.text.trim().isNotEmpty) {
+                  setDialogState(() => isSaving = true);
                   final List<String> finalImages = [];
                   if (primaryImageIndex < images.length && images[primaryImageIndex].isNotEmpty) {
                     finalImages.add(images[primaryImageIndex]);
@@ -1106,45 +1227,58 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     }
                   }
 
-                  final newId = 'loc_${_locations.length + 1}';
                   final newLoc = {
-                    'id': newId,
-                    'name': nameCtrl.text,
-                    'typeLabel': typeCtrl.text,
-                    'city': cityCtrl.text,
-                    'address': addressCtrl.text.isEmpty ? 'Alamat belum diatur' : addressCtrl.text,
+                    'name': nameCtrl.text.trim(),
+                    'typeLabel': typeCtrl.text.trim(),
+                    'city': cityCtrl.text.trim(),
+                    'address': addressCtrl.text.trim().isEmpty ? 'Alamat belum diatur' : addressCtrl.text.trim(),
                     'latitude': double.tryParse(latCtrl.text) ?? -6.1754,
                     'longitude': double.tryParse(longCtrl.text) ?? 106.7933,
                     'totalSlots': int.tryParse(slotsCtrl.text) ?? 200,
-                    'occupiedSlots': 0,
-                    'status': 'Aktif',
-                    'floors': ['Lantai 1', 'Lantai 2'],
-                    'operatingHours': hoursCtrl.text,
+                    'operatingHours': hoursCtrl.text.trim().isEmpty ? '06:00 - 23:00' : hoursCtrl.text.trim(),
                     'baseRate': int.tryParse(baseRateCtrl.text) ?? 5000,
                     'evRate': int.tryParse(evRateCtrl.text) ?? 7500,
                     'motorRate': int.tryParse(motorRateCtrl.text) ?? 2000,
                     'isEvReady': isEvReady,
-                    'description': descCtrl.text,
-                    'checkinRadius': 100,
+                    'description': descCtrl.text.trim(),
                     'images': finalImages,
                   };
 
-                  setState(() {
-                    _locations.insert(0, newLoc);
-                    _selectedLocationId = newId;
-                  });
+                  final messenger = ScaffoldMessenger.of(context);
+                  final ok = await ManageParkingBackend.instance.addParkingLocation(newLoc);
+                  setDialogState(() => isSaving = false);
 
-                  Navigator.pop(ctx);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (ok) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF17A18A),
+                        content: Text('Lokasi "${newLoc['name']}" berhasil disimpan ke Supabase!'),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: Colors.redAccent,
+                        content: Text('Gagal menyimpan: ${ManageParkingBackend.instance.errorMessage ?? "Error"}'),
+                      ),
+                    );
+                  }
+                } else {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: const Color(0xFF17A18A),
-                      content: Text('Lokasi "${nameCtrl.text}" berhasil disimpan dan muncul di peta!'),
+                    const SnackBar(
+                      content: Text('Nama gedung dan kapasitas slot wajib diisi!'),
                     ),
                   );
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: Text('Simpan Lokasi', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF114177),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: isSaving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Simpan Lokasi', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1171,10 +1305,15 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
 
     final List<String> existingImages = (loc['images'] as List?)?.map((e) => e.toString()).toList() ?? [];
     final List<String> images = List.generate(4, (i) => i < existingImages.length ? existingImages[i] : '');
+    final Set<String> pendingDeleteUrls = {}; // File lama yang disilang (akan diquery hapus saat simpan)
+    final List<String> newlyUploadedUrls = []; // File baru yang diupload selama dialog
+    final Set<int> uploadingSlots = {};
     int primaryImageIndex = 0;
+    bool isSaving = false;
 
     showDialog(
       context: context,
+      barrierDismissible: false,
       builder: (ctx) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
@@ -1204,14 +1343,36 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   _buildImageSlotsSection(
                     images: images,
                     primaryImageIndex: primaryImageIndex,
+                    uploadingSlots: uploadingSlots,
                     onPrimaryChanged: (newIdx) {
                       setDialogState(() => primaryImageIndex = newIdx);
                     },
-                    onImageChanged: (slotIdx, newPath) {
+                    onImageUploaded: (slotIdx, newUrl) {
                       setDialogState(() {
-                        images[slotIdx] = newPath;
+                        images[slotIdx] = newUrl;
+                        newlyUploadedUrls.add(newUrl);
                         if (images[primaryImageIndex].isEmpty) {
                           primaryImageIndex = slotIdx;
+                        }
+                      });
+                    },
+                    onImageRemoved: (slotIdx) {
+                      final removed = images[slotIdx];
+                      setDialogState(() {
+                        images[slotIdx] = '';
+                        if (removed.isNotEmpty) {
+                          if (newlyUploadedUrls.contains(removed)) {
+                            // File baru diupload pada sesi dialog ini -> langsung hapus dari storage
+                            newlyUploadedUrls.remove(removed);
+                            ParkingImageService.deleteLocationImage(removed);
+                          } else {
+                            // File lama yang tersimpan di storage -> tandai untuk dihapus saat simpan ditekan
+                            pendingDeleteUrls.add(removed);
+                          }
+                        }
+                        if (primaryImageIndex == slotIdx) {
+                          final next = images.indexWhere((img) => img.isNotEmpty);
+                          primaryImageIndex = next != -1 ? next : 0;
                         }
                       });
                     },
@@ -1290,13 +1451,52 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
             ),
           ),
           actions: [
+            TextButton.icon(
+              onPressed: () async {
+                final messenger = ScaffoldMessenger.of(context);
+                final confirm = await showDialog<bool>(
+                  context: ctx,
+                  builder: (dCtx) => AlertDialog(
+                    title: const Text('Hapus Lokasi Parkir?'),
+                    content: Text('Lokasi "${loc['name']}" dan seluruh foto terkait di Supabase Storage akan dihapus secara permanen.'),
+                    actions: [
+                      TextButton(onPressed: () => Navigator.pop(dCtx, false), child: const Text('Batal')),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(dCtx, true),
+                        style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFFD94B4B)),
+                        child: const Text('Hapus Permanen', style: TextStyle(color: Colors.white)),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  final allImages = List<String>.from(loc['images'] ?? []);
+                  await ManageParkingBackend.instance.deleteParkingLocation(loc['id'], imagesToDelete: allImages);
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  messenger.showSnackBar(
+                    SnackBar(
+                      backgroundColor: const Color(0xFF17A18A),
+                      content: Text('Lokasi "${loc['name']}" dan fotonya berhasil dihapus!'),
+                    ),
+                  );
+                }
+              },
+              icon: const Icon(Icons.delete_outline, color: Color(0xFFD94B4B), size: 16),
+              label: Text('Hapus', style: GoogleFonts.plusJakartaSans(color: const Color(0xFFD94B4B), fontSize: 12, fontWeight: FontWeight.bold)),
+            ),
             TextButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () {
+                if (newlyUploadedUrls.isNotEmpty) {
+                  ParkingImageService.deleteMultipleLocationImages(newlyUploadedUrls);
+                }
+                Navigator.pop(ctx);
+              },
               child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B))),
             ),
             ElevatedButton(
-              onPressed: () {
-                if (nameCtrl.text.isNotEmpty && slotsCtrl.text.isNotEmpty) {
+              onPressed: isSaving ? null : () async {
+                if (nameCtrl.text.trim().isNotEmpty && slotsCtrl.text.trim().isNotEmpty) {
+                  setDialogState(() => isSaving = true);
                   final List<String> finalImages = [];
                   if (primaryImageIndex < images.length && images[primaryImageIndex].isNotEmpty) {
                     finalImages.add(images[primaryImageIndex]);
@@ -1307,35 +1507,62 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     }
                   }
 
-                  setState(() {
-                    loc['name'] = nameCtrl.text;
-                    loc['typeLabel'] = typeCtrl.text;
-                    loc['city'] = cityCtrl.text;
-                    loc['address'] = addressCtrl.text;
-                    loc['latitude'] = double.tryParse(latCtrl.text) ?? loc['latitude'];
-                    loc['longitude'] = double.tryParse(longCtrl.text) ?? loc['longitude'];
-                    loc['totalSlots'] = int.tryParse(slotsCtrl.text) ?? loc['totalSlots'];
-                    loc['baseRate'] = int.tryParse(baseRateCtrl.text) ?? loc['baseRate'];
-                    loc['evRate'] = int.tryParse(evRateCtrl.text) ?? loc['evRate'];
-                    loc['motorRate'] = int.tryParse(motorRateCtrl.text) ?? loc['motorRate'];
-                    loc['operatingHours'] = hoursCtrl.text;
-                    loc['description'] = descCtrl.text;
-                    loc['status'] = status;
-                    loc['isEvReady'] = isEvReady;
-                    loc['images'] = finalImages;
-                  });
+                  final updateData = {
+                    'name': nameCtrl.text.trim(),
+                    'typeLabel': typeCtrl.text.trim(),
+                    'city': cityCtrl.text.trim(),
+                    'address': addressCtrl.text.trim(),
+                    'latitude': double.tryParse(latCtrl.text) ?? loc['latitude'],
+                    'longitude': double.tryParse(longCtrl.text) ?? loc['longitude'],
+                    'totalSlots': int.tryParse(slotsCtrl.text) ?? loc['totalSlots'],
+                    'baseRate': int.tryParse(baseRateCtrl.text) ?? loc['baseRate'],
+                    'evRate': int.tryParse(evRateCtrl.text) ?? loc['evRate'],
+                    'motorRate': int.tryParse(motorRateCtrl.text) ?? loc['motorRate'],
+                    'operatingHours': hoursCtrl.text.trim(),
+                    'description': descCtrl.text.trim(),
+                    'status': status,
+                    'isEvReady': isEvReady,
+                    'images': finalImages,
+                  };
 
-                  Navigator.pop(ctx);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      backgroundColor: const Color(0xFF17A18A),
-                      content: Text('Lokasi "${nameCtrl.text}" berhasil diperbarui!'),
-                    ),
+                  final messenger = ScaffoldMessenger.of(context);
+                  // Eksekusi query hapus foto-foto sampah dari Supabase Storage & update database
+                  final ok = await ManageParkingBackend.instance.updateParkingLocationFull(
+                    loc['id'],
+                    updateData,
+                    deletedImageUrls: pendingDeleteUrls.toList(),
                   );
+                  setDialogState(() => isSaving = false);
+
+                  if (ctx.mounted) Navigator.pop(ctx);
+                  if (ok) {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: const Color(0xFF17A18A),
+                        content: Text(
+                          pendingDeleteUrls.isNotEmpty
+                              ? 'Lokasi "${nameCtrl.text}" diperbarui & ${pendingDeleteUrls.length} foto sampah berhasil dibersihkan dari Storage!'
+                              : 'Lokasi "${nameCtrl.text}" berhasil diperbarui!',
+                        ),
+                      ),
+                    );
+                  } else {
+                    messenger.showSnackBar(
+                      SnackBar(
+                        backgroundColor: Colors.redAccent,
+                        content: Text('Gagal memperbarui: ${ManageParkingBackend.instance.errorMessage ?? "Error"}'),
+                      ),
+                    );
+                  }
                 }
               },
-              style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF114177), shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
-              child: Text('Simpan Perubahan', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF114177),
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+              ),
+              child: isSaving
+                  ? const SizedBox(width: 18, height: 18, child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white))
+                  : Text('Simpan Perubahan', style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.bold)),
             ),
           ],
         ),
@@ -1556,7 +1783,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     if (pathOrUrl.isEmpty) {
       return const Icon(Icons.image_outlined, color: Color(0xFF94A3B8), size: 24);
     }
-    if (pathOrUrl.startsWith('http://') || pathOrUrl.startsWith('https://')) {
+    if (pathOrUrl.startsWith('http://') ||
+        pathOrUrl.startsWith('https://') ||
+        pathOrUrl.startsWith('blob:')) {
       return Image.network(
         pathOrUrl,
         fit: BoxFit.cover,
@@ -1565,20 +1794,27 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         ),
       );
     }
-    return Image.file(
-      File(pathOrUrl),
-      fit: BoxFit.cover,
-      errorBuilder: (context, error, stackTrace) => const Center(
-        child: Icon(Icons.image_rounded, color: Color(0xFF94A3B8), size: 22),
-      ),
+    if (!kIsWeb && File(pathOrUrl).existsSync()) {
+      return Image.file(
+        File(pathOrUrl),
+        fit: BoxFit.cover,
+        errorBuilder: (context, error, stackTrace) => const Center(
+          child: Icon(Icons.image_rounded, color: Color(0xFF94A3B8), size: 22),
+        ),
+      );
+    }
+    return const Center(
+      child: Icon(Icons.image_rounded, color: Color(0xFF94A3B8), size: 22),
     );
   }
 
   Widget _buildImageSlotsSection({
     required List<String> images,
     required int primaryImageIndex,
+    required Set<int> uploadingSlots,
     required ValueChanged<int> onPrimaryChanged,
-    required void Function(int, String) onImageChanged,
+    required void Function(int slotIdx, String newUrl) onImageUploaded,
+    required void Function(int slotIdx) onImageRemoved,
     required StateSetter setDialogState,
     required BuildContext dialogContext,
   }) {
@@ -1616,7 +1852,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         ),
         const SizedBox(height: 3),
         Text(
-          'Klik foto terisi untuk menjadikannya Foto Utama (sampul awal di pencarian/peta).',
+          'Foto akan dikompres otomatis & disimpan ke Supabase Storage. Klik foto terisi untuk menjadikannya Foto Utama.',
           style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF94A3B8)),
         ),
         const SizedBox(height: 8),
@@ -1624,19 +1860,35 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           children: List.generate(4, (index) {
             final hasImage = images[index].isNotEmpty;
             final isPrimary = primaryImageIndex == index && hasImage;
+            final isUploading = uploadingSlots.contains(index);
+
             return Expanded(
               child: Padding(
                 padding: EdgeInsets.only(right: index < 3 ? 8 : 0),
                 child: GestureDetector(
                   onTap: () {
+                    if (isUploading) return;
                     if (hasImage) {
                       // Click on uploaded photo -> highlight as primary!
                       onPrimaryChanged(index);
                     } else {
                       // Empty slot -> open picker
-                      _showImageSourcePicker(dialogContext, (selectedPath) {
-                        onImageChanged(index, selectedPath);
-                      });
+                      _showImageSourcePicker(
+                        dialogContext,
+                        index,
+                        onUploaded: (slotIdx, publicUrl) {
+                          onImageUploaded(slotIdx, publicUrl);
+                        },
+                        onUploadStateChanged: (slotIdx, uploading) {
+                          setDialogState(() {
+                            if (uploading) {
+                              uploadingSlots.add(slotIdx);
+                            } else {
+                              uploadingSlots.remove(slotIdx);
+                            }
+                          });
+                        },
+                      );
                     }
                   },
                   child: AnimatedContainer(
@@ -1668,7 +1920,27 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                       child: Stack(
                         fit: StackFit.expand,
                         children: [
-                          if (hasImage)
+                          if (isUploading)
+                            Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const SizedBox(
+                                  width: 18,
+                                  height: 18,
+                                  child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF114177)),
+                                ),
+                                const SizedBox(height: 5),
+                                Text(
+                                  'Kompres...',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 8.5,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF114177),
+                                  ),
+                                ),
+                              ],
+                            )
+                          else if (hasImage)
                             _buildThumbnail(images[index])
                           else
                             Column(
@@ -1688,7 +1960,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                             ),
 
                           // Highlight Badge: Foto Utama
-                          if (isPrimary)
+                          if (isPrimary && !isUploading)
                             Positioned(
                               top: 4,
                               left: 4,
@@ -1722,28 +1994,20 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                               ),
                             ),
 
-                          // Clear / Remove Button on top-right
-                          if (hasImage)
+                          // Clear / Remove Button on top-right (Klik Silang)
+                          if (hasImage && !isUploading)
                             Positioned(
                               top: 4,
                               right: 4,
                               child: GestureDetector(
-                                onTap: () {
-                                  setDialogState(() {
-                                    images[index] = '';
-                                    if (primaryImageIndex == index) {
-                                      final next = images.indexWhere((img) => img.isNotEmpty);
-                                      onPrimaryChanged(next != -1 ? next : 0);
-                                    }
-                                  });
-                                },
+                                onTap: () => onImageRemoved(index),
                                 child: Container(
                                   padding: const EdgeInsets.all(3),
                                   decoration: const BoxDecoration(
                                     color: Colors.black54,
                                     shape: BoxShape.circle,
                                   ),
-                                  child: const Icon(Icons.close, size: 10, color: Colors.white),
+                                  child: const Icon(Icons.close, size: 11, color: Colors.white),
                                 ),
                               ),
                             ),
@@ -1760,7 +2024,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     );
   }
 
-  void _showImageSourcePicker(BuildContext parentContext, Function(String) onPicked) {
+  void _showImageSourcePicker(
+    BuildContext parentContext,
+    int slotIndex, {
+    required Function(int slotIdx, String publicUrl) onUploaded,
+    required Function(int slotIdx, bool isUploading) onUploadStateChanged,
+  }) {
     showModalBottomSheet(
       context: parentContext,
       backgroundColor: Colors.white,
@@ -1776,8 +2045,8 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Pilih Sumber Foto',
-                    style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                    'Pilih Sumber Foto (Kompres & Simpan ke Supabase)',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
                   ),
                   IconButton(
                     onPressed: () => Navigator.pop(bCtx),
@@ -1793,17 +2062,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   child: const Icon(Icons.photo_library_rounded, color: Color(0xFF114177), size: 20),
                 ),
                 title: Text('Galeri Perangkat', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: Text('Pilih foto gedung dari media penyimpanan', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                subtitle: Text('Pilih foto, kompres resolusi, lalu simpan ke storage', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                 onTap: () async {
                   Navigator.pop(bCtx);
                   try {
                     final picker = ImagePicker();
                     final picked = await picker.pickImage(source: ImageSource.gallery);
                     if (picked != null) {
-                      onPicked(picked.path);
+                      onUploadStateChanged(slotIndex, true);
+                      final bytes = await picked.readAsBytes();
+                      final publicUrl = await ParkingImageService.uploadLocationImage(bytes);
+                      onUploadStateChanged(slotIndex, false);
+                      if (publicUrl != null) {
+                        onUploaded(slotIndex, publicUrl);
+                      }
                     }
                   } catch (e) {
-                    debugPrint('Gallery picker error: $e');
+                    onUploadStateChanged(slotIndex, false);
+                    debugPrint('Gallery picker/upload error: $e');
                   }
                 },
               ),
@@ -1814,17 +2090,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   child: const Icon(Icons.camera_alt_rounded, color: Color(0xFF17A18A), size: 20),
                 ),
                 title: Text('Ambil Foto Kamera', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold)),
-                subtitle: Text('Potret langsung tampak parkiran', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                subtitle: Text('Potret gedung parkir, kompres resolusi & simpan ke storage', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                 onTap: () async {
                   Navigator.pop(bCtx);
                   try {
                     final picker = ImagePicker();
                     final picked = await picker.pickImage(source: ImageSource.camera);
                     if (picked != null) {
-                      onPicked(picked.path);
+                      onUploadStateChanged(slotIndex, true);
+                      final bytes = await picked.readAsBytes();
+                      final publicUrl = await ParkingImageService.uploadLocationImage(bytes);
+                      onUploadStateChanged(slotIndex, false);
+                      if (publicUrl != null) {
+                        onUploaded(slotIndex, publicUrl);
+                      }
                     }
                   } catch (e) {
-                    debugPrint('Camera picker error: $e');
+                    onUploadStateChanged(slotIndex, false);
+                    debugPrint('Camera picker/upload error: $e');
                   }
                 },
               ),
@@ -1838,7 +2121,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 subtitle: Text('Pilihan foto HD gedung & fasilitas parkir siap pakai', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                 onTap: () {
                   Navigator.pop(bCtx);
-                  _showSampleImagesSelector(parentContext, onPicked);
+                  _showSampleImagesSelector(parentContext, (url) {
+                    onUploaded(slotIndex, url);
+                  });
                 },
               ),
             ],

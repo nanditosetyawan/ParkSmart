@@ -2,6 +2,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/admin_slot_management_backend.dart';
+import 'backend/admin_operations_dashboard_backend.dart';
 
 class SlotManagementScreen extends StatefulWidget {
   const SlotManagementScreen({super.key});
@@ -11,7 +12,7 @@ class SlotManagementScreen extends StatefulWidget {
 }
 
 class _SlotManagementScreenState extends State<SlotManagementScreen> {
-  String _selectedLocation = 'Central Park Mall';
+  String? _selectedLocation;
   int _selectedFloor = 0; // 0=B1, 1=B2, 2=Outdoor
 
   final List<String> _floors = ['Basement 1', 'Basement 2', 'Outdoor'];
@@ -231,24 +232,38 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: DropdownButtonHideUnderline(
-                    child: DropdownButton<String>(
-                      value: _selectedLocation,
-                      isExpanded: true,
-                      icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF1A1A18)),
-                      items: ['Central Park Mall', 'Grand Indonesia', 'Pacific Place SCBD', 'Malioboro Mall'].map((loc) {
-                        return DropdownMenuItem(
-                          value: loc,
-                          child: Row(
-                            children: [
-                              const Icon(Icons.location_on, size: 16, color: Color(0xFF114177)),
-                              const SizedBox(width: 8),
-                              Text(loc, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                            ],
-                          ),
+                    child: Builder(
+                      builder: (context) {
+                        final locationNames = AdminOperationsDashboardBackend.instance.locations
+                            .map((l) => (l['name'] as String?) ?? 'Lokasi')
+                            .toList();
+                        final effectiveLocationList = locationNames.isNotEmpty
+                            ? locationNames
+                            : ['Belum Ada Lokasi'];
+                        final currentVal = (effectiveLocationList.contains(_selectedLocation))
+                            ? _selectedLocation!
+                            : effectiveLocationList.first;
+
+                        return DropdownButton<String>(
+                          value: currentVal,
+                          isExpanded: true,
+                          icon: const Icon(Icons.keyboard_arrow_down, color: Color(0xFF1A1A18)),
+                          items: effectiveLocationList.map((loc) {
+                            return DropdownMenuItem(
+                              value: loc,
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_on, size: 16, color: Color(0xFF114177)),
+                                  const SizedBox(width: 8),
+                                  Text(loc, style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                ],
+                              ),
+                            );
+                          }).toList(),
+                          onChanged: (v) {
+                            if (v != null) setState(() => _selectedLocation = v);
+                          },
                         );
-                      }).toList(),
-                      onChanged: (v) {
-                        if (v != null) setState(() => _selectedLocation = v);
                       },
                     ),
                   ),
@@ -316,16 +331,47 @@ class _SlotManagementScreenState extends State<SlotManagementScreen> {
 
           // Slot Grid
           Expanded(
-            child: GridView.builder(
-              padding: const EdgeInsets.all(20),
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: 12,
-                mainAxisSpacing: 12,
-                childAspectRatio: 1.45,
-              ),
-              itemCount: _slots.length,
-              itemBuilder: (context, index) {
+            child: _slots.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Container(
+                            width: 60,
+                            height: 60,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF114177).withValues(alpha: 0.08),
+                              shape: BoxShape.circle,
+                            ),
+                            child: const Icon(Icons.grid_off_rounded, size: 30, color: Color(0xFF114177)),
+                          ),
+                          const SizedBox(height: 16),
+                          Text(
+                            'Belum Ada Slot Parkir',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            'Database slot fisik masih kosong.\nData slot akan muncul otomatis ketika slot didaftarkan.',
+                            textAlign: TextAlign.center,
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B), height: 1.4),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : GridView.builder(
+                    padding: const EdgeInsets.all(20),
+                    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: 1.45,
+                    ),
+                    itemCount: _slots.length,
+                    itemBuilder: (context, index) {
                 final slot = _slots[index];
                 final color = _getStatusColor(slot['status']);
                 final bg = _getStatusBg(slot['status']);

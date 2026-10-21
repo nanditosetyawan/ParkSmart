@@ -2,11 +2,14 @@ import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'admin_notifications_screen.dart';
 import 'admin_customer_profiles_screen.dart';
 import 'admin_feedback_screen.dart';
 import '../../sitemap_screen.dart';
 import '../../auth/login_screen.dart';
+import '../../../core/services/session_service.dart';
 import 'backend/admin_cs_dashboard_backend.dart';
 
 typedef AdminCsKycDashboardScreen = AdminCsDashboardScreen;
@@ -23,9 +26,15 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
 
   int _currentTabIndex = 0;
   int? _inspectedQuarterIndex;
+  String _adminName = 'Admin CS & Layanan';
+  String _adminEmail = 'cs@parksmart.id';
 
-  int get _activeQuarterIndex => (_inspectedQuarterIndex ?? AdminCsDashboardBackend.instance.latestQuarterIndex)
-      .clamp(0, AdminCsDashboardBackend.instance.userGrowthQuarterlyData.length - 1);
+  int get _activeQuarterIndex {
+    final list = AdminCsDashboardBackend.instance.userGrowthQuarterlyData;
+    if (list.isEmpty) return 0;
+    return (_inspectedQuarterIndex ?? AdminCsDashboardBackend.instance.latestQuarterIndex)
+        .clamp(0, list.length - 1);
+  }
 
   List<Map<String, dynamic>> get _userGrowthQuarterlyData =>
       AdminCsDashboardBackend.instance.userGrowthQuarterlyData;
@@ -33,7 +42,44 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
   @override
   void initState() {
     super.initState();
+    _loadAdminInfo();
     AdminCsDashboardBackend.instance.fetchCsDashboardData();
+    AdminCsDashboardBackend.instance.initRealtimeSubscription();
+  }
+
+  Future<void> _loadAdminInfo() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedName = prefs.getString('current_admin_name');
+      final savedEmail = prefs.getString('current_admin_email');
+      final savedRole = prefs.getString('current_admin_role');
+      if (savedName != null && savedName.isNotEmpty && (savedRole == null || savedRole.toLowerCase().contains('cs') || savedRole.toLowerCase().contains('kyc'))) {
+        if (mounted) {
+          setState(() {
+            _adminName = savedName;
+            if (savedEmail != null) _adminEmail = savedEmail;
+          });
+        }
+        return;
+      }
+      final res = await Supabase.instance.client
+          .from('admins')
+          .select('full_name, email')
+          .eq('role', 'cs')
+          .maybeSingle();
+      if (res != null && mounted) {
+        setState(() {
+          _adminName = res['full_name'] ?? _adminName;
+          _adminEmail = res['email'] ?? _adminEmail;
+        });
+      }
+    } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    AdminCsDashboardBackend.instance.disposeRealtime();
+    super.dispose();
   }
 
 
@@ -112,6 +158,22 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
             ],
           ),
           actions: [
+            IconButton(
+              onPressed: () {
+                AdminCsDashboardBackend.instance.fetchCsDashboardData();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Memperbarui data CS...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                    backgroundColor: const Color(0xFF0D9488),
+                    behavior: SnackBarBehavior.floating,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    duration: const Duration(seconds: 1),
+                  ),
+                );
+              },
+              icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF0D9488)),
+              tooltip: 'Perbarui Data',
+            ),
             GestureDetector(
               onTap: () => Navigator.push(
                 context,
@@ -235,8 +297,11 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                       color: Colors.white.withValues(alpha: 0.15),
                       shape: BoxShape.circle,
                     ),
-                    child: const Center(
-                      child: Text('A', style: TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold)),
+                    child: Center(
+                      child: Text(
+                        _adminName.isNotEmpty ? _adminName[0].toUpperCase() : 'C',
+                        style: const TextStyle(color: Colors.white, fontSize: 22, fontWeight: FontWeight.bold),
+                      ),
                     ),
                   ),
                   const SizedBox(width: 14),
@@ -244,8 +309,8 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Text('Anisa Putri', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
-                        Text('Petugas Layanan & CRM', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
+                        Text(_adminName, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: Colors.white)),
+                        Text(_adminEmail, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: Colors.white70)),
                         const SizedBox(height: 4),
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
@@ -344,6 +409,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                     ),
                     contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 2),
                     onTap: () {
+                      SessionService.instance.clearSession();
                       Navigator.pushAndRemoveUntil(
                         context,
                         MaterialPageRoute(builder: (_) => const LoginScreen()),
@@ -386,9 +452,12 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
 
   // ==================== TAB 0: LAYANAN CS & OVERVIEW ====================
   Widget _buildTabOverview(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
+    return RefreshIndicator(
+      onRefresh: () => AdminCsDashboardBackend.instance.fetchCsDashboardData(),
+      color: const Color(0xFF0D9488),
+      child: ListView(
+        padding: const EdgeInsets.all(18),
+        children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -482,6 +551,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
         ),
         const SizedBox(height: 24),
       ],
+    ),
     );
   }
 

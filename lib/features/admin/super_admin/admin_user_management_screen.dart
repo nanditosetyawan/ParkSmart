@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -167,6 +168,8 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     final nameCtrl = TextEditingController();
     final emailCtrl = TextEditingController();
     final phoneCtrl = TextEditingController();
+    final passwordCtrl = TextEditingController();
+    bool obscurePassword = true;
     String selectedRole = 'Admin Operasional';
     String selectedStatus = 'Aktif';
     String? tempAvatarPath;
@@ -336,6 +339,38 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                   ),
                   const SizedBox(height: 14),
 
+                  // PASSWORD
+                  Text('Kata Sandi Akun', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: obscurePassword,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20, color: Color(0xFF76777B)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 20,
+                          color: const Color(0xFF76777B),
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
+                      ),
+                      hintText: 'Minimal 6 karakter',
+                      filled: true,
+                      fillColor: const Color(0xFFF9F9F9),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: roleColor, width: 1.5)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
                   // ROLE (HANYA OPERASIONAL, FINANSIAL, CS & KYC - SUPER ADMIN DIHILANGKAN)
                   Text('Peran Administrator', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                   const SizedBox(height: 6),
@@ -411,12 +446,20 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                               return;
                             }
 
+                            if (passwordCtrl.text.trim().isEmpty || passwordCtrl.text.trim().length < 6) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(content: Text('Kata sandi wajib diisi minimal 6 karakter!'), backgroundColor: Color(0xFFD94B4B)),
+                              );
+                              return;
+                            }
+
                             final newAdminId = 'ADM-${(_admins.length + 1).toString().padLeft(3, '0')}';
                             final newAdminData = {
                               'id': newAdminId,
                               'name': nameCtrl.text.trim(),
                               'email': emailCtrl.text.trim(),
                               'phone': phoneCtrl.text.trim().isNotEmpty ? phoneCtrl.text.trim() : '-',
+                              'password': passwordCtrl.text.trim(),
                               'role': selectedRole,
                               'status': selectedStatus,
                               'avatar': nameCtrl.text.trim()[0].toUpperCase(),
@@ -488,7 +531,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                           height: 56,
                           decoration: BoxDecoration(color: roleBg, borderRadius: BorderRadius.circular(16)),
                           clipBehavior: Clip.antiAlias,
-                          child: admin['avatarPath'] != null && File(admin['avatarPath']).existsSync()
+                          child: admin['avatarPath'] != null && !kIsWeb && File(admin['avatarPath']).existsSync()
                               ? Image.file(File(admin['avatarPath']), fit: BoxFit.cover)
                               : Center(child: Text(admin['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: roleColor))),
                         ),
@@ -512,6 +555,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                 const SizedBox(height: 20),
                 _buildDetailRow('ID Admin', admin['id']),
                 _buildDetailRow('Telepon', admin['phone']),
+                _buildDetailRow('Kata Sandi', admin['password'] != null && admin['password'].toString().isNotEmpty ? admin['password'].toString() : 'superadmin123'),
                 _buildDetailRow('Peran', admin['role'], valueColor: roleColor),
                 _buildDetailRow('Terdaftar Sejak', admin['createdAt']),
                 _buildDetailRow('Login Terakhir', admin['lastLogin']),
@@ -659,10 +703,13 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           ),
           ElevatedButton(
             onPressed: () {
+              final tempPass = 'PARK-${admin['id']}-TEMP';
+              admin['password'] = tempPass;
+              AdminUserManagementBackend.instance.updateAdmin(admin['id'], {...admin, 'password': tempPass});
               Navigator.pop(ctx);
               ScaffoldMessenger.of(context).showSnackBar(
                 SnackBar(
-                  content: Text('Kredensial di-reset! Password sementara: PARK-${admin['id']}-TEMP', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                  content: Text('Kredensial di-reset! Password sementara: $tempPass', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
                   backgroundColor: const Color(0xFF17A18A),
                   duration: const Duration(seconds: 4),
                   behavior: SnackBarBehavior.floating,
@@ -738,6 +785,8 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
     final nameCtrl = TextEditingController(text: admin['name']);
     final emailCtrl = TextEditingController(text: admin['email']);
     final phoneCtrl = TextEditingController(text: admin['phone']);
+    final passwordCtrl = TextEditingController(text: admin['password'] ?? '');
+    bool obscurePassword = true;
     String selectedRole = admin['role'];
     String selectedStatus = admin['status'];
     String? tempAvatarPath = admin['avatarPath'];
@@ -911,6 +960,38 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                   ),
                   const SizedBox(height: 14),
 
+                  // PASSWORD (OPSIONAL UPDATE)
+                  Text('Kata Sandi Akun', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  const SizedBox(height: 6),
+                  TextField(
+                    controller: passwordCtrl,
+                    obscureText: obscurePassword,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.lock_outline, size: 20, color: Color(0xFF76777B)),
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                          size: 20,
+                          color: const Color(0xFF76777B),
+                        ),
+                        onPressed: () {
+                          setDialogState(() {
+                            obscurePassword = !obscurePassword;
+                          });
+                        },
+                      ),
+                      hintText: 'Biarkan jika tidak ingin mengubah',
+                      filled: true,
+                      fillColor: const Color(0xFFF9F9F9),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: const BorderSide(color: Color(0xFFE4DFD5))),
+                      focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide(color: roleColor, width: 1.5)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+
                   // ROLE: Jika Super Admin, readonly. Jika bukan, hanya pilih dari _assignableRoles (tanpa Super Admin!)
                   Text('Peran Administrator', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                   const SizedBox(height: 6),
@@ -1026,6 +1107,10 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                               'locations': finalLocations,
                               'permissions': _rolePermissions[selectedRole] ?? admin['permissions'],
                             };
+
+                            if (passwordCtrl.text.trim().isNotEmpty) {
+                              updatedData['password'] = passwordCtrl.text.trim();
+                            }
 
                             AdminUserManagementBackend.instance.updateAdmin(admin['id'], updatedData);
 
@@ -1290,7 +1375,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                                 height: 48,
                                 decoration: BoxDecoration(color: roleBg, borderRadius: BorderRadius.circular(14)),
                                 clipBehavior: Clip.antiAlias,
-                                child: admin['avatarPath'] != null && File(admin['avatarPath']).existsSync()
+                                child: admin['avatarPath'] != null && !kIsWeb && File(admin['avatarPath']).existsSync()
                                     ? Image.file(File(admin['avatarPath']), fit: BoxFit.cover)
                                     : Center(child: Text(admin['avatar'], style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: roleColor))),
                               ),

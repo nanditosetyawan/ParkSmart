@@ -17,90 +17,7 @@ class AdminBookingsBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultBookings = [
-    {
-      'id': 'BKG-20240315-001',
-      'user': {'name': 'Nanda Setiawan', 'phone': '+62 812-3456-7890', 'avatar': 'N'},
-      'location': 'Central Park Mall',
-      'slot': 'A-05',
-      'floor': 'B1',
-      'vehicle': {'plate': 'B 1234 ABC', 'type': 'Mobil'},
-      'startTime': '2024-03-15 08:30',
-      'endTime': '2024-03-15 12:30',
-      'durationHours': 4,
-      'status': TicketMark.ready,
-      'bookingType': 'Reservasi',
-      'totalPrice': 28000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-14 20:15',
-    },
-    {
-      'id': 'BKG-20240315-002',
-      'user': {'name': 'Rafi Maulana', 'phone': '+62 856-7890-1234', 'avatar': 'R'},
-      'location': 'Grand Indonesia',
-      'slot': 'B-12',
-      'floor': 'B2',
-      'vehicle': {'plate': 'B 9012 GHI', 'type': 'Mobil'},
-      'startTime': '2024-03-15 10:00',
-      'endTime': '2024-03-15 14:00',
-      'durationHours': 4,
-      'status': TicketMark.aktif,
-      'bookingType': 'Langsung',
-      'totalPrice': 32000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-15 09:50',
-    },
-    {
-      'id': 'BKG-20240315-003',
-      'user': {'name': 'Hana Aulia', 'phone': '+62 878-1122-3344', 'avatar': 'H'},
-      'location': 'Central Park Mall',
-      'slot': 'B-01',
-      'floor': 'B2',
-      'vehicle': {'plate': 'B 1111 ION', 'type': 'EV'},
-      'startTime': '2024-03-15 13:00',
-      'endTime': '2024-03-15 16:00',
-      'durationHours': 3,
-      'status': TicketMark.ready,
-      'bookingType': 'Reservasi',
-      'totalPrice': 37500,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-15 07:30',
-    },
-    {
-      'id': 'BKG-20240315-004',
-      'user': {'name': 'Budi Santoso', 'phone': '+62 821-4455-6677', 'avatar': 'B'},
-      'location': 'Pacific Place SCBD',
-      'slot': 'A-02',
-      'floor': 'B1',
-      'vehicle': {'plate': 'B 7788 XYZ', 'type': 'Mobil'},
-      'startTime': '2024-03-15 07:00',
-      'endTime': '2024-03-15 09:00',
-      'durationHours': 2,
-      'status': TicketMark.selesai,
-      'bookingType': 'Reservasi',
-      'totalPrice': 20000,
-      'paymentStatus': 'Dibayar',
-      'createdAt': '2024-03-15 06:45',
-    },
-    {
-      'id': 'BKG-20240315-005',
-      'user': {'name': 'Dewi Anggraini', 'phone': '+62 813-1122-9988', 'avatar': 'D'},
-      'location': 'Central Park Mall',
-      'slot': 'C-04',
-      'floor': 'B2',
-      'vehicle': {'plate': 'B 3344 JKT', 'type': 'Motor'},
-      'startTime': '2024-03-15 15:00',
-      'endTime': '2024-03-15 17:00',
-      'durationHours': 2,
-      'status': TicketMark.belumDibayar,
-      'bookingType': 'Reservasi',
-      'totalPrice': 10000,
-      'paymentStatus': 'Belum Dibayar',
-      'createdAt': '2024-03-15 14:30',
-    },
-  ];
-
-  late List<Map<String, dynamic>> bookings = List.from(_defaultBookings);
+  late List<Map<String, dynamic>> bookings = [];
 
   /// Mengambil data pemesanan booking dari Supabase
   Future<void> fetchBookings() async {
@@ -130,8 +47,8 @@ class AdminBookingsBackend extends ChangeNotifier {
             'id': row['booking_code']?.toString() ?? 'BKG-001',
             'db_id': row['id']?.toString(),
             'user': {'name': 'Pelanggan ParkSmart', 'phone': '+62 812-xxxx-xxxx', 'avatar': 'P'},
-            'location': 'Central Park Mall',
-            'slot': 'A-05',
+            'location': 'Lokasi Parkir',
+            'slot': 'A-01',
             'floor': 'B1',
             'vehicle': {'plate': 'B 1234 ABC', 'type': 'Mobil'},
             'startTime': row['start_time']?.toString().split('.')[0] ?? '2026-10-20 08:00',
@@ -144,13 +61,12 @@ class AdminBookingsBackend extends ChangeNotifier {
             'createdAt': row['created_at']?.toString().split('.')[0] ?? '2026-10-20',
           };
         }).toList();
+      } else {
+        bookings = [];
       }
     } catch (e) {
       debugPrint('[AdminBookingsBackend] fetchBookings error: $e');
       _errorMessage = e.toString();
-      if (bookings.isEmpty) {
-        bookings = List.from(_defaultBookings);
-      }
     } finally {
       _isLoading = false;
       notifyListeners();

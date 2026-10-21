@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Backend khusus untuk AdminCustomerProfilesScreen (admin_customer_profiles_screen.dart)
-/// Mengelola daftar profil pelanggan (CRM), status KYC, saldo, preferensi, dan kendaraan terdaftar
-/// Terkoneksi ke tabel `public.users` dan `public.vehicles` di Supabase
+/// Mengelola daftar profil pelanggan (CRM), status KYC, saldo dompet, riwayat kendaraan, dan preferensi
+/// Terkoneksi secara realtime ke tabel `public.users`, `public.vehicles`, dan `public.user_kyc` di Supabase
 class AdminCustomerProfilesBackend extends ChangeNotifier {
   AdminCustomerProfilesBackend._();
   static final AdminCustomerProfilesBackend instance = AdminCustomerProfilesBackend._();
@@ -16,150 +16,233 @@ class AdminCustomerProfilesBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultCustomers = [
-    {
-      'id': 'USR-001',
-      'name': 'Nanda Setiawan',
-      'email': 'nanda.setiawan@gmail.com',
-      'phone': '+62 812-3456-7890',
-      'avatar': 'N',
-      'status': 'Aktif',
-      'kycStatus': 'Terverifikasi',
-      'kycSubmittedAt': '15 Jan 2024',
-      'kycApprovedAt': '16 Jan 2024',
-      'joinDate': '10 Jan 2024',
-      'lastActive': '2 jam lalu',
-      'totalSessions': 47,
-      'totalSpent': 2850000,
-      'walletBalance': 150000,
-      'vehicles': [
-        {'plate': 'B 1234 ABC', 'type': 'Mobil', 'brand': 'Toyota', 'model': 'Avanza', 'color': 'Putih', 'isDefault': true},
-        {'plate': 'B 5678 DEF', 'type': 'Motor', 'brand': 'Honda', 'model': 'Beat', 'color': 'Merah', 'isDefault': false},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': true,
-        'notifPromo': false,
-        'theme': 'Sistem',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WIB',
-      },
-    },
-    {
-      'id': 'USR-002',
-      'name': 'Rafi Maulana',
-      'email': 'rafi.m@example.com',
-      'phone': '+62 856-7890-1234',
-      'avatar': 'R',
-      'status': 'Aktif',
-      'kycStatus': 'Pending',
-      'kycSubmittedAt': '20 Mar 2024',
-      'kycApprovedAt': null,
-      'joinDate': '18 Mar 2024',
-      'lastActive': 'Hari ini 09:15',
-      'totalSessions': 23,
-      'totalSpent': 1240000,
-      'walletBalance': 75000,
-      'vehicles': [
-        {'plate': 'B 9012 GHI', 'type': 'Mobil', 'brand': 'Daihatsu', 'model': 'Xenia', 'color': 'Hitam', 'isDefault': true},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': true,
-        'notifPromo': true,
-        'theme': 'Terang',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WIB',
-      },
-    },
-    {
-      'id': 'USR-003',
-      'name': 'Siti Rahayu',
-      'email': 'siti.r@example.com',
-      'phone': '+62 878-1122-3344',
-      'avatar': 'S',
-      'status': 'Aktif',
-      'kycStatus': 'Terverifikasi',
-      'kycSubmittedAt': '05 Feb 2024',
-      'kycApprovedAt': '06 Feb 2024',
-      'joinDate': '02 Feb 2024',
-      'lastActive': 'Kemarin 18:30',
-      'totalSessions': 62,
-      'totalSpent': 4120000,
-      'walletBalance': 320000,
-      'vehicles': [
-        {'plate': 'D 3456 JKL', 'type': 'Mobil', 'brand': 'Mitsubishi', 'model': 'Xpander', 'color': 'Silver', 'isDefault': true},
-        {'plate': 'D 7890 MNO', 'type': 'Mobil', 'brand': 'Wuling', 'model': 'Air EV', 'color': 'Biru', 'isDefault': false},
-      ],
-      'preferences': {
-        'notifBooking': true,
-        'notifReminder': false,
-        'notifPromo': false,
-        'theme': 'Gelap',
-        'language': 'Indonesia',
-        'currency': 'IDR',
-        'timezone': 'WITA',
-      },
-    },
-  ];
+  List<Map<String, dynamic>> customers = [];
 
-  late List<Map<String, dynamic>> customers = List.from(_defaultCustomers);
+  RealtimeChannel? _realtimeChannel;
 
-  /// Mengambil data seluruh pengguna dari Supabase
+  /// Memulai langganan realtime Supabase
+  void initRealtimeSubscription() {
+    if (_realtimeChannel != null) return;
+    try {
+      _realtimeChannel = _client.channel('public:admin_customer_profiles')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'users',
+          callback: (payload) {
+            debugPrint('[AdminCustomerProfilesBackend] Realtime update dari users');
+            fetchCustomers();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'vehicles',
+          callback: (payload) {
+            debugPrint('[AdminCustomerProfilesBackend] Realtime update dari vehicles');
+            fetchCustomers();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'user_kyc',
+          callback: (payload) {
+            debugPrint('[AdminCustomerProfilesBackend] Realtime update dari user_kyc');
+            fetchCustomers();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('[AdminCustomerProfilesBackend] initRealtimeSubscription error: $e');
+    }
+  }
+
+  /// Melepas langganan realtime
+  void disposeRealtime() {
+    _realtimeChannel?.unsubscribe();
+    _realtimeChannel = null;
+  }
+
+  String _formatDate(dynamic dateRaw) {
+    if (dateRaw == null) return '-';
+    try {
+      final dt = DateTime.parse(dateRaw.toString()).toLocal();
+      const months = [
+        'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun',
+        'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'
+      ];
+      return '${dt.day} ${months[dt.month - 1]} ${dt.year}';
+    } catch (_) {
+      return dateRaw.toString();
+    }
+  }
+
+  /// Mengambil data seluruh pengguna asli dari Supabase
   Future<void> fetchCustomers() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      final res = await _client.from('users').select('id, full_name, email, phone_number, is_active, created_at');
+      // 1. Ambil seluruh user dari tabel users
+      final userRes = await _client
+          .from('users')
+          .select('id, full_name, email, phone, status, wallet_balance, created_at, avatar_url')
+          .order('created_at', ascending: false);
 
-      if (res.isNotEmpty) {
-        customers = res.map<Map<String, dynamic>>((row) {
-          final name = row['full_name']?.toString() ?? 'Pengguna ParkSmart';
-          final email = row['email']?.toString() ?? '-';
-          final phone = row['phone_number']?.toString() ?? '-';
-          final isActive = row['is_active'] != false;
-          final avatarLetter = name.isNotEmpty ? name[0].toUpperCase() : 'U';
-
-          return {
-            'id': row['id']?.toString() ?? 'USR-000',
-            'name': name,
-            'email': email,
-            'phone': phone,
-            'avatar': avatarLetter,
-            'status': isActive ? 'Aktif' : 'Nonaktif',
-            'kycStatus': 'Terverifikasi',
-            'kycSubmittedAt': '15 Jan 2024',
-            'kycApprovedAt': '16 Jan 2024',
-            'joinDate': row['created_at']?.toString().split('T')[0] ?? '2026-01-01',
-            'lastActive': 'Baru saja',
-            'totalSessions': 15,
-            'totalSpent': 750000,
-            'walletBalance': 100000,
-            'vehicles': [
-              {'plate': 'B 1234 ABC', 'type': 'Mobil', 'brand': 'Toyota', 'model': 'Avanza', 'color': 'Hitam', 'isDefault': true},
-            ],
-            'preferences': {
-              'notifBooking': true,
-              'notifReminder': true,
-              'notifPromo': true,
-              'theme': 'Sistem',
-              'language': 'Indonesia',
-              'currency': 'IDR',
-              'timezone': 'WIB',
-            },
-          };
-        }).toList();
+      if (userRes.isEmpty) {
+        customers = [];
+        return;
       }
+
+      // 2. Ambil data kendaraan terdaftar
+      List<dynamic> vehicleRes = [];
+      try {
+        vehicleRes = await _client
+            .from('vehicles')
+            .select('id, user_id, plate_number, vehicle_type, vehicle_category, brand, model, color, is_default');
+      } catch (e) {
+        debugPrint('[AdminCustomerProfilesBackend] vehicles query error: $e');
+      }
+
+      // 3. Ambil data KYC user
+      List<dynamic> kycRes = [];
+      try {
+        kycRes = await _client
+            .from('user_kyc')
+            .select('id, user_id, status, nik, submitted_at, reviewed_at');
+      } catch (e) {
+        debugPrint('[AdminCustomerProfilesBackend] user_kyc query error: $e');
+      }
+
+      // 4. Ambil statistik sesi parkir
+      List<dynamic> sessionRes = [];
+      try {
+        sessionRes = await _client.from('parking_sessions').select('id, user_id');
+      } catch (_) {}
+
+      // 5. Ambil data pengeluaran (payments)
+      List<dynamic> paymentRes = [];
+      try {
+        paymentRes = await _client.from('payments').select('id, user_id, amount, status');
+      } catch (_) {}
+
+      // Susun mapping data
+      final Map<String, List<Map<String, dynamic>>> vehiclesByUser = {};
+      for (var v in vehicleRes) {
+        final uid = v['user_id']?.toString() ?? '';
+        if (uid.isEmpty) continue;
+        final vType = (v['vehicle_type']?.toString().toLowerCase() == 'motorcycle') ? 'Motor' : 'Mobil';
+        vehiclesByUser.putIfAbsent(uid, () => []).add({
+          'plate': v['plate_number']?.toString() ?? '-',
+          'type': vType,
+          'brand': v['brand']?.toString() ?? 'Kendaraan',
+          'model': v['model']?.toString() ?? '',
+          'color': v['color']?.toString() ?? '',
+          'isDefault': v['is_default'] == true,
+        });
+      }
+
+      final Map<String, Map<String, dynamic>> kycByUser = {};
+      for (var k in kycRes) {
+        final uid = k['user_id']?.toString() ?? '';
+        if (uid.isNotEmpty) {
+          kycByUser[uid] = Map<String, dynamic>.from(k);
+        }
+      }
+
+      final Map<String, int> sessionsByUser = {};
+      for (var s in sessionRes) {
+        final uid = s['user_id']?.toString() ?? '';
+        if (uid.isNotEmpty) {
+          sessionsByUser[uid] = (sessionsByUser[uid] ?? 0) + 1;
+        }
+      }
+
+      final Map<String, num> spentByUser = {};
+      for (var p in paymentRes) {
+        final uid = p['user_id']?.toString() ?? '';
+        final status = p['status']?.toString().toLowerCase();
+        if (uid.isNotEmpty && (status == 'paid' || status == 'success' || status == 'completed')) {
+          final amt = (p['amount'] as num?) ?? 0;
+          spentByUser[uid] = (spentByUser[uid] ?? 0) + amt;
+        }
+      }
+
+      // 6. Map ke format UI Admin CS
+      customers = userRes.map<Map<String, dynamic>>((row) {
+        final uid = row['id']?.toString() ?? '';
+        final name = row['full_name']?.toString() ?? 'Pengguna ParkSmart';
+        final email = row['email']?.toString() ?? '-';
+        final phone = row['phone']?.toString() ?? '-';
+        final rawStatus = row['status']?.toString().toLowerCase() ?? 'active';
+
+        String statusLabel = 'Aktif';
+        if (rawStatus == 'banned') {
+          statusLabel = 'Diblokir';
+        } else if (rawStatus == 'inactive') {
+          statusLabel = 'Tidak Aktif';
+        }
+
+        final userKyc = kycByUser[uid];
+        String kycStatus = 'Belum Submit';
+        String? kycSubmittedAt;
+        String? kycApprovedAt;
+
+        if (userKyc != null) {
+          final kStatus = userKyc['status']?.toString().toLowerCase();
+          if (kStatus == 'approved' || kStatus == 'verified') {
+            kycStatus = 'Terverifikasi';
+          } else if (kStatus == 'rejected') {
+            kycStatus = 'Ditolak';
+          } else if (kStatus == 'pending') {
+            kycStatus = 'Pending';
+          }
+          kycSubmittedAt = _formatDate(userKyc['submitted_at']);
+          kycApprovedAt = userKyc['reviewed_at'] != null ? _formatDate(userKyc['reviewed_at']) : null;
+        }
+
+        final userVehicles = vehiclesByUser[uid] ?? [];
+        final totalSessions = sessionsByUser[uid] ?? 0;
+        final totalSpent = spentByUser[uid] ?? 0;
+        final num walletBal = (row['wallet_balance'] as num?) ?? 0;
+
+        final avatarLetter = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'U';
+        final displayId = uid.length >= 8 ? 'USR-${uid.substring(0, 8).toUpperCase()}' : uid;
+
+        return {
+          'id': displayId,
+          'rawId': uid,
+          'name': name,
+          'email': email,
+          'phone': phone,
+          'avatar': avatarLetter,
+          'status': statusLabel,
+          'kycStatus': kycStatus,
+          'kycSubmittedAt': kycSubmittedAt ?? '-',
+          'kycApprovedAt': kycApprovedAt,
+          'joinDate': _formatDate(row['created_at']),
+          'lastActive': 'Baru saja',
+          'totalSessions': totalSessions,
+          'totalSpent': totalSpent,
+          'walletBalance': walletBal,
+          'vehicles': userVehicles,
+          'preferences': {
+            'notifBooking': true,
+            'notifReminder': true,
+            'notifPromo': false,
+            'theme': 'Sistem',
+            'language': 'Indonesia',
+            'currency': 'IDR',
+            'timezone': 'WIB',
+          },
+        };
+      }).toList();
     } catch (e) {
       debugPrint('[AdminCustomerProfilesBackend] fetchCustomers error: $e');
       _errorMessage = e.toString();
-      if (customers.isEmpty) {
-        customers = List.from(_defaultCustomers);
-      }
+      customers = [];
     } finally {
       _isLoading = false;
       notifyListeners();

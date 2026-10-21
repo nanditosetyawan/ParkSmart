@@ -127,6 +127,22 @@ class _AdminFinanceNotificationsScreenState
                 ],
               ),
               actions: [
+                IconButton(
+                  onPressed: () {
+                    AdminFinanceNotificationsBackend.instance.fetchNotifications();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('Memperbarui notifikasi...', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)),
+                        backgroundColor: const Color(0xFF114177),
+                        behavior: SnackBarBehavior.floating,
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                        duration: const Duration(seconds: 1),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.refresh_rounded, size: 20, color: Color(0xFF114177)),
+                  tooltip: 'Perbarui Notifikasi',
+                ),
                 TextButton(
                   onPressed: () {
                     for (var n in _notifications) {
@@ -213,54 +229,62 @@ class _AdminFinanceNotificationsScreenState
   Widget _buildNotificationList(int tabIndex) {
     final list = _getFilteredNotifications(tabIndex);
 
-    if (list.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                tabIndex == 2
-                    ? Icons.check_circle_outline_rounded
-                    : Icons.notifications_none_rounded,
-                size: 48,
-                color: tabIndex == 2
-                    ? const Color(0xFF17A18A)
-                    : const Color(0xFF76777B),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                tabIndex == 2
-                    ? 'Tidak Ada Injeksi Saldo Gagal'
-                    : 'Tidak Ada Notifikasi Injeksi',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 15,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1A1A18),
+    return RefreshIndicator(
+      onRefresh: () => AdminFinanceNotificationsBackend.instance.fetchNotifications(),
+      color: const Color(0xFF114177),
+      child: list.isEmpty
+          ? ListView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              children: [
+                SizedBox(height: MediaQuery.of(context).size.height * 0.2),
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          tabIndex == 2
+                              ? Icons.check_circle_outline_rounded
+                              : Icons.notifications_none_rounded,
+                          size: 48,
+                          color: tabIndex == 2
+                              ? const Color(0xFF17A18A)
+                              : const Color(0xFF76777B),
+                        ),
+                        const SizedBox(height: 12),
+                        Text(
+                          tabIndex == 2
+                              ? 'Tidak Ada Injeksi Saldo Gagal'
+                              : 'Tidak Ada Notifikasi Injeksi',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                        ),
+                        const SizedBox(height: 4),
+                        Text(
+                          tabIndex == 2
+                              ? 'Semua proses injeksi saldo berhasil terselesaikan dengan baik.'
+                              : 'Belum ada riwayat aktivitas injeksi saldo terbaru.',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12,
+                            color: const Color(0xFF76777B),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                tabIndex == 2
-                    ? 'Semua proses injeksi saldo berhasil terselesaikan dengan baik.'
-                    : 'Belum ada riwayat aktivitas injeksi saldo terbaru.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: const Color(0xFF76777B),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    return ListView.builder(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      itemCount: list.length,
-      itemBuilder: (ctx, i) {
+              ],
+            )
+          : ListView.builder(
+              physics: const AlwaysScrollableScrollPhysics(),
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              itemCount: list.length,
+              itemBuilder: (ctx, i) {
         final item = list[i];
         final isSuccess = item.status == 'Berhasil';
         final statusColor = isSuccess
@@ -431,6 +455,7 @@ class _AdminFinanceNotificationsScreenState
           ),
         );
       },
-    );
-  }
+    ),
+  );
+}
 }

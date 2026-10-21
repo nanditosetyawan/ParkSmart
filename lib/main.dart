@@ -6,6 +6,7 @@ import 'core/services/notification_service.dart';
 import 'core/services/currency_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/services/maintenance_service.dart';
+import 'core/services/session_service.dart';
 import 'theme/app_theme.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -80,6 +81,12 @@ SUPABASE_ANON_KEY=$defaultAnonKey
     debugPrint('MaintenanceService init error: $e');
   }
 
+  try {
+    await SessionService.instance.init();
+  } catch (e) {
+    debugPrint('SessionService init error: $e');
+  }
+
   // Meminta izin akses utama (khusus perangkat fisik mobile)
   if (!kIsWeb) {
     try {
@@ -131,6 +138,14 @@ class ParkSmartApp extends StatelessWidget {
               PointerDeviceKind.unknown
             },
           ),
+          builder: (context, child) {
+            return Listener(
+              behavior: HitTestBehavior.translucent,
+              onPointerDown: (_) => SessionService.instance.recordUserActivity(),
+              onPointerMove: (_) => SessionService.instance.recordUserActivity(),
+              child: child ?? const SizedBox.shrink(),
+            );
+          },
           home: const LoginScreen(),
         );
       },

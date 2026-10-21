@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Backend khusus untuk FeedbackAdminScreen (admin_feedback_screen.dart)
 /// Mengelola ulasan pengguna, penilaian bintang, dan balasan resmi admin CS
-/// Terkoneksi ke `public.parking_reviews` atau fallback di Supabase
+/// Terkoneksi secara realtime ke tabel `public.customer_feedbacks` dan `public.parking_locations`
 class AdminFeedbackBackend extends ChangeNotifier {
   AdminFeedbackBackend._();
   static final AdminFeedbackBackend instance = AdminFeedbackBackend._();
@@ -16,67 +16,49 @@ class AdminFeedbackBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
-  final List<Map<String, dynamic>> _defaultFeedbacks = [
-    {
-      'id': 'FDB-001',
-      'user': 'Rafi Maulana',
-      'avatar': 'R',
-      'rating': 5,
-      'location': 'Central Park Mall (B2)',
-      'date': 'Hari ini, 11:20',
-      'comment': 'Sensor gate dan QR ticket sangat cepat! Tidak perlu antre lama di pos keluar.',
-      'adminReply': 'Terima kasih atas apresiasinya Kak Rafi! Kami terus berupaya menjaga kecepatan sistem.',
-      'isResolved': true,
-    },
-    {
-      'id': 'FDB-002',
-      'user': 'Hana Aulia',
-      'avatar': 'H',
-      'rating': 2,
-      'location': 'Grand Indonesia',
-      'date': 'Kemarin, 19:45',
-      'comment': 'Marka slot nomor C-05 agak pudar jadi sempat salah parkir di slot booking orang lain.',
-      'adminReply': null,
-      'isResolved': false,
-    },
-    {
-      'id': 'FDB-003',
-      'user': 'Budi Santoso',
-      'avatar': 'B',
-      'rating': 4,
-      'location': 'Malioboro Mall',
-      'date': '2 hari lalu',
-      'comment': 'Fitur perpanjang timer tiket parkir sangat membantu pas lagi meeting mendadak.',
-      'adminReply': 'Senang mendengar fitur extend timer bermanfaat untuk Kak Budi!',
-      'isResolved': true,
-    },
-    {
-      'id': 'FDB-004',
-      'user': 'Dewi Lestari',
-      'avatar': 'D',
-      'rating': 5,
-      'location': 'Pacific Place SCBD',
-      'date': '3 hari lalu',
-      'comment': 'Slot EV Fast Charger berfungsi sangat baik, daya masuk stabil 22 kW.',
-      'adminReply': null,
-      'isResolved': true,
-    },
-    {
-      'id': 'FDB-005',
-      'user': 'Joko Widarto',
-      'avatar': 'J',
-      'rating': 1,
-      'location': 'Central Park Mall',
-      'date': '1 minggu lalu',
-      'comment': 'Barrier gate sempat macet 5 menit sebelum sensor terbuka otomatis.',
-      'adminReply': 'Mohon maaf atas kendalanya. Kami telah melakukan kompensasi saldo dompet Rp 50.000 ke akun Bapak.',
-      'isResolved': true,
-    },
-  ];
+  List<Map<String, dynamic>> feedbacks = [];
+  double averageRating = 0.0;
+  String averageRatingString = '0.0';
+  int totalAllReviews = 0;
 
-  late List<Map<String, dynamic>> feedbacks = List.from(_defaultFeedbacks);
+  RealtimeChannel? _realtimeChannel;
 
-  /// Mengambil data ulasan dari Supabase
+  /// Memulai langganan realtime Supabase
+  void initRealtimeSubscription() {
+    if (_realtimeChannel != null) return;
+    try {
+      _realtimeChannel = _client.channel('public:admin_feedback')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'customer_feedbacks',
+          callback: (payload) {
+            debugPrint('[AdminFeedbackBackend] Realtime update dari customer_feedbacks');
+            fetchFeedbacks();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'parking_locations',
+          callback: (payload) {
+            debugPrint('[AdminFeedbackBackend] Realtime update dari parking_locations');
+            fetchFeedbacks();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('[AdminFeedbackBackend] initRealtimeSubscription error: $e');
+    }
+  }
+
+  /// Melepas langganan realtime
+  void disposeRealtime() {
+    _realtimeChannel?.unsubscribe();
+    _realtimeChannel = null;
+  }
+
+  /// Format tanggal ulasan
   String _formatDate(dynamic dateRaw) {
     if (dateRaw == null) return 'Hari ini';
     try {
@@ -96,13 +78,14 @@ class AdminFeedbackBackend extends ChangeNotifier {
     }
   }
 
-  /// Mengambil data ulasan dari Supabase (terkoneksi ke public.customer_feedbacks)
+  /// Mengambil data ulasan & agregasi kepuasan bintang dari Supabase
   Future<void> fetchFeedbacks() async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
+      // 1. Ambil data feedback ulasan dari customer_feedbacks
       final res = await _client
           .from('customer_feedbacks')
           .select('id, rating, comment, admin_reply, is_resolved, created_at, users(full_name, phone), parking_locations(name)')
@@ -115,7 +98,7 @@ class AdminFeedbackBackend extends ChangeNotifier {
           final locData = row['parking_locations'] as Map<String, dynamic>?;
           final userName = userData?['full_name'] ?? 'Pelanggan ParkSmart';
           final initial = userName.isNotEmpty ? userName[0].toUpperCase() : 'P';
-          final locName = locData?['name'] ?? 'Central Park Mall';
+          final locName = locData?['name'] ?? 'Lokasi Parkir';
           final isResolved = (row['is_resolved'] as bool?) ?? (reply != null && reply.isNotEmpty);
 
           return {
@@ -125,15 +108,67 @@ class AdminFeedbackBackend extends ChangeNotifier {
             'rating': (row['rating'] as num?)?.toInt() ?? 5,
             'location': locName,
             'date': row['created_at'] != null ? _formatDate(row['created_at']) : 'Hari ini',
-            'comment': row['comment']?.toString() ?? 'Layanan parkir sangat baik.',
+            'comment': row['comment']?.toString() ?? '',
             'adminReply': reply,
             'isResolved': isResolved,
           };
         }).toList();
+      } else {
+        feedbacks = [];
+      }
+
+      // 2. Ambil semua lokasi parkir untuk rating kepuasan kumulatif
+      int totalLocationReviews = 0;
+      double weightedRatingSum = 0.0;
+      double unweightedRatingSum = 0.0;
+      int locationsWithRating = 0;
+
+      try {
+        final locRes = await _client
+            .from('parking_locations')
+            .select('rating, review_count');
+
+        for (var loc in locRes) {
+          final double r = (loc['rating'] as num?)?.toDouble() ?? 0.0;
+          final int c = (loc['review_count'] as num?)?.toInt() ?? 0;
+          totalLocationReviews += c;
+          weightedRatingSum += (r * c);
+          if (r > 0) {
+            unweightedRatingSum += r;
+            locationsWithRating++;
+          }
+        }
+      } catch (e) {
+        debugPrint('[AdminFeedbackBackend] parking_locations query error: $e');
+      }
+
+      // 3. Gabungkan ulasan dari customer_feedbacks
+      int totalFeedbackReviews = feedbacks.length;
+      double feedbackRatingSum = 0.0;
+      for (var f in feedbacks) {
+        feedbackRatingSum += ((f['rating'] as num?)?.toDouble() ?? 5.0);
+      }
+
+      totalAllReviews = totalLocationReviews + totalFeedbackReviews;
+
+      if (totalAllReviews > 0) {
+        final double totalRatingPoints = weightedRatingSum + feedbackRatingSum;
+        averageRating = totalRatingPoints / totalAllReviews;
+        averageRatingString = averageRating.toStringAsFixed(1);
+      } else if (locationsWithRating > 0) {
+        averageRating = unweightedRatingSum / locationsWithRating;
+        averageRatingString = averageRating.toStringAsFixed(1);
+      } else {
+        averageRating = 0.0;
+        averageRatingString = '0.0';
       }
     } catch (e) {
       debugPrint('[AdminFeedbackBackend] fetchFeedbacks error: $e');
       _errorMessage = e.toString();
+      feedbacks = [];
+      averageRating = 0.0;
+      averageRatingString = '0.0';
+      totalAllReviews = 0;
     } finally {
       _isLoading = false;
       notifyListeners();
