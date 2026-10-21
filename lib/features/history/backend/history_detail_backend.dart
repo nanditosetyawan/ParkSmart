@@ -78,6 +78,19 @@ class HistoryDetailBackend extends ChangeNotifier {
         } else {
           _checkOutTime = 'Sedang Berlangsung';
         }
+        if (res['check_in_time'] != null && res['check_out_time'] != null) {
+          try {
+            final ci = DateTime.parse(res['check_in_time'].toString());
+            final co = DateTime.parse(res['check_out_time'].toString());
+            final diff = co.difference(ci);
+            final hours = diff.inHours;
+            final mins = diff.inMinutes % 60;
+            _duration = '${hours}j ${mins}m';
+          } catch (_) {}
+        }
+        _paymentMethod = res['payment_method']?.toString() ?? 'ParkSmart Pay';
+        _serviceFee = 2000;
+        _discount = 0;
         _status = TicketMark.resolve(sessionStatus: res['status']);
         if (res['parking_locations'] != null) {
           _locationName = res['parking_locations']['name'] ?? _locationName;

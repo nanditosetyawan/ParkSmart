@@ -42,15 +42,15 @@ class SessionCheckoutBackend extends ChangeNotifier {
   double _parkingRate = 0;
   double get parkingRate => _parkingRate;
 
-  double _sensorFee = 0;
+  final double _sensorFee = 0;
   double get sensorFee => _sensorFee;
 
-  double _discountAmount = 0;
+  final double _discountAmount = 0;
   double get discountAmount => _discountAmount;
 
   double get totalPayment => (_parkingRate + _sensorFee) - _discountAmount;
 
-  String _paymentMethod = 'ParkSmart Pay';
+  final String _paymentMethod = 'ParkSmart Pay';
   String get paymentMethod => _paymentMethod;
 
   String? _activeSessionId;

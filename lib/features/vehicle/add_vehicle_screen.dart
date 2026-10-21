@@ -29,7 +29,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: 'Honda HR-V Special Edition');
+    _nameController = TextEditingController();
   }
 
   @override

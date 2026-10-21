@@ -45,6 +45,8 @@ class AddVehicleBackend extends ChangeNotifier {
 
       // Catatan: Foto STNK TIDAK disimpan ke database/storage (hanya diekstrak via OCR).
       // Sedangkan foto fisik kendaraan disimpan ke kolom `photo_url`.
+      final currentVehicles = VehicleBackend.instance.vehicles;
+      final isFirst = currentVehicles.isEmpty;
       final data = {
         'user_id': userId,
         'plate_number': plateNumber.trim().toUpperCase(),
@@ -53,7 +55,7 @@ class AddVehicleBackend extends ChangeNotifier {
         'vehicle_type': type,
         'vehicle_category': category,
         'color': color,
-        'is_default': false,
+        'is_default': isFirst,
         if (photoUrl != null) ...{'photo_url': photoUrl},
         'created_at': DateTime.now().toIso8601String(),
       };

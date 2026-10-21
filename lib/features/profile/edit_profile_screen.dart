@@ -57,6 +57,57 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     super.dispose();
   }
 
+  Future<void> _selectBirthDate() async {
+    DateTime initial = DateTime(2000, 1, 1);
+    if (_birthDateController.text.isNotEmpty) {
+      try {
+        final parsed = DateTime.tryParse(_birthDateController.text);
+        if (parsed != null) initial = parsed;
+      } catch (_) {}
+    }
+
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: initial,
+      firstDate: DateTime(1940),
+      lastDate: DateTime.now(),
+      builder: (context, child) {
+        final isDark = ThemeService.instance.isDarkMode;
+        return Theme(
+          data: isDark
+              ? ThemeData.dark().copyWith(
+                  colorScheme: const ColorScheme.dark(
+                    primary: Color(0xFF15803D),
+                    onPrimary: Colors.white,
+                    surface: Color(0xFF1E232B),
+                    onSurface: Colors.white,
+                  ),
+                )
+              : ThemeData.light().copyWith(
+                  colorScheme: const ColorScheme.light(
+                    primary: Color(0xFF15803D),
+                    onPrimary: Colors.white,
+                    surface: Colors.white,
+                    onSurface: Colors.black,
+                  ),
+                ),
+          child: child!,
+        );
+      },
+    );
+
+    if (picked != null) {
+      const months = [
+        'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
+        'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
+      ];
+      final formatted = '${picked.day} ${months[picked.month - 1]} ${picked.year}';
+      setState(() {
+        _birthDateController.text = formatted;
+      });
+    }
+  }
+
   Future<void> _saveChanges() async {
     final name = _nameController.text.trim();
     final email = _emailController.text.trim();
@@ -553,14 +604,84 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                               ),
                               const SizedBox(height: 16),
 
-                              // Tanggal Lahir
-                              _buildFormField(
-                                label: 'Tanggal Lahir',
-                                controller: _birthDateController,
-                                icon: Icons.calendar_today_outlined,
-                                hint: 'Contoh: 14 Mei 1998',
-                                isDark: isDark,
-                                theme: theme,
+                              // Tanggal Lahir (Picker Khusus Kalender)
+                              Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text(
+                                    'Tanggal Lahir',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w600,
+                                      color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF62615B),
+                                    ),
+                                  ),
+                                  const SizedBox(height: 6),
+                                  GestureDetector(
+                                    onTap: _selectBirthDate,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        color: isDark ? theme.surfaceField : Colors.white,
+                                        borderRadius: BorderRadius.circular(14),
+                                        border: Border.all(
+                                          color: isDark ? theme.border : const Color(0xFFEBE6DC),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+                                      child: Row(
+                                        children: [
+                                          Icon(
+                                            Icons.calendar_month_outlined,
+                                            size: 19,
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF62615B),
+                                          ),
+                                          const SizedBox(width: 12),
+                                          Expanded(
+                                            child: Text(
+                                              _birthDateController.text.isNotEmpty
+                                                  ? _birthDateController.text
+                                                  : 'Pilih Tanggal Lahir (cth: 14 Mei 1998)',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 13.5,
+                                                fontWeight: _birthDateController.text.isNotEmpty ? FontWeight.w600 : FontWeight.normal,
+                                                color: _birthDateController.text.isNotEmpty
+                                                    ? (isDark ? Colors.white : const Color(0xFF1C1C18))
+                                                    : (isDark ? const Color(0xFF64748B) : const Color(0xFF9E9B90)),
+                                              ),
+                                            ),
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+                                              borderRadius: BorderRadius.circular(8),
+                                            ),
+                                            child: Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text(
+                                                  'Pilih',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    fontSize: 11,
+                                                    fontWeight: FontWeight.bold,
+                                                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 2),
+                                                Icon(
+                                                  Icons.keyboard_arrow_down,
+                                                  size: 16,
+                                                  color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7),
+                                                ),
+                                              ],
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                               const SizedBox(height: 16),
 

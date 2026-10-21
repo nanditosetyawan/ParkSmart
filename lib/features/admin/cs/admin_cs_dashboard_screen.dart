@@ -801,44 +801,10 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Header
+          // Baris 1: Tombol aksi di sisi kanan atas chart
           Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.end,
             children: [
-              Row(
-                children: [
-                  Container(
-                    width: 38,
-                    height: 38,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF114177).withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.people_outline_rounded, size: 20, color: Color(0xFF114177)),
-                  ),
-                  const SizedBox(width: 10),
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Pertumbuhan Customer Aktif',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1A1A18),
-                        ),
-                      ),
-                      Text(
-                        'Peningkatan pengguna baru yang bergabung per kuartal',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10.5,
-                          color: const Color(0xFF76777B),
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
               TextButton.icon(
                 onPressed: () => Navigator.push(
                   context,
@@ -846,7 +812,7 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                 ),
                 icon: const Icon(Icons.arrow_forward, size: 13, color: Color(0xFF114177)),
                 label: Text(
-                  'Lihat Profil',
+                  'Lihat Semua',
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.bold,
@@ -854,9 +820,52 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
                   ),
                 ),
                 style: TextButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  backgroundColor: const Color(0xFF114177).withValues(alpha: 0.08),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
                   minimumSize: Size.zero,
                   tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Baris 2: Icon, Judul Chart & Deskripsi (di bawah tombol, tidak berdesakan 1 baris)
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 38,
+                height: 38,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF114177).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: const Icon(Icons.people_outline_rounded, size: 20, color: Color(0xFF114177)),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Pertumbuhan Customer Aktif',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1A1A18),
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Peningkatan pengguna baru yang bergabung per kuartal',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        color: const Color(0xFF76777B),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

@@ -414,7 +414,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                     comment: _commentController.text,
                                     selectedTopics: _selectedTopics.toList(),
                                   );
-                                  if (!mounted) return;
+                                  if (!mounted || !context.mounted) return;
                                   setState(() => _isSubmitting = false);
 
                                   showDialog(

@@ -47,6 +47,7 @@ SUPABASE_ANON_KEY=$defaultAnonKey
   try {
     await Supabase.initialize(
       url: supabaseUrl,
+      // ignore: deprecated_member_use
       anonKey: supabaseAnonKey,
     );
     debugPrint('Supabase berhasil diinisialisasi: $supabaseUrl');

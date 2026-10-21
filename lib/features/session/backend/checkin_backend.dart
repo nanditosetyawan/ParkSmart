@@ -31,7 +31,7 @@ class CheckinBackend extends ChangeNotifier {
   String _plateNumber = 'B 1234 XYZ';
   String get plateNumber => _plateNumber;
 
-  String _gateName = 'Gate Masuk 01';
+  final String _gateName = 'Gate Masuk 01';
   String get gateName => _gateName;
 
   String? _bookingId;

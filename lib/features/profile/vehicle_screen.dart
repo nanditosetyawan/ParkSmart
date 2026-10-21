@@ -321,7 +321,14 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                 ),
                               ),
                               GestureDetector(
-                                onTap: () => _showDeleteVehiclePopup(context, VehicleBackend.instance.defaultVehicle?.id),
+                                onTap: () {
+                                  final prim = VehicleBackend.instance.defaultVehicle;
+                                  if (prim != null) {
+                                    _showVehicleOptions(context, prim, true);
+                                  } else {
+                                    _showDeleteVehiclePopup(context);
+                                  }
+                                },
                                 child: Container(
                                   width: 32,
                                   height: 32,
@@ -434,7 +441,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                'Gol. I (Sedan/SUV)',
+                                                'Gol. I (${(VehicleBackend.instance.defaultVehicle?.category ?? 'SUV').toUpperCase()})',
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -476,7 +483,10 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                                   const SizedBox(width: 4),
                                                   Expanded(
                                                     child: Text(
-                                                      'Aktif Selamanya',
+                                                      (VehicleBackend.instance.defaultVehicle?.plateExpiry != null &&
+                                                              VehicleBackend.instance.defaultVehicle!.plateExpiry.isNotEmpty)
+                                                          ? VehicleBackend.instance.defaultVehicle!.plateExpiry
+                                                          : 'Aktif Selamanya',
                                                       style: GoogleFonts.plusJakartaSans(
                                                         fontSize: 14,
                                                         fontWeight: FontWeight.bold,
@@ -538,273 +548,12 @@ class _VehicleScreenState extends State<VehicleScreen> {
                     ),
                   ),
                   const SizedBox(height: 20),
-                  
-                  // Secondary Vehicle Card
-                  Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    child: Container(
-                      padding: const EdgeInsets.all(20),
-                      decoration: BoxDecoration(
-                        color: theme.card,
-                        borderRadius: BorderRadius.circular(24),
-                        border: Border.all(color: theme.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF1C1D1F).withValues(alpha: 0.06),
-                            blurRadius: 32,
-                            offset: const Offset(0, 12),
-                          ),
-                        ],
-                      ),
-                      child: Column(
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(color: const Color(0xFFE53935), borderRadius: BorderRadius.circular(16)),
-                                child: Row(
-                                  children: [
-                                    const SizedBox(width: 6),
-                                    Text('Cadangan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
-                                  ],
-                                ),
-                              ),
-                              GestureDetector(
-                                onTap: () => _showDeleteVehiclePopup(context),
-                                child: Container(
-                                  width: 32,
-                                  height: 32,
-                                  decoration: BoxDecoration(
-                                    color: isDark ? theme.surfaceField : Colors.white,
-                                    shape: BoxShape.circle,
-                                    border: Border.all(color: theme.border),
-                                  ),
-                                  child: Icon(Icons.more_horiz, size: 18, color: theme.iconColor),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 16),
-                          Container(
-                            height: 176,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              image: const DecorationImage(
-                                image: NetworkImage('https://lh3.googleusercontent.com/aida-public/AB6AXuC2INE8soV5VtERzFqCq_woOBEfGDmI5Zu-0dlqbVRg78Q1EudTkTem9Zx80i7YIm2eL9NcERR6RzY3I2bOkWGhGl8rVoWjDsnMoG7WNCBH2Qjk4MNvriFmYoryaKcCmrhRa4jrlyHvb1yR_SIgHAaMl7Vi1aoO60Yeg8k74Z5y5UH0-9Zr90aHvJR6HXs7_C2e6pTZ4IlXF-_WOW9eQ4kdt2OEBPyzBvtfNkO6j4lO4Yv4WSSFX_au'),
-                                fit: BoxFit.cover,
-                              ),
-                            ),
-                            child: Align(
-                              alignment: Alignment.bottomRight,
-                              child: Container(
-                                margin: const EdgeInsets.all(10),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF020304).withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.directions_car, size: 14, color: Colors.white),
-                                    const SizedBox(width: 4),
-                                    Text('Honda HR-V', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white)),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    'B 5678 KLM',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.bold,
-                                      color: theme.textPrimary,
-                                    ),
-                                  ),
-                                  Text(
-                                    'Abu-Abu Metalik • Milik Pribadi',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      color: theme.textSecondary,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Container(
-                            padding: EdgeInsets.zero,
-                            decoration: const BoxDecoration(color: Colors.transparent),
-                            child: Column(
-                              children: [
-                                IntrinsicHeight(
-                                  child: Row(
-                                    crossAxisAlignment: CrossAxisAlignment.stretch,
-                                    children: [
-                                      Expanded(
-                                        child: Container(
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? theme.surfaceField : Colors.white,
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: theme.border),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Golongan Tarif',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: theme.textSecondary,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Text(
-                                                'Gol. I (Sedan/SUV)',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 14,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: theme.textPrimary,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Expanded(
-                                        child: Container(
-                                          padding: const EdgeInsets.all(10),
-                                          decoration: BoxDecoration(
-                                            color: isDark ? theme.surfaceField : Colors.white,
-                                            borderRadius: BorderRadius.circular(12),
-                                            border: Border.all(color: theme.border),
-                                          ),
-                                          child: Column(
-                                            crossAxisAlignment: CrossAxisAlignment.start,
-                                            children: [
-                                              Text(
-                                                'Masa Berlaku',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w500,
-                                                  color: theme.textSecondary,
-                                                ),
-                                              ),
-                                              const SizedBox(height: 2),
-                                              Row(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                children: [
-                                                  const Padding(
-                                                    padding: EdgeInsets.only(top: 2),
-                                                    child: Icon(Icons.verified, size: 16, color: Color.fromARGB(255, 122, 211, 167)),
-                                                  ),
-                                                  const SizedBox(width: 4),
-                                                  Expanded(
-                                                    child: Text(
-                                                      'Aktif Selamanya',
-                                                      style: GoogleFonts.plusJakartaSans(
-                                                        fontSize: 14,
-                                                        fontWeight: FontWeight.bold,
-                                                        color: theme.textPrimary,
-                                                      ),
-                                                      maxLines: 2,
-                                                      overflow: TextOverflow.ellipsis,
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const VerifiedParkingSessionsScreen()));
-                                  },
-                                  child: Container(
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? theme.surfaceField : Colors.white,
-                                      borderRadius: BorderRadius.circular(24),
-                                      border: Border.all(color: theme.border),
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        Icon(Icons.history, size: 18, color: theme.iconColor),
-                                        const SizedBox(width: 8),
-                                        Text(
-                                          'Riwayat Parkir',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.bold,
-                                            color: theme.textPrimary,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              Expanded(
-                                child: GestureDetector(
-                                  onTap: () {},
-                                  child: Container(
-                                    height: 48,
-                                    decoration: BoxDecoration(
-                                      color: isDark ? const Color(0xFF0F766E) : const Color(0xFF1F4F3C),
-                                      borderRadius: BorderRadius.circular(24),
-                                    ),
-                                    child: Center(
-                                      child: Text(
-                                        'Jadikan Utama',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.bold,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                    ),
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
+                  // Kendaraan Cadangan (Hanya muncul jika di database terdapat lebih dari 1 kendaraan)
+                  if (VehicleBackend.instance.vehicles.length > 1) ...[
+                    ...VehicleBackend.instance.vehicles.where((v) => v.id != (VehicleBackend.instance.defaultVehicle?.id ?? '')).map((secVehicle) {
+                      return _buildSecondaryVehicleCard(context, secVehicle, isDark, theme);
+                    }),
+                  ],
                   const SizedBox(height: 20),
                   ],
                 ],
@@ -867,6 +616,435 @@ class _VehicleScreenState extends State<VehicleScreen> {
   ),
 );
       },
+    );
+  }
+
+  void _showVehicleOptions(BuildContext context, VehicleItem vehicle, bool isPrimary) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        decoration: BoxDecoration(
+          color: theme.card,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: isDark ? Colors.white24 : Colors.black12,
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 18),
+            Text(
+              '${vehicle.brand} ${vehicle.model}',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: theme.textPrimary,
+              ),
+            ),
+            Text(
+              vehicle.plateNumber,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: theme.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 20),
+            if (!isPrimary) ...[
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF10B981).withValues(alpha: 0.12),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.stars, color: Color(0xFF10B981), size: 22),
+                ),
+                title: Text(
+                  'Jadikan Kendaraan Utama',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: theme.textPrimary,
+                  ),
+                ),
+                subtitle: Text(
+                  'Pilihan default otomatis untuk setiap reservasi parkir',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 12,
+                    color: theme.textSecondary,
+                  ),
+                ),
+                onTap: () async {
+                  Navigator.pop(context);
+                  final ok = await VehicleBackend.instance.setDefaultVehicle(vehicle.id);
+                  if (ok && context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('${vehicle.brand} ${vehicle.model} sekarang menjadi kendaraan utama.'),
+                        backgroundColor: const Color(0xFF15803D),
+                      ),
+                    );
+                  }
+                },
+              ),
+              const Divider(height: 24),
+            ],
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFEF4444).withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 22),
+              ),
+              title: Text(
+                'Hapus Kendaraan',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: const Color(0xFFEF4444),
+                ),
+              ),
+              subtitle: Text(
+                'Hapus kendaraan ini dari daftar garasi Anda',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: theme.textSecondary,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteVehiclePopup(context, vehicle.id);
+              },
+            ),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildSecondaryVehicleCard(BuildContext context, VehicleItem vehicle, bool isDark, dynamic theme) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Container(
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: theme.card,
+          borderRadius: BorderRadius.circular(24),
+          border: Border.all(color: theme.border),
+          boxShadow: [
+            BoxShadow(
+              color: isDark ? Colors.black.withValues(alpha: 0.3) : const Color(0xFF1C1D1F).withValues(alpha: 0.06),
+              blurRadius: 32,
+              offset: const Offset(0, 12),
+            ),
+          ],
+        ),
+        child: Column(
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF78350F) : const Color(0xFFFEF3C7),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.shield_outlined,
+                        size: 13,
+                        color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E),
+                      ),
+                      const SizedBox(width: 6),
+                      Text(
+                        'Cadangan',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                GestureDetector(
+                  onTap: () => _showVehicleOptions(context, vehicle, false),
+                  child: Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: isDark ? theme.surfaceField : Colors.white,
+                      shape: BoxShape.circle,
+                      border: Border.all(color: theme.border),
+                    ),
+                    child: Icon(Icons.more_horiz, size: 18, color: theme.iconColor),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Container(
+              height: 176,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                image: DecorationImage(
+                  image: NetworkImage(
+                    (vehicle.photoUrl != null && vehicle.photoUrl!.isNotEmpty)
+                        ? vehicle.photoUrl!
+                        : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80',
+                  ),
+                  fit: BoxFit.cover,
+                ),
+              ),
+              child: Align(
+                alignment: Alignment.bottomRight,
+                child: Container(
+                  margin: const EdgeInsets.all(10),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF020304).withValues(alpha: 0.8),
+                    borderRadius: BorderRadius.circular(16),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        vehicle.vehicleType.toLowerCase().contains('motor') ? Icons.two_wheeler : Icons.directions_car,
+                        size: 14,
+                        color: Colors.white,
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        '${vehicle.brand} ${vehicle.model}',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            const SizedBox(height: 12),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      vehicle.plateNumber,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: theme.textPrimary,
+                      ),
+                    ),
+                    Text(
+                      '${vehicle.color} • Milik Pribadi',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        color: theme.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: EdgeInsets.zero,
+              decoration: const BoxDecoration(color: Colors.transparent),
+              child: Column(
+                children: [
+                  IntrinsicHeight(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.stretch,
+                      children: [
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isDark ? theme.surfaceField : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: theme.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Golongan Tarif',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: theme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  'Gol. I (${vehicle.category.toUpperCase()})',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                    color: theme.textPrimary,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Container(
+                            padding: const EdgeInsets.all(10),
+                            decoration: BoxDecoration(
+                              color: isDark ? theme.surfaceField : Colors.white,
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: theme.border),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  'Masa Berlaku',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w500,
+                                    color: theme.textSecondary,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Padding(
+                                      padding: EdgeInsets.only(top: 2),
+                                      child: Icon(Icons.verified, size: 16, color: Color.fromARGB(255, 122, 211, 167)),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    Expanded(
+                                      child: Text(
+                                        vehicle.plateExpiry.isNotEmpty ? vehicle.plateExpiry : 'Aktif Selamanya',
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 14,
+                                          fontWeight: FontWeight.bold,
+                                          color: theme.textPrimary,
+                                        ),
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.push(context, MaterialPageRoute(builder: (context) => const VerifiedParkingSessionsScreen()));
+                    },
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isDark ? theme.surfaceField : Colors.white,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(color: theme.border),
+                      ),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Icon(Icons.history, size: 18, color: theme.iconColor),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Riwayat Parkir',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: theme.textPrimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: GestureDetector(
+                    onTap: () async {
+                      final ok = await VehicleBackend.instance.setDefaultVehicle(vehicle.id);
+                      if (ok && context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('${vehicle.brand} ${vehicle.model} berhasil dijadikan Kendaraan Utama!'),
+                            backgroundColor: const Color(0xFF15803D),
+                          ),
+                        );
+                      }
+                    },
+                    child: Container(
+                      height: 48,
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF0F766E) : const Color(0xFF114177),
+                        borderRadius: BorderRadius.circular(24),
+                      ),
+                      child: Center(
+                        child: Text(
+                          'Jadikan Utama',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

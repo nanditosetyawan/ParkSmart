@@ -105,6 +105,12 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
         }).toList();
 
         _totalSessions = _sessions.length;
+        _totalDurationHours = _sessions.length * 2;
+        int sumSpending = 0;
+        for (var p in paymentsRes) {
+          sumSpending += (p['amount'] is num) ? (p['amount'] as num).toInt() : 0;
+        }
+        _thisMonthSpending = 'Rp ${sumSpending.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
       }
     } catch (e) {
       debugPrint('Error fetching verified sessions: $e');

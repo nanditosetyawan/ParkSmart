@@ -371,8 +371,10 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
     }
   }
 
-  String _formatNumber(int n) {
-    return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
+  String _formatNumber(dynamic n) {
+    if (n == null) return '0';
+    final int val = (n is num) ? n.toInt() : (int.tryParse(n.toString()) ?? 0);
+    return val.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
   @override

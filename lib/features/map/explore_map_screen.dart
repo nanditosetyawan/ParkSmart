@@ -2795,7 +2795,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 child: Image.network(
                   imageUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => Container(
+                  errorBuilder: (context, error, stackTrace) => Container(
                     color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB),
                     child: Center(
                       child: Icon(Icons.local_parking, size: 52, color: isDark ? Colors.white54 : const Color(0xFF9CA3AF)),
@@ -3333,14 +3333,14 @@ class _VoiceSearchBottomSheetState extends State<VoiceSearchBottomSheet>
             if (mounted) {
               setState(() {
                 _recognizedText = result.recognizedWords;
-                _statusText = 'Terdengar: "' + _recognizedText + '"';
+                _statusText = 'Terdengar: "$_recognizedText"';
               });
               if (result.finalResult) {
                 _finishAndSearch(_recognizedText);
               }
             }
           },
-          localeId: 'id_ID',
+          listenOptions: stt.SpeechListenOptions(listenMode: stt.ListenMode.confirmation),
         );
       } else {
         if (mounted) {
@@ -3368,7 +3368,7 @@ class _VoiceSearchBottomSheetState extends State<VoiceSearchBottomSheet>
     if (_isProcessing) return;
     setState(() {
       _recognizedText = suggestion;
-      _statusText = 'Dipilih: "' + suggestion + '"';
+      _statusText = 'Dipilih: "$suggestion"';
       _isProcessing = true;
     });
     Future.delayed(const Duration(milliseconds: 300), () {
