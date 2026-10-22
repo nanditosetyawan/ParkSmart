@@ -19,7 +19,16 @@ class HomeBackend extends ChangeNotifier {
   String get userId => _userId;
 
   String _userName = 'Pengguna';
-  String get userName => _userName;
+  String get userName {
+    if (_userName.isNotEmpty && _userName != 'Pengguna') {
+      return _userName;
+    }
+    final sessionName = SessionService.instance.userName;
+    if (sessionName != null && sessionName.trim().isNotEmpty) {
+      return sessionName.trim();
+    }
+    return _userName;
+  }
 
   double _walletBalance = 0.0;
   double get walletBalance => _walletBalance;
@@ -120,6 +129,7 @@ class HomeBackend extends ChangeNotifier {
         _walletBalance = (data['wallet_balance'] as num?)?.toDouble() ?? 0.0;
         _points = (data['points'] as int?) ?? 0;
         _memberTier = data['member_tier'] as String? ?? 'BRONZE';
+        notifyListeners();
       }
     } catch (e) {
       debugPrint('[HomeBackend] _fetchUserProfile error: $e');

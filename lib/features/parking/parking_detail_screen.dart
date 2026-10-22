@@ -3,7 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
-import '../favorite/favorite_screen.dart';
+import '../favorite/backend/favorite_backend.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
@@ -23,7 +23,6 @@ class ParkingDetailScreen extends StatefulWidget {
 }
 
 class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
-  bool _bookmarked = false;
   late final PageController _heroPhotoController;
   int _currentPhotoIndex = 0;
   Position? _userPosition;
@@ -34,6 +33,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
     super.initState();
     _heroPhotoController = PageController();
     ParkingDetailBackend.instance.fetchLocationDetail(locationId: widget.locationId);
+    FavoriteBackend.instance.fetchFavorites();
     _loadUserGps();
   }
 
@@ -88,7 +88,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ParkingDetailBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ParkingDetailBackend.instance, FavoriteBackend.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -754,14 +754,48 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                           const SizedBox(),
                           Row(
                             children: [
-                              _NavBtn(
-                                icon: _bookmarked ? Icons.bookmark : Icons.bookmark_border,
-                                isDark: isDark,
-                                onTap: () {
-                                  setState(() => _bookmarked = !_bookmarked);
-                                  Navigator.push(
-                                    context,
-                                    MaterialPageRoute(builder: (_) => const FavoriteScreen()),
+                              Builder(
+                                builder: (ctx) {
+                                  final currentLocId = backend.locationDetail?['id']?.toString() ?? widget.locationId;
+                                  final isFav = currentLocId != null && FavoriteBackend.instance.isFavorite(currentLocId);
+                                  return _NavBtn(
+                                    icon: isFav ? Icons.favorite : Icons.favorite_border,
+                                    iconColor: isFav ? const Color(0xFFEF4444) : null,
+                                    isDark: isDark,
+                                    onTap: () async {
+                                      if (currentLocId == null || currentLocId.isEmpty) return;
+                                      final added = await FavoriteBackend.instance.toggleFavorite(currentLocId);
+                                      if (context.mounted) {
+                                        ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                                        ScaffoldMessenger.of(context).showSnackBar(
+                                          SnackBar(
+                                            content: Row(
+                                              children: [
+                                                Icon(
+                                                  added ? Icons.favorite : Icons.favorite_border,
+                                                  color: Colors.white,
+                                                  size: 18,
+                                                ),
+                                                const SizedBox(width: 8),
+                                                Text(
+                                                  added
+                                                      ? 'Ditambahkan ke parkir favorit'
+                                                      : 'Dihapus dari parkir favorit',
+                                                  style: GoogleFonts.plusJakartaSans(
+                                                    color: Colors.white,
+                                                    fontWeight: FontWeight.w600,
+                                                  ),
+                                                ),
+                                              ],
+                                            ),
+                                            backgroundColor: added ? const Color(0xFFEF4444) : const Color(0xFF475569),
+                                            duration: const Duration(seconds: 2),
+                                            behavior: SnackBarBehavior.floating,
+                                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                          ),
+                                        );
+                                      }
+                                    },
                                   );
                                 },
                               ),
@@ -1004,7 +1038,13 @@ class _NavBtn extends StatelessWidget {
   final IconData icon;
   final VoidCallback onTap;
   final bool isDark;
-  const _NavBtn({required this.icon, required this.onTap, this.isDark = false});
+  final Color? iconColor;
+  const _NavBtn({
+    required this.icon,
+    required this.onTap,
+    this.isDark = false,
+    this.iconColor,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -1025,7 +1065,7 @@ class _NavBtn extends StatelessWidget {
         child: Icon(
           icon,
           size: 20,
-          color: isDark ? Colors.white : AppColors.textPrimary,
+          color: iconColor ?? (isDark ? Colors.white : AppColors.textPrimary),
         ),
       ),
     );

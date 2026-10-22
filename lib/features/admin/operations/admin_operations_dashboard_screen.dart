@@ -2288,14 +2288,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                   const SizedBox(height: 8),
 
                   // Rincian Unit Terparkir
-                  Row(
-                    children: [
-                      Text('Armada: ', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                      Text('🚗 ${loc['mobil'] ?? 0} Mobil  ', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                      Text('🏍️ ${loc['motor'] ?? 0} Motor  ', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFF45474A))),
-                      Text('⚡ ${loc['ev'] ?? 0} EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.w600, color: const Color(0xFFE07A5F))),
-                    ],
-                  ),
+                 
                   const SizedBox(height: 10),
                   const Divider(height: 1, color: Color(0xFFF3F4F6)),
                   const SizedBox(height: 10),

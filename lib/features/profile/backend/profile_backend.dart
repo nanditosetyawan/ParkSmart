@@ -69,6 +69,22 @@ class ProfileBackend extends ChangeNotifier {
     });
   }
 
+  void clearProfile() {
+    _userId = '';
+    _name = 'Pengguna Baru';
+    _email = '';
+    _phone = '';
+    _avatarUrl = null;
+    _memberTier = 'BRONZE';
+    _totalParking = 0;
+    _totalSavings = 0;
+    _walletBalance = 0;
+    _primaryVehicle = 'Belum Ada Kendaraan';
+    _saranKuliah = '';
+    _pesanKuliah = '';
+    notifyListeners();
+  }
+
   Future<void> fetchProfile() async {
     _isLoading = true;
     notifyListeners();

@@ -28,6 +28,8 @@ import '../admin/finance/admin_finance_dashboard_screen.dart';
 import '../admin/cs/admin_cs_dashboard_screen.dart';
 import '../profile/backend/profile_backend.dart';
 import '../profile/backend/vehicle_backend.dart';
+import '../profile/backend/payment_methods_backend.dart';
+import '../checkout/backend/checkout_backend.dart';
 import '../home/backend/home_backend.dart';
 import '../../core/services/client_info_service.dart';
 import '../../core/services/session_service.dart';
@@ -349,8 +351,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         memberTier: memberTier,
       );
 
-      // Muat kendaraan milik user ini
+      // Muat kendaraan & data finansial milik user ini
       VehicleBackend.instance.fetchVehicles();
+      PaymentMethodsBackend.instance.fetchBalance();
+      CheckoutBackend.instance.setUserId(uid);
 
       if (_remember) {
         await _saveCredentials();

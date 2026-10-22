@@ -1,6 +1,9 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_service.dart';
+import '../../home/backend/home_backend.dart';
 import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk CheckoutScreen (lib/features/checkout/checkout_screen.dart)
@@ -15,11 +18,71 @@ class CheckoutBackend extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   String? _userId;
+  void setUserId(String id) {
+    _userId = id;
+  }
+
+  void clear() {
+    _userId = null;
+    _selectedVehicle = null;
+    _userVehicles = [];
+    _walletBalance = 0;
+    _locationName = '-';
+    _locationId = null;
+    _slotId = null;
+    _slotCode = '-';
+    _floorName = '-';
+    notifyListeners();
+  }
+
   String get userId {
     if (_userId != null && _userId!.isNotEmpty) return _userId!;
+    if (SessionService.instance.userId != null && SessionService.instance.userId!.isNotEmpty) {
+      return SessionService.instance.userId!;
+    }
     final pid = ProfileBackend.instance.userId;
     if (pid.isNotEmpty) return pid;
-    return 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba';
+    if (HomeBackend.instance.userId.isNotEmpty) {
+      return HomeBackend.instance.userId;
+    }
+    return '';
+  }
+
+  /// Helper asinkron untuk menjamin User ID aktif tidak pernah kosong
+  Future<String> resolveUserId() async {
+    final cur = userId;
+    if (cur.isNotEmpty) return cur;
+
+    final prefs = await SharedPreferences.getInstance();
+    final prefUid = prefs.getString('user_profile_id') ?? prefs.getString('ps_session_user_id');
+    if (prefUid != null && prefUid.isNotEmpty) {
+      _userId = prefUid;
+      return prefUid;
+    }
+
+    final authUser = _client.auth.currentUser;
+    if (authUser != null) {
+      try {
+        final row = await _client.from('users').select('id').eq('auth_user_id', authUser.id).maybeSingle();
+        if (row != null && row['id'] != null) {
+          _userId = row['id'].toString();
+          return _userId!;
+        }
+      } catch (_) {}
+    }
+
+    final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+    if (email.isNotEmpty) {
+      try {
+        final row = await _client.from('users').select('id').eq('email', email).maybeSingle();
+        if (row != null && row['id'] != null) {
+          _userId = row['id'].toString();
+          return _userId!;
+        }
+      } catch (_) {}
+    }
+
+    return '';
   }
 
   Map<String, dynamic>? _selectedVehicle;
@@ -217,10 +280,15 @@ class CheckoutBackend extends ChangeNotifier {
         }
       }
 
+      final actualUid = await resolveUserId();
+      if (actualUid.isEmpty) {
+        throw Exception('Sesi pengguna tidak valid. Silakan login kembali.');
+      }
+
       // 3. Insert ke tabel bookings (status awal 'unpaid' dengan hold time 2:59 menit)
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
-        'user_id': userId,
+        'user_id': actualUid,
         'location_id': actualLocId,
         'slot_id': actualSlotId,
         'vehicle_id': _selectedVehicle?['id'],
@@ -438,7 +506,9 @@ class CheckoutBackend extends ChangeNotifier {
       if (bRes == null) return false;
 
       final price = (bRes['total_price'] as num?)?.toDouble() ?? totalPayment;
-      final actualUserId = bRes['user_id']?.toString() ?? userId;
+      final actualUserId = (bRes['user_id'] != null && bRes['user_id'].toString().isNotEmpty)
+          ? bRes['user_id'].toString()
+          : (await resolveUserId());
       final bCode = bRes['booking_code']?.toString() ?? '';
       final locName = bRes['parking_locations']?['name']?.toString() ?? _locationName;
       final sCode = bRes['parking_slots']?['slot_code']?.toString() ?? _slotCode;

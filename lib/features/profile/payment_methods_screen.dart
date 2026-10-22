@@ -28,6 +28,17 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     _loadBalance();
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
+    PaymentMethodsBackend.instance.addListener(_onBackendChanged);
+    PaymentMethodsBackend.instance.fetchBalance();
+    PaymentMethodsBackend.instance.fetchTransactions();
+  }
+
+  void _onBackendChanged() {
+    if (mounted) {
+      setState(() {
+        _balance = PaymentMethodsBackend.instance.balance;
+      });
+    }
   }
 
   Future<void> _loadBalance() async {
@@ -53,6 +64,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   void dispose() {
     CurrencyService.instance.removeListener(_onCurrencyChanged);
     ThemeService.instance.removeListener(_onThemeChanged);
+    PaymentMethodsBackend.instance.removeListener(_onBackendChanged);
     super.dispose();
   }
 
@@ -65,17 +77,17 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       isScrollControlled: true,
       builder: (ctx) => ListenableBuilder(
         listenable: ThemeService.instance,
-        builder: (context, _) {
+        builder: (sheetCtx, _) {
           final theme = ThemeService.instance;
           final isDark = theme.isDarkMode;
 
           return StatefulBuilder(
-            builder: (context, setSheetState) => Container(
+            builder: (dialogCtx, setSheetState) => Container(
               padding: EdgeInsets.only(
                 left: 24,
                 right: 24,
                 top: 24,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                bottom: MediaQuery.of(dialogCtx).viewInsets.bottom + 24,
               ),
               decoration: BoxDecoration(
                 color: theme.card,
@@ -153,32 +165,35 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     width: double.infinity,
                     height: 52,
                     child: ElevatedButton(
-                      onPressed: () {
+                      onPressed: () async {
                         Navigator.pop(ctx);
-                        setState(() {
-                          _balance += selectedAmount;
-                        });
-                        SharedPreferences.getInstance().then((prefs) {
-                          prefs.setInt('user_wallet_balance', _balance);
-                        });
-                        PaymentMethodsBackend.instance.topUp(
+                        final success = await PaymentMethodsBackend.instance.topUp(
                           selectedAmount,
                           'bank_va',
                         );
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(
-                              'Top Up ${CurrencyService.instance.format(selectedAmount)} berhasil!',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontWeight: FontWeight.w600,
-                                color: isDark ? Colors.black : Colors.white,
+                        if (mounted) {
+                          setState(() {
+                            _balance = PaymentMethodsBackend.instance.balance;
+                          });
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? 'Top Up ${CurrencyService.instance.format(selectedAmount)} berhasil!'
+                                    : 'Gagal memproses Top Up. Silakan coba lagi.',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.black : Colors.white,
+                                ),
                               ),
+                              backgroundColor: success
+                                  ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32))
+                                  : Colors.redAccent,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                             ),
-                            backgroundColor: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
-                            behavior: SnackBarBehavior.floating,
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                          ),
-                        );
+                          );
+                        }
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
@@ -207,82 +222,22 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
 
   void _showHistorySheet() {
     String filterType = 'all'; // 'all', 'in', 'out'
-
-    final List<Map<String, dynamic>> allTransactions = [
-      {
-        'id': 'TRX-94821',
-        'title': 'Isi Ulang Saldo (Top Up)',
-        'subtitle': 'BCA Virtual Account • Sukses',
-        'date': 'Hari ini, 14 Okt 2026 • 16:30 WIB',
-        'rawAmount': 50000,
-        'isIncome': true,
-        'status': 'Berhasil',
-        'channel': 'Bank Transfer / VA',
-      },
-      {
-        'id': 'TRX-94750',
-        'title': 'Parkir Grand Indonesia',
-        'subtitle': 'Slot A-12 • Durasi 2 Jam (B 1234 XYZ)',
-        'date': 'Hari ini, 14 Okt 2026 • 14:15 WIB',
-        'rawAmount': 12000,
-        'isIncome': false,
-        'status': 'Selesai',
-        'channel': 'ParkSmart Auto-Pay',
-      },
-      {
-        'id': 'TRX-93112',
-        'title': 'Cashback Parkir Santai',
-        'subtitle': 'Promo Diskon Pengguna Baru',
-        'date': '12 Okt 2026 • 18:40 WIB',
-        'rawAmount': 15000,
-        'isIncome': true,
-        'status': 'Diterima',
-        'channel': 'Promo & Cashback',
-      },
-      {
-        'id': 'TRX-92044',
-        'title': 'Parkir Senayan City',
-        'subtitle': 'Slot B-04 • Durasi 1.5 Jam (B 1234 XYZ)',
-        'date': '11 Okt 2026 • 11:20 WIB',
-        'rawAmount': 8000,
-        'isIncome': false,
-        'status': 'Selesai',
-        'channel': 'ParkSmart Auto-Pay',
-      },
-      {
-        'id': 'TRX-91500',
-        'title': 'Isi Ulang Saldo (Top Up)',
-        'subtitle': 'GoPay Instant Top-Up',
-        'date': '10 Okt 2026 • 09:15 WIB',
-        'rawAmount': 100000,
-        'isIncome': true,
-        'status': 'Berhasil',
-        'channel': 'E-Wallet GoPay',
-      },
-      {
-        'id': 'TRX-89410',
-        'title': 'Parkir Central Park Mall',
-        'subtitle': 'Slot VIP-02 • Durasi 3 Jam (B 1234 XYZ)',
-        'date': '08 Okt 2026 • 19:45 WIB',
-        'rawAmount': 15000,
-        'isIncome': false,
-        'status': 'Selesai',
-        'channel': 'ParkSmart Auto-Pay',
-      },
-    ];
+    PaymentMethodsBackend.instance.fetchTransactions();
 
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => ListenableBuilder(
-        listenable: ThemeService.instance,
+        listenable: Listenable.merge([ThemeService.instance, PaymentMethodsBackend.instance]),
         builder: (context, _) {
           final theme = ThemeService.instance;
           final isDark = theme.isDarkMode;
+          final backend = PaymentMethodsBackend.instance;
 
           return StatefulBuilder(
             builder: (context, setSheetState) {
+              final allTransactions = backend.transactions;
               final filteredList = allTransactions.where((item) {
                 if (filterType == 'in') return item['isIncome'] == true;
                 if (filterType == 'out') return item['isIncome'] == false;
@@ -420,8 +375,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                Text(
-                                  CurrencyService.instance.format(_balance),
+                                 Text(
+                                  CurrencyService.instance.format(backend.balance),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 20,
                                     fontWeight: FontWeight.w800,
@@ -434,14 +389,14 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                               children: [
                                 _buildMiniStatBadge(
                                   label: 'Masuk',
-                                  val: '+${CurrencyService.instance.format(165000)}',
+                                  val: '+${CurrencyService.instance.format(backend.totalIncome)}',
                                   color: const Color(0xFF4ADE80),
                                   icon: Icons.south_west_rounded,
                                 ),
                                 const SizedBox(width: 8),
                                 _buildMiniStatBadge(
                                   label: 'Keluar',
-                                  val: '-${CurrencyService.instance.format(35000)}',
+                                  val: '-${CurrencyService.instance.format(backend.totalExpense)}',
                                   color: const Color(0xFFFDBA74),
                                   icon: Icons.north_east_rounded,
                                 ),
@@ -486,24 +441,37 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     Expanded(
                       child: filteredList.isEmpty
                           ? Center(
-                              child: Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.receipt_long_outlined,
-                                    size: 48,
-                                    color: theme.textSecondary.withValues(alpha: 0.5),
-                                  ),
-                                  const SizedBox(height: 10),
-                                  Text(
-                                    'Tidak ada transaksi',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
-                                      color: theme.textSecondary,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 32),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.receipt_long_outlined,
+                                      size: 48,
+                                      color: theme.textSecondary.withValues(alpha: 0.5),
                                     ),
-                                  ),
-                                ],
+                                    const SizedBox(height: 12),
+                                    Text(
+                                      'Belum ada transaksi',
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w700,
+                                        color: theme.textPrimary,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 6),
+                                    Text(
+                                      'Riwayat mutasi pengisian saldo (Top Up) atau pembayaran parkir Anda akan otomatis tercatat di sini.',
+                                      textAlign: TextAlign.center,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        color: theme.textSecondary,
+                                        height: 1.4,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
                             )
                           : ListView.separated(

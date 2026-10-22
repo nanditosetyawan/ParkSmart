@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_service.dart';
 import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk ExtendSessionScreen (lib/features/session/extend_session_screen.dart)
@@ -213,7 +214,9 @@ class ExtendSessionBackend extends ChangeNotifier {
 
     try {
       final newEnd = (_expectedCheckOut ?? DateTime.now()).add(Duration(minutes: minutesToAdd));
-      final activeUserId = ProfileBackend.instance.userId;
+      final activeUserId = ProfileBackend.instance.userId.isNotEmpty
+          ? ProfileBackend.instance.userId
+          : (SessionService.instance.userId ?? '');
 
       if (_sessionId != null) {
         // Coba update parking_sessions dulu

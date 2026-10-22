@@ -30,6 +30,7 @@ import '../../theme/app_spacing.dart';
 import '../map/explore_map_screen.dart';
 import '../game/game_lobby_screen.dart' as game;
 import 'backend/home_backend.dart';
+import '../../core/services/session_service.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -554,9 +555,23 @@ class _HomeScreenState extends State<HomeScreen> {
                       ListenableBuilder(
                         listenable: HomeBackend.instance,
                         builder: (context, _) {
-                          final name = HomeBackend.instance.userName;
-                          final shortName = name.split(' ').first;
-                          return Text('Halo, $shortName', style: AppTypography.displayLg());
+                          String name = HomeBackend.instance.userName.trim();
+                          if (name.isEmpty || name == 'Pengguna') {
+                            final sessName = SessionService.instance.userName?.trim();
+                            if (sessName != null && sessName.isNotEmpty) {
+                              name = sessName;
+                            }
+                          }
+                          // Tampilkan nama akun pengguna secara utuh (contoh: "user 1", "Aji", "Dito")
+                          // Jika terlalu panjang (> 22 karakter), ambil 2 kata pertama
+                          String displayName = name.isNotEmpty ? name : 'Pengguna';
+                          if (displayName.length > 22) {
+                            final parts = displayName.split(' ');
+                            if (parts.length > 1) {
+                              displayName = '${parts[0]} ${parts[1]}';
+                            }
+                          }
+                          return Text('Halo, $displayName', style: AppTypography.displayLg());
                         },
                       ),
                       const SizedBox(height: 4),

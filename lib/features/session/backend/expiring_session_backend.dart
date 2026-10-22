@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_service.dart';
 import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk ExpiringSessionScreen (lib/features/session/expiring_session_screen.dart)
@@ -101,10 +102,13 @@ class ExpiringSessionBackend extends ChangeNotifier {
         }).eq('id', _sessionId!);
 
         final code = 'PAY-EXP-${Random().nextInt(900000) + 100000}';
+        final uid = ProfileBackend.instance.userId.isNotEmpty
+            ? ProfileBackend.instance.userId
+            : (SessionService.instance.userId ?? '');
         await _client.from('payments').insert({
           'transaction_code': code,
           'session_id': _sessionId,
-          'user_id': ProfileBackend.instance.userId,
+          'user_id': uid,
           'transaction_type': 'parking_payment',
           'payment_method': 'wallet',
           'amount': cost,
