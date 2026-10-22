@@ -42,7 +42,9 @@ class CheckinBackend extends ChangeNotifier {
   String? _slotId;
   String? _userId;
   String? _vehicleId;
-  double _totalPrice = 11000.0;
+  double _totalPrice = 5000.0;
+  int _durationHours = 1;
+  int get durationHours => _durationHours;
 
   /// Memuat detail tiket yang siap check-in
   Future<void> fetchCheckinTicket({String? bookingId}) async {
@@ -52,7 +54,7 @@ class CheckinBackend extends ChangeNotifier {
     try {
       var query = _client
           .from('bookings')
-          .select('id, booking_code, user_id, location_id, slot_id, vehicle_id, booking_status, total_price');
+          .select('id, booking_code, user_id, location_id, slot_id, vehicle_id, booking_status, total_price, duration_hours, start_time, end_time');
 
       final dynamic booking;
       if (bookingId != null && bookingId.isNotEmpty) {
@@ -73,6 +75,7 @@ class CheckinBackend extends ChangeNotifier {
         _locationId = booking['location_id']?.toString();
         _slotId = booking['slot_id']?.toString();
         _totalPrice = (booking['total_price'] as num?)?.toDouble() ?? _totalPrice;
+        _durationHours = (booking['duration_hours'] as num?)?.toInt() ?? 1;
 
         if (_locationId != null) {
           final loc = await _client
@@ -125,7 +128,7 @@ class CheckinBackend extends ChangeNotifier {
 
     try {
       final now = DateTime.now();
-      final expectedOut = now.add(const Duration(hours: 2));
+      final expectedOut = now.add(Duration(hours: _durationHours));
 
       // 1. Update status booking menjadi 'active'
       if (_bookingId != null) {

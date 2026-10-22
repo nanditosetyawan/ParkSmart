@@ -73,24 +73,31 @@ class ExtendSessionBackend extends ChangeNotifier {
   String get plateNumber => _plateNumber;
 
   /// Memuat sesi parkir aktif yang dapat diperpanjang
-  Future<void> fetchActiveSessionForExtend() async {
+  Future<void> fetchActiveSessionForExtend({String? sessionId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final session = await _client
+      var query = _client
           .from('parking_sessions')
-          .select('id, slot_id, expected_check_out_time, check_in_time, parking_fee, vehicle_description, plate_number, booking_id')
-          .eq('status', 'active')
-          .order('check_in_time', ascending: false)
-          .limit(1)
-          .maybeSingle();
+          .select('id, slot_id, expected_check_out_time, check_in_time, parking_fee, total_fee, vehicle_desc, plate_number, booking_id');
+
+      final dynamic session;
+      if (sessionId != null && sessionId.isNotEmpty) {
+        session = await query.eq('id', sessionId).maybeSingle();
+      } else {
+        session = await query
+            .eq('status', 'active')
+            .order('check_in_time', ascending: false)
+            .limit(1)
+            .maybeSingle();
+      }
 
       if (session != null) {
         _sessionId = session['id']?.toString();
 
-        if (session['vehicle_description'] != null && session['vehicle_description'].toString().isNotEmpty) {
-          _vehicleName = session['vehicle_description'].toString();
+        if (session['vehicle_desc'] != null && session['vehicle_desc'].toString().isNotEmpty) {
+          _vehicleName = session['vehicle_desc'].toString();
         }
         if (session['plate_number'] != null && session['plate_number'].toString().isNotEmpty) {
           _plateNumber = session['plate_number'].toString();
@@ -129,7 +136,7 @@ class ExtendSessionBackend extends ChangeNotifier {
               .maybeSingle();
           if (slot != null) {
             _slotCode = 'Slot ${slot['slot_code'] ?? 'A-05'}';
-            _floorInfo = '${slot['floor_name'] ?? 'Lantai B2'} • Pilar 14';
+            _floorInfo = '${slot['floor_name'] ?? 'Lantai 1'} • Pilar 14';
           }
         }
       } else {

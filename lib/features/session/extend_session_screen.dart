@@ -7,7 +7,8 @@ import 'package:google_fonts/google_fonts.dart';
 import 'backend/extend_session_backend.dart';
 
 class ExtendSessionScreen extends StatefulWidget {
-  const ExtendSessionScreen({super.key});
+  final String? sessionId;
+  const ExtendSessionScreen({super.key, this.sessionId});
 
   @override
   State<ExtendSessionScreen> createState() => _ExtendSessionScreenState();
@@ -20,7 +21,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
   @override
   void initState() {
     super.initState();
-    ExtendSessionBackend.instance.fetchActiveSessionForExtend();
+    ExtendSessionBackend.instance.fetchActiveSessionForExtend(sessionId: widget.sessionId);
   }
 
   List<Map<String, dynamic>> get _options => ExtendSessionBackend.instance.options;

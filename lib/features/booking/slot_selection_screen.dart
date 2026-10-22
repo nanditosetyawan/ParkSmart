@@ -758,6 +758,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                               slotCode: _selectedSlot ?? 'A-01',
                               floorName: activeFloorName,
                               hourlyRate: rate,
+                              durationHours: 1,
                             );
                             Navigator.push(
                               context,

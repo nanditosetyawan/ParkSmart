@@ -104,25 +104,24 @@ class _AdminFinanceNotificationsScreenState
               ),
               title: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  Row(
-                    children: [
-                      Text(
-                        'Notifikasi Injeksi Saldo',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: const Color(0xFF1A1A18),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    'Notifikasi',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A18),
+                    ),
                   ),
                   Text(
-                    'Status Riwayat Injeksi Saldo Dompet Admin',
+                    'Riwayat Injeksi & Mutasi Finansial',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       color: const Color(0xFF76777B),
                     ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),

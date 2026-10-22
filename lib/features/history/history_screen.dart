@@ -5,7 +5,6 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
-import '../session/checkin_screen.dart';
 import '../pin/pin_screen.dart';
 import 'history_detail_screen.dart' as history_detail;
 import 'backend/history_backend.dart';
@@ -376,10 +375,13 @@ class _HistoryCard extends StatelessWidget {
                       MaterialPageRoute(
                         builder: (_) => PinScreen(
                           transactionType: 'parkir',
-                          nextScreen: CheckinScreen(bookingId: id),
+                          bookingId: id,
+                          nextScreen: const HistoryScreen(),
                         ),
                       ),
-                    );
+                    ).then((_) {
+                      HistoryBackend.instance.fetchHistory();
+                    });
                   },
                   child: Text(
                     'Bayar Sekarang',

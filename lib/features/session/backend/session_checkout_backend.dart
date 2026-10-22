@@ -39,16 +39,25 @@ class SessionCheckoutBackend extends ChangeNotifier {
   String _timeRange = '-';
   String get timeRange => _timeRange;
 
-  double _parkingRate = 0;
+  int _durationHours = 1;
+  int get durationHours => _durationHours;
+
+  double _parkingRate = 5000;
   double get parkingRate => _parkingRate;
 
-  final double _sensorFee = 0;
-  double get sensorFee => _sensorFee;
+  final double _serviceFee = 0;
+  double get serviceFee => _serviceFee;
 
   final double _discountAmount = 0;
   double get discountAmount => _discountAmount;
 
-  double get totalPayment => (_parkingRate + _sensorFee) - _discountAmount;
+  double _totalPayment = 5000;
+  double get totalPayment => _totalPayment;
+
+  double get parkingFeeOnly {
+    final fee = _totalPayment - _serviceFee + _discountAmount;
+    return fee > 0 ? fee : _parkingRate;
+  }
 
   final String _paymentMethod = 'ParkSmart Pay';
   String get paymentMethod => _paymentMethod;
@@ -77,7 +86,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
       // 2. Ambil sesi parkir
       var query = _client
           .from('parking_sessions')
-          .select('id, session_code, location_id, slot_id, plate_number, vehicle_desc, check_in_time, check_out_time, parking_fee, total_fee, gate_out_id, status');
+          .select('id, session_code, location_id, slot_id, plate_number, vehicle_desc, check_in_time, check_out_time, parking_fee, total_fee, gate_out_id, status, booking_id');
 
       final session = sessionId != null
           ? await query.eq('id', sessionId).maybeSingle()
@@ -89,6 +98,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
         _vehicleName = session['vehicle_desc']?.toString() ?? _vehicleName;
         _gateExitName = session['gate_out_id']?.toString() ?? _gateExitName;
         _parkingRate = (session['parking_fee'] as num?)?.toDouble() ?? _parkingRate;
+        _totalPayment = (session['total_fee'] as num?)?.toDouble() ?? _parkingRate;
 
         if (session['check_in_time'] != null) {
           final inTime = DateTime.tryParse(session['check_in_time'].toString())?.toLocal();
@@ -102,6 +112,30 @@ class SessionCheckoutBackend extends ChangeNotifier {
             final mins = diff.inMinutes % 60;
             _totalDuration = '$hrs Jam $mins Menit';
             _timeRange = '${inTime.hour.toString().padLeft(2, '0')}:${inTime.minute.toString().padLeft(2, '0')} - ${outTime.hour.toString().padLeft(2, '0')}:${outTime.minute.toString().padLeft(2, '0')}';
+          }
+        }
+
+        // Cek booking awal untuk menyinkronkan jam WIB yang dipilih diawal & durasi paket
+        if (session['booking_id'] != null) {
+          final bRes = await _client
+              .from('bookings')
+              .select('start_time, end_time, duration_hours, total_price')
+              .eq('id', session['booking_id'])
+              .maybeSingle();
+
+          if (bRes != null) {
+            _durationHours = (bRes['duration_hours'] as num?)?.toInt() ?? _durationHours;
+            if (bRes['total_price'] != null) {
+              _totalPayment = (bRes['total_price'] as num).toDouble();
+            }
+            if (bRes['start_time'] != null && bRes['end_time'] != null) {
+              final bStart = DateTime.tryParse(bRes['start_time'].toString())?.toLocal();
+              final bEnd = DateTime.tryParse(bRes['end_time'].toString())?.toLocal();
+              if (bStart != null && bEnd != null) {
+                _timeRange = '${bStart.hour.toString().padLeft(2, '0')}:${bStart.minute.toString().padLeft(2, '0')} - ${bEnd.hour.toString().padLeft(2, '0')}:${bEnd.minute.toString().padLeft(2, '0')}';
+                _totalDuration = '$_durationHours Jam';
+              }
+            }
           }
         }
 
@@ -131,7 +165,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
         // Fallback: periksa tabel bookings jika pengguna langsung checkout dari reservasi aktif
         final booking = await _client
             .from('bookings')
-            .select('id, booking_code, location_id, slot_id, vehicle_id, start_time, end_time, total_price, booking_status')
+            .select('id, booking_code, location_id, slot_id, vehicle_id, start_time, end_time, total_price, duration_hours, booking_status')
             .inFilter('booking_status', ['upcoming', 'active'])
             .order('start_time', ascending: false)
             .limit(1)
@@ -139,7 +173,9 @@ class SessionCheckoutBackend extends ChangeNotifier {
 
         if (booking != null) {
           _activeSessionId = booking['id']?.toString();
-          _parkingRate = (booking['total_price'] as num?)?.toDouble() ?? _parkingRate;
+          _totalPayment = (booking['total_price'] as num?)?.toDouble() ?? _totalPayment;
+          _durationHours = (booking['duration_hours'] as num?)?.toInt() ?? 1;
+          _parkingRate = _totalPayment;
 
           if (booking['start_time'] != null) {
             final inTime = DateTime.tryParse(booking['start_time'].toString())?.toLocal();
@@ -148,10 +184,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
                 : DateTime.now();
 
             if (inTime != null && outTime != null) {
-              final diff = outTime.difference(inTime);
-              final hrs = diff.inHours;
-              final mins = diff.inMinutes % 60;
-              _totalDuration = '$hrs Jam $mins Menit';
+              _totalDuration = '$_durationHours Jam';
               _timeRange = '${inTime.hour.toString().padLeft(2, '0')}:${inTime.minute.toString().padLeft(2, '0')} - ${outTime.hour.toString().padLeft(2, '0')}:${outTime.minute.toString().padLeft(2, '0')}';
             }
           }
@@ -205,7 +238,17 @@ class SessionCheckoutBackend extends ChangeNotifier {
     try {
       final now = DateTime.now().toUtc().toIso8601String();
 
-      // 1. Coba update parking_sessions jika id adalah id session
+      // Cari relasi booking_id dan slot_id jika ini adalah parking_sessions
+      final sessionRow = await _client
+          .from('parking_sessions')
+          .select('booking_id, slot_id')
+          .eq('id', _activeSessionId!)
+          .maybeSingle();
+
+      final relatedBookingId = sessionRow?['booking_id']?.toString();
+      final relatedSlotId = sessionRow?['slot_id']?.toString();
+
+      // 1. Coba update parking_sessions
       await _client.from('parking_sessions').update({
         'status': 'completed',
         'check_out_time': now,
@@ -217,8 +260,20 @@ class SessionCheckoutBackend extends ChangeNotifier {
         'booking_status': 'completed',
       }).eq('id', _activeSessionId!);
 
+      if (relatedBookingId != null && relatedBookingId.isNotEmpty) {
+        await _client.from('bookings').update({
+          'booking_status': 'completed',
+        }).eq('id', relatedBookingId);
+      }
+
       // 3. Kembalikan status slot menjadi available
-      if (_slotCode != '-' && _slotCode.isNotEmpty) {
+      if (relatedSlotId != null && relatedSlotId.isNotEmpty) {
+        await _client.from('parking_slots').update({
+          'status': 'available',
+          'current_plate_number': null,
+          'occupied_since': null,
+        }).eq('id', relatedSlotId);
+      } else if (_slotCode != '-' && _slotCode.isNotEmpty) {
         await _client.from('parking_slots').update({
           'status': 'available',
           'current_plate_number': null,

@@ -629,6 +629,40 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     _searchController.text = trimmed;
     _searchFocusNode.unfocus();
 
+    // 0. Cek apakah cocok dengan lokasi parkir yang didaftarkan admin
+    Map<String, dynamic>? matchedParking;
+    final allParkings = [..._parkingLocations, ...ExploreMapBackend.instance.locations];
+    for (final loc in allParkings) {
+      final name = (loc['name'] as String? ?? '').toLowerCase();
+      final type = (loc['type'] as String? ?? '').toLowerCase();
+      if (name == q || name.contains(q) || q.contains(name) || type.contains(q)) {
+        matchedParking = loc;
+        break;
+      }
+    }
+
+    if (matchedParking != null) {
+      final pt = matchedParking['point'] as LatLng;
+      final name = matchedParking['name'] as String;
+      setState(() {
+        _searchQuery = name;
+        _searchResultPoint = pt;
+        _searchResultName = name;
+        _selectedParking = matchedParking;
+        _filteredSuggestions = [];
+        _isSearching = false;
+      });
+      _onParkingMarkerTapped(matchedParking);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Menampilkan lokasi parkir: $name'),
+          backgroundColor: const Color(0xFF1A73E8),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
     Map<String, dynamic>? matchedPlace;
 
     // 1. Cari exact / best match dari database kota & tempat Indonesia
@@ -813,53 +847,75 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 ),
                 MarkerLayer(
                   markers: [
-                    // MARKER HASIL AUTO-SEARCH (MISAL: SURABAYA)
+                    // MARKER HASIL AUTO-SEARCH (MISAL: SURABAYA / PARKIR1)
                     if (_searchResultPoint != null)
                       Marker(
                         point: _searchResultPoint!,
                         width: 180,
                         height: 76,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFEA4335),
-                                borderRadius: BorderRadius.circular(14),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: Colors.black.withValues(alpha: 0.28),
-                                    blurRadius: 8,
-                                    offset: const Offset(0, 3),
-                                  ),
-                                ],
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  const Icon(Icons.location_on, color: Colors.white, size: 14),
-                                  const SizedBox(width: 4),
-                                  Flexible(
-                                    child: Text(
-                                      _searchResultName ?? _searchQuery,
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white,
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                      overflow: TextOverflow.ellipsis,
+                        child: GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            Map<String, dynamic>? locMatch;
+                            final allParkings = [..._parkingLocations, ...ExploreMapBackend.instance.locations];
+                            for (final loc in allParkings) {
+                              final name = (loc['name'] as String? ?? '').toLowerCase();
+                              final sName = (_searchResultName ?? _searchQuery).toLowerCase();
+                              if (name == sName || name.contains(sName) || sName.contains(name)) {
+                                locMatch = loc;
+                                break;
+                              }
+                            }
+                            if (locMatch != null) {
+                              _onParkingMarkerTapped(locMatch);
+                            } else if (_selectedParking != null) {
+                              _onParkingMarkerTapped(_selectedParking!);
+                            } else if (allParkings.isNotEmpty) {
+                              _onParkingMarkerTapped(allParkings.first);
+                            }
+                          },
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEA4335),
+                                  borderRadius: BorderRadius.circular(14),
+                                  boxShadow: [
+                                    BoxShadow(
+                                      color: Colors.black.withValues(alpha: 0.28),
+                                      blurRadius: 8,
+                                      offset: const Offset(0, 3),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
+                                child: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    const Icon(Icons.location_on, color: Colors.white, size: 14),
+                                    const SizedBox(width: 4),
+                                    Flexible(
+                                      child: Text(
+                                        _searchResultName ?? _searchQuery,
+                                        style: GoogleFonts.inter(
+                                          color: Colors.white,
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w700,
+                                        ),
+                                        overflow: TextOverflow.ellipsis,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
-                            const Icon(
-                              Icons.arrow_drop_down,
-                              size: 18,
-                              color: Color(0xFFEA4335),
-                            ),
-                          ],
+                              const Icon(
+                                Icons.arrow_drop_down,
+                                size: 18,
+                                color: Color(0xFFEA4335),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
 

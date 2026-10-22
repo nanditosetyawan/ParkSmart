@@ -209,7 +209,8 @@ class AdminCustomerProfilesBackend extends ChangeNotifier {
         final num walletBal = (row['wallet_balance'] as num?) ?? 0;
 
         final avatarLetter = name.trim().isNotEmpty ? name.trim()[0].toUpperCase() : 'U';
-        final displayId = uid.length >= 8 ? 'USR-${uid.substring(0, 8).toUpperCase()}' : uid;
+        // Menggunakan ID pengguna asli (UUID) langsung dari tabel users di database Supabase
+        final displayId = uid;
 
         return {
           'id': displayId,

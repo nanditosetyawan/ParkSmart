@@ -181,7 +181,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '2 Jam',
+                                    '${CheckoutBackend.instance.durationHours} Jam',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
@@ -382,8 +382,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     child: Column(
                       children: [
-                        _priceRow('Tarif Parkir', CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
-                        _priceRow('Biaya Layanan', CurrencyService.instance.format(CheckoutBackend.instance.serviceFee), isDark: isDark),
+                        _priceRow('Tarif Parkir (${CheckoutBackend.instance.durationHours} Jam)', CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Divider(
@@ -586,17 +585,56 @@ class _JadwalSelector extends StatefulWidget {
 }
 
 class _JadwalSelectorState extends State<_JadwalSelector> {
-  TimeOfDay _arrivalTime = const TimeOfDay(hour: 14, minute: 0);
-  final int _durationHours = 2;
+  late TimeOfDay _arrivalTime;
+  late TimeOfDay _departureTime;
 
-  void _showTimePicker() async {
+  @override
+  void initState() {
+    super.initState();
+    final now = TimeOfDay.now();
+    _arrivalTime = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
+    final initialDuration = CheckoutBackend.instance.durationHours;
+    _departureTime = TimeOfDay(
+      hour: (_arrivalTime.hour + initialDuration) % 24,
+      minute: _arrivalTime.minute,
+    );
+    WidgetsBinding.instance.addPostFrameCallback((_) => _syncToBackend());
+  }
+
+  int _calculateDuration(TimeOfDay inTime, TimeOfDay outTime) {
+    int inMinutes = inTime.hour * 60 + inTime.minute;
+    int outMinutes = outTime.hour * 60 + outTime.minute;
+    if (outMinutes <= inMinutes) {
+      outMinutes += 24 * 60; // Next day
+    }
+    final diff = outMinutes - inMinutes;
+    final hours = (diff / 60.0).ceil();
+    return hours < 1 ? 1 : hours;
+  }
+
+  void _syncToBackend() {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, _arrivalTime.hour, _arrivalTime.minute);
+    var end = DateTime(now.year, now.month, now.day, _departureTime.hour, _departureTime.minute);
+    if (end.isBefore(start)) {
+      end = end.add(const Duration(days: 1));
+    }
+    final hours = _calculateDuration(_arrivalTime, _departureTime);
+    CheckoutBackend.instance.setBookingDetails(
+      durationHours: hours,
+      startTime: start,
+      endTime: end,
+    );
+  }
+
+  Future<TimeOfDay?> _pickTime(TimeOfDay initial, String title) async {
     final theme = ThemeService.instance;
     final isDark = theme.isDarkMode;
 
-    final selectedTime = await showTimePicker(
+    return await showTimePicker(
       context: context,
-      initialTime: _arrivalTime,
-      helpText: 'PILIH JAM KEDATANGAN',
+      initialTime: initial,
+      helpText: title,
       builder: (context, child) {
         if (isDark) {
           return Theme(
@@ -607,7 +645,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
                 surface: Color(0xFF1E232B),
                 onSurface: Colors.white,
               ),
-                            timePickerTheme: TimePickerThemeData(
+              timePickerTheme: TimePickerThemeData(
                 backgroundColor: const Color(0xFF1E232B),
                 hourMinuteColor: WidgetStateColor.resolveWith((states) {
                   if (states.contains(WidgetState.selected)) {
@@ -688,9 +726,24 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
         );
       },
     );
+  }
+
+  void _showArrivalTimePicker() async {
+    final selectedTime = await _pickTime(_arrivalTime, 'PILIH JAM KEDATANGAN (IN)');
     if (selectedTime != null) {
       setState(() {
         _arrivalTime = selectedTime;
+        _syncToBackend();
+      });
+    }
+  }
+
+  void _showDepartureTimePicker() async {
+    final selectedTime = await _pickTime(_departureTime, 'PILIH JAM KELUAR (OUT)');
+    if (selectedTime != null) {
+      setState(() {
+        _departureTime = selectedTime;
+        _syncToBackend();
       });
     }
   }
@@ -700,102 +753,181 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
     final theme = ThemeService.instance;
     final isDark = theme.isDarkMode;
 
-    final endTime = TimeOfDay(
-      hour: (_arrivalTime.hour + _durationHours) % 24,
-      minute: _arrivalTime.minute,
-    );
+    final durationHours = _calculateDuration(_arrivalTime, _departureTime);
     final startStr = '${_arrivalTime.hour.toString().padLeft(2, '0')}:${_arrivalTime.minute.toString().padLeft(2, '0')}';
-    final endStr = '${endTime.hour.toString().padLeft(2, '0')}:${endTime.minute.toString().padLeft(2, '0')}';
+    final endStr = '${_departureTime.hour.toString().padLeft(2, '0')}:${_departureTime.minute.toString().padLeft(2, '0')}';
 
     return Container(
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: isDark ? const Color(0xFF2E3848) : const Color(0xFFF7F5EE),
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(
           color: isDark ? const Color(0xFF475569) : const Color(0xFFE2DDD2),
         ),
         boxShadow: const [AppShadows.soft],
       ),
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: _showTimePicker,
-          borderRadius: BorderRadius.circular(12),
-          child: Padding(
-            padding: const EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E232B) : Colors.white,
-                    borderRadius: BorderRadius.circular(8),
-                    border: Border.all(color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE2DDD2)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Icon(
+                    Icons.schedule_rounded,
+                    size: 16,
+                    color: isDark ? const Color(0xFF38BDF8) : _kPrimaryContainer,
                   ),
-                  child: Icon(
-                    Icons.calendar_today_rounded,
-                    size: 18,
-                    color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF1C1D1F),
+                  const SizedBox(width: 6),
+                  Text(
+                    'JADWAL RESERVASI',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 0.5,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                    ),
                   ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'JADWAL KEDATANGAN',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w700,
-                          letterSpacing: 0.5,
-                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
-                        ),
-                      ),
-                      const SizedBox(height: 2),
-                      Text(
-                        '$startStr - $endStr WIB',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? Colors.white : Colors.black,
-                        ),
-                      ),
-                    ],
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                  borderRadius: AppRadii.pillRadius,
+                  border: Border.all(
+                    color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
                   ),
                 ),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF1E232B) : Colors.white,
-                    borderRadius: AppRadii.pillRadius,
-                    border: Border.all(color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        Icons.edit_calendar,
-                        size: 14,
-                        color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Ubah',
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w700,
-                          color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
-                        ),
-                      ),
-                    ],
+                child: Text(
+                  '$durationHours Jam Durasi',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer,
                   ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
-        ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              // Jam Kedatangan Card
+              Expanded(
+                child: InkWell(
+                  onTap: _showArrivalTimePicker,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE2DDD2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.login_rounded, size: 13, color: isDark ? const Color(0xFF38BDF8) : _kPrimaryContainer),
+                            const SizedBox(width: 4),
+                            Text(
+                              'JAM MASUK',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '$startStr WIB',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            Icon(Icons.edit, size: 12, color: isDark ? const Color(0xFF2DD4BF) : _kPrimaryContainer),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Icon(
+                  Icons.arrow_forward_rounded,
+                  size: 14,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                ),
+              ),
+              // Jam Keluar Card
+              Expanded(
+                child: InkWell(
+                  onTap: _showDepartureTimePicker,
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: isDark ? const Color(0xFF1E232B) : Colors.white,
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(
+                        color: isDark ? const Color(0xFF3B4454) : const Color(0xFFE2DDD2),
+                      ),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Icon(Icons.logout_rounded, size: 13, color: isDark ? const Color(0xFFFB923C) : _kSecondary),
+                            const SizedBox(width: 4),
+                            Text(
+                              'JAM KELUAR',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 9,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777A),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 4),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text(
+                              '$endStr WIB',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w700,
+                                color: isDark ? Colors.white : Colors.black,
+                              ),
+                            ),
+                            Icon(Icons.edit, size: 12, color: isDark ? const Color(0xFFFB923C) : _kSecondary),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }

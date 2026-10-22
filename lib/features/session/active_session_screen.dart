@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import '../notification/notification_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'session_checkout_screen.dart';
@@ -323,7 +324,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                                 const Icon(Icons.schedule, size: 14, color: Color(0xFF17A18A)),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  'Batas Selesai 16:02 WIB',
+                                                  'Batas Selesai ${ActiveSessionBackend.instance.deadlineFormatted}',
                                                   style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
@@ -353,7 +354,11 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                     color: const Color(0xFFE07A5F),
                                     onTap: () => Navigator.push(
                                       context,
-                                      MaterialPageRoute(builder: (_) => const ArNavigationScreen()),
+                                      MaterialPageRoute(
+                                        builder: (_) => ArNavigationScreen(
+                                          destinationParking: ActiveSessionBackend.instance.destinationParking,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -365,7 +370,11 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                     color: const Color(0xFFE07A5F),
                                     onTap: () => Navigator.push(
                                       context,
-                                      MaterialPageRoute(builder: (_) => const ExtendSessionScreen()),
+                                      MaterialPageRoute(
+                                        builder: (_) => ExtendSessionScreen(
+                                          sessionId: ActiveSessionBackend.instance.sessionId,
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),
@@ -519,7 +528,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                'Rp 9.000',
+                                                CurrencyService.instance.format(ActiveSessionBackend.instance.currentFee),
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 18,
                                                   fontWeight: FontWeight.bold,
@@ -607,7 +616,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Masuk 14:02 WIB',
+                                            'Masuk ${ActiveSessionBackend.instance.checkInFormatted}',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
@@ -624,7 +633,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Durasi Paket: 2 Jam',
+                                            'Durasi Paket: ${ActiveSessionBackend.instance.durationHours} Jam',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               color: isDark ? theme.textMuted : const Color(0xFF7D7A75),

@@ -803,6 +803,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                     locationId: locId,
                                     locationName: locName,
                                     hourlyRate: hourly,
+                                    durationHours: 1,
                                   );
                                   SlotSelectionBackend.instance.fetchSlots(locationId: locId);
                                   Navigator.push(

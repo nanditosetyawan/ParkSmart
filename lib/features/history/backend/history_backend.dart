@@ -39,7 +39,18 @@ class HistoryItem {
 
   factory HistoryItem.fromSessionMap(Map<String, dynamic> map) {
     final statusStr = (map['status'] ?? 'completed').toString().toLowerCase();
-    final mark = TicketMark.resolve(sessionStatus: statusStr);
+    final checkOutTime = map['check_out_time'] != null
+        ? DateTime.tryParse(map['check_out_time'].toString())?.toLocal()
+        : null;
+    final expectedCheckOutTime = map['expected_check_out_time'] != null
+        ? DateTime.tryParse(map['expected_check_out_time'].toString())?.toLocal()
+        : null;
+
+    final mark = TicketMark.resolve(
+      sessionStatus: statusStr,
+      checkOutTime: checkOutTime,
+      expectedCheckOutTime: expectedCheckOutTime,
+    );
     final vehicleDesc = (map['vehicle_desc'] ?? '').toString().toLowerCase();
     final isEv = vehicleDesc.contains('ev') || vehicleDesc.contains('ioniq');
 
@@ -87,9 +98,18 @@ class HistoryItem {
   }
 
   factory HistoryItem.fromBookingMap(Map<String, dynamic> map) {
+    final startTime = map['start_time'] != null
+        ? DateTime.tryParse(map['start_time'].toString())?.toLocal()
+        : null;
+    final endTime = map['end_time'] != null
+        ? DateTime.tryParse(map['end_time'].toString())?.toLocal()
+        : null;
+
     final mark = TicketMark.resolve(
       paymentStatus: map['payment_status']?.toString(),
       bookingStatus: map['booking_status']?.toString(),
+      startTime: startTime,
+      endTime: endTime,
     );
 
     final slotCode = map['parking_slots']?['slot_code']?.toString() ?? 'A-01';
@@ -166,7 +186,7 @@ class HistoryBackend extends ChangeNotifier {
       // 1. Ambil dari tabel parking_sessions (sesi yang sudah check-in)
       final sessions = await _client
           .from('parking_sessions')
-          .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, parking_fee, total_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours)')
+          .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours)')
           .order('check_in_time', ascending: false)
           .limit(30);
 
@@ -180,7 +200,7 @@ class HistoryBackend extends ChangeNotifier {
       // 2. Ambil dari tabel bookings (reservasi yang belum check-in: Ready atau Belum Dibayar)
       final bookings = await _client
           .from('bookings')
-          .select('id, booking_code, start_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
+          .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
           .order('created_at', ascending: false)
           .limit(30);
 

@@ -192,12 +192,19 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                                   ),
                                   title: Row(
                                     children: [
-                                      Text(u['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                      Flexible(
+                                        child: Text(
+                                          u['name'],
+                                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                        ),
+                                      ),
                                       const SizedBox(width: 8),
                                       Container(
                                         padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
                                         decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(6)),
-                                        child: Text(u['id'].toString().toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                                        child: Text(_formatShortId(u['id'].toString()), style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
                                       ),
                                     ],
                                   ),
@@ -251,6 +258,14 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
       }
     }
     return 'Rp ${buffer.toString().split('').reversed.join('')}';
+  }
+
+  String _formatShortId(String rawId) {
+    final clean = rawId.trim();
+    if (clean.length > 14) {
+      return '${clean.substring(0, 8)}...${clean.substring(clean.length - 4)}'.toUpperCase();
+    }
+    return clean.toUpperCase();
   }
 
   void _performUserSearch(String query) {
@@ -342,10 +357,18 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('ID Pengguna:', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                        child: Text(_selectedUser!['id'].toString().toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                          decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
+                          child: Text(
+                            _formatShortId(_selectedUser!['id'].toString()),
+                            style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
                       ),
                     ],
                   ),
@@ -354,7 +377,16 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('Nama Pengguna:', style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-                      Text(_selectedUser!['name'], style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                      const SizedBox(width: 8),
+                      Flexible(
+                        child: Text(
+                          _selectedUser!['name'],
+                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          textAlign: TextAlign.right,
+                        ),
+                      ),
                     ],
                   ),
                   const SizedBox(height: 6),
@@ -717,7 +749,7 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
                                                 Container(
                                                   padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1.5),
                                                   decoration: BoxDecoration(color: const Color(0xFF114177).withValues(alpha: 0.1), borderRadius: BorderRadius.circular(4)),
-                                                  child: Text(u['id'].toString().toUpperCase(), style: GoogleFonts.plusJakartaSans(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
+                                                  child: Text(_formatShortId(u['id'].toString()), style: GoogleFonts.plusJakartaSans(fontSize: 9.5, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
                                                 ),
                                               ],
                                             ),

@@ -35,7 +35,11 @@ class KtpCameraBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id ?? 'guest_user';
+      String uid = userId ?? _client.auth.currentUser?.id ?? '';
+      if (uid.isEmpty) {
+        final existingUser = await _client.from('users').select('id').order('created_at', ascending: true).limit(1).maybeSingle();
+        uid = existingUser?['id']?.toString() ?? 'guest_user';
+      }
       final url = await SupabaseStorageService.instance.uploadKycImage(
         rawBytes: bytes,
         userId: uid,
@@ -69,7 +73,11 @@ class KtpCameraBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id ?? 'guest_user';
+      String uid = userId ?? _client.auth.currentUser?.id ?? '';
+      if (uid.isEmpty) {
+        final existingUser = await _client.from('users').select('id').order('created_at', ascending: true).limit(1).maybeSingle();
+        uid = existingUser?['id']?.toString() ?? 'guest_user';
+      }
       final url = await SupabaseStorageService.instance.uploadKycImage(
         rawBytes: bytes,
         userId: uid,

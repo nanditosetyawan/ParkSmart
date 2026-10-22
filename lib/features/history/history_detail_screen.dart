@@ -318,10 +318,25 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                           backend.date,
                                           style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                         ),
-                                        Text(
-                                          '${backend.checkInTime} - ${backend.checkOutTime}',
-                                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
-                                        ),
+                                        if (backend.checkOutTime.contains('Berlangsung')) ...[
+                                          Text(
+                                            backend.checkInTime,
+                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
+                                          ),
+                                          Text(
+                                            'Sedang Berlangsung',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w600,
+                                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                                            ),
+                                          ),
+                                        ] else ...[
+                                          Text(
+                                            '${backend.checkInTime} - ${backend.checkOutTime}',
+                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
+                                          ),
+                                        ],
                                       ],
                                     ),
                                   ),

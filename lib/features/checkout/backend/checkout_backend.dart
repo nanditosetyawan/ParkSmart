@@ -44,16 +44,22 @@ class CheckoutBackend extends ChangeNotifier {
   String _floorName = '-';
   String get floorName => _floorName;
 
-  int _durationHours = 2;
+  DateTime? _scheduledStartTime;
+  DateTime? get scheduledStartTime => _scheduledStartTime;
+
+  DateTime? _scheduledEndTime;
+  DateTime? get scheduledEndTime => _scheduledEndTime;
+
+  int _durationHours = 1;
   int get durationHours => _durationHours;
 
   double _hourlyRate = 5000;
   double get hourlyRate => _hourlyRate;
 
   double get subtotal => _durationHours * _hourlyRate;
-  double get serviceFee => 1000;
+  double get serviceFee => 0; // Tanpa biaya layanan
   double get discountAmount => 0;
-  double get totalPayment => (subtotal + serviceFee) - discountAmount;
+  double get totalPayment => subtotal - discountAmount;
 
   void setBookingDetails({
     String? locationId,
@@ -62,6 +68,8 @@ class CheckoutBackend extends ChangeNotifier {
     String? floorName,
     int? durationHours,
     double? hourlyRate,
+    DateTime? startTime,
+    DateTime? endTime,
   }) {
     if (locationId != null) _locationId = locationId;
     if (locationName != null) _locationName = locationName;
@@ -69,6 +77,8 @@ class CheckoutBackend extends ChangeNotifier {
     if (floorName != null) _floorName = floorName;
     if (durationHours != null) _durationHours = durationHours;
     if (hourlyRate != null) _hourlyRate = hourlyRate;
+    if (startTime != null) _scheduledStartTime = startTime;
+    if (endTime != null) _scheduledEndTime = endTime;
     notifyListeners();
   }
 
@@ -112,7 +122,30 @@ class CheckoutBackend extends ChangeNotifier {
 
   void selectVehicle(Map<String, dynamic> vehicle) {
     _selectedVehicle = vehicle;
+    _updateRateForVehicle(vehicle);
     notifyListeners();
+  }
+
+  Future<void> _updateRateForVehicle(Map<String, dynamic>? vehicle) async {
+    if (_locationId == null || _locationId!.isEmpty) return;
+    try {
+      final loc = await _client
+          .from('parking_locations')
+          .select('hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev')
+          .eq('id', _locationId!)
+          .maybeSingle();
+      if (loc != null) {
+        final vType = vehicle?['vehicle_type']?.toString().toLowerCase();
+        if (vType == 'motor') {
+          _hourlyRate = (loc['hourly_rate_motor'] as num?)?.toDouble() ?? _hourlyRate;
+        } else if (vType == 'ev') {
+          _hourlyRate = (loc['hourly_rate_ev'] as num?)?.toDouble() ?? _hourlyRate;
+        } else {
+          _hourlyRate = (loc['hourly_rate_mobil'] as num?)?.toDouble() ?? _hourlyRate;
+        }
+        notifyListeners();
+      }
+    } catch (_) {}
   }
 
   /// Membuat booking baru & memproses transaksi pembayaran di Supabase
@@ -124,8 +157,9 @@ class CheckoutBackend extends ChangeNotifier {
       final random = Random();
       final bookingCode = 'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-${random.nextInt(900) + 100}';
 
-      final startTime = DateTime.now();
-      final endTime = startTime.add(Duration(hours: _durationHours));
+      final now = DateTime.now();
+      final startTime = _scheduledStartTime ?? now;
+      final endTime = _scheduledEndTime ?? startTime.add(Duration(hours: _durationHours));
 
       // 1. Ambil location_id jika belum terisi
       String? actualLocId = _locationId;

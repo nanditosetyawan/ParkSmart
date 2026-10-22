@@ -41,21 +41,31 @@ class AdminFinanceNotificationsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final res = await _client
-          .from('system_notifications')
-          .select('''
-            id,
-            title,
-            message,
-            notification_type,
-            action_type,
-            is_read,
-            created_at,
-            recipient_user_id,
-            users:recipient_user_id(full_name)
-          ''')
-          .inFilter('target_role', ['all', 'finance'])
-          .order('created_at', ascending: false);
+      List<dynamic> res = [];
+      try {
+        res = await _client
+            .from('system_notifications')
+            .select('''
+              id,
+              title,
+              message,
+              notification_type,
+              action_type,
+              is_read,
+              created_at,
+              recipient_user_id,
+              users:recipient_user_id(full_name)
+            ''')
+            .inFilter('target_role', ['all', 'finance'])
+            .order('created_at', ascending: false);
+      } catch (err) {
+        debugPrint('[AdminFinanceNotificationsBackend] join query failed, trying simple select: $err');
+        res = await _client
+            .from('system_notifications')
+            .select()
+            .inFilter('target_role', ['all', 'finance'])
+            .order('created_at', ascending: false);
+      }
 
       if (res.isNotEmpty) {
         notifications = res.map<FinanceNotificationItem>((row) {

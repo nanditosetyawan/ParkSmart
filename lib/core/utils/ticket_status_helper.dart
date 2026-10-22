@@ -19,40 +19,65 @@ class TicketMark {
     selesai,
   ];
 
-  /// Menentukan status tiket secara terpusat dari status pembayaran, booking, dan sesi
+  /// Menentukan status tiket secara terpusat dari status pembayaran, booking, sesi, dan waktu
   static String resolve({
     String? paymentStatus,
     String? bookingStatus,
     String? sessionStatus,
+    DateTime? startTime,
+    DateTime? endTime,
+    DateTime? checkOutTime,
+    DateTime? expectedCheckOutTime,
   }) {
     final bStatus = (bookingStatus ?? '').trim().toLowerCase();
     final pStatus = (paymentStatus ?? '').trim().toLowerCase();
     final sStatus = (sessionStatus ?? '').trim().toLowerCase();
+    final now = DateTime.now();
 
-    // 1. Selesai: jika sudah checkout selesai
-    if (sStatus == 'completed' || bStatus == 'completed') {
+    // 1. Selesai: jika sudah checkout selesai, check_out_time ada
+    if (checkOutTime != null || sStatus == 'completed' || bStatus == 'completed') {
       return selesai;
     }
 
-    // 2. Dibatalkan: jika dibatalkan oleh pengguna / admin
+    // 2. Waktu habis (selesai otomatis karena waktu telah berakhir)
+    if (expectedCheckOutTime != null && now.isAfter(expectedCheckOutTime)) {
+      return selesai;
+    }
+    if (endTime != null && now.isAfter(endTime)) {
+      return selesai;
+    }
+
+    // 3. Dibatalkan: jika dibatalkan oleh pengguna / admin
     if (bStatus == 'cancelled') {
       return dibatalkan;
     }
 
-    // 3. Aktif: jika sudah dipakai / start timer / sesi parkir sedang aktif
-    if (sStatus == 'active' || sStatus == 'overstay' || bStatus == 'active') {
+    // 4. Belum Dibayar: jika pembayaran belum selesai
+    if (pStatus == 'unpaid' || pStatus == 'pending' || pStatus == 'belum dibayar' || pStatus.isEmpty) {
+      return belumDibayar;
+    }
+
+    // 5. Sesi aktif langsung di gerbang
+    if (sStatus == 'active' || sStatus == 'overstay') {
       return aktif;
     }
 
-    // 4. Ready: jika sudah bayar namun belum dipakai (masih upcoming)
-    if ((pStatus == 'paid' || pStatus == 'dibayar' || pStatus == 'success' || pStatus == 'berhasil') &&
-        (bStatus == 'upcoming' || bStatus.isEmpty)) {
-      return ready;
-    }
+    // 6. Sudah dibayar: cek apakah sesi sudah otomatis mulai berdasarkan jadwal
+    if (pStatus == 'paid' || pStatus == 'dibayar' || pStatus == 'success' || pStatus == 'berhasil') {
+      if (startTime != null) {
+        if (now.isAfter(startTime) || now.isAtSameMomentAs(startTime)) {
+          // Jam mulai sudah tiba atau lewat, sesi otomatis aktif / timer berjalan
+          return aktif;
+        } else {
+          // Jam mulai belum tiba (misal pesan jam 12.00 sekarang jam 10.00)
+          return ready;
+        }
+      }
 
-    // 5. Belum Dibayar: jika belum bayar
-    if (pStatus == 'unpaid' || pStatus == 'pending' || pStatus == 'belum dibayar' || pStatus.isEmpty) {
-      return belumDibayar;
+      if (bStatus == 'active') {
+        return aktif;
+      }
+      return ready;
     }
 
     return belumDibayar;

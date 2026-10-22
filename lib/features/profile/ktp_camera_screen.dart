@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'backend/ktp_camera_backend.dart';
+import 'backend/profile_backend.dart';
 
 class KtpCameraScreen extends StatefulWidget {
   const KtpCameraScreen({super.key});
@@ -58,9 +59,11 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
     });
 
     final backend = KtpCameraBackend.instance;
+    final currentUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
+    final currentUName = ProfileBackend.instance.name.isNotEmpty ? ProfileBackend.instance.name : 'Jokowi jaka';
 
     if (_step == 1) {
-      final success = await backend.uploadKtpPhoto(bytes: bytes);
+      final success = await backend.uploadKtpPhoto(bytes: bytes, userId: currentUid);
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
@@ -86,7 +89,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
         );
       }
     } else {
-      final success = await backend.uploadSelfiePhoto(bytes: bytes);
+      final success = await backend.uploadSelfiePhoto(bytes: bytes, userId: currentUid);
       if (!mounted) return;
 
       if (success) {
@@ -96,14 +99,15 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
 
         // Submit pengajuan KYC ke Supabase user_kyc
         final submitSuccess = await backend.submitKycApplication(
+          userId: currentUid,
           nik: '3171012304950001',
-          fullName: 'Arya Raditya',
-          birthPlaceCity: 'Jakarta',
-          birthDate: DateTime(1995, 4, 23),
-          address: 'Jl. Sudirman No. 45, Jakarta Selatan',
+          fullName: currentUName,
+          birthPlaceCity: 'Surakarta',
+          birthDate: DateTime(1961, 6, 21),
+          address: 'Jl. Kutai Utara, Solo',
           gender: 'Laki-laki',
           religion: 'Islam',
-          occupation: 'Karyawan Swasta',
+          occupation: 'Wirausaha',
         );
 
         if (!mounted) return;

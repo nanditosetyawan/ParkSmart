@@ -143,10 +143,18 @@ class HistoryDetailBackend extends ChangeNotifier {
           _duration = '2 Jam';
         }
 
+        final expectedCoDt = res['expected_check_out_time'] != null
+            ? DateTime.tryParse(res['expected_check_out_time'].toString())?.toLocal()
+            : null;
+
         _paymentMethod = 'ParkSmart Pay';
-        _serviceFee = 2000;
+        _serviceFee = 0;
         _discount = 0;
-        _status = TicketMark.resolve(sessionStatus: res['status']);
+        _status = TicketMark.resolve(
+          sessionStatus: res['status'],
+          checkOutTime: coDt,
+          expectedCheckOutTime: expectedCoDt,
+        );
 
         // Location & Slot
         _locationName = loc?['name']?.toString() ?? 'ParkSmart Central Hub';
@@ -174,9 +182,14 @@ class HistoryDetailBackend extends ChangeNotifier {
           _totalAmount = numPrice.toInt();
           _baseFee = _totalAmount;
 
+          final bStart = bRes['start_time'] != null ? DateTime.tryParse(bRes['start_time'].toString())?.toLocal() : null;
+          final bEnd = bRes['end_time'] != null ? DateTime.tryParse(bRes['end_time'].toString())?.toLocal() : null;
+
           _status = TicketMark.resolve(
             paymentStatus: bRes['payment_status']?.toString(),
             bookingStatus: bRes['booking_status']?.toString(),
+            startTime: bStart,
+            endTime: bEnd,
           );
 
           if (bRes['vehicles'] != null) {
@@ -200,7 +213,7 @@ class HistoryDetailBackend extends ChangeNotifier {
           final floorName = slot?['floor_name']?.toString() ?? 'Lantai 1';
           _slotInfo = 'Slot $slotCode • $floorName';
 
-          final durationHours = bRes['duration_hours'] ?? 2;
+          final durationHours = bRes['duration_hours'] ?? 1;
           _duration = '$durationHours Jam';
 
           DateTime dt = DateTime.now();
@@ -216,12 +229,12 @@ class HistoryDetailBackend extends ChangeNotifier {
 
           _date = _formatIndoDate(dt);
           _checkInTime = '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')} WIB';
-          final endDt = dt.add(Duration(hours: durationHours is int ? durationHours : int.tryParse(durationHours.toString()) ?? 2));
+          final endDt = dt.add(Duration(hours: durationHours is int ? durationHours : int.tryParse(durationHours.toString()) ?? 1));
           _checkOutTime = '${endDt.hour.toString().padLeft(2, '0')}:${endDt.minute.toString().padLeft(2, '0')} WIB';
           _timestamp = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')} UTC+7';
 
           _paymentMethod = 'ParkSmart Pay';
-          _serviceFee = 2000;
+          _serviceFee = 0;
           _discount = 0;
         }
       }

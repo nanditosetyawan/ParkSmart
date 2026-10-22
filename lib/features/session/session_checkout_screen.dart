@@ -400,35 +400,39 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                   const SizedBox(height: 8),
                                   _ReceiptRow(
                                     label: 'Tarif Parkir (${backend.totalDuration})',
-                                    value: CurrencyService.instance.format(backend.parkingRate > 0 ? backend.parkingRate : 10000),
+                                    value: CurrencyService.instance.format(backend.parkingFeeOnly),
                                   ),
-                                  const SizedBox(height: 4),
-                                  _ReceiptRow(
-                                    label: 'Biaya Sensor ANPR',
-                                    value: CurrencyService.instance.format(backend.sensorFee > 0 ? backend.sensorFee : 1000),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Row(
-                                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                    children: [
-                                      Text(
-                                        'Diskon Promo Member',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w500,
-                                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
+                                  if (backend.serviceFee > 0) ...[
+                                    const SizedBox(height: 4),
+                                    _ReceiptRow(
+                                      label: 'Biaya Layanan',
+                                      value: CurrencyService.instance.format(backend.serviceFee),
+                                    ),
+                                  ],
+                                  if (backend.discountAmount > 0) ...[
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                      children: [
+                                        Text(
+                                          'Diskon Promo Member',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w500,
+                                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
+                                          ),
                                         ),
-                                      ),
-                                      Text(
-                                        '-${CurrencyService.instance.format(backend.discountAmount > 0 ? backend.discountAmount : 2000)}',
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 14,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
+                                        Text(
+                                          '-${CurrencyService.instance.format(backend.discountAmount)}',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF2E7D32),
+                                          ),
                                         ),
-                                      ),
-                                    ],
-                                  ),
+                                      ],
+                                    ),
+                                  ],
                                 ],
                               ),
                               const SizedBox(height: 16),
@@ -461,7 +465,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                         ),
                                       ),
                                       Text(
-                                        CurrencyService.instance.format(backend.totalPayment > 0 ? backend.totalPayment : 9000),
+                                        CurrencyService.instance.format(backend.totalPayment > 0 ? backend.totalPayment : 11000),
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 24,
                                           fontWeight: FontWeight.bold,

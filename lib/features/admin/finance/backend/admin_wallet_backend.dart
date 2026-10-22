@@ -57,28 +57,34 @@ class AdminWalletBackend extends ChangeNotifier {
         users = [];
       }
 
-      // Hitung total saldo kas utama dari tabel payments
+      // Hitung total saldo kas utama dari system_settings (disinkronkan dengan payments & kas perusahaan)
       try {
-        final payRes = await _client
-            .from('payments')
-            .select('amount, status, transaction_type');
-        int kas = 0;
-        for (var p in payRes) {
-          final amt = (p['amount'] as num?)?.toInt() ?? 0;
-          final status = (p['status'] ?? '').toString().toLowerCase();
-          final type = (p['transaction_type'] ?? '').toString().toLowerCase();
-          if (status == 'success' || status == 'paid') {
-            if (type == 'refund') {
-              kas -= amt;
-            } else {
-              kas += amt;
-            }
+        final treasuryRow = await _client
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'company_treasury')
+            .maybeSingle();
+
+        int kas = 50000000;
+        if (treasuryRow != null && treasuryRow['value'] != null) {
+          final val = treasuryRow['value'];
+          if (val is Map && val['balance'] != null) {
+            kas = (val['balance'] as num).toInt();
           }
+        } else {
+          // Inisialisasi kas cadangan di system_settings jika belum ada
+          await _client.from('system_settings').upsert({
+            'key': 'company_treasury',
+            'value': {'balance': 50000000, 'initial_capital': 50000000, 'currency': 'IDR'},
+            'description': 'Saldo kas utama cadangan operasional ParkSmart ID',
+            'updated_at': DateTime.now().toIso8601String(),
+          });
+          kas = 50000000;
         }
-        totalKasBalance = kas > 0 ? kas : 0;
+        totalKasBalance = kas;
       } catch (e) {
         debugPrint('[AdminWalletBackend] fetchKas error: $e');
-        totalKasBalance = 0;
+        totalKasBalance = 50000000;
       }
 
       // Ambil log injeksi saldo dari payments
@@ -136,8 +142,8 @@ class AdminWalletBackend extends ChangeNotifier {
     required String reason,
   }) async {
     final idx = users.indexWhere((u) => u['id'] == userId);
-    if (idx != -1) {
-      final user = users[idx];
+    final user = idx != -1 ? users[idx] : null;
+    if (user != null) {
       user['balance'] = (user['balance'] as int) + amount;
 
       recentInjections.insert(0, {
@@ -149,8 +155,11 @@ class AdminWalletBackend extends ChangeNotifier {
         'admin': 'Admin Finansial',
         'status': 'Berhasil',
       });
-      notifyListeners();
     }
+
+    // Saldo kas perusahaan terpotong di memori
+    totalKasBalance = (totalKasBalance - amount) > 0 ? (totalKasBalance - amount) : 0;
+    notifyListeners();
 
     try {
       // 1. Update wallet balance di tabel users
@@ -161,11 +170,44 @@ class AdminWalletBackend extends ChangeNotifier {
           .maybeSingle();
 
       final current = (userRecord?['wallet_balance'] as num?)?.toInt() ?? 0;
+      final newBalance = current + amount;
       await _client.from('users').update({
-        'wallet_balance': current + amount,
+        'wallet_balance': newBalance,
       }).eq('id', userId);
 
-      // 2. Rekam transaksi top-up di tabel payments
+      // 2. Potong saldo kas perusahaan di system_settings secara sinkron database
+      try {
+        final treasuryRow = await _client
+            .from('system_settings')
+            .select('value')
+            .eq('key', 'company_treasury')
+            .maybeSingle();
+
+        int currentKas = totalKasBalance;
+        if (treasuryRow != null && treasuryRow['value'] != null) {
+          final val = treasuryRow['value'];
+          if (val is Map && val['balance'] != null) {
+            currentKas = (val['balance'] as num).toInt();
+          }
+        }
+        final updatedKas = (currentKas - amount) > 0 ? (currentKas - amount) : 0;
+        await _client.from('system_settings').upsert({
+          'key': 'company_treasury',
+          'value': {
+            'balance': updatedKas,
+            'last_injection': amount,
+            'last_user_id': userId,
+            'currency': 'IDR',
+          },
+          'description': 'Saldo kas utama cadangan operasional ParkSmart ID',
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        totalKasBalance = updatedKas;
+      } catch (e) {
+        debugPrint('[AdminWalletBackend] deduct kas error: $e');
+      }
+
+      // 3. Rekam transaksi pengeluaran/injeksi di tabel payments
       await _client.from('payments').insert({
         'transaction_code': 'INJ-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}',
         'user_id': userId,
@@ -177,6 +219,51 @@ class AdminWalletBackend extends ChangeNotifier {
         'completed_at': DateTime.now().toIso8601String(),
       });
 
+      // 4. Catat audit log aktivitas
+      try {
+        await _client.from('admin_audit_logs').insert({
+          'admin_name': 'Admin Finansial',
+          'role': 'Admin Finansial',
+          'action': 'Injeksi Saldo Dompet $amount ke User ${user?['name'] ?? userId}',
+          'device_model': 'Portal Finansial Admin',
+          'status': 'Berhasil',
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      } catch (_) {}
+
+      // 5. Rekam notifikasi ke tabel system_notifications untuk Admin Finansial & User bersangkutan
+      try {
+        final formattedAmt = 'Rp ${amount.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')}';
+        final recipientName = user?['name'] ?? 'Pengguna';
+
+        // A. Notifikasi ke Portal Admin Finansial
+        await _client.from('system_notifications').insert({
+          'recipient_user_id': userId,
+          'target_role': 'finance',
+          'title': 'Injeksi Saldo Dompet',
+          'message': 'Berhasil menambahkan saldo $formattedAmt ke dompet $recipientName. Keterangan: $reason',
+          'notification_type': 'success',
+          'action_type': 'wallet_injection',
+          'is_read': false,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+
+        // B. Notifikasi ke User yang bersangkutan
+        await _client.from('system_notifications').insert({
+          'recipient_user_id': userId,
+          'target_role': 'user',
+          'title': 'Saldo Dompet Masuk',
+          'message': 'Saldo sebesar $formattedAmt telah ditambahkan ke dompet digital Anda oleh Admin Finansial. Keterangan: $reason',
+          'notification_type': 'wallet_injection',
+          'action_type': 'wallet',
+          'is_read': false,
+          'created_at': DateTime.now().toIso8601String(),
+        });
+      } catch (e) {
+        debugPrint('[AdminWalletBackend] insert notifications error: $e');
+      }
+
+      notifyListeners();
       return true;
     } catch (e) {
       debugPrint('[AdminWalletBackend] injectBalance error: $e');

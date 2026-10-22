@@ -1699,47 +1699,50 @@ class _CategoryList extends StatefulWidget {
 }
 
 class _CategoryListState extends State<_CategoryList> {
-  String _selectedCategory = 'Terdekat';
-
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: ListView(
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.symmetric(horizontal: 20),
-        children: [
-          _CategoryPill(
-            label: 'Terdekat', 
-            icon: Icons.near_me, 
-            active: _selectedCategory == 'Terdekat',
-            onTap: () => setState(() => _selectedCategory = 'Terdekat'),
+    return ListenableBuilder(
+      listenable: HomeBackend.instance,
+      builder: (context, _) {
+        final selected = HomeBackend.instance.selectedCategory;
+        return SizedBox(
+          height: 44,
+          child: ListView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            children: [
+              _CategoryPill(
+                label: 'Terdekat', 
+                icon: Icons.near_me, 
+                active: selected == 'Terdekat',
+                onTap: () => HomeBackend.instance.setFilterCategory('Terdekat'),
+              ),
+              _CategoryPill(
+                label: 'Mall', 
+                icon: Icons.storefront_outlined,
+                active: selected == 'Mall',
+                onTap: () => HomeBackend.instance.setFilterCategory('Mall'),
+              ),
+              _CategoryPill(
+                label: 'Parkir EV', 
+                icon: Icons.bolt, 
+                tealIcon: true,
+                active: selected == 'Parkir EV',
+                onTap: () => HomeBackend.instance.setFilterCategory('Parkir EV'),
+              ),
+              _CategoryPill(
+                label: 'Games', 
+                icon: Icons.sports_esports, 
+                tealIcon: true,
+                active: selected == 'Games',
+                onTap: () {
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => const game.GameLobbyScreen()));
+                },
+              ),
+            ],
           ),
-          _CategoryPill(
-            label: 'Mall', 
-            icon: Icons.storefront_outlined,
-            active: _selectedCategory == 'Mall',
-            onTap: () => setState(() => _selectedCategory = 'Mall'),
-          ),
-          _CategoryPill(
-            label: 'Parkir EV', 
-            icon: Icons.bolt, 
-            tealIcon: true,
-            active: _selectedCategory == 'Parkir EV',
-            onTap: () => setState(() => _selectedCategory = 'Parkir EV'),
-          ),
-          _CategoryPill(
-            label: 'Games', 
-            icon: Icons.sports_esports, 
-            tealIcon: true,
-            active: _selectedCategory == 'Games',
-            onTap: () {
-              setState(() => _selectedCategory = 'Games');
-              Navigator.push(context, MaterialPageRoute(builder: (_) => const game.GameLobbyScreen()));
-            },
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }
@@ -2019,7 +2022,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     onTap: () async {
                       if (_isLoading) return;
                       setState(() => _isLoading = true);
-                      await HomeBackend.instance.loadHomeData();
+                      await HomeBackend.instance.refreshFilter();
                       if (mounted) {
                         setState(() => _isLoading = false);
                       }
@@ -2109,11 +2112,16 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'facilities': facilities,
                     };
 
+                    final distLabel = loc['distance_label']?.toString();
+                    final subText = (distLabel != null && distLabel != '-')
+                        ? '$distLabel • ${loc['city'] ?? 'Kota'} • $capacity slot'
+                        : '${loc['city'] ?? 'Jakarta'} • $capacity slot kapasitas';
+
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
                       child: _buildCard(
                         title: loc['name'] ?? 'Spot Parkir',
-                        subtitle: '${loc['city'] ?? 'Jakarta'} • $capacity slot kapasitas',
+                        subtitle: subText,
                         price: 'Rp ${rate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
                         imageUrl: primaryImg,
                         rating: ratingVal.toStringAsFixed(1),

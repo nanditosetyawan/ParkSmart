@@ -96,6 +96,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     is_biometric_enabled BOOLEAN NOT NULL DEFAULT false,
     status user_status_enum NOT NULL DEFAULT 'active',
     ban_reason TEXT,
+    saran_kuliah TEXT,
+    pesan_kuliah TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );

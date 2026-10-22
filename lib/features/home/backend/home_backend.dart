@@ -1,8 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Backend khusus untuk HomeScreen (lib/features/home/home_screen.dart)
-/// Menggunakan Targeted Column Query (NO SELECT *) untuk efisiensi maksimal
+/// Menggunakan Targeted Column Query untuk efisiensi maksimal
 class HomeBackend extends ChangeNotifier {
   HomeBackend._();
   static final HomeBackend instance = HomeBackend._();
@@ -12,7 +13,10 @@ class HomeBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  String _userName = 'Nandito Setyawan';
+  String _userId = '';
+  String get userId => _userId;
+
+  String _userName = 'Jokowi jaka';
   String get userName => _userName;
 
   double _walletBalance = 250000.0;
@@ -30,6 +34,9 @@ class HomeBackend extends ChangeNotifier {
   List<Map<String, dynamic>> _recommendedLocations = [];
   List<Map<String, dynamic>> get recommendedLocations => _recommendedLocations;
 
+  String _selectedCategory = 'Terdekat';
+  String get selectedCategory => _selectedCategory;
+
   List<Map<String, dynamic>> _activeSessions = [];
   List<Map<String, dynamic>> get activeSessions => _activeSessions;
 
@@ -37,14 +44,17 @@ class HomeBackend extends ChangeNotifier {
   Map<String, dynamic>? get activeSession => _activeSession;
   bool get hasActiveSession => _activeSessions.isNotEmpty;
 
+  Position? _currentGpsPosition;
+  Position? get currentGpsPosition => _currentGpsPosition;
+
   /// Memuat seluruh data pendukung HomeScreen dari Supabase
   Future<void> loadHomeData() async {
     _isLoading = true;
     notifyListeners();
 
     try {
+      await _fetchUserProfile();
       await Future.wait([
-        _fetchUserProfile(),
         _fetchRecommendedLocations(),
         _fetchUnreadNotifications(),
         _fetchActiveSession(),
@@ -57,17 +67,26 @@ class HomeBackend extends ChangeNotifier {
     }
   }
 
-  /// 1. Ambil nama & profil user (Targeted Columns: full_name, wallet_balance, points, member_tier)
+  /// 1. Ambil nama & profil user
   Future<void> _fetchUserProfile() async {
     try {
-      final data = await _client
+      final user = _client.auth.currentUser;
+      dynamic query = _client
           .from('users')
-          .select('full_name, wallet_balance, points, member_tier')
-          .order('created_at', ascending: true)
-          .limit(1)
-          .maybeSingle();
+          .select('id, full_name, wallet_balance, points, member_tier');
+
+      if (user != null) {
+        query = query.eq('auth_user_id', user.id);
+      } else if (_userId.isNotEmpty) {
+        query = query.eq('id', _userId);
+      } else {
+        query = query.order('created_at', ascending: true);
+      }
+
+      final data = await query.limit(1).maybeSingle();
 
       if (data != null) {
+        _userId = data['id']?.toString() ?? _userId;
         _userName = data['full_name'] as String? ?? _userName;
         _walletBalance = (data['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
         _points = (data['points'] as int?) ?? _points;
@@ -78,22 +97,111 @@ class HomeBackend extends ChangeNotifier {
     }
   }
 
-  /// 2. Ambil lokasi parkir rekomendasi dari Supabase (diinput oleh Admin Operasional)
+  /// Mengubah kategori filter ('Terdekat', 'Mall', 'Parkir EV')
+  Future<void> setFilterCategory(String category) async {
+    _selectedCategory = category;
+    notifyListeners();
+    await _fetchRecommendedLocations();
+    notifyListeners();
+  }
+
+  /// Muat ulang rekomendasi parkir berdasarkan filter aktif
+  Future<void> refreshFilter() async {
+    await _fetchRecommendedLocations();
+    notifyListeners();
+  }
+
+  /// 2. Ambil lokasi parkir rekomendasi dari Supabase dengan filter GPS & Kategori
   Future<void> _fetchRecommendedLocations() async {
     try {
-      final data = await _client
+      // 1. Ambil semua lokasi aktif dari database
+      final response = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, rating, review_count, status, image_url, images, facilities')
-          .order('rating', ascending: false)
-          .limit(10);
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_ev, rating, review_count, status, image_url, images, facilities')
+          .order('rating', ascending: false);
 
-      _recommendedLocations = List<Map<String, dynamic>>.from(data);
+      List<Map<String, dynamic>> rawList = List<Map<String, dynamic>>.from(response);
+
+      // 2. Filter Kategori
+      if (_selectedCategory == 'Mall') {
+        rawList = rawList.where((loc) {
+          final name = (loc['name'] ?? '').toString().toLowerCase();
+          final type = (loc['type'] ?? '').toString().toLowerCase();
+          final addr = (loc['address'] ?? '').toString().toLowerCase();
+          return name.contains('mall') || type.contains('mall') || addr.contains('mall');
+        }).toList();
+      } else if (_selectedCategory == 'Parkir EV') {
+        rawList = rawList.where((loc) {
+          final facilities = (loc['facilities'] is List)
+              ? (loc['facilities'] as List).map((e) => e.toString().toLowerCase()).toList()
+              : [];
+          final name = (loc['name'] ?? '').toString().toLowerCase();
+          final type = (loc['type'] ?? '').toString().toLowerCase();
+          final hasEvFacility = facilities.any((f) => f.contains('ev') || f.contains('charging') || f.contains('listrik'));
+          final hasEvRate = (loc['hourly_rate_ev'] as num?) != null && (loc['hourly_rate_ev'] as num) > 0;
+          return hasEvFacility || hasEvRate || name.contains('ev') || type.contains('ev');
+        }).toList();
+      }
+
+      // 3. Jika filter 'Terdekat', ambil GPS dan urutkan berdasarkan jarak terdekat
+      if (_selectedCategory == 'Terdekat') {
+        try {
+          bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
+          if (serviceEnabled) {
+            LocationPermission permission = await Geolocator.checkPermission();
+            if (permission == LocationPermission.denied) {
+              permission = await Geolocator.requestPermission();
+            }
+
+            if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
+              _currentGpsPosition = await Geolocator.getCurrentPosition(
+                locationSettings: const LocationSettings(
+                  accuracy: LocationAccuracy.medium,
+                  timeLimit: Duration(seconds: 4),
+                ),
+              );
+            }
+          }
+        } catch (gpsError) {
+          debugPrint('[HomeBackend] GPS check error: $gpsError');
+        }
+
+        if (_currentGpsPosition != null) {
+          for (var loc in rawList) {
+            final lat = (loc['latitude'] as num?)?.toDouble();
+            final lng = (loc['longitude'] as num?)?.toDouble();
+            if (lat != null && lng != null) {
+              final distMeters = Geolocator.distanceBetween(
+                _currentGpsPosition!.latitude,
+                _currentGpsPosition!.longitude,
+                lat,
+                lng,
+              );
+              loc['calculated_distance'] = distMeters;
+              loc['distance_label'] = distMeters < 1000
+                  ? '${distMeters.round()} m'
+                  : '${(distMeters / 1000).toStringAsFixed(1)} km';
+            } else {
+              loc['calculated_distance'] = 99999999.0;
+              loc['distance_label'] = '-';
+            }
+          }
+
+          rawList.sort((a, b) {
+            final distA = (a['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
+            final distB = (b['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
+            return distA.compareTo(distB);
+          });
+        }
+      }
+
+      _recommendedLocations = rawList;
     } catch (e) {
       debugPrint('[HomeBackend] _fetchRecommendedLocations error: $e');
     }
   }
 
-  /// 3. Hitung notifikasi belum dibaca (Targeted Column: id saja)
+  /// 3. Hitung notifikasi belum dibaca
   Future<void> _fetchUnreadNotifications() async {
     try {
       final data = await _client
@@ -107,17 +215,55 @@ class HomeBackend extends ChangeNotifier {
     }
   }
 
-  /// 4. Ambil SEMUA sesi parkir aktif yang sudah check-in di gerbang (parking_sessions)
+  /// 4. Ambil SEMUA sesi parkir aktif (sesi checkout / expired otomatis dihapus dari homescreen)
   Future<void> _fetchActiveSession() async {
     try {
-      final sessions = await _client
+      final now = DateTime.now();
+      final uid = _userId.isNotEmpty ? _userId : (_client.auth.currentUser?.id ?? '');
+
+      // 1. Ambil sesi parkir aktif (parking_sessions)
+      var query = _client
           .from('parking_sessions')
-          .select('id, session_code, plate_number, vehicle_type, vehicle_desc, check_in_time, expected_check_out_time, parking_fee, total_fee, status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name)')
-          .eq('status', 'active')
-          .order('check_in_time', ascending: false);
+          .select('id, session_code, user_id, slot_id, booking_id, plate_number, vehicle_type, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name)')
+          .eq('status', 'active');
+
+      if (uid.isNotEmpty) {
+        query = query.or('user_id.eq.$uid,user_id.is.null');
+      }
+
+      final sessions = await query.order('check_in_time', ascending: false);
 
       final List<Map<String, dynamic>> list = [];
+      final Set<String> activeBookingIds = {};
+
       for (var session in sessions) {
+        final coTime = session['check_out_time'];
+        final expTimeStr = session['expected_check_out_time'];
+        final expTime = expTimeStr != null ? DateTime.tryParse(expTimeStr.toString())?.toLocal() : null;
+
+        // Jika sudah checkout atau waktu habis, jangan tampilkan di home screen
+        if (coTime != null || (expTime != null && now.isAfter(expTime))) {
+          try {
+            await _client.from('parking_sessions').update({
+              'status': 'completed',
+              'check_out_time': expTime != null ? expTime.toUtc().toIso8601String() : now.toUtc().toIso8601String(),
+            }).eq('id', session['id']);
+
+            if (session['slot_id'] != null) {
+              await _client.from('parking_slots').update({
+                'status': 'available',
+                'current_plate_number': null,
+                'occupied_since': null,
+              }).eq('id', session['slot_id']);
+            }
+          } catch (_) {}
+          continue; // Tidak dimasukkan ke list homescreen
+        }
+
+        if (session['booking_id'] != null) {
+          activeBookingIds.add(session['booking_id'].toString());
+        }
+
         list.add({
           'type': 'session',
           'id': session['id']?.toString(),
@@ -133,6 +279,64 @@ class HomeBackend extends ChangeNotifier {
           'start_time': session['check_in_time'],
           'end_time': session['expected_check_out_time'] ?? session['check_in_time'],
         });
+      }
+
+      // 2. Ambil booking yang sudah dibayar dan sesi mulainya sudah tiba secara otomatis (now >= start_time && now < end_time)
+      if (uid.isNotEmpty) {
+        try {
+          final bookings = await _client
+              .from('bookings')
+              .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name), vehicles(plate_number, brand, model)')
+              .eq('user_id', uid)
+              .eq('payment_status', 'paid')
+              .order('start_time', ascending: true);
+
+          for (var b in bookings) {
+            final bId = b['id']?.toString() ?? '';
+            if (activeBookingIds.contains(bId)) continue;
+
+            final bStatus = b['booking_status']?.toString().toLowerCase();
+            if (bStatus == 'completed' || bStatus == 'cancelled') continue;
+
+            final start = b['start_time'] != null ? DateTime.tryParse(b['start_time'].toString())?.toLocal() : null;
+            final end = b['end_time'] != null ? DateTime.tryParse(b['end_time'].toString())?.toLocal() : null;
+
+            if (end != null && now.isAfter(end)) {
+              // Waktu habis otomatis selesai
+              try {
+                await _client.from('bookings').update({
+                  'booking_status': 'completed',
+                }).eq('id', bId);
+              } catch (_) {}
+              continue;
+            }
+
+            if (start != null && (now.isAfter(start) || now.isAtSameMomentAs(start))) {
+              // Sesi mulai otomatis timernya dengan sendirinya jika tidak ditekan checkin
+              final veh = b['vehicles'] as Map<String, dynamic>?;
+              final vehDesc = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Kendaraan';
+              final plate = veh?['plate_number']?.toString() ?? '';
+
+              list.add({
+                'type': 'booking',
+                'id': bId,
+                'title': 'SESI PARKIR AKTIF (JADWAL DIMULAI)',
+                'tag': 'Sesi Parkir Aktif',
+                'location_name': b['parking_locations']?['name'] ?? 'Spot Parkir',
+                'location_address': b['parking_locations']?['address'] ?? '',
+                'image_url': b['parking_locations']?['image_url'],
+                'slot_code': b['parking_slots']?['slot_code'] ?? 'A-01',
+                'floor_name': b['parking_slots']?['floor_name'] ?? 'Lantai 1',
+                'plate_number': plate,
+                'vehicle_desc': vehDesc,
+                'start_time': b['start_time'],
+                'end_time': b['end_time'],
+              });
+            }
+          }
+        } catch (e) {
+          debugPrint('[HomeBackend] fetch auto-started bookings error: $e');
+        }
       }
 
       _activeSessions = list;

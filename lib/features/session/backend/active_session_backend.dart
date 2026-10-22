@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Backend khusus untuk ActiveSessionScreen (lib/features/session/active_session_screen.dart)
@@ -25,6 +26,17 @@ class ActiveSessionBackend extends ChangeNotifier {
   String _locationSub = 'South Lobby, Basement B2';
   String get locationSub => _locationSub;
 
+  double? _latitude;
+  double? _longitude;
+  String _locationType = 'Area Parkir';
+
+  Map<String, dynamic> get destinationParking => {
+    'name': _locationName,
+    'type': _locationType,
+    'address': _locationSub,
+    'point': LatLng(_latitude ?? -6.1788, _longitude ?? 106.7916),
+  };
+
   String _slotCode = 'A-05';
   String get slotCode => _slotCode;
 
@@ -43,10 +55,27 @@ class ActiveSessionBackend extends ChangeNotifier {
   DateTime? _expectedCheckOutTime;
   DateTime? get expectedCheckOutTime => _expectedCheckOutTime;
 
+  int _durationHours = 1;
+  int get durationHours => _durationHours;
+
+  String get checkInFormatted {
+    if (_checkInTime == null) return '14:02 WIB';
+    final h = _checkInTime!.hour.toString().padLeft(2, '0');
+    final m = _checkInTime!.minute.toString().padLeft(2, '0');
+    return '$h:$m WIB';
+  }
+
+  String get deadlineFormatted {
+    if (_expectedCheckOutTime == null) return '15:02 WIB';
+    final h = _expectedCheckOutTime!.hour.toString().padLeft(2, '0');
+    final m = _expectedCheckOutTime!.minute.toString().padLeft(2, '0');
+    return '$h:$m WIB';
+  }
+
   int _remainingSeconds = 3600;
   int get remainingSeconds => _remainingSeconds;
 
-  double _currentFee = 10000;
+  double _currentFee = 5000;
   double get currentFee => _currentFee;
 
   String _sessionCode = '-';
@@ -60,7 +89,7 @@ class ActiveSessionBackend extends ChangeNotifier {
     try {
       var query = _client
           .from('parking_sessions')
-          .select('id, session_code, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, parking_fee, total_fee, status');
+          .select('id, session_code, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, parking_fee, total_fee, status, booking_id');
 
       final dynamic session;
       if (sessionId != null && sessionId.isNotEmpty) {
@@ -94,17 +123,35 @@ class ActiveSessionBackend extends ChangeNotifier {
           }
         }
 
+        if (session['booking_id'] != null) {
+          final bRes = await _client
+              .from('bookings')
+              .select('duration_hours')
+              .eq('id', session['booking_id'])
+              .maybeSingle();
+          if (bRes != null && bRes['duration_hours'] != null) {
+            _durationHours = (bRes['duration_hours'] as num).toInt();
+          }
+        } else if (_expectedCheckOutTime != null && _checkInTime != null) {
+          final diffMins = _expectedCheckOutTime!.difference(_checkInTime!).inMinutes;
+          final hrs = (diffMins / 60.0).round();
+          if (hrs > 0) _durationHours = hrs;
+        }
+
         // Ambil info lokasi
         if (session['location_id'] != null) {
           final loc = await _client
               .from('parking_locations')
-              .select('name, address')
+              .select('name, address, latitude, longitude, type')
               .eq('id', session['location_id'])
               .maybeSingle();
 
           if (loc != null) {
             _locationName = loc['name']?.toString() ?? _locationName;
             _locationSub = loc['address']?.toString() ?? _locationSub;
+            _latitude = (loc['latitude'] as num?)?.toDouble();
+            _longitude = (loc['longitude'] as num?)?.toDouble();
+            _locationType = loc['type']?.toString() ?? 'Area Parkir';
           }
         }
 
@@ -125,7 +172,7 @@ class ActiveSessionBackend extends ChangeNotifier {
         // Cek juga dari tabel bookings jika ada reservasi slot aktif
         final booking = await _client
             .from('bookings')
-            .select('id, booking_code, slot_id, location_id, end_time, start_time, total_price')
+            .select('id, booking_code, slot_id, location_id, end_time, start_time, total_price, duration_hours')
             .inFilter('booking_status', ['upcoming', 'active'])
             .order('start_time', ascending: false)
             .limit(1)
@@ -136,6 +183,7 @@ class ActiveSessionBackend extends ChangeNotifier {
           _sessionId = booking['id']?.toString() ?? _sessionId;
           _sessionCode = booking['booking_code']?.toString() ?? _sessionCode;
           _currentFee = (booking['total_price'] as num?)?.toDouble() ?? _currentFee;
+          _durationHours = (booking['duration_hours'] as num?)?.toInt() ?? 1;
 
           if (booking['start_time'] != null) {
             _checkInTime = DateTime.tryParse(booking['start_time'].toString())?.toLocal();
@@ -152,13 +200,16 @@ class ActiveSessionBackend extends ChangeNotifier {
           if (booking['location_id'] != null) {
             final loc = await _client
                 .from('parking_locations')
-                .select('name, address')
+                .select('name, address, latitude, longitude, type')
                 .eq('id', booking['location_id'])
                 .maybeSingle();
 
             if (loc != null) {
               _locationName = loc['name']?.toString() ?? _locationName;
               _locationSub = loc['address']?.toString() ?? _locationSub;
+              _latitude = (loc['latitude'] as num?)?.toDouble();
+              _longitude = (loc['longitude'] as num?)?.toDouble();
+              _locationType = loc['type']?.toString() ?? 'Area Parkir';
             }
           }
 
