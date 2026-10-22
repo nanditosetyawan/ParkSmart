@@ -1,17 +1,19 @@
-# 🛠️ DDL QUERY CREATE TABLE SUPABASE POSTGRESQL (14 TABEL UTAMA)
+# 🛠️ DDL QUERY CREATE TABLE SUPABASE POSTGRESQL (15 TABEL UTAMA)
 ## Proyek: Smart Parking (ParkSmart ID)
 ### Enterprise Database DDL Script — Production Ready & Optimized
 
 > 📌 **PANDUAN EKSEKUSI:**  
-> File ini berisi query DDL SQL lengkap untuk membuat **seluruh 14 tabel utama**, custom ENUMs, foreign keys, constraints, dan indeks performa.  
+> File ini berisi query DDL SQL lengkap untuk membuat **seluruh 15 tabel utama**, custom ENUMs, foreign keys, constraints, trigger snapshot, storage bucket, dan indeks performa.  
 > Seluruh query disusun berurutan (*dependency-ordered*) sehingga **dapat langsung dieksekusi sekali jalan pada Supabase SQL Editor / PostgreSQL psql** tanpa error dependensi.
+> 
+> 🔒 **Konfigurasi AI & API Key:** Tabel `ai_agent_configs` telah sepenuhnya dihapus dari database. API Key Groq kini 100% aman dikelola via file `.env` (`GROQ_API_KEY`).
 
 ---
 
 ```sql
 -- ============================================================================
 -- SCRIPT DDL SUPABASE POSTGRESQL - PARKSMART ID
--- Skema: 14 Tabel Utama Teroptimasi (User, Staf Admin Terpadu & Layanan Bisnis)
+-- Skema: 15 Tabel Utama Teroptimasi (User, Staf Admin Terpadu & Layanan Bisnis)
 -- ============================================================================
 
 -- 1. EKSTENSI KRIPTOGRAFI & UUID
@@ -101,17 +103,17 @@ CREATE TABLE IF NOT EXISTS public.users (
     total_savings NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
     favorite_location_ids UUID[] NOT NULL DEFAULT '{}',
     pin_hash VARCHAR(255),
-    password TEXT DEFAULT 'user123',
     is_biometric_enabled BOOLEAN NOT NULL DEFAULT false,
     status user_status_enum NOT NULL DEFAULT 'active',
     ban_reason TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    password TEXT DEFAULT 'user123',
+    saran_kuliah TEXT,
+    pesan_kuliah TEXT
 );
 
 -- 4. TABEL GARASI KENDARAAN PENGGUNA
--- Catatan Arsitektur Foto: Foto fisik plat & lembar STNK wajib diambil 2x dan HANYA diolah secara in-memory (RAM)
--- untuk ekstraksi teks plate_number & plate_expiry. File gambar TIDAK disimpan ke server/storage demi efisiensi & privasi.
 CREATE TABLE IF NOT EXISTS public.vehicles (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
@@ -139,11 +141,11 @@ CREATE TABLE IF NOT EXISTS public.admins (
     role admin_role_enum NOT NULL,
     division VARCHAR(100) NOT NULL,
     avatar_url TEXT,
-    password TEXT DEFAULT 'superadmin123',
     status admin_status_enum NOT NULL DEFAULT 'active',
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    password TEXT DEFAULT 'superadmin123'
 );
 
 -- 6. TABEL VERIFIKASI IDENTITAS KTP (KYC SUPER ADMIN)
@@ -189,16 +191,16 @@ CREATE TABLE IF NOT EXISTS public.parking_locations (
     hourly_rate_motor NUMERIC(10, 2) NOT NULL DEFAULT 2000.00,
     hourly_rate_ev NUMERIC(10, 2) NOT NULL DEFAULT 7500.00,
     operating_hours VARCHAR(100) NOT NULL DEFAULT 'Buka 24 Jam',
-    facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam', 'Covered Parking'],
+    facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam'::text, 'Covered Parking'::text],
     rating NUMERIC(2, 1) NOT NULL DEFAULT 4.8,
     review_count INT NOT NULL DEFAULT 0,
     status location_status_enum NOT NULL DEFAULT 'active',
     image_url TEXT,
     images TEXT[] DEFAULT '{}',
+    floors TEXT[] DEFAULT ARRAY['Lantai 1'::text],
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
-
 
 -- 8. TABEL DENAH SLOT PARKIR & SENSOR IOT
 CREATE TABLE IF NOT EXISTS public.parking_slots (
@@ -211,6 +213,7 @@ CREATE TABLE IF NOT EXISTS public.parking_slots (
     sensor_device_id VARCHAR(60),
     current_plate_number VARCHAR(20),
     occupied_since TIMESTAMPTZ,
+    zone TEXT DEFAULT 'zoneA',
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT uq_location_slot UNIQUE (location_id, floor_name, slot_code)
@@ -224,7 +227,7 @@ CREATE TABLE IF NOT EXISTS public.parking_sessions (
     slot_id UUID REFERENCES public.parking_slots(id) ON DELETE SET NULL,
     user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
-    booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
+    booking_id UUID,
     plate_number VARCHAR(20) NOT NULL,
     vehicle_type vehicle_type_enum NOT NULL DEFAULT 'mobil',
     vehicle_desc VARCHAR(100),
@@ -260,9 +263,16 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     booking_status booking_status_enum NOT NULL DEFAULT 'upcoming',
     qr_code_hash TEXT NOT NULL,
     cancel_reason TEXT,
+    plate_number VARCHAR(20),
+    vehicle_desc VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
+
+-- Relasi Booking pada Parking Sessions
+ALTER TABLE public.parking_sessions
+    DROP CONSTRAINT IF EXISTS fk_sessions_booking,
+    ADD CONSTRAINT fk_sessions_booking FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE SET NULL;
 
 -- 11. TABEL TRANSAKSI KEUANGAN & BLOCKCHAIN HASH
 CREATE TABLE IF NOT EXISTS public.payments (
@@ -309,61 +319,27 @@ CREATE TABLE IF NOT EXISTS public.system_notifications (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- 14. TABEL SKOR ARCADE & POIN (SISTEM TIMPA / OVERWRITE - MAKSIMAL 2 ROW PER USER PER GAME)
+-- 14. TABEL SKOR ARCADE & POIN
 CREATE TABLE IF NOT EXISTS public.arcade_scores (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
     game_name VARCHAR(60) NOT NULL,
     score INT NOT NULL DEFAULT 0,
     points_earned INT NOT NULL DEFAULT 0,
-    score_type VARCHAR(20) NOT NULL DEFAULT 'current', -- 'highest' (rekor terbaik) atau 'current' (sesi terakhir ditimpa)
-    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    CONSTRAINT uq_user_game_score_type UNIQUE (user_id, game_name, score_type)
+    score_type VARCHAR(30) DEFAULT 'current',
+    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 15. TABEL PENGATURAN GLOBAL SISTEM (JSONB)
--- Catatan Arsitektur Kurs: Konversi mata uang asing dioperasikan murni secara client-side (UI display math)
--- menggunakan Open Exchange Rates API publik bebas biaya (0 rupiah) tanpa modifikasi data keuangan database.
--- Tabel ini difokuskan untuk saklar fitur dinamis (feature_toggles) dan parameter kecerdasan buatan (ai_config).
 CREATE TABLE IF NOT EXISTS public.system_settings (
-    key VARCHAR(80) PRIMARY KEY, -- Contoh: 'ai_config', 'feature_toggles'
+    key VARCHAR(80) PRIMARY KEY,
     value JSONB NOT NULL,
     description TEXT,
     updated_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
--- Inisialisasi Otomatis Rekor Pengaturan Sistem Saat Skema Dibuat
-INSERT INTO public.system_settings (key, value, description)
-VALUES
-(
-    'ai_config',
-    '{
-        "model_name": "qwen/qwen3.8-27b",
-        "api_key": "",
-        "max_tokens": 1024,
-        "temperature": 0.4,
-        "ocr_confidence_threshold": 0.85,
-        "is_autonomous_pricing_enabled": true
-    }'::jsonb,
-    'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing'
-),
-(
-    'feature_toggles',
-    '{
-        "is_arcade_active": true,
-        "is_ev_charging_booking_enabled": true,
-        "is_crypto_blockchain_audit_live": true,
-        "is_biometric_login_enforced": false
-    }'::jsonb,
-    'Saklar fitur sistem aplikasi ParkSmart ID'
-)
-ON CONFLICT (key) DO UPDATE SET
-    value = EXCLUDED.value,
-    description = EXCLUDED.description,
-    updated_at = timezone('utc'::text, now());
-
--- 15.2. TABEL AUDIT LOG AKTIVITAS LOGIN ADMIN (AUDIT TRAIL SUPER ADMIN)
+-- 16. TABEL AUDIT LOG AKTIVITAS LOGIN ADMIN (AUDIT TRAIL SUPER ADMIN)
 CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
@@ -380,19 +356,77 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
-CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_role ON public.admin_audit_logs(role);
+-- 17. TABEL LOKASI PARKIR FAVORIT PENGGUNA (PER-USER FAVORITE PARKING)
+CREATE TABLE IF NOT EXISTS public.user_favorites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES public.parking_locations(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, location_id)
+);
+
+ALTER TABLE public.user_favorites ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    CREATE POLICY "Allow public full access on user_favorites"
+    ON public.user_favorites FOR ALL
+    USING (true)
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================================
--- 16. SUPABASE STORAGE BUCKET (DOKUMEN KYC & KENDARAAN)
+-- 18. FUNGSI DAN TRIGGER (TRIGGER SNAPSHOT KENDARAAN)
 -- ============================================================================
--- Bucket untuk menyimpan foto KTP & Selfie pengguna yang dikompresi brutal (~95%)
+CREATE OR REPLACE FUNCTION public.snapshot_vehicle_before_delete()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Snapshot ke bookings yang merujuk kendaraan ini
+  UPDATE bookings
+  SET 
+    plate_number = CASE 
+      WHEN plate_number IS NULL OR plate_number = '' THEN OLD.plate_number 
+      ELSE plate_number 
+    END,
+    vehicle_desc = CASE 
+      WHEN vehicle_desc IS NULL OR vehicle_desc = '' THEN TRIM(CONCAT(COALESCE(OLD.brand, ''), ' ', COALESCE(OLD.model, '')))
+      ELSE vehicle_desc 
+    END
+  WHERE vehicle_id = OLD.id;
+
+  -- Snapshot ke parking_sessions yang merujuk kendaraan ini
+  UPDATE parking_sessions
+  SET 
+    plate_number = CASE 
+      WHEN plate_number IS NULL OR plate_number = '' THEN OLD.plate_number 
+      ELSE plate_number 
+    END,
+    vehicle_desc = CASE 
+      WHEN vehicle_desc IS NULL OR vehicle_desc = '' THEN TRIM(CONCAT(COALESCE(OLD.brand, ''), ' ', COALESCE(OLD.model, '')))
+      ELSE vehicle_desc 
+    END
+  WHERE vehicle_id = OLD.id;
+
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_snapshot_vehicle_before_delete ON public.vehicles;
+CREATE TRIGGER trg_snapshot_vehicle_before_delete
+BEFORE DELETE ON public.vehicles
+FOR EACH ROW
+EXECUTE FUNCTION public.snapshot_vehicle_before_delete();
+
+-- ============================================================================
+-- 19. SUPABASE STORAGE BUCKET (DOKUMEN KYC & AVATAR)
+-- ============================================================================
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES (
     'kyc-documents',
     'kyc-documents',
     true,
-    5242880, -- 5 MB batas maksimum (file terkompresi biasanya hanya 50-100 KB)
+    5242880,
     ARRAY['image/jpeg', 'image/png', 'image/webp']
 )
 ON CONFLICT (id) DO UPDATE SET
@@ -401,29 +435,12 @@ ON CONFLICT (id) DO UPDATE SET
     allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
 
 -- ============================================================================
--- 17. KEBIJAKAN ROW LEVEL SECURITY (RLS) DEVELOPMENT
+-- 20. INDEKS PERFORMA QUERY
 -- ============================================================================
--- Query bypass RLS untuk kelancaran integrasi development lokal & pengujian:
--- ALTER TABLE public.admins DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.arcade_scores DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.bookings DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.customer_feedbacks DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.parking_locations DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.parking_sessions DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.parking_slots DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.payments DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.system_notifications DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.system_settings DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.user_kyc DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.users DISABLE ROW LEVEL SECURITY;
--- ALTER TABLE public.vehicles DISABLE ROW LEVEL SECURITY;
-
--- ============================================================================
--- INDEKS PERFORMA QUERY
--- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_role ON public.admin_audit_logs(role);
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
 CREATE INDEX IF NOT EXISTS idx_users_phone ON public.users(phone);
-CREATE INDEX IF NOT EXISTS idx_arcade_scores_lookup ON public.arcade_scores(user_id, game_name, score_type);
 CREATE INDEX IF NOT EXISTS idx_vehicles_user ON public.vehicles(user_id);
 CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON public.vehicles(plate_number);
 CREATE INDEX IF NOT EXISTS idx_admins_email ON public.admins(email);
@@ -443,4 +460,109 @@ CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
 CREATE INDEX IF NOT EXISTS idx_customer_feedbacks_user ON public.customer_feedbacks(user_id);
 CREATE INDEX IF NOT EXISTS idx_system_notifications_recipient ON public.system_notifications(recipient_user_id);
 CREATE INDEX IF NOT EXISTS idx_arcade_scores_user ON public.arcade_scores(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user_id ON public.user_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_location_id ON public.user_favorites(location_id);
+```
+
+---
+
+## 21. SEED DATA RESMI (SINKRON 100% DENGAN SUPABASE AKTIF)
+
+```sql
+-- ============================================================================
+-- DATA AWAL (SEED DATA)
+-- Khusus: Hanya user@gmail.com, 4 akun Admin RBAC, dan 3 Pengaturan Global.
+-- public.vehicles dan user lainnya DIKOSONGKAN (0 baris).
+-- ============================================================================
+
+-- 1. SEED 4 AKUN ADMIN TERPADU
+INSERT INTO public.admins (
+    id, email, full_name, phone, role, division, status, password
+) VALUES
+(
+    'a78f3e2b-4c59-4d81-9b16-83f1245890ab', 'superadmin@parksmart.id', 'Gibran Widodo', '+62 812-0000-0001',
+    'super_admin', 'Sistem & Super Admin', 'active', 'superadmin123'
+),
+(
+    '12d32c66-7b63-4c0c-9146-eff24e9361f1', 'ops@parksmart.id', 'Erick Thohir', '+62 812-7777-8888',
+    'operational', 'Admin Operasional', 'active', 'ops123'
+),
+(
+    '587b0671-4730-4936-b792-7dbda1b92376', 'finance@parksmart.id', 'Sri Mulyani', '+62 812-3333-4444',
+    'finance', 'Admin Finansial', 'active', 'finance123'
+),
+(
+    '69246a1c-021a-4f9f-8534-15fc9643484f', 'cs@parksmart.id', 'Prabowo Subianto', '+62 812-5555-6666',
+    'cs', 'Admin CS & KYC', 'active', 'cs123'
+)
+ON CONFLICT (email) DO UPDATE SET
+    full_name = EXCLUDED.full_name,
+    phone = EXCLUDED.phone,
+    role = EXCLUDED.role,
+    division = EXCLUDED.division,
+    status = EXCLUDED.status,
+    password = EXCLUDED.password;
+
+-- 2. SEED PENGGUNA (HANYA user@gmail.com)
+INSERT INTO public.users (
+    id, email, phone, full_name, avatar_url, gender, address,
+    wallet_balance, points, member_tier, total_parking_count, total_savings,
+    favorite_location_ids, pin_hash, is_biometric_enabled, status, password
+) VALUES
+(
+    '5d7d4224-c3f8-4add-a94f-7d87a62d9356', 'user@gmail.com', '0812769494', 'user 1',
+    'https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/avatars/5d7d4224-c3f8-4add-a94f-7d87a62d9356/avatar_5d7d4224-c3f8-4add-a94f-7d87a62d9356_1792685516418.jpg',
+    'Laki-laki', '', 48000.00, 0, 'BRONZE', 6, 0.00,
+    '{}', '4040', false, 'active', '123456'
+)
+ON CONFLICT (email) DO UPDATE SET
+    phone = EXCLUDED.phone,
+    full_name = EXCLUDED.full_name,
+    avatar_url = EXCLUDED.avatar_url,
+    wallet_balance = EXCLUDED.wallet_balance,
+    points = EXCLUDED.points,
+    member_tier = EXCLUDED.member_tier,
+    total_parking_count = EXCLUDED.total_parking_count,
+    total_savings = EXCLUDED.total_savings,
+    pin_hash = EXCLUDED.pin_hash,
+    status = EXCLUDED.status,
+    password = EXCLUDED.password;
+
+-- 3. SEED PENGATURAN GLOBAL SISTEM (SYSTEM_SETTINGS)
+INSERT INTO public.system_settings (key, value, description)
+VALUES
+(
+    'feature_toggles',
+    '{
+        "is_arcade_active": true,
+        "is_biometric_login_enforced": false,
+        "is_ev_charging_booking_enabled": true,
+        "is_crypto_blockchain_audit_live": true
+    }'::jsonb,
+    'Toggle fitur aplikasi'
+),
+(
+    'company_treasury',
+    '{
+        "balance": 48904000,
+        "currency": "IDR",
+        "last_user_id": "0c97c583-cffc-41be-a45c-e234e572e500",
+        "last_injection": 546000
+    }'::jsonb,
+    'Saldo kas utama cadangan operasional ParkSmart ID'
+),
+(
+    'ai_config',
+    '{
+        "max_tokens": 1024,
+        "model_name": "qwen/qwen3.8-27b",
+        "temperature": 0.7,
+        "is_autonomous_pricing_enabled": true
+    }'::jsonb,
+    'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing'
+)
+ON CONFLICT (key) DO UPDATE SET
+    value = EXCLUDED.value,
+    description = EXCLUDED.description,
+    updated_at = timezone('utc'::text, now());
 ```

@@ -1,0 +1,453 @@
+-- ============================================================================
+-- SCRIPT DDL POSTGRESQL / SUPABASE - PARKSMART ID
+-- Path: schema.sql (Root & lib/database/schema.sql)
+-- Skema: 15 Tabel Utama Teroptimasi & User-Oriented
+-- Siap dieksekusi sekali jalan (Dependency-Ordered)
+-- ============================================================================
+
+-- 1. EKSTENSI KRIPTOGRAFI & UUID
+CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- 2. TIPE DATA KUSTOM (CUSTOM ENUMS)
+DO $$ BEGIN
+    CREATE TYPE user_status_enum AS ENUM ('active', 'inactive', 'banned');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE member_tier_enum AS ENUM ('BRONZE', 'SILVER', 'GOLD', 'PLATINUM');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE vehicle_type_enum AS ENUM ('mobil', 'motor', 'ev');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE admin_role_enum AS ENUM ('super_admin', 'operational', 'finance', 'cs');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE admin_status_enum AS ENUM ('active', 'inactive');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE kyc_status_enum AS ENUM ('pending', 'approved', 'rejected');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE location_status_enum AS ENUM ('active', 'crowded', 'full', 'maintenance');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE slot_type_enum AS ENUM ('mobil', 'motor', 'ev', 'difabel', 'vip');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE slot_status_enum AS ENUM ('available', 'occupied', 'reserved', 'maintenance');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE session_status_enum AS ENUM ('active', 'completed', 'overstay');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE booking_type_enum AS ENUM ('reservation', 'walk_in');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE booking_status_enum AS ENUM ('upcoming', 'active', 'completed', 'cancelled', 'expired');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_status_enum AS ENUM ('unpaid', 'paid', 'refunded');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE transaction_type_enum AS ENUM ('parking_payment', 'wallet_topup', 'wallet_injection', 'refund', 'cashback', 'penalty');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE payment_method_enum AS ENUM ('wallet', 'qris', 'bank_va', 'gopay', 'ovo', 'shopeepay', 'admin_manual');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE TYPE transaction_status_enum AS ENUM ('pending', 'success', 'failed', 'refunded');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- 3. TABEL IDENTITAS USER & PROFIL
+CREATE TABLE IF NOT EXISTS public.users (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    phone VARCHAR(30) NOT NULL UNIQUE,
+    full_name VARCHAR(150) NOT NULL,
+    avatar_url TEXT,
+    gender VARCHAR(20) DEFAULT 'Laki-laki',
+    birth_date DATE,
+    address TEXT,
+    wallet_balance NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (wallet_balance >= 0),
+    points INT NOT NULL DEFAULT 0 CHECK (points >= 0),
+    member_tier member_tier_enum NOT NULL DEFAULT 'BRONZE',
+    total_parking_count INT NOT NULL DEFAULT 0,
+    total_savings NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    favorite_location_ids UUID[] NOT NULL DEFAULT '{}',
+    pin_hash VARCHAR(255),
+    is_biometric_enabled BOOLEAN NOT NULL DEFAULT false,
+    status user_status_enum NOT NULL DEFAULT 'active',
+    ban_reason TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    password TEXT DEFAULT 'user123',
+    saran_kuliah TEXT,
+    pesan_kuliah TEXT
+);
+
+-- 4. TABEL GARASI KENDARAAN PENGGUNA
+CREATE TABLE IF NOT EXISTS public.vehicles (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    plate_number VARCHAR(20) NOT NULL,
+    vehicle_type vehicle_type_enum NOT NULL DEFAULT 'mobil',
+    vehicle_category VARCHAR(30) DEFAULT 'suv',
+    brand VARCHAR(60) NOT NULL,
+    model VARCHAR(80) NOT NULL,
+    color VARCHAR(40) NOT NULL,
+    plate_expiry VARCHAR(10),
+    photo_url TEXT,
+    is_default BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_user_plate UNIQUE (user_id, plate_number)
+);
+
+-- 5. TABEL STAF ADMIN TERPADU (Super Admin, Operasional, Finansial, CS)
+CREATE TABLE IF NOT EXISTS public.admins (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    auth_user_id UUID UNIQUE REFERENCES auth.users(id) ON DELETE CASCADE,
+    email VARCHAR(255) NOT NULL UNIQUE,
+    full_name VARCHAR(150) NOT NULL,
+    phone VARCHAR(30),
+    role admin_role_enum NOT NULL,
+    division VARCHAR(100) NOT NULL,
+    avatar_url TEXT,
+    status admin_status_enum NOT NULL DEFAULT 'active',
+    last_login_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    password TEXT DEFAULT 'superadmin123'
+);
+
+-- 6. TABEL VERIFIKASI IDENTITAS KTP (KYC SUPER ADMIN)
+CREATE TABLE IF NOT EXISTS public.user_kyc (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    nik VARCHAR(16) NOT NULL UNIQUE,
+    full_name VARCHAR(150) NOT NULL,
+    birth_place_city VARCHAR(100),
+    birth_date DATE NOT NULL,
+    address TEXT NOT NULL,
+    gender VARCHAR(20) NOT NULL,
+    religion VARCHAR(30),
+    occupation VARCHAR(100),
+    ktp_image_url TEXT NOT NULL,
+    selfie_image_url TEXT,
+    status kyc_status_enum NOT NULL DEFAULT 'pending',
+    reject_reason TEXT,
+    reviewed_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    submitted_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    reviewed_at TIMESTAMPTZ,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 7. TABEL LOKASI & FASILITAS PARKIR
+CREATE TABLE IF NOT EXISTS public.parking_locations (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    code VARCHAR(20) NOT NULL UNIQUE,
+    name VARCHAR(150) NOT NULL,
+    type VARCHAR(50) NOT NULL DEFAULT 'Parkiran Mall',
+    city VARCHAR(80) NOT NULL,
+    province VARCHAR(80) NOT NULL,
+    address TEXT NOT NULL,
+    latitude DOUBLE PRECISION NOT NULL,
+    longitude DOUBLE PRECISION NOT NULL,
+    checkin_radius_meters INT NOT NULL DEFAULT 150,
+    total_capacity INT NOT NULL DEFAULT 0,
+    car_slots_capacity INT NOT NULL DEFAULT 0,
+    motor_slots_capacity INT NOT NULL DEFAULT 0,
+    ev_slots_capacity INT NOT NULL DEFAULT 0,
+    hourly_rate_mobil NUMERIC(10, 2) NOT NULL DEFAULT 5000.00,
+    hourly_rate_motor NUMERIC(10, 2) NOT NULL DEFAULT 2000.00,
+    hourly_rate_ev NUMERIC(10, 2) NOT NULL DEFAULT 7500.00,
+    operating_hours VARCHAR(100) NOT NULL DEFAULT 'Buka 24 Jam',
+    facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam'::text, 'Covered Parking'::text],
+    rating NUMERIC(2, 1) NOT NULL DEFAULT 4.8,
+    review_count INT NOT NULL DEFAULT 0,
+    status location_status_enum NOT NULL DEFAULT 'active',
+    image_url TEXT,
+    images TEXT[] DEFAULT '{}',
+    floors TEXT[] DEFAULT ARRAY['Lantai 1'::text],
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 8. TABEL DENAH SLOT PARKIR & SENSOR IOT
+CREATE TABLE IF NOT EXISTS public.parking_slots (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    location_id UUID NOT NULL REFERENCES public.parking_locations(id) ON DELETE CASCADE,
+    floor_name VARCHAR(50) NOT NULL,
+    slot_code VARCHAR(30) NOT NULL,
+    slot_type slot_type_enum NOT NULL DEFAULT 'mobil',
+    status slot_status_enum NOT NULL DEFAULT 'available',
+    sensor_device_id VARCHAR(60),
+    current_plate_number VARCHAR(20),
+    occupied_since TIMESTAMPTZ,
+    zone TEXT DEFAULT 'zoneA',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    CONSTRAINT uq_location_slot UNIQUE (location_id, floor_name, slot_code)
+);
+
+-- 9. TABEL SESI PARKIR GERBANG & OVERSTAY
+CREATE TABLE IF NOT EXISTS public.parking_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_code VARCHAR(30) NOT NULL UNIQUE,
+    location_id UUID NOT NULL REFERENCES public.parking_locations(id) ON DELETE RESTRICT,
+    slot_id UUID REFERENCES public.parking_slots(id) ON DELETE SET NULL,
+    user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
+    vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
+    booking_id UUID, -- Relasi foreign key ditambahkan setelah tabel bookings
+    plate_number VARCHAR(20) NOT NULL,
+    vehicle_type vehicle_type_enum NOT NULL DEFAULT 'mobil',
+    vehicle_desc VARCHAR(100),
+    check_in_time TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    expected_check_out_time TIMESTAMPTZ,
+    check_out_time TIMESTAMPTZ,
+    parking_fee NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    is_overstay BOOLEAN NOT NULL DEFAULT false,
+    overstay_minutes INT NOT NULL DEFAULT 0,
+    overstay_penalty_fee NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    total_fee NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    status session_status_enum NOT NULL DEFAULT 'active',
+    gate_in_id VARCHAR(50),
+    gate_out_id VARCHAR(50),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 10. TABEL PEMESANAN & RESERVASI PARKIR
+CREATE TABLE IF NOT EXISTS public.bookings (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    booking_code VARCHAR(35) NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+    location_id UUID NOT NULL REFERENCES public.parking_locations(id) ON DELETE RESTRICT,
+    slot_id UUID REFERENCES public.parking_slots(id) ON DELETE SET NULL,
+    vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
+    booking_type booking_type_enum NOT NULL DEFAULT 'reservation',
+    start_time TIMESTAMPTZ NOT NULL,
+    end_time TIMESTAMPTZ NOT NULL,
+    duration_hours INT NOT NULL DEFAULT 1,
+    total_price NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
+    payment_status payment_status_enum NOT NULL DEFAULT 'unpaid',
+    booking_status booking_status_enum NOT NULL DEFAULT 'upcoming',
+    qr_code_hash TEXT NOT NULL,
+    cancel_reason TEXT,
+    plate_number VARCHAR(20),
+    vehicle_desc VARCHAR(100),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- Relasi Booking pada Parking Sessions
+ALTER TABLE public.parking_sessions
+    DROP CONSTRAINT IF EXISTS fk_sessions_booking,
+    ADD CONSTRAINT fk_sessions_booking FOREIGN KEY (booking_id) REFERENCES public.bookings(id) ON DELETE SET NULL;
+
+-- 11. TABEL TRANSAKSI KEUANGAN & BLOCKCHAIN HASH
+CREATE TABLE IF NOT EXISTS public.payments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    transaction_code VARCHAR(40) NOT NULL UNIQUE,
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE RESTRICT,
+    booking_id UUID REFERENCES public.bookings(id) ON DELETE SET NULL,
+    session_id UUID REFERENCES public.parking_sessions(id) ON DELETE SET NULL,
+    transaction_type transaction_type_enum NOT NULL DEFAULT 'parking_payment',
+    payment_method payment_method_enum NOT NULL DEFAULT 'wallet',
+    amount NUMERIC(14, 2) NOT NULL CHECK (amount > 0),
+    description TEXT,
+    blockchain_hash VARCHAR(66),
+    status transaction_status_enum NOT NULL DEFAULT 'success',
+    completed_at TIMESTAMPTZ DEFAULT timezone('utc'::text, now()),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 12. TABEL ULASAN & TANGGAPAN CS
+CREATE TABLE IF NOT EXISTS public.customer_feedbacks (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    location_id UUID REFERENCES public.parking_locations(id) ON DELETE SET NULL,
+    rating INT NOT NULL CHECK (rating >= 1 AND rating <= 5),
+    comment TEXT NOT NULL,
+    admin_reply TEXT,
+    replied_by_admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    is_resolved BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    replied_at TIMESTAMPTZ
+);
+
+-- 13. TABEL NOTIFIKASI & BROADCAST SISTEM
+CREATE TABLE IF NOT EXISTS public.system_notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    sender_admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    recipient_user_id UUID REFERENCES public.users(id) ON DELETE CASCADE,
+    target_role VARCHAR(50) NOT NULL DEFAULT 'all',
+    title VARCHAR(150) NOT NULL,
+    message TEXT NOT NULL,
+    notification_type VARCHAR(40) NOT NULL DEFAULT 'info',
+    action_type VARCHAR(60),
+    is_read BOOLEAN NOT NULL DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 14. TABEL SKOR ARCADE & POIN
+CREATE TABLE IF NOT EXISTS public.arcade_scores (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    game_name VARCHAR(60) NOT NULL,
+    score INT NOT NULL DEFAULT 0,
+    points_earned INT NOT NULL DEFAULT 0,
+    score_type VARCHAR(30) DEFAULT 'current',
+    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 15. TABEL PENGATURAN GLOBAL SISTEM (JSONB)
+CREATE TABLE IF NOT EXISTS public.system_settings (
+    key VARCHAR(80) PRIMARY KEY,
+    value JSONB NOT NULL,
+    description TEXT,
+    updated_by UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 16. TABEL AUDIT LOG AKTIVITAS LOGIN ADMIN (AUDIT TRAIL SUPER ADMIN)
+CREATE TABLE IF NOT EXISTS public.admin_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    admin_id UUID REFERENCES public.admins(id) ON DELETE SET NULL,
+    admin_name VARCHAR(150) NOT NULL,
+    admin_email VARCHAR(255),
+    role VARCHAR(50) NOT NULL,
+    action VARCHAR(100) NOT NULL DEFAULT 'Login berhasil',
+    device_model VARCHAR(150),
+    ip_address VARCHAR(50),
+    location VARCHAR(150),
+    isp VARCHAR(150),
+    status VARCHAR(50) DEFAULT 'Berhasil',
+    is_current_session BOOLEAN DEFAULT false,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+);
+
+-- 17. TABEL LOKASI PARKIR FAVORIT PENGGUNA (PER-USER FAVORITE PARKING)
+CREATE TABLE IF NOT EXISTS public.user_favorites (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    location_id UUID NOT NULL REFERENCES public.parking_locations(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    UNIQUE(user_id, location_id)
+);
+
+ALTER TABLE public.user_favorites ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    CREATE POLICY "Allow public full access on user_favorites"
+    ON public.user_favorites FOR ALL
+    USING (true)
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ============================================================================
+-- 18. FUNGSI DAN TRIGGER (TRIGGER SNAPSHOT KENDARAAN)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.snapshot_vehicle_before_delete()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Snapshot ke bookings yang merujuk kendaraan ini
+  UPDATE bookings
+  SET 
+    plate_number = CASE 
+      WHEN plate_number IS NULL OR plate_number = '' THEN OLD.plate_number 
+      ELSE plate_number 
+    END,
+    vehicle_desc = CASE 
+      WHEN vehicle_desc IS NULL OR vehicle_desc = '' THEN TRIM(CONCAT(COALESCE(OLD.brand, ''), ' ', COALESCE(OLD.model, '')))
+      ELSE vehicle_desc 
+    END
+  WHERE vehicle_id = OLD.id;
+
+  -- Snapshot ke parking_sessions yang merujuk kendaraan ini
+  UPDATE parking_sessions
+  SET 
+    plate_number = CASE 
+      WHEN plate_number IS NULL OR plate_number = '' THEN OLD.plate_number 
+      ELSE plate_number 
+    END,
+    vehicle_desc = CASE 
+      WHEN vehicle_desc IS NULL OR vehicle_desc = '' THEN TRIM(CONCAT(COALESCE(OLD.brand, ''), ' ', COALESCE(OLD.model, '')))
+      ELSE vehicle_desc 
+    END
+  WHERE vehicle_id = OLD.id;
+
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_snapshot_vehicle_before_delete ON public.vehicles;
+CREATE TRIGGER trg_snapshot_vehicle_before_delete
+BEFORE DELETE ON public.vehicles
+FOR EACH ROW
+EXECUTE FUNCTION public.snapshot_vehicle_before_delete();
+
+-- ============================================================================
+-- 19. SUPABASE STORAGE BUCKET
+-- ============================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'kyc-documents',
+    'kyc-documents',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- ============================================================================
+-- 20. INDEKS PERFORMA QUERY
+-- ============================================================================
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_role ON public.admin_audit_logs(role);
+CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
+CREATE INDEX IF NOT EXISTS idx_users_phone ON public.users(phone);
+CREATE INDEX IF NOT EXISTS idx_vehicles_user ON public.vehicles(user_id);
+CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON public.vehicles(plate_number);
+CREATE INDEX IF NOT EXISTS idx_admins_email ON public.admins(email);
+CREATE INDEX IF NOT EXISTS idx_admins_role ON public.admins(role);
+CREATE INDEX IF NOT EXISTS idx_user_kyc_user ON public.user_kyc(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_kyc_status ON public.user_kyc(status);
+CREATE INDEX IF NOT EXISTS idx_parking_locations_city ON public.parking_locations(city);
+CREATE INDEX IF NOT EXISTS idx_parking_slots_location ON public.parking_slots(location_id);
+CREATE INDEX IF NOT EXISTS idx_parking_slots_status ON public.parking_slots(status);
+CREATE INDEX IF NOT EXISTS idx_parking_sessions_location ON public.parking_sessions(location_id);
+CREATE INDEX IF NOT EXISTS idx_parking_sessions_status ON public.parking_sessions(status);
+CREATE INDEX IF NOT EXISTS idx_bookings_user ON public.bookings(user_id);
+CREATE INDEX IF NOT EXISTS idx_bookings_status ON public.bookings(booking_status);
+CREATE INDEX IF NOT EXISTS idx_payments_user ON public.payments(user_id);
+CREATE INDEX IF NOT EXISTS idx_payments_type ON public.payments(transaction_type);
+CREATE INDEX IF NOT EXISTS idx_payments_status ON public.payments(status);
+CREATE INDEX IF NOT EXISTS idx_customer_feedbacks_user ON public.customer_feedbacks(user_id);
+CREATE INDEX IF NOT EXISTS idx_system_notifications_recipient ON public.system_notifications(recipient_user_id);
+CREATE INDEX IF NOT EXISTS idx_arcade_scores_user ON public.arcade_scores(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_user_id ON public.user_favorites(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_favorites_location_id ON public.user_favorites(location_id);

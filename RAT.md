@@ -2,31 +2,33 @@
 ## Proyek: Smart Parking (ParkSmart ID)
 ### Enterprise Relational Architecture & Visual Database Schema (Box-Drawing & ERD)
 
-> 📌 **STATUS DOKUMEN: RELASI ANTAR TABEL (RAT) MURNI & TEROPTIMASI**  
+> 📌 **STATUS DOKUMEN: RELASI ANTAR TABEL (RAT) MURNI & TEROPTIMASI (15 TABEL)**  
 > **Pendekatan Desain:** Struktur database esensial, tanpa tabel redundant.  
-> **Konsolidasi Staf:** Super Admin, Operasional, Finansial, dan CS disatukan dalam satu entitas `admins`.
+> **Konsolidasi Staf:** Super Admin, Operasional, Finansial, dan CS disatukan dalam satu entitas `admins`.  
+> 🔒 **Keamanan AI:** Tabel `ai_agent_configs` telah dihapus sepenuhnya dari database. Kunci API Groq dikelola murni via `.env` (`GROQ_API_KEY`).
 
 ---
 
-## 1. DAFTAR 14 TABEL UTAMA & NOTASI KARDINALITAS
+## 1. DAFTAR 15 TABEL UTAMA & NOTASI KARDINALITAS
 
-### 📑 Ringkasan 14 Entitas Inti Sistem:
+### 📑 Ringkasan 15 Entitas Inti Sistem:
 | No | Entitas (Tabel) | Klaster Bisnis | Peran & Deskripsi Fungsional |
 |:---:|:---|:---|:---|
 | 1 | `users` | Akun & Profil | Profil pengemudi, saldo dompet ParkSmart Pay, poin, tier & bookmark favorit |
 | 2 | `vehicles` | Garasi Kendaraan | Garasi kendaraan pengguna, plat nomor (TNKB) & masa berlaku STNK (foto diolah in-memory, file tidak disimpan) |
 | 3 | `admins` | Staf Terpadu | 1 Tabel konsolidasi staf (Super Admin, Operasional, Finansial, CS) via RBAC |
 | 4 | `user_kyc` | Super Admin KYC | Verifikasi KTP 16 digit, biometrik selfie & tinjauan berkas identitas resmi |
-| 5 | `parking_locations` | Operasional | Gedung/Mall mitra, koordinat GPS, radius geofence, fasilitas & tarif dasar |
-| 6 | `parking_slots` | Denah & IoT | Denah spot parkir per lantai fisik, kode slot & ID perangkat sensor IoT |
-| 7 | `parking_sessions` | Sesi Lapangan | Kendaraan aktif masuk gerbang (tap-in s.d. tap-out), timer countdown & overstay |
-| 8 | `bookings` | Reservasi | Tiket digital pemesanan slot di muka (*advance*) / langsung (*walk-in*) & QR pass |
+| 5 | `parking_locations` | Operasional | Gedung/Mall mitra, koordinat GPS, radius geofence, fasilitas, daftar lantai (`floors`) & tarif dasar |
+| 6 | `parking_slots` | Denah & IoT | Denah spot parkir per lantai fisik, zona (`zone`), kode slot & ID perangkat sensor IoT |
+| 7 | `parking_sessions` | Sesi Lapangan | Kendaraan aktif masuk gerbang (tap-in s.d. tap-out), timer countdown, plat snapshot & overstay |
+| 8 | `bookings` | Reservasi | Tiket digital pemesanan slot di muka (*advance*) / langsung (*walk-in*), plat snapshot & QR pass |
 | 9 | `payments` | Billing & Audit | Buku besar arus kas (parkir, top-up, injeksi admin, refund) & hash SHA-256 on-chain |
 | 10 | `customer_feedbacks` | CS & Review | Ulasan bintang (1-5), saran marka/kendala & respons resmi Customer Service |
 | 11 | `system_notifications` | CS & Broadcast | Notifikasi broadcast promo, peringatan overstay & info keamanan sistem |
 | 12 | `arcade_scores` | Gamifikasi | Rekor skor game balap & mesin capit serta perolehan SmartPoints pengemudi |
-| 13 | `system_settings` | Super Admin | Konfigurasi global JSONB: saklar fitur (feature_toggles) & parameter AI Jarvis (Kurs valuta ditangani client-side via free API) |
+| 13 | `system_settings` | Super Admin | Konfigurasi global JSONB: saklar fitur (`feature_toggles`), saldo treasury (`company_treasury`), & parameter AI Jarvis (`ai_config`) |
 | 14 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf portal admin (IP publik, ISP, geolokasi, perangkat hardware, status) |
+| 15 | `user_favorites` | Profil & Bookmark | Relasi bookmark lokasi parkir favorit per-user dengan proteksi Row Level Security (RLS) |
 
 ---
 
@@ -46,7 +48,7 @@
 
 ---
 
-## 2. KLASTER 1: IDENTITAS USER, KENDARAAN & ADMIN TERPADU
+## 2. KLASTER 1: IDENTITAS USER, KENDARAAN, ADMIN TERPADU & FAVORIT
 
 ```text
 ========================================================================================================================
@@ -75,16 +77,19 @@
 │      gender           : VARCHAR   │    │      division         : VARCHAR   │
 │      birth_date       : DATE      │    │      avatar_url       : TEXT      │
 │      address          : TEXT      │    │      status           : ENUM      │
-│      wallet_balance   : NUMERIC   │    │      last_login_at    : TIMESTAMPTZ│
-│      points           : INT       │    │      created_at       : TIMESTAMPTZ│
-│      member_tier      : ENUM      │    │      updated_at       : TIMESTAMPTZ│
-│      tot_parking_cnt  : INT       │    └───────────────────────────────────┘
-│      total_savings    : NUMERIC   │
+│      wallet_balance   : NUMERIC   │    │      password         : TEXT      │
+│      points           : INT       │    │      last_login_at    : TIMESTAMPTZ│
+│      member_tier      : ENUM      │    │      created_at       : TIMESTAMPTZ│
+│      tot_parking_cnt  : INT       │    │      updated_at       : TIMESTAMPTZ│
+│      total_savings    : NUMERIC   │    └───────────────────────────────────┘
 │      fav_location_ids : UUID[]    │
 │      pin_hash         : VARCHAR   │
 │      is_biometric_en  : BOOLEAN   │
 │      status           : ENUM      │
 │      ban_reason       : TEXT      │
+│      password         : TEXT      │
+│      saran_kuliah     : TEXT      │
+│      pesan_kuliah     : TEXT      │
 │      created_at       : TIMESTAMPTZ│
 │      updated_at       : TIMESTAMPTZ│
 └────────┬────────┬─────────────────┘
@@ -106,9 +111,9 @@
 │      photo_url        : TEXT      │    │      occupation       : VARCHAR   │
 │      is_default       : BOOLEAN   │    │      ktp_image_url    : TEXT      │
 │      created_at       : TIMESTAMPTZ│    │      selfie_image_url : TEXT      │
-│      created_at       : TIMESTAMPTZ│    │      status           : ENUM      │
-│      updated_at       : TIMESTAMPTZ│    │      reject_reason    : TEXT      │
-└───────────────────────────────────┘    │ [FK] reviewed_by      : UUID (ADM)│
+│      updated_at       : TIMESTAMPTZ│    │      status           : ENUM      │
+└───────────────────────────────────┘    │      reject_reason    : TEXT      │
+                                         │ [FK] reviewed_by      : UUID (ADM)│
                                          │      submitted_at     : TIMESTAMPTZ│
                                          │      reviewed_at      : TIMESTAMPTZ│
                                          │      created_at       : TIMESTAMPTZ│
@@ -118,11 +123,11 @@
 
 ---
 
-## 3. KLASTER 2: OPERASIONAL & FASILITAS PARKIR
+## 3. KLASTER 2: OPERASIONAL, FASILITAS & FAVORIT LOKASI
 
 ```text
 ========================================================================================================================
-                                     KLASTER 2: OPERASIONAL & FASILITAS PARKIR
+                                     KLASTER 2: OPERASIONAL, FASILITAS & FAVORIT
 ========================================================================================================================
 
     ┌───────────────────────────────────┐
@@ -152,39 +157,57 @@
     │      status           : ENUM      │
     │      image_url        : TEXT      │
     │      images           : TEXT[]    │
+    │      floors           : TEXT[]    │
     │      created_at       : TIMESTAMPTZ│
     │      updated_at       : TIMESTAMPTZ│
-    └─────────┬───────────────────┬─────┘
-              │                   │
-        (1:N) │                   │ (1:N)
-              ▼                   ▼
-┌───────────────────────────┐   ┌───────────────────────────┐
-│       PARKING_SLOTS       │   │     PARKING_SESSIONS      │
-├───────────────────────────┤   ├───────────────────────────┤
-│ [PK] id           : UUID  │   │ [PK] id           : UUID  │
-│ [FK] location_id  : UUID  │   │      session_code : VARCHAR│
-│      floor_name   : VARCHAR   │ [FK] location_id  : UUID  │
-│      slot_code    : VARCHAR   │ [FK] slot_id      : UUID  │◄──────┐ (0..1:N)
-│      slot_type    : ENUM  │   │ [FK] user_id      : UUID  │       │
-│      status       : ENUM  │───┴─► [FK] vehicle_id : UUID  │       │
-│      sensor_dev_id: VARCHAR   │ [FK] booking_id   : UUID  │       │
-│      cur_plate_num: VARCHAR   │      plate_number : VARCHAR│       │
-│      occupied_sinc: TSTZ  │   │      vehicle_type : ENUM  │       │
-│      created_at   : TSTZ  │   │      vehicle_desc : VARCHAR│       │
-│      updated_at   : TSTZ  │   │      check_in_time: TSTZ  │       │
-└───────────────────────────┘   │      exp_out_time : TSTZ  │       │
-                                │      check_out_tim: TSTZ  │       │
-                                │      parking_fee  : NUMERIC│      │
-                                │      is_overstay  : BOOL  │       │
-                                │      overstay_min : INT   │       │
-                                │      penalty_fee  : NUMERIC│      │
-                                │      total_fee    : NUMERIC│      │
-                                │      status       : ENUM  │       │
-                                │      gate_in_id   : VARCHAR│      │
-                                │      gate_out_id  : VARCHAR│      │
-                                │      created_at   : TSTZ  │       │
-                                │      updated_at   : TSTZ  │       │
-                                └───────────────────────────┘
+    └─────────┬───────────┬─────────┬───┘
+              │           │         │
+        (1:N) │     (1:N) │   (1:N) │
+              ▼           │         ▼
+┌───────────────────────┐ │   ┌───────────────────────────┐
+│     PARKING_SLOTS     │ │   │      USER_FAVORITES       │
+├───────────────────────┤ │   ├───────────────────────────┤
+│ [PK] id         : UUID│ │   │ [PK] id          : UUID   │
+│ [FK] location_id: UUID│ │   │ [FK] user_id     : UUID   │
+│      floor_name : VAR │ │   │ [FK] location_id : UUID   │
+│      slot_code  : VAR │ │   │      created_at  : TSTZ   │
+│      slot_type  : ENUM│ │   └───────────────────────────┘
+│      status     : ENUM│ │
+│      sensor_dev : VAR │ │
+│      cur_plate  : VAR │ │
+│      occupied_at: TSTZ│ │
+│      zone       : TEXT│ │
+│      created_at : TSTZ│ │
+│      updated_at : TSTZ│ │
+└───────────────────────┘ │
+                          ▼
+              ┌───────────────────────────┐
+              │     PARKING_SESSIONS      │
+              ├───────────────────────────┤
+              │ [PK] id           : UUID  │
+              │      session_code : VARCHAR│
+              │ [FK] location_id  : UUID  │
+              │ [FK] slot_id      : UUID  │◄──────┐ (0..1:N)
+              │ [FK] user_id      : UUID  │       │
+              │ [FK] vehicle_id   : UUID  │       │
+              │ [FK] booking_id   : UUID  │       │
+              │      plate_number : VARCHAR│       │
+              │      vehicle_type : ENUM  │       │
+              │      vehicle_desc : VARCHAR│       │
+              │      check_in_time: TSTZ  │       │
+              │      exp_out_time : TSTZ  │       │
+              │      check_out_tim: TSTZ  │       │
+              │      parking_fee  : NUMERIC│      │
+              │      is_overstay  : BOOL  │       │
+              │      overstay_min : INT   │       │
+              │      penalty_fee  : NUMERIC│      │
+              │      total_fee    : NUMERIC│      │
+              │      status       : ENUM  │       │
+              │      gate_in_id   : VARCHAR│      │
+              │      gate_out_id  : VARCHAR│      │
+              │      created_at   : TSTZ  │       │
+              │      updated_at   : TSTZ  │       │
+              └───────────────────────────┘
 ```
 
 ---
@@ -220,6 +243,8 @@
     │      booking_status     : ENUM                         │
     │      qr_code_hash       : TEXT                         │
     │      cancel_reason      : TEXT                         │
+    │      plate_number       : VARCHAR(20)                  │
+    │      vehicle_desc       : VARCHAR(100)                 │
     │      created_at         : TIMESTAMPTZ                  │
     │      updated_at         : TIMESTAMPTZ                  │
     └───────────────────────────┬────────────────────────────┘
@@ -287,7 +312,7 @@
 │      score        : INT   │   │      updated_at   : TSTZ  │   │      role         : VARCHAR│
 │      points_earned: INT   │   └───────────────────────────┘   │      action       : VARCHAR│
 │      played_at    : TSTZ  │                                   │      device_model : VARCHAR│
-│ (Maks 2 row: highest/curr)│                                   │      ip_address   : VARCHAR│
+│      score_type   : VARCHAR                                   │      ip_address   : VARCHAR│
 └───────────────────────────┘                                   │      location     : VARCHAR│
                                                                 │      isp          : VARCHAR│
                                                                 │      status       : VARCHAR│
@@ -298,7 +323,7 @@
 
 ---
 
-## 6. MASTER ERD MERMAID (14 TABEL UTAMA)
+## 6. MASTER ERD MERMAID (15 TABEL UTAMA)
 
 ```mermaid
 erDiagram
@@ -310,6 +335,7 @@ erDiagram
     USERS ||--o{ CUSTOMER_FEEDBACKS : "reviews"
     USERS ||--o{ SYSTEM_NOTIFICATIONS : "receives"
     USERS ||--o{ ARCADE_SCORES : "plays"
+    USERS ||--o{ USER_FAVORITES : "bookmarks"
 
     ADMINS ||--o{ USER_KYC : "approves"
     ADMINS ||--o{ PAYMENTS : "processes"
@@ -322,6 +348,7 @@ erDiagram
     PARKING_LOCATIONS ||--o{ PARKING_SESSIONS : "hosts"
     PARKING_LOCATIONS ||--o{ BOOKINGS : "reserved_at"
     PARKING_LOCATIONS ||--o{ CUSTOMER_FEEDBACKS : "rated_for"
+    PARKING_LOCATIONS ||--o{ USER_FAVORITES : "favorited_by"
 
     PARKING_SLOTS |o--o{ BOOKINGS : "assigned_to"
     PARKING_SLOTS |o--o{ PARKING_SESSIONS : "occupied_by"
@@ -343,6 +370,7 @@ erDiagram
 | `auth.users` | `admins` | `admins.auth_user_id` | `1 : 1` | `CASCADE` | Akun autentikasi Supabase ke staf portal admin |
 | `users` | `vehicles` | `vehicles.user_id` | `1 : N` | `CASCADE` | 1 Pengguna memiliki banyak kendaraan di garasi |
 | `users` | `user_kyc` | `user_kyc.user_id` | `1 : 1` | `CASCADE` | 1 Pengguna hanya mengajukan 1 berkas verifikasi e-KTP |
+| `users` | `user_favorites` | `user_favorites.user_id` | `1 : N` | `CASCADE` | Bookmark gedung parkir favorit pengguna |
 | `users` | `bookings` | `bookings.user_id` | `1 : N` | `RESTRICT` | Pengguna memesan slot reservasi parkir |
 | `users` | `parking_sessions` | `parking_sessions.user_id` | `1 : N` | `SET NULL` | Sesi aktif gerbang masuk saat pengguna check-in |
 | `users` | `payments` | `payments.user_id` | `1 : N` | `RESTRICT` | Buku besar transaksi keuangan digital pengguna |
@@ -358,11 +386,38 @@ erDiagram
 | `parking_locations` | `parking_sessions` | `parking_sessions.location_id` | `1 : N` | `RESTRICT` | Gedung parkir menaungi sesi kendaraan masuk gerbang |
 | `parking_locations` | `bookings` | `bookings.location_id` | `1 : N` | `RESTRICT` | Lokasi gedung tempat slot parkir dipesan di muka |
 | `parking_locations` | `customer_feedbacks`| `customer_feedbacks.location_id` | `0..1 : N` | `SET NULL` | Ulasan feedback pengguna ditujukan untuk lokasi spesifik |
+| `parking_locations` | `user_favorites` | `user_favorites.location_id` | `1 : N` | `CASCADE` | Lokasi parkir yang difavoritkan oleh user |
 | `parking_slots` | `parking_sessions` | `parking_sessions.slot_id` | `0..1 : N` | `SET NULL` | Slot fisik yang sedang ditempati oleh kendaraan |
 | `parking_slots` | `bookings` | `bookings.slot_id` | `0..1 : N` | `SET NULL` | Slot fisik yang telah dibooking oleh pengemudi |
-| `vehicles` | `bookings` | `bookings.vehicle_id` | `0..1 : N` | `SET NULL` | Kendaraan yang didaftarkan pada tiket pemesanan |
-| `vehicles` | `parking_sessions` | `parking_sessions.vehicle_id` | `0..1 : N` | `SET NULL` | Kendaraan pengguna yang tercatat pada sesi aktif |
+| `vehicles` | `bookings` | `bookings.vehicle_id` | `0..1 : N` | `SET NULL` | Kendaraan yang didaftarkan pada tiket pemesanan (terlindungi trigger snapshot) |
+| `vehicles` | `parking_sessions` | `parking_sessions.vehicle_id` | `0..1 : N` | `SET NULL` | Kendaraan pengguna pada sesi aktif (terlindungi trigger snapshot) |
 | `bookings` | `parking_sessions` | `parking_sessions.booking_id` | `0..1 : N` | `SET NULL` | Sesi gerbang yang berakar dari reservasi tiket di muka |
 | `bookings` | `payments` | `payments.booking_id` | `0..1 : N` | `SET NULL` | Transaksi pembayaran untuk pesanan reservasi |
 | `parking_sessions` | `payments` | `payments.session_id` | `0..1 : N` | `SET NULL` | Transaksi pelunasan parkir saat kendaraan keluar gerbang |
-```
+
+---
+
+## 8. INTEGRITAS DATA & TRIGGER `snapshot_vehicle_before_delete`
+
+Untuk menjamin riwayat audit pemesanan (`bookings`) dan sesi parkir (`parking_sessions`) tidak rusak saat pengguna menghapus kendaraannya dari garasi:
+- Tabel `vehicles` dilengkapi dengan trigger database `trg_snapshot_vehicle_before_delete`.
+- Trigger ini mengeksekusi fungsi `public.snapshot_vehicle_before_delete()`.
+- Fungsi secara otomatis menyalin nilai `plate_number` dan gabungan `brand` + `model` ke dalam kolom `bookings.plate_number`, `bookings.vehicle_desc`, `parking_sessions.plate_number`, dan `parking_sessions.vehicle_desc` sebelum entri kendaraan dihapus.
+
+---
+
+## 9. RINGKASAN SEED DATA REAL & KONDISI DATABASE AKTIF
+
+1. **Akun Staf Admin (4 Baris Lengkap):**
+   - **Super Admin:** Gibran Widodo (`superadmin@parksmart.id` / `superadmin123`)
+   - **Admin Operasional:** Erick Thohir (`ops@parksmart.id` / `ops123`)
+   - **Admin Finansial:** Sri Mulyani (`finance@parksmart.id` / `finance123`)
+   - **Admin CS & KYC:** Prabowo Subianto (`cs@parksmart.id` / `cs123`)
+2. **Akun Pengguna (Hanya 1 Baris Resmi):**
+   - **User Aktif:** `user@gmail.com` (Nama: `user 1`, Saldo: Rp 48.000, PIN: `4040`, Pass: `123456`, ID: `5d7d4224-c3f8-4add-a94f-7d87a62d9356`). Seluruh akun pengguna percobaan lainnya dikecualikan dari seeding.
+3. **Kendaraan (`vehicles`):**
+   - Dikosongkan (0 baris) agar pengguna dapat mendaftarkan kendaraan baru secara mandiri.
+4. **Pengaturan Global (`system_settings` - 3 Baris):**
+   - `feature_toggles`: Fitur arcade, booking EV, audit blockchain aktif.
+   - `company_treasury`: Saldo cadangan kas utama operasional ParkSmart ID.
+   - `ai_config`: Model Qwen, max tokens 1024, temperature 0.7, autonomous dynamic pricing aktif.

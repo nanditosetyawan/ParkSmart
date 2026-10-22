@@ -1,7 +1,7 @@
 -- ============================================================================
 -- SCRIPT DDL POSTGRESQL / SUPABASE - PARKSMART ID
 -- Path: lib/database/schema.sql
--- Skema: 14 Tabel Utama Teroptimasi & User-Oriented
+-- Skema: 15 Tabel Utama Teroptimasi & User-Oriented
 -- Siap dieksekusi sekali jalan (Dependency-Ordered)
 -- ============================================================================
 
@@ -92,14 +92,14 @@ CREATE TABLE IF NOT EXISTS public.users (
     total_savings NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
     favorite_location_ids UUID[] NOT NULL DEFAULT '{}',
     pin_hash VARCHAR(255),
-    password TEXT DEFAULT 'user123',
     is_biometric_enabled BOOLEAN NOT NULL DEFAULT false,
     status user_status_enum NOT NULL DEFAULT 'active',
     ban_reason TEXT,
-    saran_kuliah TEXT,
-    pesan_kuliah TEXT,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    password TEXT DEFAULT 'user123',
+    saran_kuliah TEXT,
+    pesan_kuliah TEXT
 );
 
 -- 4. TABEL GARASI KENDARAAN PENGGUNA
@@ -130,11 +130,11 @@ CREATE TABLE IF NOT EXISTS public.admins (
     role admin_role_enum NOT NULL,
     division VARCHAR(100) NOT NULL,
     avatar_url TEXT,
-    password TEXT DEFAULT 'superadmin123',
     status admin_status_enum NOT NULL DEFAULT 'active',
     last_login_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
+    password TEXT DEFAULT 'superadmin123'
 );
 
 -- 6. TABEL VERIFIKASI IDENTITAS KTP (KYC SUPER ADMIN)
@@ -180,16 +180,16 @@ CREATE TABLE IF NOT EXISTS public.parking_locations (
     hourly_rate_motor NUMERIC(10, 2) NOT NULL DEFAULT 2000.00,
     hourly_rate_ev NUMERIC(10, 2) NOT NULL DEFAULT 7500.00,
     operating_hours VARCHAR(100) NOT NULL DEFAULT 'Buka 24 Jam',
-    facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam', 'Covered Parking'],
+    facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam'::text, 'Covered Parking'::text],
     rating NUMERIC(2, 1) NOT NULL DEFAULT 4.8,
     review_count INT NOT NULL DEFAULT 0,
     status location_status_enum NOT NULL DEFAULT 'active',
     image_url TEXT,
     images TEXT[] DEFAULT '{}',
+    floors TEXT[] DEFAULT ARRAY['Lantai 1'::text],
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
-
 
 -- 8. TABEL DENAH SLOT PARKIR & SENSOR IOT
 CREATE TABLE IF NOT EXISTS public.parking_slots (
@@ -202,6 +202,7 @@ CREATE TABLE IF NOT EXISTS public.parking_slots (
     sensor_device_id VARCHAR(60),
     current_plate_number VARCHAR(20),
     occupied_since TIMESTAMPTZ,
+    zone TEXT DEFAULT 'zoneA',
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT uq_location_slot UNIQUE (location_id, floor_name, slot_code)
@@ -215,7 +216,7 @@ CREATE TABLE IF NOT EXISTS public.parking_sessions (
     slot_id UUID REFERENCES public.parking_slots(id) ON DELETE SET NULL,
     user_id UUID REFERENCES public.users(id) ON DELETE SET NULL,
     vehicle_id UUID REFERENCES public.vehicles(id) ON DELETE SET NULL,
-    booking_id UUID, -- Foreign Key ditambahkan setelah tabel bookings
+    booking_id UUID, -- Relasi foreign key ditambahkan setelah tabel bookings
     plate_number VARCHAR(20) NOT NULL,
     vehicle_type vehicle_type_enum NOT NULL DEFAULT 'mobil',
     vehicle_desc VARCHAR(100),
@@ -251,6 +252,8 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     booking_status booking_status_enum NOT NULL DEFAULT 'upcoming',
     qr_code_hash TEXT NOT NULL,
     cancel_reason TEXT,
+    plate_number VARCHAR(20),
+    vehicle_desc VARCHAR(100),
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -312,8 +315,8 @@ CREATE TABLE IF NOT EXISTS public.arcade_scores (
     game_name VARCHAR(60) NOT NULL,
     score INT NOT NULL DEFAULT 0,
     points_earned INT NOT NULL DEFAULT 0,
-    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
-    score_type VARCHAR(30) DEFAULT 'current'
+    score_type VARCHAR(30) DEFAULT 'current',
+    played_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
 
 -- 15. TABEL PENGATURAN GLOBAL SISTEM (JSONB)
@@ -361,7 +364,67 @@ DO $$ BEGIN
 EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- ============================================================================
--- INDEKS PERFORMA QUERY
+-- 18. FUNGSI DAN TRIGGER (TRIGGER SNAPSHOT KENDARAAN)
+-- ============================================================================
+CREATE OR REPLACE FUNCTION public.snapshot_vehicle_before_delete()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+AS $$
+BEGIN
+  -- Snapshot ke bookings yang merujuk kendaraan ini
+  UPDATE bookings
+  SET 
+    plate_number = CASE 
+      WHEN plate_number IS NULL OR plate_number = '' THEN OLD.plate_number 
+      ELSE plate_number 
+    END,
+    vehicle_desc = CASE 
+      WHEN vehicle_desc IS NULL OR vehicle_desc = '' THEN TRIM(CONCAT(COALESCE(OLD.brand, ''), ' ', COALESCE(OLD.model, '')))
+      ELSE vehicle_desc 
+    END
+  WHERE vehicle_id = OLD.id;
+
+  -- Snapshot ke parking_sessions yang merujuk kendaraan ini
+  UPDATE parking_sessions
+  SET 
+    plate_number = CASE 
+      WHEN plate_number IS NULL OR plate_number = '' THEN OLD.plate_number 
+      ELSE plate_number 
+    END,
+    vehicle_desc = CASE 
+      WHEN vehicle_desc IS NULL OR vehicle_desc = '' THEN TRIM(CONCAT(COALESCE(OLD.brand, ''), ' ', COALESCE(OLD.model, '')))
+      ELSE vehicle_desc 
+    END
+  WHERE vehicle_id = OLD.id;
+
+  RETURN OLD;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_snapshot_vehicle_before_delete ON public.vehicles;
+CREATE TRIGGER trg_snapshot_vehicle_before_delete
+BEFORE DELETE ON public.vehicles
+FOR EACH ROW
+EXECUTE FUNCTION public.snapshot_vehicle_before_delete();
+
+-- ============================================================================
+-- 19. SUPABASE STORAGE BUCKET
+-- ============================================================================
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES (
+    'kyc-documents',
+    'kyc-documents',
+    true,
+    5242880,
+    ARRAY['image/jpeg', 'image/png', 'image/webp']
+)
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- ============================================================================
+-- 20. INDEKS PERFORMA QUERY
 -- ============================================================================
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_created_at ON public.admin_audit_logs(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_admin_audit_logs_role ON public.admin_audit_logs(role);
