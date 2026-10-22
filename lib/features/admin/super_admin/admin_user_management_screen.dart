@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:flutter/services.dart';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -555,7 +556,66 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                 const SizedBox(height: 20),
                 _buildDetailRow('ID Admin', admin['id']),
                 _buildDetailRow('Telepon', admin['phone']),
-                _buildDetailRow('Kata Sandi', admin['password'] != null && admin['password'].toString().isNotEmpty ? admin['password'].toString() : 'superadmin123'),
+                const SizedBox(height: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  margin: const EdgeInsets.only(bottom: 12),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1EEE7).withValues(alpha: 0.6),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: const Color(0xFFE4DFD5)),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          const Icon(Icons.key, size: 16, color: Color(0xFF6D28D9)),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Kata Sandi (Database)',
+                            style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF45474A)),
+                          ),
+                        ],
+                      ),
+                      Row(
+                        children: [
+                          SelectableText(
+                            admin['password']?.toString() ?? '-',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                              color: const Color(0xFF6D28D9),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            onTap: () {
+                              final pass = admin['password']?.toString() ?? '';
+                              Clipboard.setData(ClipboardData(text: pass));
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('Kata sandi "$pass" berhasil disalin!'),
+                                  backgroundColor: const Color(0xFF17A18A),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(6),
+                                border: Border.all(color: const Color(0xFFE4DFD5)),
+                              ),
+                              child: const Icon(Icons.copy, size: 14, color: Color(0xFF6D28D9)),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
                 _buildDetailRow('Peran', admin['role'], valueColor: roleColor),
                 _buildDetailRow('Terdaftar Sejak', admin['createdAt']),
                 _buildDetailRow('Login Terakhir', admin['lastLogin']),
@@ -576,7 +636,24 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          
+                          Expanded(
+                            child: OutlinedButton.icon(
+                              onPressed: () {
+                                Navigator.pop(ctx);
+                                _showResetCredentialDialog(admin);
+                              },
+                              icon: const Icon(Icons.lock_reset, size: 16, color: Color(0xFF114177)),
+                              label: Text(
+                                'Reset Sandi',
+                                style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                side: const BorderSide(color: Color(0xFF114177)),
+                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                padding: const EdgeInsets.symmetric(vertical: 10),
+                              ),
+                            ),
+                          ),
                           const SizedBox(width: 8),
                           Expanded(
                             child: ElevatedButton.icon(
@@ -689,7 +766,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              final tempPass = 'PARK-${admin['id']}-TEMP';
+              final tempPass = 'admin${100 + (admin['email'].toString().hashCode.abs() % 900)}';
               admin['password'] = tempPass;
               AdminUserManagementBackend.instance.updateAdmin(admin['id'], {...admin, 'password': tempPass});
               Navigator.pop(ctx);
@@ -1392,8 +1469,26 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                                           decoration: BoxDecoration(color: statusBg, borderRadius: BorderRadius.circular(6)),
                                           child: Text(admin['status'], style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: statusColor)),
                                         ),
-                                        const SizedBox(width: 8),
-                                        Text('Login: ${admin['lastLogin']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                        const SizedBox(width: 6),
+                                        Container(
+                                          padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                                          decoration: BoxDecoration(color: const Color(0xFFEDE9FE), borderRadius: BorderRadius.circular(6)),
+                                          child: Row(
+                                            mainAxisSize: MainAxisSize.min,
+                                            children: [
+                                              const Icon(Icons.key, size: 10, color: Color(0xFF6D28D9)),
+                                              const SizedBox(width: 3),
+                                              Text(
+                                                '${admin['password'] ?? '-'}',
+                                                style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6D28D9)),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                        const SizedBox(width: 6),
+                                        Expanded(
+                                          child: Text('Login: ${admin['lastLogin']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B)), overflow: TextOverflow.ellipsis),
+                                        ),
                                       ],
                                     ),
                                   ],

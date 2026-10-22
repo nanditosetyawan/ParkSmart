@@ -167,7 +167,7 @@ class HomeBackend extends ChangeNotifier {
   /// 2. Ambil lokasi parkir rekomendasi dari Supabase dengan filter GPS & Kategori
   Future<void> _fetchRecommendedLocations() async {
     try {
-      // 1. Ambil semua lokasi aktif dari database
+      // 1. Ambil semua lokasi aktif dari database Supabase
       final response = await _client
           .from('parking_locations')
           .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities')
@@ -175,29 +175,9 @@ class HomeBackend extends ChangeNotifier {
 
       List<Map<String, dynamic>> rawList = List<Map<String, dynamic>>.from(response);
 
-      // 2. Filter Kategori
-      if (_selectedCategory == 'Mall') {
-        rawList = rawList.where((loc) {
-          final name = (loc['name'] ?? '').toString().toLowerCase();
-          final type = (loc['type'] ?? '').toString().toLowerCase();
-          final addr = (loc['address'] ?? '').toString().toLowerCase();
-          return name.contains('mall') || type.contains('mall') || addr.contains('mall');
-        }).toList();
-      } else if (_selectedCategory == 'Parkir EV') {
-        rawList = rawList.where((loc) {
-          final facilities = (loc['facilities'] is List)
-              ? (loc['facilities'] as List).map((e) => e.toString().toLowerCase()).toList()
-              : [];
-          final name = (loc['name'] ?? '').toString().toLowerCase();
-          final type = (loc['type'] ?? '').toString().toLowerCase();
-          final hasEvFacility = facilities.any((f) => f.contains('ev') || f.contains('charging') || f.contains('listrik'));
-          final hasEvRate = (loc['hourly_rate_ev'] as num?) != null && (loc['hourly_rate_ev'] as num) > 0;
-          return hasEvFacility || hasEvRate || name.contains('ev') || type.contains('ev');
-        }).toList();
-      }
-
-      // 3. Jika filter 'Terdekat', ambil GPS dan urutkan berdasarkan jarak terdekat
-      if (_selectedCategory == 'Terdekat') {
+      // Hitung koordinat dan jarak untuk seluruh lokasi terlebih dahulu
+      Position? userPos = _currentGpsPosition;
+      if (userPos == null) {
         try {
           bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
           if (serviceEnabled) {
@@ -205,47 +185,55 @@ class HomeBackend extends ChangeNotifier {
             if (permission == LocationPermission.denied) {
               permission = await Geolocator.requestPermission();
             }
-
             if (permission == LocationPermission.whileInUse || permission == LocationPermission.always) {
-              _currentGpsPosition = await Geolocator.getCurrentPosition(
+              userPos = await Geolocator.getCurrentPosition(
                 locationSettings: const LocationSettings(
                   accuracy: LocationAccuracy.medium,
                   timeLimit: Duration(seconds: 4),
                 ),
               );
+              _currentGpsPosition = userPos;
             }
           }
         } catch (gpsError) {
           debugPrint('[HomeBackend] GPS check error: $gpsError');
         }
+      }
 
-        if (_currentGpsPosition != null) {
-          for (var loc in rawList) {
-            final lat = (loc['latitude'] as num?)?.toDouble();
-            final lng = (loc['longitude'] as num?)?.toDouble();
-            if (lat != null && lng != null) {
-              final distMeters = Geolocator.distanceBetween(
-                _currentGpsPosition!.latitude,
-                _currentGpsPosition!.longitude,
-                lat,
-                lng,
-              );
-              loc['calculated_distance'] = distMeters;
-              loc['distance_label'] = distMeters < 1000
-                  ? '${distMeters.round()} m'
-                  : '${(distMeters / 1000).toStringAsFixed(1)} km';
-            } else {
-              loc['calculated_distance'] = 99999999.0;
-              loc['distance_label'] = '-';
-            }
-          }
+      // Koordinat acuan (GPS aktif atau default koordinat SCBD Jakarta)
+      final refLat = userPos?.latitude ?? -6.1754;
+      final refLng = userPos?.longitude ?? 106.8272;
 
-          rawList.sort((a, b) {
-            final distA = (a['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
-            final distB = (b['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
-            return distA.compareTo(distB);
-          });
-        }
+      for (var loc in rawList) {
+        final lat = (loc['latitude'] as num?)?.toDouble() ?? refLat;
+        final lng = (loc['longitude'] as num?)?.toDouble() ?? refLng;
+        final distMeters = Geolocator.distanceBetween(refLat, refLng, lat, lng);
+        loc['calculated_distance'] = distMeters;
+        loc['distance_label'] = distMeters < 1000
+            ? '${distMeters.round()} m'
+            : '${(distMeters / 1000).toStringAsFixed(1)} km';
+      }
+
+      // 2. Filter Kategori berdasarkan kolom 'type' (%mall% dan %ev%) atau urutan 'Terdekat'
+      if (_selectedCategory == 'Terdekat') {
+        // Urutkan lokasi dari jarak terdekat ke terjauh berdasarkan posisi user
+        rawList.sort((a, b) {
+          final distA = (a['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
+          final distB = (b['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
+          return distA.compareTo(distB);
+        });
+      } else if (_selectedCategory == 'Mall') {
+        // Filter kolom 'type' yang mengandung kata kunci "%mall%" (case-insensitive substring)
+        rawList = rawList.where((loc) {
+          final type = (loc['type'] ?? '').toString().toLowerCase();
+          return type.contains('mall');
+        }).toList();
+      } else if (_selectedCategory == 'Parkir EV') {
+        // Filter kolom 'type' yang mengandung kata kunci "%ev%" (case-insensitive substring)
+        rawList = rawList.where((loc) {
+          final type = (loc['type'] ?? '').toString().toLowerCase();
+          return type.contains('ev');
+        }).toList();
       }
 
       _recommendedLocations = rawList;

@@ -10,6 +10,7 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../home/home_screen.dart' as home;
 import '../pin/pin_screen.dart';
+import '../pin/backend/pin_backend.dart';
 import '../session/checkin_screen.dart';
 import 'backend/booking_confirmation_backend.dart';
 
@@ -540,16 +541,38 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         height: 56,
                         child: ElevatedButton(
                           onPressed: isUnpaid
-                              ? () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => PinScreen(
-                                        bookingId: backend.bookingId,
-                                        transactionType: 'parkir',
-                                        nextScreen: CheckinScreen(bookingId: backend.bookingId),
+                              ? () async {
+                                  final hasPin = await PinBackend.instance.hasPin();
+                                  if (!context.mounted) return;
+
+                                  final paymentPinScreen = PinScreen(
+                                    bookingId: backend.bookingId,
+                                    transactionType: 'parkir',
+                                    customTitle: 'Konfirmasi PIN Pembayaran',
+                                    nextScreen: CheckinScreen(bookingId: backend.bookingId),
+                                  );
+
+                                  if (!hasPin) {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => PinScreen(
+                                          transactionType: 'buat pin',
+                                          customTitle: 'Buat PIN Transaksi',
+                                          backToHome: false,
+                                          nextScreen: paymentPinScreen,
+                                        ),
                                       ),
-                                    ),
-                                  )
+                                    );
+                                  } else {
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => paymentPinScreen,
+                                      ),
+                                    );
+                                  }
+                                }
                               : () => Navigator.push(
                                     context,
                                     MaterialPageRoute(

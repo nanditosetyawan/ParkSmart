@@ -280,14 +280,14 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       final response = await Supabase.instance.client
           .from('users')
           .select()
-          .eq('email', email)
+          .ilike('email', email)
           .maybeSingle();
 
       if (response == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Email tidak terdaftar. Silakan registrasi terlebih dahulu.'),
+              content: Text('Email tidak terdaftar di database. Silakan registrasi terlebih dahulu.'),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -295,12 +295,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
 
-      final dbPassword = response['password']?.toString() ?? 'user123';
-      // Menerima password yang cocok, serta variasi user123 / user 123
-      final isMatch = (password == dbPassword) ||
-          (dbPassword == 'user123' && (password == 'user123' || password == 'user 123'));
-
-      if (!isMatch) {
+      final dbPassword = response['password']?.toString() ?? '';
+      if (dbPassword.isEmpty || password != dbPassword) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -383,39 +379,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
       }
     } catch (e) {
-      // Fallback offline bila akun default jokowi.dodo@gmail.com
-      if (email.toLowerCase() == 'jokowi.dodo@gmail.com' &&
-          (password == 'user123' || password == 'user 123')) {
-        ProfileBackend.instance.setLoggedInUser(
-          id: 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba',
-          fullName: 'Jokowi Dodo',
-          email: 'jokowi.dodo@gmail.com',
-          phone: '+62 811-2345-6789',
-          memberTier: 'BRONZE',
-          walletBalance: 0,
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal masuk: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
-        if (_remember) await _saveCredentials();
-        await SessionService.instance.startSession(
-          userType: 'user',
-          identifier: 'jokowi.dodo@gmail.com',
-          userName: 'Jokowi Dodo',
-          userId: 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba',
-        );
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const HomeScreen()),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal masuk: $e'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
       }
     } finally {
       if (mounted) setState(() => _isUserLoggingIn = false);
@@ -439,71 +409,73 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     setState(() => _isAdminLoggingIn = true);
 
     try {
-      dynamic query = Supabase.instance.client.from('admins').select();
-      if (email.toLowerCase() == 'superadmin@parksmart.id' || email.toLowerCase() == 'superadmin') {
-        query = query.eq('email', 'superadmin@parksmart.id');
-      } else {
-        query = query.or('email.ilike.$email,email.ilike.$email@parksmart.id');
-      }
+      final inputEmail = email.toLowerCase().trim();
+      final fullEmail = inputEmail.contains('@') ? inputEmail : '$inputEmail@parksmart.id';
 
-      final response = await query.maybeSingle();
+      final response = await Supabase.instance.client
+          .from('admins')
+          .select()
+          .or('email.ilike.$inputEmail,email.ilike.$fullEmail')
+          .maybeSingle();
 
-      bool isValid = false;
-      String adminName = 'Gibran Widodo';
-      String adminEmail = 'superadmin@parksmart.id';
-      String role = 'Super Admin';
-      String rawRole = 'super_admin';
-
-      if (response != null) {
-        if (response['status'] == 'inactive') {
-          if (mounted) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Akun admin ini dinonaktifkan atau dibekukan.'),
-                backgroundColor: Colors.redAccent,
-              ),
-            );
-          }
-          return;
-        }
-
-        final dbPassword = response['password']?.toString() ?? 'superadmin123';
-        if (password == dbPassword || password == 'superadmin123') {
-          isValid = true;
-          adminName = response['full_name'] ?? adminName;
-          adminEmail = response['email'] ?? adminEmail;
-          rawRole = response['role']?.toString().toLowerCase() ?? 'super_admin';
-          if (rawRole == 'super_admin' || rawRole == 'superadmin') {
-            role = 'Super Admin';
-          } else if (rawRole == 'operational' || rawRole == 'ops') {
-            role = 'Admin Operasional';
-          } else if (rawRole == 'finance') {
-            role = 'Admin Finansial';
-          } else if (rawRole == 'cs' || rawRole == 'support') {
-            role = 'Admin CS & KYC';
-          } else {
-            role = response['role']?.toString() ?? 'Admin';
-          }
-        }
-      } else {
-        if ((email.toLowerCase() == 'superadmin@parksmart.id' ||
-             email.toLowerCase() == 'superadmin') &&
-            password == 'superadmin123') {
-          isValid = true;
-          rawRole = 'super_admin';
-        }
-      }
-
-      if (!isValid) {
+      if (response == null) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('Email atau kata sandi Admin salah.'),
+              content: Text('Akun Admin tidak ditemukan di database.'),
               backgroundColor: Colors.redAccent,
             ),
           );
         }
         return;
+      }
+
+      if (response['status'] == 'inactive' || response['status'] == 'suspended' || response['status'] == 'Dibekukan (SOP)') {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Akun admin ini dinonaktifkan atau dibekukan.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      final dbPassword = response['password']?.toString() ?? '';
+      if (dbPassword.isEmpty || password != dbPassword) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Kata sandi Admin salah.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+        }
+        return;
+      }
+
+      final adminName = response['full_name']?.toString() ?? 'Admin';
+      final adminEmail = response['email']?.toString() ?? fullEmail;
+      final rawRole = response['role']?.toString().toLowerCase() ?? 'operational';
+
+      String role;
+      Widget targetDashboard;
+      if (rawRole == 'super_admin' || rawRole == 'superadmin') {
+        role = 'Super Admin';
+        targetDashboard = const AdminDashboardScreen();
+      } else if (rawRole == 'operational' || rawRole == 'ops') {
+        role = 'Admin Operasional';
+        targetDashboard = const AdminOperationsDashboardScreen();
+      } else if (rawRole == 'finance') {
+        role = 'Admin Finansial';
+        targetDashboard = const AdminFinanceDashboardScreen();
+      } else if (rawRole == 'cs' || rawRole == 'support') {
+        role = 'Admin CS & KYC';
+        targetDashboard = const AdminCsDashboardScreen();
+      } else {
+        role = response['role']?.toString() ?? 'Admin';
+        targetDashboard = const AdminDashboardScreen();
       }
 
       try {
@@ -530,17 +502,6 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         action: 'Login berhasil (Portal Otentikasi)',
       );
 
-      Widget targetDashboard;
-      if (rawRole == 'operational' || rawRole == 'ops') {
-        targetDashboard = const AdminOperationsDashboardScreen();
-      } else if (rawRole == 'finance') {
-        targetDashboard = const AdminFinanceDashboardScreen();
-      } else if (rawRole == 'cs' || rawRole == 'support') {
-        targetDashboard = const AdminCsDashboardScreen();
-      } else {
-        targetDashboard = const AdminDashboardScreen();
-      }
-
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -555,45 +516,13 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         );
       }
     } catch (e) {
-      if ((email.toLowerCase() == 'superadmin@parksmart.id' ||
-           email.toLowerCase() == 'superadmin') &&
-          password == 'superadmin123') {
-        try {
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('current_admin_name', 'Gibran Widodo');
-          await prefs.setString('current_admin_email', 'superadmin@parksmart.id');
-          await prefs.setString('current_admin_role', 'Super Admin');
-          await prefs.setString('super_admin_name', 'Gibran Widodo');
-        } catch (_) {}
-
-        await SessionService.instance.startSession(
-          userType: 'admin',
-          identifier: 'superadmin@parksmart.id',
-          userName: 'Gibran Widodo',
-          adminRole: 'Super Admin',
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal verifikasi admin: $e'),
+            backgroundColor: Colors.redAccent,
+          ),
         );
-
-        ClientInfoService.instance.recordAdminLogin(
-          adminName: 'Gibran Widodo',
-          adminEmail: 'superadmin@parksmart.id',
-          role: 'Super Admin',
-          action: 'Login berhasil (Portal Otentikasi)',
-        );
-        if (mounted) {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminDashboardScreen()),
-          );
-        }
-      } else {
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Gagal verifikasi admin: $e'),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-        }
       }
     } finally {
       if (mounted) setState(() => _isAdminLoggingIn = false);

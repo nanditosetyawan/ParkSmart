@@ -18,41 +18,34 @@ final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  const defaultUrl = 'https://necsdylhtswrrqassvzp.supabase.co';
-  const defaultAnonKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5lY3NkeWxodHN3cnJxYXNzdnpwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI0MjAxNDIsImV4cCI6MjEwNzk5NjE0Mn0.EZDWK_RFCflWiCzjh-X3bA7B71haE4gLMpiIcyc8qTk';
-  const defaultGroqKey = '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';
-
-  // 1. Coba load .env
+  // 1. Muat environment variables dari file .env
   try {
     await dotenv.load(fileName: ".env");
   } catch (e) {
-    debugPrint('Gagal load .env via file (umum terjadi di Web): $e');
+    debugPrint('Gagal load .env via file: $e');
   }
 
-  // 2. Pastikan dotenv selalu terinisialisasi agar dotenv.env tidak pernah melempar NotInitializedError!
+  // 2. Pastikan dotenv selalu terinisialisasi agar dotenv.env aman diakses tanpa melempar NotInitializedError
   if (!dotenv.isInitialized) {
-    dotenv.loadFromString(envString: '''
-GROQ_API_KEY=$defaultGroqKey
-SUPABASE_PROJECT_ID=necsdylhtswrrqassvzp
-SUPABASE_URL=$defaultUrl
-SUPABASE_ANON_KEY=$defaultAnonKey
-''');
+    dotenv.loadFromString(envString: '');
   }
 
-  final supabaseUrl = (dotenv.isInitialized ? dotenv.env['SUPABASE_URL'] : null) ?? defaultUrl;
-  final supabaseAnonKey = (dotenv.isInitialized && dotenv.env['SUPABASE_ANON_KEY'] != null && dotenv.env['SUPABASE_ANON_KEY']!.isNotEmpty)
-      ? dotenv.env['SUPABASE_ANON_KEY']!
-      : defaultAnonKey;
+  final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
+  final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
-  try {
-    await Supabase.initialize(
-      url: supabaseUrl,
-      // ignore: deprecated_member_use
-      anonKey: supabaseAnonKey,
-    );
-    debugPrint('Supabase berhasil diinisialisasi: $supabaseUrl');
-  } catch (e) {
-    debugPrint('Error Supabase.initialize: $e');
+  if (supabaseUrl.isNotEmpty && supabaseAnonKey.isNotEmpty) {
+    try {
+      await Supabase.initialize(
+        url: supabaseUrl,
+        // ignore: deprecated_member_use
+        anonKey: supabaseAnonKey,
+      );
+      debugPrint('Supabase berhasil diinisialisasi dari .env: $supabaseUrl');
+    } catch (e) {
+      debugPrint('Error Supabase.initialize: $e');
+    }
+  } else {
+    debugPrint('PERINGATAN: SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di .env. Pastikan konfigurasi .env sudah sesuai.');
   }
 
   // Layanan khusus non-web (notifikasi lokal & permission)

@@ -85,8 +85,14 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                 ),
 
                 Expanded(
-                  child: !backend.isLoading && !backend.hasData
+                  child: backend.isLoading
                       ? Center(
+                          child: CircularProgressIndicator(
+                            color: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                          ),
+                        )
+                      : !backend.hasData
+                          ? Center(
                           child: Padding(
                             padding: const EdgeInsets.symmetric(horizontal: 32),
                             child: Column(

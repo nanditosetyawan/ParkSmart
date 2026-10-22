@@ -5,9 +5,11 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
-import '../pin/pin_screen.dart';
 import 'history_detail_screen.dart' as history_detail;
 import 'backend/history_backend.dart';
+import '../checkout/checkout_screen.dart';
+import '../booking/booking_confirmation_screen.dart';
+import '../session/active_session_screen.dart';
 
 class HistoryScreen extends StatefulWidget {
   const HistoryScreen({super.key});
@@ -103,9 +105,12 @@ class _HistoryScreenState extends State<HistoryScreen> {
                     ),
                     
                     Expanded(
-                      child: ListView(
-                        padding: const EdgeInsets.fromLTRB(20, 12, 20, 140),
-                        children: [
+                      child: RefreshIndicator(
+                        onRefresh: () => HistoryBackend.instance.fetchHistory(),
+                        color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF1C1D1F),
+                        child: ListView(
+                          padding: const EdgeInsets.fromLTRB(20, 12, 20, 140),
+                          children: [
                           // Filter Chips (Standard 4 Mark: Belum Dibayar, Ready, Aktif, Selesai)
                           SingleChildScrollView(
                             scrollDirection: Axis.horizontal,
@@ -186,6 +191,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                   price: item.price,
                                   icon: item.icon,
                                   isEv: item.isEv,
+                                  plateNumber: item.plateNumber,
                                   isDark: isDark,
                                 ),
                               );
@@ -194,9 +200,10 @@ class _HistoryScreenState extends State<HistoryScreen> {
                         ],
                       ),
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
+            ),
               Positioned(
                 bottom: math.max(MediaQuery.of(context).padding.bottom + 12, 24),
                 left: 20,
@@ -301,6 +308,7 @@ class _HistoryCard extends StatelessWidget {
   final IconData icon;
   final bool isEv;
   final bool isDark;
+  final String? plateNumber;
 
   const _HistoryCard({
     required this.id,
@@ -313,6 +321,7 @@ class _HistoryCard extends StatelessWidget {
     required this.price,
     required this.icon,
     this.isEv = false,
+    this.plateNumber,
     required this.isDark,
   });
 
@@ -330,70 +339,52 @@ class _HistoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (status == TicketMark.belumDibayar) {
-          showDialog(
-            context: context,
-            builder: (dialogCtx) => AlertDialog(
-              backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              title: Text(
-                'Bayar Tagihan Parkir?',
-                style: GoogleFonts.plusJakartaSans(
-                  fontWeight: FontWeight.bold,
-                  color: textMain,
-                  fontSize: 18,
-                ),
-              ),
-              content: Text(
-                'Anda memiliki tagihan reservasi di $mallName ($slot) sebesar $price yang belum dibayar. Lanjutkan ke verifikasi PIN untuk pembayaran?',
-                style: GoogleFonts.plusJakartaSans(
-                  color: textSub,
-                  fontSize: 13.5,
-                  height: 1.4,
-                ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(dialogCtx),
-                  child: Text(
-                    'Nanti Saja',
-                    style: GoogleFonts.plusJakartaSans(
-                      color: textSub,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
-                    foregroundColor: isDark ? Colors.black : Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(dialogCtx);
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => PinScreen(
-                          transactionType: 'parkir',
-                          bookingId: id,
-                          nextScreen: const HistoryScreen(),
-                        ),
-                      ),
-                    ).then((_) {
-                      HistoryBackend.instance.fetchHistory();
-                    });
-                  },
-                  child: Text(
-                    'Bayar Sekarang',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
-                  ),
-                ),
-              ],
+          // Buka langsung halaman CheckoutScreen dengan data booking belum bayar & timer 2:59 berjalan
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => CheckoutScreen(existingBookingId: id),
             ),
-          );
+          ).then((_) {
+            HistoryBackend.instance.fetchHistory();
+          });
           return;
         }
-        Navigator.push(context, MaterialPageRoute(builder: (_) => history_detail.HistoryDetailScreen(id: id)));
+
+        if (status == TicketMark.ready) {
+          // Buka halaman tiket parkir dengan info parkiran & opsi Check-in atau Simpan
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => BookingConfirmationScreen(bookingId: id),
+            ),
+          ).then((_) {
+            HistoryBackend.instance.fetchHistory();
+          });
+          return;
+        }
+
+        if (status == TicketMark.aktif) {
+          // Buka sesi parkir yang sedang berjalan
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => ActiveSessionScreen(sessionId: id),
+            ),
+          ).then((_) {
+            HistoryBackend.instance.fetchHistory();
+          });
+          return;
+        }
+
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => history_detail.HistoryDetailScreen(id: id),
+          ),
+        ).then((_) {
+          HistoryBackend.instance.fetchHistory();
+        });
       },
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -445,7 +436,9 @@ class _HistoryCard extends StatelessWidget {
                             Icon(Icons.calendar_month, size: 14, color: textSub),
                             const SizedBox(width: 4),
                             Text(
-                              date,
+                              plateNumber != null && plateNumber!.isNotEmpty
+                                  ? '$date • $plateNumber'
+                                  : date,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,

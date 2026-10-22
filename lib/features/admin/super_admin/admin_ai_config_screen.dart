@@ -436,7 +436,7 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
           ),
           const SizedBox(height: 4),
           Text(
-            'Masukkan API Key resmi Anda yang didapatkan dari dashboard console.groq.com',
+            'API Key dibaca secara aman dari file .env (GROQ_API_KEY) tanpa dipublikasikan ke database publik.',
             style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B)),
           ),
           const SizedBox(height: 14),
@@ -491,7 +491,7 @@ class _AdminAiConfigScreenState extends State<AdminAiConfigScreen> {
                   )
                 : const Icon(Icons.save_outlined, size: 18, color: Colors.white),
             label: Text(
-              _isSaving ? 'Menyimpan ke Database...' : 'Simpan API Key',
+              _isSaving ? 'Menyimpan...' : 'Simpan Konfigurasi',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 13,
                 fontWeight: FontWeight.bold,

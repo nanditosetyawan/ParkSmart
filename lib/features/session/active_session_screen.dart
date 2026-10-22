@@ -9,6 +9,7 @@ import 'session_checkout_screen.dart';
 import 'extend_session_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
 import 'backend/active_session_backend.dart';
+import 'backend/session_checkout_backend.dart';
 
 class ActiveSessionScreen extends StatefulWidget {
   final String? sessionId;
@@ -41,12 +42,36 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
         setState(() {
           if (_remainingSeconds > 0) {
             _remainingSeconds--;
+            if (_remainingSeconds == 0) {
+              _onSessionExpired();
+            }
           } else {
             _timer.cancel();
           }
         });
       }
     });
+  }
+
+  void _onSessionExpired() async {
+    _timer.cancel();
+    final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
+    await SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: sId);
+    await SessionCheckoutBackend.instance.completeSessionCheckout();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Batas waktu parkir telah habis. Sesi parkir otomatis diselesaikan.'),
+          backgroundColor: Color(0xFF17A18A),
+        ),
+      );
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => SessionCheckoutScreen(sessionId: sId),
+        ),
+      );
+    }
   }
 
   @override
@@ -672,7 +697,11 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                             child: ElevatedButton(
                               onPressed: () => Navigator.push(
                                 context,
-                                MaterialPageRoute(builder: (_) => const SessionCheckoutScreen()),
+                                MaterialPageRoute(
+                                  builder: (_) => SessionCheckoutScreen(
+                                    sessionId: widget.sessionId ?? ActiveSessionBackend.instance.sessionId,
+                                  ),
+                                ),
                               ),
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF1C1D1F),

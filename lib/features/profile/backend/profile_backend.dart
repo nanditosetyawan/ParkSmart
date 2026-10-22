@@ -26,6 +26,10 @@ class ProfileBackend extends ChangeNotifier {
   int _walletBalance = 0;
   String _primaryVehicle = 'Belum Ada Kendaraan';
 
+  String _kycStatus = 'none'; // 'none', 'pending', 'approved', 'rejected'
+  String get kycStatus => _kycStatus;
+  bool get isKycVerified => _kycStatus == 'approved';
+
   String _saranKuliah = '';
   String get saranKuliah => _saranKuliah;
 
@@ -80,6 +84,7 @@ class ProfileBackend extends ChangeNotifier {
     _totalSavings = 0;
     _walletBalance = 0;
     _primaryVehicle = 'Belum Ada Kendaraan';
+    _kycStatus = 'none';
     _saranKuliah = '';
     _pesanKuliah = '';
     notifyListeners();
@@ -164,6 +169,25 @@ class ProfileBackend extends ChangeNotifier {
             }
           }
         } catch (_) {}
+
+        // Ambil status verifikasi KYC dari tabel user_kyc
+        try {
+          if (_userId.isNotEmpty) {
+            final kycRes = await _client
+                .from('user_kyc')
+                .select('status, reject_reason')
+                .eq('user_id', _userId)
+                .maybeSingle();
+
+            if (kycRes != null) {
+              _kycStatus = (kycRes['status'] ?? 'pending').toString().toLowerCase();
+            } else {
+              _kycStatus = 'none';
+            }
+          }
+        } catch (err) {
+          debugPrint('[ProfileBackend] Error query user_kyc: $err');
+        }
       }
     } catch (e) {
       debugPrint('ProfileBackend fetchProfile error: $e');

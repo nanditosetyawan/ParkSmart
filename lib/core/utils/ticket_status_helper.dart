@@ -57,26 +57,14 @@ class TicketMark {
       return belumDibayar;
     }
 
-    // 5. Sesi aktif langsung di gerbang
-    if (sStatus == 'active' || sStatus == 'overstay') {
+    // 5. Sesi aktif di gerbang atau reservasi aktif yang sudah check-in
+    if (sStatus == 'active' || sStatus == 'overstay' || bStatus == 'active') {
       return aktif;
     }
 
-    // 6. Sudah dibayar: cek apakah sesi sudah otomatis mulai berdasarkan jadwal
+    // 6. Sudah dibayar: tiket berstatus Ready untuk check-in.
+    // Jika tidak check-in sampai batas akhir waktu checkout (endTime), aturan nomor 2 di atas otomatis menyelesaikannya.
     if (pStatus == 'paid' || pStatus == 'dibayar' || pStatus == 'success' || pStatus == 'berhasil') {
-      if (startTime != null) {
-        if (now.isAfter(startTime) || now.isAtSameMomentAs(startTime)) {
-          // Jam mulai sudah tiba atau lewat, sesi otomatis aktif / timer berjalan
-          return aktif;
-        } else {
-          // Jam mulai belum tiba (misal pesan jam 12.00 sekarang jam 10.00)
-          return ready;
-        }
-      }
-
-      if (bStatus == 'active') {
-        return aktif;
-      }
       return ready;
     }
 

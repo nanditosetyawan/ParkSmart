@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import '../pin/pin_screen.dart';
+import '../pin/backend/pin_backend.dart';
 import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../../theme/app_typography.dart';
@@ -23,17 +25,130 @@ const _kOnSurfaceVariant = Color(0xFF45474A);
 const _kOutline = Color(0xFF76777B);
 
 class CheckoutScreen extends StatefulWidget {
-  const CheckoutScreen({super.key});
+  final String? existingBookingId;
+  const CheckoutScreen({super.key, this.existingBookingId});
 
   @override
   State<CheckoutScreen> createState() => _CheckoutScreenState();
 }
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
+  Timer? _countdownTimer;
+  int _remainingSeconds = 179; // 2 menit 59 detik
+
   @override
   void initState() {
     super.initState();
-    CheckoutBackend.instance.fetchCheckoutData();
+    _initCheckoutAndHold();
+  }
+
+  Future<void> _initCheckoutAndHold() async {
+    if (widget.existingBookingId != null && widget.existingBookingId!.isNotEmpty) {
+      // 1. Dibuka dari riwayat (Belum Dibayar)
+      final ok = await CheckoutBackend.instance.loadFromExistingBooking(widget.existingBookingId!);
+      await CheckoutBackend.instance.fetchCheckoutData();
+
+      if (!mounted) return;
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Data booking tidak ditemukan atau sudah dibatalkan.')),
+        );
+        Navigator.pop(context);
+        return;
+      }
+
+      final createdAt = CheckoutBackend.instance.holdCreatedAt ?? DateTime.now();
+      final elapsed = DateTime.now().difference(createdAt).inSeconds;
+      final remaining = 179 - elapsed;
+
+      if (remaining <= 0) {
+        await CheckoutBackend.instance.cancelHoldBooking();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Batas waktu pembayaran (02:59) telah habis. Slot telah dilepas.'),
+              backgroundColor: Colors.redAccent,
+            ),
+          );
+          Navigator.pop(context);
+        }
+        return;
+      }
+
+      if (mounted) {
+        setState(() {
+          _remainingSeconds = remaining;
+        });
+        _startTimer();
+      }
+    } else {
+      // 2. Pertama kali masuk checkout dari pemilihan slot
+      await CheckoutBackend.instance.fetchCheckoutData();
+      final ok = await CheckoutBackend.instance.createHoldBooking();
+      if (!mounted) return;
+
+      if (!ok) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Slot ini sudah dibooking orang lain atau terjadi kendala. Silakan pilih jadwal/slot lain.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        Navigator.pop(context);
+        return;
+      }
+
+      setState(() {
+        _remainingSeconds = 179;
+      });
+      _startTimer();
+    }
+  }
+
+  void _startTimer() {
+    _countdownTimer?.cancel();
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        if (_remainingSeconds > 0) {
+          _remainingSeconds--;
+          if (_remainingSeconds == 0) {
+            timer.cancel();
+            _onTimerExpired();
+          }
+        } else {
+          timer.cancel();
+        }
+      });
+    });
+  }
+
+  void _onTimerExpired() async {
+    await CheckoutBackend.instance.cancelHoldBooking();
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Waktu penahanan slot habis (02:59). Slot telah dilepas.'),
+          backgroundColor: Colors.redAccent,
+        ),
+      );
+      Navigator.pop(context);
+    }
+  }
+
+  @override
+  void dispose() {
+    _countdownTimer?.cancel();
+    super.dispose();
+  }
+
+  String get _timerDisplay {
+    final m = _remainingSeconds ~/ 60;
+    final s = _remainingSeconds % 60;
+    return '${m.toString().padLeft(2, '0')}:${s.toString().padLeft(2, '0')}';
   }
 
   @override
@@ -74,7 +189,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Slot Ditahan (02:59)',
+                              'Slot Ditahan ($_timerDisplay)',
                               style: AppTypography.overline(
                                 color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF742814),
                               ),
@@ -248,17 +363,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           ),
                                         ],
                                       ),
-                                      Container(
-                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                                        decoration: BoxDecoration(
-                                          color: Colors.white.withValues(alpha: 0.2),
-                                          borderRadius: AppRadii.pillRadius,
-                                        ),
-                                        child: Text(
-                                          'Sensor Aktif',
-                                          style: AppTypography.caption(color: Colors.white),
-                                        ),
-                                      ),
+                                      
                                     ],
                                   ),
                                 ),
@@ -575,16 +680,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           );
 
                           if (context.mounted) {
-                            Navigator.pushReplacement(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => PinScreen(
-                                  bookingId: bId,
-                                  nextScreen: BookingConfirmationScreen(bookingId: bId),
-                                  transactionType: 'parkir',
-                                ),
-                              ),
+                            final hasPin = await PinBackend.instance.hasPin();
+                            if (!context.mounted) return;
+
+                            final paymentPinScreen = PinScreen(
+                              bookingId: bId,
+                              nextScreen: BookingConfirmationScreen(bookingId: bId),
+                              transactionType: 'parkir',
+                              customTitle: 'Konfirmasi PIN Pembayaran',
                             );
+
+                            if (!hasPin) {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => PinScreen(
+                                    transactionType: 'buat pin',
+                                    customTitle: 'Buat PIN Transaksi',
+                                    backToHome: false,
+                                    nextScreen: paymentPinScreen,
+                                  ),
+                                ),
+                              );
+                            } else {
+                              Navigator.pushReplacement(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => paymentPinScreen,
+                                ),
+                              );
+                            }
                           }
                         },
                         style: ElevatedButton.styleFrom(

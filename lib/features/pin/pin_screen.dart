@@ -244,16 +244,16 @@ class _PinScreenState extends State<PinScreen> {
           return;
         }
 
-        // Jika navigasi dari menu Profile (bukan alur pembayaran/booking)
+        // Jika navigasi dari menu Profile / Setting (atau alur buat/reset PIN)
         final isProfileSetup = widget.transactionType.toLowerCase().contains('buat') ||
-            widget.transactionType.toLowerCase().contains('reset') ||
-            widget.transactionType.toLowerCase().contains('ganti');
+            widget.transactionType.toLowerCase().contains('reset');
 
         if (isProfileSetup) {
+          final isReset = widget.transactionType.toLowerCase().contains('reset');
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(
-                'PIN keamanan berhasil dibuat!',
+                isReset ? 'PIN keamanan berhasil direset!' : 'PIN keamanan berhasil dibuat!',
                 style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
               ),
               backgroundColor: const Color(0xFF10B981),
@@ -261,12 +261,18 @@ class _PinScreenState extends State<PinScreen> {
           );
           await NotificationService().showNotification(
             id: 101,
-            title: 'PIN Berhasil Disimpan',
+            title: isReset ? 'PIN Berhasil Direset' : 'PIN Berhasil Disimpan',
             body: 'PIN keamanan Anda telah berhasil diperbarui.',
           );
           await Future.delayed(const Duration(milliseconds: 600));
           if (mounted) {
-            if (widget.backToHome) {
+            // Jika ada alur layar pembayaran selanjutnya (misal beli tiket parkir): lanjut ke layar PIN pembayaran
+            if (widget.nextScreen is PinScreen) {
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => widget.nextScreen),
+              );
+            } else if (widget.backToHome) {
               Navigator.pushAndRemoveUntil(
                 context,
                 MaterialPageRoute(builder: (_) => const HomeScreen()),
@@ -279,8 +285,25 @@ class _PinScreenState extends State<PinScreen> {
           return;
         }
 
-        // Jika alur checkout/transaksi parkir: PIN sudah valid & tersimpan, langsung proses pembayaran
-        await _handlePaymentSuccess();
+        // Jika alur checkout/transaksi parkir tapi awalnya belum punya PIN:
+        // Setelah PIN tersimpan ke database, beralih ke mode konfirmasi PIN pembayaran
+        setState(() {
+          _isCreatingPin = false;
+          _isConfirmingPin = false;
+          _firstEnteredPin = null;
+        });
+        _pinController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'PIN berhasil dibuat! Silakan masukkan PIN untuk konfirmasi pembayaran tiket.',
+              style: GoogleFonts.plusJakartaSans(color: Colors.white, fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            duration: const Duration(seconds: 3),
+          ),
+        );
+        _focusNode.requestFocus();
         return;
       }
 

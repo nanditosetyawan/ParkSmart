@@ -6,7 +6,8 @@ import '../profile/feedback_screen.dart' as feedback;
 import 'backend/session_checkout_backend.dart';
 
 class SessionCheckoutScreen extends StatefulWidget {
-  const SessionCheckoutScreen({super.key});
+  final String? sessionId;
+  const SessionCheckoutScreen({super.key, this.sessionId});
 
   @override
   State<SessionCheckoutScreen> createState() => _SessionCheckoutScreenState();
@@ -16,7 +17,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
   @override
   void initState() {
     super.initState();
-    SessionCheckoutBackend.instance.fetchCheckoutDetails();
+    SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: widget.sessionId);
   }
 
   @override

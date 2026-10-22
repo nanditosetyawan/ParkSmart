@@ -447,14 +447,24 @@ class _HistoryItem extends StatelessWidget {
                   ],
                 ),
                 const SizedBox(height: 8),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(timeIn, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
-                    const Icon(Icons.arrow_forward, size: 14, color: Color(0xFFC6C6CA)),
-                    Text(timeOut, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
-                  ],
-                ),
+                if (status == 'Mendatang' || timeIn.contains('Jadwal'))
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(timeIn, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                      const SizedBox(height: 4),
+                      Text(timeOut, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                    ],
+                  )
+                else
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(timeIn, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                      const Icon(Icons.arrow_forward, size: 14, color: Color(0xFFC6C6CA)),
+                      Text(timeOut, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                    ],
+                  ),
               ],
             ),
           ),

@@ -22,6 +22,12 @@ class CheckoutBackend extends ChangeNotifier {
     _userId = id;
   }
 
+  String? _holdBookingId;
+  String? get holdBookingId => _holdBookingId;
+
+  DateTime? _holdCreatedAt;
+  DateTime? get holdCreatedAt => _holdCreatedAt;
+
   void clear() {
     _userId = null;
     _selectedVehicle = null;
@@ -32,6 +38,8 @@ class CheckoutBackend extends ChangeNotifier {
     _slotId = null;
     _slotCode = '-';
     _floorName = '-';
+    _holdBookingId = null;
+    _holdCreatedAt = null;
     notifyListeners();
   }
 
@@ -230,6 +238,18 @@ class CheckoutBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Jika sudah ada hold booking ID yang dibuat saat masuk checkout, gunakan langsung
+      if (_holdBookingId != null && _holdBookingId!.isNotEmpty) {
+        final existing = await _client
+            .from('bookings')
+            .select('id, booking_code, total_price, start_time, end_time, location_id, slot_id, created_at, plate_number, vehicle_desc')
+            .eq('id', _holdBookingId!)
+            .maybeSingle();
+        if (existing != null) {
+          return existing;
+        }
+      }
+
       final random = Random();
       final bookingCode = 'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-${random.nextInt(900) + 100}';
 
@@ -285,6 +305,14 @@ class CheckoutBackend extends ChangeNotifier {
         throw Exception('Sesi pengguna tidak valid. Silakan login kembali.');
       }
 
+      final veh = _selectedVehicle;
+      final vehicleDesc = veh != null
+          ? ('${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim().isNotEmpty
+              ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim()
+              : 'Toyota Land Cruiser')
+          : 'Toyota Land Cruiser';
+      final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
+
       // 3. Insert ke tabel bookings (status awal 'unpaid' dengan hold time 2:59 menit)
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
@@ -292,6 +320,8 @@ class CheckoutBackend extends ChangeNotifier {
         'location_id': actualLocId,
         'slot_id': actualSlotId,
         'vehicle_id': _selectedVehicle?['id'],
+        'plate_number': plateNumber,
+        'vehicle_desc': vehicleDesc,
         'booking_type': 'reservation',
         'start_time': startTime.toUtc().toIso8601String(),
         'end_time': endTime.toUtc().toIso8601String(),
@@ -300,7 +330,7 @@ class CheckoutBackend extends ChangeNotifier {
         'payment_status': 'unpaid',
         'booking_status': 'upcoming',
         'qr_code_hash': 'PARKSMART-$bookingCode',
-      }).select('id, booking_code, total_price, start_time, end_time, location_id, slot_id, created_at').maybeSingle();
+      }).select('id, booking_code, total_price, start_time, end_time, location_id, slot_id, created_at, plate_number, vehicle_desc').maybeSingle();
 
       // Tandai slot sebagai reserved sementara
       if (actualSlotId != null) {
@@ -323,6 +353,205 @@ class CheckoutBackend extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Membuat booking unpaid untuk menahan slot selama 2:59 menit sejak pertama kali masuk halaman checkout
+  Future<bool> createHoldBooking() async {
+    try {
+      final now = DateTime.now();
+      final startTime = _scheduledStartTime ?? now;
+      final endTime = _scheduledEndTime ?? startTime.add(Duration(hours: _durationHours));
+
+      // 1. Ambil location_id jika belum terisi
+      String? actualLocId = _locationId;
+      if (actualLocId == null || actualLocId.isEmpty) {
+        final loc = await _client
+            .from('parking_locations')
+            .select('id, name')
+            .order('rating', ascending: false)
+            .limit(1)
+            .maybeSingle();
+        actualLocId = loc?['id'] as String?;
+        if (loc != null && _locationName == '-') {
+          _locationName = loc['name']?.toString() ?? 'ParkSmart';
+        }
+      }
+
+      if (actualLocId == null) return false;
+
+      // 2. Ambil slot_id jika ada
+      String? actualSlotId = _slotId;
+      if ((actualSlotId == null || actualSlotId.isEmpty) && _slotCode != '-' && _slotCode.isNotEmpty) {
+        final slotRes = await _client
+            .from('parking_slots')
+            .select('id')
+            .eq('location_id', actualLocId)
+            .eq('slot_code', _slotCode)
+            .maybeSingle();
+        actualSlotId = slotRes?['id'] as String?;
+      }
+
+      // Validasi bentrok slot
+      if (actualSlotId != null) {
+        final hasConflict = await checkSlotConflict(
+          slotId: actualSlotId,
+          startTime: startTime,
+          endTime: endTime,
+        );
+        if (hasConflict) return false;
+      }
+
+      final actualUid = await resolveUserId();
+      if (actualUid.isEmpty) return false;
+
+      final random = Random();
+      final bookingCode = 'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-${random.nextInt(900) + 100}';
+
+      final veh = _selectedVehicle;
+      final vehicleDesc = veh != null
+          ? ('${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim().isNotEmpty
+              ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim()
+              : 'Toyota Land Cruiser')
+          : 'Toyota Land Cruiser';
+      final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
+
+      // Insert ke tabel bookings dengan payment_status 'unpaid'
+      final result = await _client.from('bookings').insert({
+        'booking_code': bookingCode,
+        'user_id': actualUid,
+        'location_id': actualLocId,
+        'slot_id': actualSlotId,
+        'vehicle_id': _selectedVehicle?['id'],
+        'plate_number': plateNumber,
+        'vehicle_desc': vehicleDesc,
+        'booking_type': 'reservation',
+        'start_time': startTime.toUtc().toIso8601String(),
+        'end_time': endTime.toUtc().toIso8601String(),
+        'duration_hours': _durationHours,
+        'total_price': totalPayment,
+        'payment_status': 'unpaid',
+        'booking_status': 'upcoming',
+        'qr_code_hash': 'PARKSMART-$bookingCode',
+      }).select('id, created_at').maybeSingle();
+
+      if (result != null) {
+        _holdBookingId = result['id']?.toString();
+        _holdCreatedAt = DateTime.tryParse(result['created_at'].toString())?.toLocal() ?? DateTime.now();
+
+        // Kunci status slot menjadi reserved agar tidak bisa dibooking orang lain
+        if (actualSlotId != null) {
+          await _client.from('parking_slots').update({
+            'status': 'reserved',
+          }).eq('id', actualSlotId);
+        }
+        notifyListeners();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[CheckoutBackend] createHoldBooking error: $e');
+      return false;
+    }
+  }
+
+  /// Batalkan penahanan slot jika waktu habis atau booking tidak dibayar
+  Future<void> cancelHoldBooking({String? bookingId}) async {
+    final targetId = bookingId ?? _holdBookingId;
+    if (targetId == null || targetId.isEmpty) return;
+
+    try {
+      final b = await _client
+          .from('bookings')
+          .select('slot_id, payment_status')
+          .eq('id', targetId)
+          .maybeSingle();
+
+      if (b != null && (b['payment_status'] == 'unpaid' || b['payment_status'] == 'pending')) {
+        await _client.from('bookings').update({
+          'booking_status': 'cancelled',
+          'payment_status': 'expired',
+        }).eq('id', targetId);
+
+        final sId = b['slot_id']?.toString() ?? _slotId;
+        if (sId != null && sId.isNotEmpty) {
+          await _client.from('parking_slots').update({
+            'status': 'available',
+            'current_plate_number': null,
+            'occupied_since': null,
+          }).eq('id', sId);
+        }
+      }
+
+      if (targetId == _holdBookingId) {
+        _holdBookingId = null;
+        _holdCreatedAt = null;
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[CheckoutBackend] cancelHoldBooking error: $e');
+    }
+  }
+
+  /// Memuat data booking dari ID yang belum dibayar di riwayat
+  Future<bool> loadFromExistingBooking(String bookingId) async {
+    try {
+      final b = await _client
+          .from('bookings')
+          .select('id, created_at, booking_code, start_time, end_time, duration_hours, total_price, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, payment_status')
+          .eq('id', bookingId)
+          .maybeSingle();
+
+      if (b == null) return false;
+
+      _holdBookingId = b['id']?.toString();
+      _holdCreatedAt = DateTime.tryParse(b['created_at'].toString())?.toLocal() ?? DateTime.now();
+      _scheduledStartTime = DateTime.tryParse(b['start_time'].toString())?.toLocal();
+      _scheduledEndTime = DateTime.tryParse(b['end_time'].toString())?.toLocal();
+      _durationHours = (b['duration_hours'] as num?)?.toInt() ?? 1;
+      final tPrice = (b['total_price'] as num?)?.toDouble() ?? 5000.0;
+      _hourlyRate = _durationHours > 0 ? (tPrice / _durationHours) : 5000.0;
+
+      if (b['location_id'] != null) {
+        _locationId = b['location_id'].toString();
+        final loc = await _client
+            .from('parking_locations')
+            .select('id, name')
+            .eq('id', _locationId!)
+            .maybeSingle();
+        if (loc != null) {
+          _locationName = loc['name']?.toString() ?? _locationName;
+        }
+      }
+
+      if (b['slot_id'] != null) {
+        _slotId = b['slot_id'].toString();
+        final slot = await _client
+            .from('parking_slots')
+            .select('slot_code, floor_name, slot_type')
+            .eq('id', _slotId!)
+            .maybeSingle();
+        if (slot != null) {
+          _slotCode = slot['slot_code']?.toString() ?? _slotCode;
+          _floorName = slot['floor_name']?.toString() ?? _floorName;
+          _slotType = slot['slot_type']?.toString() ?? _slotType;
+        }
+      }
+
+      final pNum = b['plate_number']?.toString();
+      final vDesc = b['vehicle_desc']?.toString();
+      _selectedVehicle = {
+        'id': b['vehicle_id'],
+        'plate_number': pNum ?? 'B 1945 RI',
+        'brand': vDesc ?? 'Kendaraan',
+        'model': '',
+      };
+
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('[CheckoutBackend] loadFromExistingBooking error: $e');
+      return false;
     }
   }
 

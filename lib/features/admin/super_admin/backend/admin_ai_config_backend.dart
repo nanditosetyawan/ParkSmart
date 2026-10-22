@@ -55,9 +55,6 @@ class AdminAiConfigBackend extends ChangeNotifier {
 
       if (res != null && res['value'] is Map) {
         final val = res['value'] as Map<String, dynamic>;
-        if (val['api_key'] != null && val['api_key'].toString().isNotEmpty) {
-          _apiKey = val['api_key'].toString();
-        }
         if (val['model_name'] != null) {
           _modelName = val['model_name'].toString();
         }
@@ -99,7 +96,6 @@ class AdminAiConfigBackend extends ChangeNotifier {
       await _client.from('system_settings').upsert({
         'key': 'ai_config',
         'value': {
-          'api_key': newApiKey,
           'model_name': _modelName,
           'temperature': _temperature,
           'max_tokens': _maxTokens,

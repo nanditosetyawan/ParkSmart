@@ -344,24 +344,71 @@ class _KycDetailModalContent extends StatelessWidget {
                   // ──────────────────────────────────────────────────────────
                   // FOTO 1: GAMBAR FOTO FISIK E-KTP (DOKUMEN ASLI DARI USER)
                   // ──────────────────────────────────────────────────────────
-                  _buildSectionHeader(
-                    icon: Icons.document_scanner_rounded,
-                    title: '1. Foto Dokumen e-KTP Fisik',
-                    subtitle: 'KTP_${nik.substring(0, nik.length > 8 ? 8 : nik.length)}.jpg (1.8 MB)',
-                    badgeColor: const Color(0xFF114177),
-                  ),
-                  const SizedBox(height: 8),
+                  Builder(
+                    builder: (context) {
+                      final ktpUrl = kyc['ktp_image_url']?.toString();
+                      final hasRealKtp = ktpUrl != null && ktpUrl.isNotEmpty && ktpUrl.startsWith('http');
 
-                  GestureDetector(
-                    onTap: () => _showZoomDialog(
-                      context,
-                      title: 'Foto e-KTP Fisik - $name',
-                      child: _buildPhysicalKtpCard(name, nik, city, dob, address, gender),
-                    ),
-                    child: _buildKtpPhotoFrame(
-                      context,
-                      child: _buildPhysicalKtpCard(name, nik, city, dob, address, gender),
-                    ),
+                      final Widget ktpPreviewWidget = hasRealKtp
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                ktpUrl,
+                                width: double.infinity,
+                                height: 190,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (ctx, child, progress) {
+                                  if (progress == null) return child;
+                                  return Container(
+                                    height: 190,
+                                    color: const Color(0xFF1E232B),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(color: Color(0xFF38BDF8), strokeWidth: 2),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (ctx, err, stack) => _buildPhysicalKtpCard(name, nik, city, dob, address, gender),
+                              ),
+                            )
+                          : _buildPhysicalKtpCard(name, nik, city, dob, address, gender);
+
+                      final Widget ktpZoomWidget = hasRealKtp
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                ktpUrl,
+                                fit: BoxFit.contain,
+                                errorBuilder: (ctx, err, stack) => _buildPhysicalKtpCard(name, nik, city, dob, address, gender),
+                              ),
+                            )
+                          : _buildPhysicalKtpCard(name, nik, city, dob, address, gender);
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            icon: Icons.document_scanner_rounded,
+                            title: '1. Foto Dokumen e-KTP Fisik',
+                            subtitle: hasRealKtp
+                                ? 'Dokumen Foto Asli dari Supabase Storage'
+                                : 'KTP_${nik.substring(0, nik.length > 8 ? 8 : nik.length)}.jpg',
+                            badgeColor: const Color(0xFF114177),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _showZoomDialog(
+                              context,
+                              title: 'Foto e-KTP Fisik - $name',
+                              child: ktpZoomWidget,
+                            ),
+                            child: _buildKtpPhotoFrame(
+                              context,
+                              child: ktpPreviewWidget,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 20),
@@ -369,24 +416,71 @@ class _KycDetailModalContent extends StatelessWidget {
                   // ──────────────────────────────────────────────────────────
                   // FOTO 2: FOTO SELFIE MUKA BERSAMA KTP (DOKUMEN BIOMETRIK)
                   // ──────────────────────────────────────────────────────────
-                  _buildSectionHeader(
-                    icon: Icons.face_retouching_natural_rounded,
-                    title: '2. Foto Selfie Wajah Bersama e-KTP',
-                    subtitle: 'SELFIE_HOLDING_KTP_${nik.substring(0, nik.length > 8 ? 8 : nik.length)}.jpg (2.4 MB)',
-                    badgeColor: const Color(0xFF17A18A),
-                  ),
-                  const SizedBox(height: 8),
+                  Builder(
+                    builder: (context) {
+                      final selfieUrl = kyc['selfie_image_url']?.toString();
+                      final hasRealSelfie = selfieUrl != null && selfieUrl.isNotEmpty && selfieUrl.startsWith('http');
 
-                  GestureDetector(
-                    onTap: () => _showZoomDialog(
-                      context,
-                      title: 'Foto Selfie bersama e-KTP - $name',
-                      child: _buildSelfieCard(name, nik),
-                    ),
-                    child: _buildSelfiePhotoFrame(
-                      context,
-                      child: _buildSelfieCard(name, nik),
-                    ),
+                      final Widget selfiePreviewWidget = hasRealSelfie
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.network(
+                                selfieUrl,
+                                width: double.infinity,
+                                height: 220,
+                                fit: BoxFit.cover,
+                                loadingBuilder: (ctx, child, progress) {
+                                  if (progress == null) return child;
+                                  return Container(
+                                    height: 220,
+                                    color: const Color(0xFF1E232B),
+                                    child: const Center(
+                                      child: CircularProgressIndicator(color: Color(0xFF38BDF8), strokeWidth: 2),
+                                    ),
+                                  );
+                                },
+                                errorBuilder: (ctx, err, stack) => _buildSelfieCard(name, nik),
+                              ),
+                            )
+                          : _buildSelfieCard(name, nik);
+
+                      final Widget selfieZoomWidget = hasRealSelfie
+                          ? ClipRRect(
+                              borderRadius: BorderRadius.circular(8),
+                              child: Image.network(
+                                selfieUrl,
+                                fit: BoxFit.contain,
+                                errorBuilder: (ctx, err, stack) => _buildSelfieCard(name, nik),
+                              ),
+                            )
+                          : _buildSelfieCard(name, nik);
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          _buildSectionHeader(
+                            icon: Icons.face_retouching_natural_rounded,
+                            title: '2. Foto Selfie Wajah Bersama e-KTP',
+                            subtitle: hasRealSelfie
+                                ? 'Foto Selfie Biometrik dari Supabase Storage'
+                                : 'SELFIE_HOLDING_KTP_${nik.substring(0, nik.length > 8 ? 8 : nik.length)}.jpg',
+                            badgeColor: const Color(0xFF17A18A),
+                          ),
+                          const SizedBox(height: 8),
+                          GestureDetector(
+                            onTap: () => _showZoomDialog(
+                              context,
+                              title: 'Foto Selfie bersama e-KTP - $name',
+                              child: selfieZoomWidget,
+                            ),
+                            child: _buildSelfiePhotoFrame(
+                              context,
+                              child: selfiePreviewWidget,
+                            ),
+                          ),
+                        ],
+                      );
+                    },
                   ),
 
                   const SizedBox(height: 20),

@@ -39,7 +39,6 @@ import 'ai_assistant/ai_results_screen.dart';
 
 // Auth
 import 'auth/login_screen.dart';
-import 'auth/otp_reset_screen.dart';
 import 'auth/register_screen.dart';
 import 'auth/forgot_password_screen.dart';
 
@@ -126,7 +125,6 @@ class SitemapScreen extends StatelessWidget {
                 _Item('Login (Masuk)', 'login_screen.dart', (c) => const LoginScreen()),
                 _Item('Register (Daftar Akun)', 'register_screen.dart', (c) => const RegisterScreen()),
                 _Item('Lupa Sandi (Forgot Password)', 'forgot_password_screen.dart', (c) => const ForgotPasswordScreen(), isNew: true),
-                _Item('OTP & Reset Sandi', 'otp_reset_screen.dart', (c) => const OtpResetScreen()),
               ], isDark, theme),
               _buildCategory('2. Main Navigation & Exploration', [
                 _Item('Home (Beranda Utama)', 'home_screen.dart', (c) => const HomeScreen()),

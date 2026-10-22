@@ -54,7 +54,7 @@ class CheckinBackend extends ChangeNotifier {
     try {
       var query = _client
           .from('bookings')
-          .select('id, booking_code, user_id, location_id, slot_id, vehicle_id, booking_status, total_price, duration_hours, start_time, end_time');
+          .select('id, booking_code, user_id, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, booking_status, total_price, duration_hours, start_time, end_time');
 
       final dynamic booking;
       if (bookingId != null && bookingId.isNotEmpty) {
@@ -101,15 +101,24 @@ class CheckinBackend extends ChangeNotifier {
           }
         }
 
-        if (booking['vehicle_id'] != null) {
+        final snapPlate = booking['plate_number']?.toString();
+        final snapDesc = booking['vehicle_desc']?.toString();
+        if (snapPlate != null && snapPlate.trim().isNotEmpty) {
+          _plateNumber = snapPlate.trim();
+        }
+        if (snapDesc != null && snapDesc.trim().isNotEmpty) {
+          _vehicleDesc = snapDesc.trim();
+        }
+
+        if ((_plateNumber.isEmpty || _vehicleDesc.isEmpty) && booking['vehicle_id'] != null) {
           final veh = await _client
               .from('vehicles')
               .select('plate_number, brand, model')
               .eq('id', booking['vehicle_id'])
               .maybeSingle();
           if (veh != null) {
-            _plateNumber = veh['plate_number']?.toString() ?? _plateNumber;
-            _vehicleDesc = '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim();
+            if (_plateNumber.isEmpty) _plateNumber = veh['plate_number']?.toString() ?? _plateNumber;
+            if (_vehicleDesc.isEmpty) _vehicleDesc = '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim();
           }
         }
       }

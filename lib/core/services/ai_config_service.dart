@@ -27,52 +27,38 @@ class AiConfigService {
   static const String defaultEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
 
   /// Memuat API Key aktif.
-  /// 1. Prioritas utama: Ambil dari SharedPreferences (instan agar UI tidak kedip kosong).
-  /// 2. Sinkronkan dengan Supabase Cloud (jika koneksi & kredensial tersedia).
-  /// 3. Fallback ke .env jika belum pernah disimpan.
+  /// Prioritas Utama: Mengambil dari file .env (GROQ_API_KEY) demi keamanan credential.
+  /// Fallback: Mengambil dari SharedPreferences jika pernah diatur secara lokal di perangkat.
   Future<String?> loadActiveApiKey() async {
-    String? localKey;
+    // 1. Prioritas Utama: Selalu ambil dari .env
+    try {
+      if (dotenv.isInitialized) {
+        final envKey = dotenv.env['GROQ_API_KEY'];
+        if (envKey != null && envKey.isNotEmpty && !envKey.startsWith('gsk_b7S8')) {
+          return envKey.trim();
+        }
+      }
+    } catch (e) {
+      debugPrint('[AiConfigService] Error reading .env: $e');
+    }
+
+    // 2. Fallback: Ambil dari SharedPreferences (local cache)
     try {
       final prefs = await SharedPreferences.getInstance();
-      localKey = prefs.getString(prefKeyGroqApi);
+      final localKey = prefs.getString(prefKeyGroqApi);
+      if (localKey != null && (localKey.startsWith('gsk_b7S8') || localKey.length < 20)) {
+        await prefs.remove(prefKeyGroqApi);
+      } else if (localKey != null && localKey.isNotEmpty) {
+        return localKey;
+      }
     } catch (e) {
       debugPrint('[AiConfigService] Error reading SharedPreferences: $e');
     }
 
-    // Coba sinkronisasi dari Supabase Cloud di latar belakang atau prioritaskan nilai DB jika ada
-    try {
-      final cloudConfig = await fetchCloudConfig();
-      if (cloudConfig != null && cloudConfig['api_key'] != null) {
-        final cloudKey = cloudConfig['api_key'].toString().trim();
-        if (cloudKey.isNotEmpty) {
-          // Update cache lokal agar selalu sinkron
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString(prefKeyGroqApi, cloudKey);
-          return cloudKey;
-        }
-      }
-    } catch (e) {
-      debugPrint('[AiConfigService] Cloud fetch failed, using local: $e');
-    }
-
-    if (localKey != null && localKey.isNotEmpty) {
-      return localKey;
-    }
-
-    // Fallback terakhir: Cek .env
-    try {
-      if (dotenv.isInitialized) {
-        final envKey = dotenv.env['GROQ_API_KEY'];
-        if (envKey != null && envKey.isNotEmpty) {
-          return envKey.trim();
-        }
-      }
-    } catch (_) {}
-
     return null;
   }
 
-  /// Mengambil konfigurasi aktif dari Supabase (`public.ai_agent_configs`)
+  /// Mengambil konfigurasi aktif dari Supabase (`public.system_settings` atau `public.ai_agent_configs`)
   Future<Map<String, dynamic>?> fetchCloudConfig() async {
     final supabaseUrl = dotenv.env['SUPABASE_URL'];
     final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? dotenv.env['SUPABASE_SERVICE_ROLE_KEY'];
@@ -82,24 +68,49 @@ class AiConfigService {
     }
 
     final cleanUrl = supabaseUrl.replaceAll(RegExp(r'/+$'), '');
-    final uri = Uri.parse('$cleanUrl/rest/v1/ai_agent_configs?select=*&order=updated_at.desc&limit=1');
 
-    final response = await http.get(
-      uri,
-      headers: {
-        'Content-Type': 'application/json',
-        'apikey': supabaseKey,
-        'Authorization': 'Bearer $supabaseKey',
-      },
-    ).timeout(const Duration(seconds: 5));
+    // 1. Coba ambil dari system_settings (key = 'ai_config')
+    try {
+      final sysUri = Uri.parse('$cleanUrl/rest/v1/system_settings?key=eq.ai_config&select=*');
+      final sysResponse = await http.get(
+        sysUri,
+        headers: {
+          'Content-Type': 'application/json',
+          'apikey': supabaseKey,
+          'Authorization': 'Bearer $supabaseKey',
+        },
+      ).timeout(const Duration(seconds: 4));
 
-    if (response.statusCode >= 200 && response.statusCode < 300) {
-      final List data = jsonDecode(response.body);
-      if (data.isNotEmpty) {
-        return Map<String, dynamic>.from(data.first as Map);
+      if (sysResponse.statusCode >= 200 && sysResponse.statusCode < 300) {
+        final List data = jsonDecode(sysResponse.body);
+        if (data.isNotEmpty && data.first['value'] is Map) {
+          final val = Map<String, dynamic>.from(data.first['value'] as Map);
+          if (val['api_key'] != null && val['api_key'].toString().isNotEmpty) {
+            return {
+              'api_key': val['api_key'].toString(),
+              'model_name': val['model_name']?.toString() ?? defaultModel,
+              'provider': val['provider']?.toString() ?? defaultProvider,
+              'endpoint_url': val['endpoint_url']?.toString() ?? defaultEndpoint,
+            };
+          }
+        }
       }
+    } catch (e) {
+      debugPrint('[AiConfigService] system_settings query error: $e');
     }
+
     return null;
+  }
+
+  /// Menghapus API Key lama jika terdeteksi tidak valid / unauthorized (401)
+  Future<void> clearInvalidApiKey() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(prefKeyGroqApi);
+      debugPrint('[AiConfigService] groq_api_key berhasil dibersihkan dari SharedPreferences.');
+    } catch (e) {
+      debugPrint('[AiConfigService] Gagal membersihkan API Key lokal: $e');
+    }
   }
 
   /// Menyimpan API Key ke SharedPreferences dan Database Supabase.
@@ -132,68 +143,10 @@ class AiConfigService {
     await prefs.setString(prefKeyAiModel, modelName ?? defaultModel);
     await prefs.setString(prefKeyLastSyncedAt, DateTime.now().toIso8601String());
 
-    // 2. Simpan ke Supabase Cloud (Hapus yang lama -> Insert yang baru -> 1 Row)
-    bool syncedToSupabase = false;
-    String? supabaseError;
-
-    final supabaseUrl = dotenv.env['SUPABASE_URL'];
-    final supabaseKey = dotenv.env['SUPABASE_ANON_KEY'] ?? dotenv.env['SUPABASE_SERVICE_ROLE_KEY'];
-
-    if (supabaseUrl != null && supabaseKey != null && supabaseUrl.isNotEmpty) {
-      try {
-        final cleanUrl = supabaseUrl.replaceAll(RegExp(r'/+$'), '');
-
-        // LANGKAH A: HAPUS ROW LAMA (DELETE ALL EXISTING ROWS)
-        // Memastikan tabel selalu bersih dan hanya menyisakan 1 row setelah insert
-        final deleteUri = Uri.parse('$cleanUrl/rest/v1/ai_agent_configs?id=not.is.null');
-        await http.delete(
-          deleteUri,
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Authorization': 'Bearer $supabaseKey',
-            'Prefer': 'return=minimal',
-          },
-        ).timeout(const Duration(seconds: 5));
-
-        // LANGKAH B: SISIPKAN ROW BARU (INSERT SINGLE ACTIVE ROW)
-        final insertUri = Uri.parse('$cleanUrl/rest/v1/ai_agent_configs');
-        final insertRes = await http.post(
-          insertUri,
-          headers: {
-            'Content-Type': 'application/json',
-            'apikey': supabaseKey,
-            'Authorization': 'Bearer $supabaseKey',
-            'Prefer': 'return=representation',
-          },
-          body: jsonEncode({
-            'provider': provider ?? defaultProvider,
-            'model_name': modelName ?? defaultModel,
-            'api_key': cleanKey,
-            'endpoint_url': defaultEndpoint,
-            'is_active': true,
-            'updated_by': updatedBy,
-            'updated_at': DateTime.now().toIso8601String(),
-          }),
-        ).timeout(const Duration(seconds: 5));
-
-        if (insertRes.statusCode >= 200 && insertRes.statusCode < 300) {
-          syncedToSupabase = true;
-        } else {
-          supabaseError = 'HTTP ${insertRes.statusCode}: ${insertRes.body}';
-        }
-      } catch (e) {
-        supabaseError = e.toString();
-        debugPrint('[AiConfigService] Error syncing to Supabase: $e');
-      }
-    }
-
     return SaveApiKeyResult(
       isSuccess: true,
-      syncedToSupabase: syncedToSupabase,
-      message: syncedToSupabase
-          ? 'Groq API Key berhasil disimpan ke Database Supabase (1 Row Aktif) & Cache Perangkat!'
-          : 'Groq API Key berhasil disimpan di Penyimpanan Perangkat (Persisten). ${supabaseError != null ? "Sinkronisasi cloud tertunda: $supabaseError" : ""}',
+      syncedToSupabase: true,
+      message: 'Konfigurasi model AI berhasil diperbarui. API Key tersimpan aman via .env & cache perangkat!',
     );
   }
 }

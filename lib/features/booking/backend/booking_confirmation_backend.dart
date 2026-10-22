@@ -59,7 +59,7 @@ class BookingConfirmationBackend extends ChangeNotifier {
     try {
       var query = _client
           .from('bookings')
-          .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, qr_code_hash, location_id, slot_id, vehicle_id, created_at');
+          .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, qr_code_hash, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, created_at');
 
       final bookingData = bookingId != null
           ? await query.eq('id', bookingId).maybeSingle()
@@ -113,24 +113,36 @@ class BookingConfirmationBackend extends ChangeNotifier {
           }
         }
 
-        // Ambil info kendaraan jika ada
-        if (bookingData['vehicle_id'] != null) {
+        // Ambil info kendaraan paten (prioritas dari snapshot bookingData)
+        final snapPlate = bookingData['plate_number']?.toString();
+        final snapDesc = bookingData['vehicle_desc']?.toString();
+        if (snapPlate != null && snapPlate.trim().isNotEmpty) {
+          _plateNumber = snapPlate.trim();
+        }
+        if (snapDesc != null && snapDesc.trim().isNotEmpty) {
+          _vehicleName = snapDesc.trim();
+        }
+
+        // Jika belum ada di snapshot, cari via vehicle_id spesifik (bukan limit 1 acak)
+        if ((_vehicleName == '-' || _vehicleName.isEmpty) && bookingData['vehicle_id'] != null) {
           final veh = await _client
               .from('vehicles')
               .select('brand, model, plate_number')
               .eq('id', bookingData['vehicle_id'])
               .maybeSingle();
           if (veh != null) {
-            _vehicleName = '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim();
-            _plateNumber = veh['plate_number'] ?? _plateNumber;
+            final name = '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim();
+            if (name.isNotEmpty) _vehicleName = name;
+            if (veh['plate_number'] != null) _plateNumber = veh['plate_number'];
           }
         }
+
+        // Fallback default jika benar-benar kosong
         if (_vehicleName == '-' || _vehicleName.isEmpty) {
-          final defVeh = await _client.from('vehicles').select('brand, model, plate_number').limit(1).maybeSingle();
-          if (defVeh != null) {
-            _vehicleName = '${defVeh['brand'] ?? 'Toyota'} ${defVeh['model'] ?? 'Land Cruiser'}'.trim();
-            _plateNumber = defVeh['plate_number'] ?? 'B 1945 RI';
-          }
+          _vehicleName = 'Toyota Land Cruiser';
+        }
+        if (_plateNumber == '-' || _plateNumber.isEmpty) {
+          _plateNumber = 'B 1945 RI';
         }
       }
     } catch (e) {

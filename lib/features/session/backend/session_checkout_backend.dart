@@ -90,7 +90,7 @@ class SessionCheckoutBackend extends ChangeNotifier {
 
       final session = sessionId != null
           ? await query.eq('id', sessionId).maybeSingle()
-          : await query.order('created_at', ascending: false).limit(1).maybeSingle();
+          : await query.eq('status', 'active').order('check_in_time', ascending: false).limit(1).maybeSingle();
 
       if (session != null) {
         _activeSessionId = session['id']?.toString();

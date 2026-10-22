@@ -2056,6 +2056,9 @@ class _RecommendationsListState extends State<_RecommendationsList> {
               ),
             ),
             const SizedBox(height: 2),
+            const SizedBox(height: 12),
+            const _CategoryList(),
+            const SizedBox(height: 6),
 
             if (locations.isEmpty)
               Padding(
@@ -2070,7 +2073,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Belum ada rekomendasi parkir aktif',
+                        HomeBackend.instance.selectedCategory == 'Terdekat'
+                            ? 'Belum ada rekomendasi parkir aktif'
+                            : 'Belum ada tempat parkir untuk kategori "${HomeBackend.instance.selectedCategory}"',
+                        textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -2129,6 +2135,11 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     }
                     final primaryImg = photos.first;
 
+                    final distLabel = loc['distance_label']?.toString();
+                    final subText = (distLabel != null && distLabel != '-')
+                        ? '$distLabel • ${loc['city'] ?? 'Kota'} • $capacity slot'
+                        : '${loc['city'] ?? 'Jakarta'} • $capacity slot kapasitas';
+
                     final locData = {
                       'id': loc['id'],
                       'name': loc['name'] ?? 'Spot Parkir',
@@ -2136,7 +2147,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'point': LatLng(lat, lng),
                       'slots': capacity,
                       'isEv': isEv,
-                      'distance': '1.2 km',
+                      'distance': (distLabel != null && distLabel != '-') ? distLabel : '1.2 km',
                       'price': formattedPrice,
                       'rating': ratingVal,
                       'reviews': reviewsVal,
@@ -2148,11 +2159,6 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'hourly_rate_motor': rateMotor,
                       'hourly_rate_active': displayRate,
                     };
-
-                    final distLabel = loc['distance_label']?.toString();
-                    final subText = (distLabel != null && distLabel != '-')
-                        ? '$distLabel • ${loc['city'] ?? 'Kota'} • $capacity slot'
-                        : '${loc['city'] ?? 'Jakarta'} • $capacity slot kapasitas';
 
                     return Padding(
                       padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),

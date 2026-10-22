@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/services/database_cache_balancer_service.dart';
+import '../../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk AdminKycScreen dan AdminKycDetailModal
 /// Menangani verifikasi dokumen identitas KTP pengguna melalui tabel `public.user_kyc`
@@ -86,6 +88,13 @@ class AdminKycBackend extends ChangeNotifier {
           'member_tier': 'GOLD',
         }).eq('id', kycList[idx]['user_id']);
       }
+
+      // Invalidasi cache KYC agar status terverifikasi langsung aktif di user & admin
+      await DatabaseCacheBalancerService.instance.invalidatePrefix('kyc_');
+      if (ProfileBackend.instance.userId == (idx != -1 ? kycList[idx]['user_id'] : null)) {
+        await ProfileBackend.instance.fetchProfile();
+      }
+
       return true;
     } catch (e) {
       debugPrint('[AdminKycBackend] approveKyc error: $e');

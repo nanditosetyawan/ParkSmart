@@ -649,7 +649,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                         ),
                                       ),
                                       Text(
-                                        ' / jam pertama',
+                                        ' / jam',
                                         style: AppTypography.bodySm(
                                           color: isDark ? theme.textMuted : AppColors.textSecondary,
                                         ),

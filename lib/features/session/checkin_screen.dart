@@ -697,6 +697,44 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                   ),
                           ),
                         ),
+                        const SizedBox(height: 12),
+
+                        // Tombol Simpan Saja (kembali tanpa check-in / status tetap Ready)
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: OutlinedButton(
+                            onPressed: () => Navigator.pop(context),
+                            style: OutlinedButton.styleFrom(
+                              backgroundColor: isDark ? Colors.transparent : const Color(0xFFF1EEE7),
+                              foregroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                              side: BorderSide(
+                                color: isDark ? const Color(0xFF2D3542) : Colors.transparent,
+                                width: 1.5,
+                              ),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                            ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.account_balance_wallet_outlined,
+                                  size: 18,
+                                  color: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                                ),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Simpan Saja',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white : const Color(0xFF1C1D1F),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
                       ],
                     ),
                   ),

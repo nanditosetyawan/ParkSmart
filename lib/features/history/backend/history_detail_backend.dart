@@ -59,37 +59,59 @@ class HistoryDetailBackend extends ChangeNotifier {
     return '${dt.day} ${months[dt.month]} ${dt.year}';
   }
 
+  Map<String, dynamic>? _asMap(dynamic val) {
+    if (val is Map<String, dynamic>) return val;
+    if (val is List && val.isNotEmpty && val.first is Map<String, dynamic>) {
+      return val.first as Map<String, dynamic>;
+    }
+    return null;
+  }
+
   Future<void> fetchDetail(String? id) async {
-    if (id == null || id.isEmpty) return;
+    _hasData = false;
+    if (id == null || id.trim().isEmpty) {
+      _isLoading = false;
+      notifyListeners();
+      return;
+    }
     _isLoading = true;
     notifyListeners();
 
     try {
+      final cleanId = id.trim();
       final bool isUuid = RegExp(
         r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
-      ).hasMatch(id);
+      ).hasMatch(cleanId);
 
       // 1. Cek pada tabel parking_sessions
       Map<String, dynamic>? res;
+      const sessionSelect = 'id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, expected_check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, plate_number, vehicle_desc, vehicles(brand, model, plate_number))';
       if (isUuid) {
         res = await _client
             .from('parking_sessions')
-            .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
-            .eq('id', id)
+            .select(sessionSelect)
+            .eq('id', cleanId)
+            .maybeSingle();
+
+        // Jika tidak ditemukan by id, coba cari by booking_id
+        res ??= await _client
+            .from('parking_sessions')
+            .select(sessionSelect)
+            .eq('booking_id', cleanId)
             .maybeSingle();
       } else {
         res = await _client
             .from('parking_sessions')
-            .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
-            .eq('session_code', id)
+            .select(sessionSelect)
+            .eq('session_code', cleanId)
             .maybeSingle();
 
         if (res == null) {
-          final b = await _client.from('bookings').select('id').eq('booking_code', id).maybeSingle();
-          if (b != null) {
+          final b = await _client.from('bookings').select('id').eq('booking_code', cleanId).maybeSingle();
+          if (b != null && b['id'] != null) {
             res = await _client
                 .from('parking_sessions')
-                .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
+                .select(sessionSelect)
                 .eq('booking_id', b['id'])
                 .maybeSingle();
           }
@@ -98,30 +120,41 @@ class HistoryDetailBackend extends ChangeNotifier {
 
       if (res != null) {
         _hasData = true;
-        final booking = res['bookings'] as Map<String, dynamic>?;
-        final slot = res['parking_slots'] as Map<String, dynamic>?;
-        final loc = res['parking_locations'] as Map<String, dynamic>?;
+        final booking = _asMap(res['bookings']);
+        final slot = _asMap(res['parking_slots']);
+        final loc = _asMap(res['parking_locations']);
 
         // Transaction code & hash (unique per booking / session)
-        final rawCode = booking?['booking_code']?.toString() ?? res['session_code']?.toString() ?? id;
+        final rawCode = booking?['booking_code']?.toString() ?? res['session_code']?.toString() ?? cleanId;
         _transactionCode = rawCode;
         final safeClean = rawCode.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
-        _blockHash = '0x${safeClean.padRight(8, '0').substring(0, 8)}...${id.replaceAll('-', '').substring(0, 4)}';
+        final rawIdClean = cleanId.replaceAll('-', '');
+        final idSuffix = rawIdClean.length >= 4 ? rawIdClean.substring(0, 4) : rawIdClean.padRight(4, '0');
+        _blockHash = '0x${safeClean.padRight(8, '0').substring(0, 8)}...$idSuffix';
 
-        // Vehicle info
-        if (booking?['vehicles'] != null) {
-          final veh = booking!['vehicles'] as Map<String, dynamic>;
-          _vehicleInfo = '${veh['brand'] ?? 'Kendaraan'} ${veh['model'] ?? ''} (${veh['plate_number'] ?? ''})'.trim();
-        } else if (res['vehicle_desc'] != null && res['vehicle_desc'].toString() != 'Toyota Raize') {
-          _vehicleInfo = '${res['vehicle_desc']} (${res['plate_number'] ?? ''})'.trim();
+        // Vehicle info (paten dari snapshot sesi atau booking)
+        final sesPlate = (res['plate_number'] ?? '').toString().trim();
+        final sesDesc = (res['vehicle_desc'] ?? '').toString().trim();
+        final bookPlate = (booking?['plate_number'] ?? '').toString().trim();
+        final bookDesc = (booking?['vehicle_desc'] ?? '').toString().trim();
+        final veh = _asMap(booking?['vehicles']);
+
+        if (sesDesc.isNotEmpty && sesPlate.isNotEmpty) {
+          _vehicleInfo = '$sesDesc ($sesPlate)';
+        } else if (sesPlate.isNotEmpty) {
+          _vehicleInfo = sesDesc.isNotEmpty ? '$sesDesc ($sesPlate)' : sesPlate;
+        } else if (bookDesc.isNotEmpty && bookPlate.isNotEmpty) {
+          _vehicleInfo = '$bookDesc ($bookPlate)';
+        } else if (bookPlate.isNotEmpty) {
+          _vehicleInfo = bookDesc.isNotEmpty ? '$bookDesc ($bookPlate)' : bookPlate;
+        } else if (veh != null) {
+          final b = (veh['brand'] ?? '').toString().trim();
+          final m = (veh['model'] ?? '').toString().trim();
+          final p = (veh['plate_number'] ?? '').toString().trim();
+          final name = '$b $m'.trim();
+          _vehicleInfo = name.isNotEmpty ? '$name ($p)' : (p.isNotEmpty ? p : 'Kendaraan Terdaftar');
         } else {
-          // Query user vehicle from vehicles table
-          final vehRes = await _client.from('vehicles').select('brand, model, plate_number').limit(1).maybeSingle();
-          if (vehRes != null) {
-            _vehicleInfo = '${vehRes['brand'] ?? 'Toyota'} ${vehRes['model'] ?? 'Land Cruiser'} (${vehRes['plate_number'] ?? 'B 1945 RI'})'.trim();
-          } else {
-            _vehicleInfo = 'Toyota Land Cruiser (B 1945 RI)';
-          }
+          _vehicleInfo = 'Toyota Land Cruiser (B 1945 RI)';
         }
 
         // Amount (avoid Rp 0)
@@ -190,26 +223,35 @@ class HistoryDetailBackend extends ChangeNotifier {
       } else {
         // 2. Jika tidak ada di parking_sessions, cari pada tabel bookings
         Map<String, dynamic>? bRes;
+        const bookingSelect = 'id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, plate_number, vehicle_desc, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)';
         if (isUuid) {
           bRes = await _client
               .from('bookings')
-              .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
-              .eq('id', id)
+              .select(bookingSelect)
+              .eq('id', cleanId)
+              .maybeSingle();
+
+          bRes ??= await _client
+              .from('bookings')
+              .select(bookingSelect)
+              .eq('booking_code', cleanId)
               .maybeSingle();
         } else {
           bRes = await _client
               .from('bookings')
-              .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
-              .eq('booking_code', id)
+              .select(bookingSelect)
+              .eq('booking_code', cleanId)
               .maybeSingle();
         }
 
         if (bRes != null) {
           _hasData = true;
-          final rawCode = bRes['booking_code']?.toString() ?? id;
+          final rawCode = bRes['booking_code']?.toString() ?? cleanId;
           _transactionCode = rawCode;
           final safeClean = rawCode.replaceAll(RegExp(r'[^a-zA-Z0-9]'), '').toLowerCase();
-          _blockHash = '0x${safeClean.padRight(8, '0').substring(0, 8)}...${id.replaceAll('-', '').substring(0, 4)}';
+          final rawIdClean = cleanId.replaceAll('-', '');
+          final idSuffix = rawIdClean.length >= 4 ? rawIdClean.substring(0, 4) : rawIdClean.padRight(4, '0');
+          _blockHash = '0x${safeClean.padRight(8, '0').substring(0, 8)}...$idSuffix';
 
           final numPrice = (bRes['total_price'] as num?)?.toDouble() ?? 11000.0;
           _totalAmount = numPrice.toInt();
@@ -225,23 +267,30 @@ class HistoryDetailBackend extends ChangeNotifier {
             endTime: bEnd,
           );
 
-          if (bRes['vehicles'] != null) {
-            final veh = bRes['vehicles'] as Map<String, dynamic>;
-            _vehicleInfo = '${veh['brand'] ?? 'Kendaraan'} ${veh['model'] ?? ''} (${veh['plate_number'] ?? ''})'.trim();
+          // Info kendaraan paten dari snapshot booking
+          final bookPlate = (bRes['plate_number'] ?? '').toString().trim();
+          final bookDesc = (bRes['vehicle_desc'] ?? '').toString().trim();
+          final veh = _asMap(bRes['vehicles']);
+
+          if (bookDesc.isNotEmpty && bookPlate.isNotEmpty) {
+            _vehicleInfo = '$bookDesc ($bookPlate)';
+          } else if (bookPlate.isNotEmpty) {
+            _vehicleInfo = bookDesc.isNotEmpty ? '$bookDesc ($bookPlate)' : bookPlate;
+          } else if (veh != null) {
+            final b = (veh['brand'] ?? '').toString().trim();
+            final m = (veh['model'] ?? '').toString().trim();
+            final p = (veh['plate_number'] ?? '').toString().trim();
+            final name = '$b $m'.trim();
+            _vehicleInfo = name.isNotEmpty ? '$name ($p)' : (p.isNotEmpty ? p : 'Kendaraan Terdaftar');
           } else {
-            final vehRes = await _client.from('vehicles').select('brand, model, plate_number').limit(1).maybeSingle();
-            if (vehRes != null) {
-              _vehicleInfo = '${vehRes['brand'] ?? 'Toyota'} ${vehRes['model'] ?? 'Land Cruiser'} (${vehRes['plate_number'] ?? 'B 1945 RI'})'.trim();
-            } else {
-              _vehicleInfo = 'Toyota Land Cruiser (B 1945 RI)';
-            }
+            _vehicleInfo = 'Toyota Land Cruiser (B 1945 RI)';
           }
 
-          final loc = bRes['parking_locations'] as Map<String, dynamic>?;
+          final loc = _asMap(bRes['parking_locations']);
           _locationName = loc?['name']?.toString() ?? 'ParkSmart Central Hub';
           _locationDetail = loc?['address']?.toString() ?? 'Jl. Jenderal Sudirman No. Kav 21, Jakarta Pusat';
 
-          final slot = bRes['parking_slots'] as Map<String, dynamic>?;
+          final slot = _asMap(bRes['parking_slots']);
           final slotCode = slot?['slot_code']?.toString() ?? 'A-01';
           final floorName = slot?['floor_name']?.toString() ?? 'Lantai 1';
           _slotInfo = 'Slot $slotCode • $floorName';
@@ -271,8 +320,8 @@ class HistoryDetailBackend extends ChangeNotifier {
           _discount = 0;
         }
       }
-    } catch (e) {
-      debugPrint('HistoryDetailBackend fetchDetail error: $e');
+    } catch (e, stack) {
+      debugPrint('HistoryDetailBackend fetchDetail error: $e\n$stack');
     } finally {
       _isLoading = false;
       notifyListeners();

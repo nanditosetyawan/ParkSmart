@@ -28,13 +28,15 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   String? _customGroqApiKey;
   
   String get _apiKey {
-    if (_customGroqApiKey != null && _customGroqApiKey!.isNotEmpty) {
+    if (_customGroqApiKey != null &&
+        _customGroqApiKey!.isNotEmpty &&
+        !_customGroqApiKey!.startsWith('gsk_b7S8')) {
       return _customGroqApiKey!;
     }
     try {
       if (dotenv.isInitialized) {
         final key = dotenv.env['GROQ_API_KEY'];
-        if (key != null && key.isNotEmpty) return key;
+        if (key != null && key.isNotEmpty && !key.startsWith('gsk_b7S8')) return key.trim();
       }
     } catch (_) {}
     return '';
@@ -167,7 +169,12 @@ GAYA BAHASA:
       final prefs = await SharedPreferences.getInstance();
       final latestKey = prefs.getString('groq_api_key');
       if (latestKey != null && latestKey.isNotEmpty) {
-        _customGroqApiKey = latestKey;
+        if (latestKey.startsWith('gsk_b7S8')) {
+          await prefs.remove('groq_api_key');
+          _customGroqApiKey = null;
+        } else {
+          _customGroqApiKey = latestKey;
+        }
       }
     } catch (_) {}
 
@@ -230,6 +237,17 @@ GAYA BAHASA:
         final reply = data['choices'][0]['message']['content'] ?? 'Maaf, saya tidak mengerti.';
         setState(() {
           _messages.add({'role': 'assistant', 'content': reply});
+        });
+        _saveChatHistory();
+      } else if (response.statusCode == 401) {
+        // Otomatis hapus key yang tidak valid dari cache lokal
+        await AiConfigService.instance.clearInvalidApiKey();
+        _customGroqApiKey = null;
+        setState(() {
+          _messages.add({
+            'role': 'assistant',
+            'content': 'Kunci API Groq sebelumnya telah kadaluarsa (Error 401). Sistem telah otomatis mereset dan memulihkan kunci API ke versi aktif. Silakan ulangi pesan Anda sekali lagi.'
+          });
         });
         _saveChatHistory();
       } else {

@@ -173,7 +173,11 @@ class VehicleBackend extends ChangeNotifier {
     try {
       await _client.from('vehicles').delete().eq('id', vehicleId);
       _vehicles.removeWhere((v) => v.id == vehicleId);
-      notifyListeners();
+      if (_vehicles.isNotEmpty && !_vehicles.any((v) => v.isDefault)) {
+        await setDefaultVehicle(_vehicles.first.id);
+      } else {
+        notifyListeners();
+      }
       return true;
     } catch (e) {
       debugPrint('Error deleteVehicle: $e');

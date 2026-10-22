@@ -19,22 +19,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
     NotificationBackend.instance.fetchNotifications();
   }
 
-  String _formatTime(dynamic createdAt) {
-    if (createdAt == null) return 'Baru Saja';
-    try {
-      final dt = DateTime.parse(createdAt.toString()).toLocal();
-      final diff = DateTime.now().difference(dt);
-      if (diff.inMinutes < 60) {
-        return '${diff.inMinutes} Menit Lalu';
-      } else if (diff.inHours < 24) {
-        return '${diff.inHours} Jam Lalu';
-      } else {
-        return '${diff.inDays} Hari Lalu';
-      }
-    } catch (_) {
-      return 'Baru Saja';
-    }
-  }
+
 
   IconData _getIconForType(String? type) {
     switch (type) {
@@ -260,7 +245,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                           color: _getColorForType(item['notification_type'] as String?),
                           title: item['title'] as String? ?? 'Pemberitahuan',
                           message: item['message'] as String? ?? '',
-                          time: _formatTime(item['created_at']),
                           isNew: item['is_read'] == false,
                           cardBg: cardBg,
                           cardBorder: cardBorder,
@@ -290,7 +274,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
     required Color color,
     required String title,
     required String message,
-    required String time,
     required bool isNew,
     required Color cardBg,
     required Color cardBorder,
@@ -347,8 +330,6 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(message, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSub, height: 1.5)),
-                  const SizedBox(height: 12),
-                  Text(time, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: textHeader)),
                 ],
               ),
             ),

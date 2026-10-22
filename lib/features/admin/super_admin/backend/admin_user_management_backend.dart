@@ -40,7 +40,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
             'phone': row['phone'] as String? ?? '-',
             'role': roleString,
             'status': statusString,
-            'password': row['password'] as String? ?? 'superadmin123',
+            'password': row['password']?.toString() ?? '-',
             'avatar': fullName.isNotEmpty ? fullName[0].toUpperCase() : 'A',
             'avatarPath': row['avatar_url'] as String?,
             'lastLogin': row['last_login_at'] != null ? 'Baru saja' : 'Belum pernah',

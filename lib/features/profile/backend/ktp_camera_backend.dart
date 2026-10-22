@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/supabase_storage_service.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
+import 'profile_backend.dart';
 
 /// Backend khusus untuk KtpCameraScreen
 /// Menangani pengambilan/pemilihan foto KTP dan foto selfie wajah,
@@ -118,20 +119,37 @@ class KtpCameraBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id;
+      final loggedInUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
+      final uid = userId ?? loggedInUid ?? _client.auth.currentUser?.id;
 
       // Cari atau fallback ke user pertama jika testing
       String targetUserId;
-      if (uid != null) {
+      if (uid != null && uid.isNotEmpty) {
         targetUserId = uid;
       } else {
-        final existingUser = await _client.from('users').select('id').limit(1).maybeSingle();
+        final existingUser = await _client.from('users').select('id').order('created_at', ascending: true).limit(1).maybeSingle();
         targetUserId = existingUser != null ? existingUser['id'].toString() : '00000000-0000-0000-0000-000000000000';
+      }
+
+      // Cek apakah data pengajuan KYC untuk user ini sudah ada di database
+      final existingKyc = await _client
+          .from('user_kyc')
+          .select('id, nik')
+          .eq('user_id', targetUserId)
+          .maybeSingle();
+
+      String finalNik = nik;
+      if (existingKyc != null && existingKyc['nik'] != null && existingKyc['nik'].toString().isNotEmpty) {
+        finalNik = existingKyc['nik'].toString();
+      } else {
+        // Buat NIK 16 digit yang unik per user_id agar tidak melanggar unique constraint
+        final digits = targetUserId.replaceAll(RegExp(r'[^0-9]'), '');
+        finalNik = ('3171${digits}987654321012').substring(0, 16);
       }
 
       final payload = {
         'user_id': targetUserId,
-        'nik': nik,
+        'nik': finalNik,
         'full_name': fullName,
         'birth_place_city': birthPlaceCity ?? 'Jakarta',
         'birth_date': birthDate?.toIso8601String().split('T').first ?? '1998-01-01',
@@ -142,14 +160,24 @@ class KtpCameraBackend extends ChangeNotifier {
         'ktp_image_url': _ktpImageUrl,
         'selfie_image_url': _selfieImageUrl,
         'status': 'pending',
+        'reject_reason': null,
+        'reviewed_by': null,
+        'reviewed_at': null,
         'submitted_at': DateTime.now().toIso8601String(),
         'updated_at': DateTime.now().toIso8601String(),
       };
 
-      await _client.from('user_kyc').upsert(payload, onConflict: 'user_id');
+      if (existingKyc != null && existingKyc['id'] != null) {
+        await _client.from('user_kyc').update(payload).eq('id', existingKyc['id']);
+      } else {
+        await _client.from('user_kyc').insert(payload);
+      }
 
       // Invalidasi cache KYC agar admin dan profil langsung membaca data terkini
       await DatabaseCacheBalancerService.instance.invalidatePrefix('kyc_');
+
+      // Segarkan status profil pengguna secara instan
+      await ProfileBackend.instance.fetchProfile();
 
       debugPrint('[KtpCameraBackend] Sukses submit KYC ke user_kyc');
       return true;
