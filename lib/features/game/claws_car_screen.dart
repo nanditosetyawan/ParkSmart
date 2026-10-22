@@ -1,11 +1,74 @@
 import '../../theme/app_theme.dart';
 import 'dart:async';
 import 'dart:math' as math;
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:sensors_plus/sensors_plus.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import '../../core/services/sound_service.dart';
 import 'backend/claws_car_backend.dart';
+
+// ============================================================================
+// MODEL ITEM DALAM MESIN CAPIT (KOIN, IKAN, BATU)
+// Setiap biji adalah individu mandiri dengan posisi, rotasi, & fisika sendiri
+// ============================================================================
+enum ClawItemType { coin, ikan, batu }
+
+class ClawItem {
+  final String id;
+  final ClawItemType type;
+  double normalizedX; // 0.0 s/d 1.0 pada lebar dasar etalase
+  double normalizedY; // 0.0 (atas) s/d 1.0 (lantai dasar)
+  double pixelX;
+  double pixelY;
+  double vx;
+  double vy;
+  double rotation;
+  double vRot;
+  int layer; // 0 = lapis bawah, 1 = lapis atas (bertumpuk)
+  bool isGrabbed;
+  bool isDropped;
+
+  ClawItem({
+    required this.id,
+    required this.type,
+    required this.normalizedX,
+    required this.normalizedY,
+    this.pixelX = 0.0,
+    this.pixelY = 0.0,
+    this.vx = 0.0,
+    this.vy = 0.0,
+    this.rotation = 0.0,
+    this.vRot = 0.0,
+    required this.layer,
+    this.isGrabbed = false,
+    this.isDropped = false,
+  });
+
+  String get assetPath {
+    switch (type) {
+      case ClawItemType.coin:
+        return 'assets/images/coin.png';
+      case ClawItemType.ikan:
+        return 'assets/images/ikan.png';
+      case ClawItemType.batu:
+        return 'assets/images/batu.png';
+    }
+  }
+
+  String get displayName {
+    switch (type) {
+      case ClawItemType.coin:
+        return 'Koin Emas';
+      case ClawItemType.ikan:
+        return 'Ikan';
+      case ClawItemType.batu:
+        return 'Batu';
+    }
+  }
+}
 
 class ClawsCarScreen extends StatefulWidget {
   const ClawsCarScreen({super.key});
@@ -15,7 +78,7 @@ class ClawsCarScreen extends StatefulWidget {
 }
 
 class _ClawsCarScreenState extends State<ClawsCarScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, WidgetsBindingObserver {
   // Posisi horizontal crane (0.0 = ujung kiri lubang pembuangan, 1.0 = ujung kanan)
   double _craneX = 0.5;
 
@@ -59,9 +122,37 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   int _userPoints = 25000; // Poin akumulasi dari game Parking Challenge
   int _credits = 5; // Koin capit untuk bermain
 
+  // ============================================================
+  // ITEM & SENSOR FISIKA
+  // ============================================================
+  List<ClawItem> _items = [];
+  ClawItem? _heldItem; // Item yang sedang dicapit saat ini
+
+  // Cache gambar ui.Image untuk rendering CustomPainter
+  ui.Image? _coinImage;
+  ui.Image? _fishImage;
+  ui.Image? _rockImage;
+
+  // Batas area kaca etalase mesin capit (dihitung dinamis oleh painter)
+  double _chamberMinX = 0.0;
+  double _chamberMaxX = 300.0;
+  double _chamberMinY = 0.0;
+  double _chamberMaxY = 300.0;
+  bool _hasInitialPositions = false;
+
+  // Sensor HP Shake (Kocok)
+  StreamSubscription<AccelerometerEvent>? _accelSub;
+  DateTime _lastShakeTime = DateTime.now();
+  Timer? _physicsTimer;
+
   @override
   void initState() {
     super.initState();
+
+    WidgetsBinding.instance.addObserver(this);
+
+    // Putar musik claws (musiccrawls.mp3) nonstop secara loop tak terbatas selama halaman terbuka
+    SoundService.startClawsMusic();
 
     // 1. Kunci rotasi ke portrait
     SystemChrome.setPreferredOrientations([
@@ -70,6 +161,9 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
     _loadUserData();
+    _loadAssetImages();
+    _items = _generateDefaultItems();
+    _initSensors();
 
     // Controller turun & naik capit
     _dropController = AnimationController(
@@ -102,28 +196,24 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       });
     });
 
-    // Controller pintu flap 3D lubang pembuangan dengan gerakan buka-tutup natural (berayun buka lalu balik menutup membal)
+    // Controller pintu flap 3D lubang pembuangan dengan gerakan buka-tutup natural
     _flapController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1050),
     );
     _flapAnimation = TweenSequence<double>([
-      // 1. Terdorong ke dalam oleh hadiah jatuh (0.0 -> 1.0)
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.0, end: 1.0).chain(CurveTween(curve: Curves.easeOutCubic)),
         weight: 28,
       ),
-      // 2. Berayun kembali dan membal sedikit keluar (-0.16)
       TweenSequenceItem(
         tween: Tween<double>(begin: 1.0, end: -0.16).chain(CurveTween(curve: Curves.easeInOutQuad)),
         weight: 26,
       ),
-      // 3. Membal berayun ke dalam lagi sedikit (0.08)
       TweenSequenceItem(
         tween: Tween<double>(begin: -0.16, end: 0.08).chain(CurveTween(curve: Curves.easeInOutQuad)),
         weight: 22,
       ),
-      // 4. Meredam dan kembali diam menutup normal (0.0)
       TweenSequenceItem(
         tween: Tween<double>(begin: 0.08, end: 0.0).chain(CurveTween(curve: Curves.easeOutQuad)),
         weight: 24,
@@ -159,6 +249,189 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     });
   }
 
+  // ============================================================
+  // INISIALISASI 2 LAPIS ITEM BERTUMPUK DI DALAM KACA MESIN CAPIT
+  // ============================================================
+  List<ClawItem> _generateDefaultItems() {
+    final List<ClawItem> list = [];
+
+    // Lapis 0 (Bawah): 6 butir item mandiri di lantai dasar etalase
+    final layer0Types = [
+      ClawItemType.batu,
+      ClawItemType.coin,
+      ClawItemType.ikan,
+      ClawItemType.batu,
+      ClawItemType.coin,
+      ClawItemType.ikan,
+    ];
+    for (int i = 0; i < layer0Types.length; i++) {
+      final double normX = 0.08 + i * (0.84 / (layer0Types.length - 1));
+      list.add(ClawItem(
+        id: 'L0_$i',
+        type: layer0Types[i],
+        normalizedX: normX,
+        normalizedY: 0.96, // Duduk di lantai dasar
+        rotation: (i % 2 == 0 ? 0.08 : -0.12) * (i + 1),
+        layer: 0,
+      ));
+    }
+
+    // Lapis 1 (Atas): 5 butir item mandiri bertumpuk di atas lapis 0
+    final layer1Types = [
+      ClawItemType.coin,
+      ClawItemType.ikan,
+      ClawItemType.batu,
+      ClawItemType.coin,
+      ClawItemType.ikan,
+    ];
+    for (int i = 0; i < layer1Types.length; i++) {
+      final double normX = 0.16 + i * (0.68 / (layer1Types.length - 1));
+      list.add(ClawItem(
+        id: 'L1_$i',
+        type: layer1Types[i],
+        normalizedX: normX,
+        normalizedY: 0.76, // Bertumpuk di atas lapis 0
+        rotation: (i % 2 == 0 ? -0.18 : 0.22) * (i + 1),
+        layer: 1,
+      ));
+    }
+
+    return list;
+  }
+
+  // Decode gambar aset menjadi ui.Image dengan ukuran teroptimasi
+  Future<void> _loadAssetImages() async {
+    try {
+      _coinImage = await _decodeAssetImage('assets/images/coin.png', 100, 100);
+      _fishImage = await _decodeAssetImage('assets/images/ikan.png', 100, 100);
+      _rockImage = await _decodeAssetImage('assets/images/batu.png', 100, 100);
+      if (mounted) {
+        setState(() {});
+      }
+    } catch (e) {
+      debugPrint('[ClawsCar] Error decoding asset images: $e');
+    }
+  }
+
+  Future<ui.Image> _decodeAssetImage(String path, int targetWidth, int targetHeight) async {
+    final byteData = await rootBundle.load(path);
+    final codec = await ui.instantiateImageCodec(
+      byteData.buffer.asUint8List(),
+      targetWidth: targetWidth,
+      targetHeight: targetHeight,
+    );
+    final frameInfo = await codec.getNextFrame();
+    return frameInfo.image;
+  }
+
+  // ============================================================
+  // SENSOR HP KOCOK (SHAKE DETECTOR) & FISIKA LOMPAT DI DALAM KACA
+  // ============================================================
+  void _initSensors() {
+    try {
+      _accelSub = accelerometerEventStream().listen((event) {
+        final double gX = event.x / 9.80665;
+        final double gY = event.y / 9.80665;
+        final double gZ = event.z / 9.80665;
+        final double gForce = math.sqrt(gX * gX + gY * gY + gZ * gZ);
+
+        // Ambang batas g-force gerakan kocok HP
+        if (gForce > 2.2) {
+          final now = DateTime.now();
+          if (now.difference(_lastShakeTime).inMilliseconds > 380) {
+            _lastShakeTime = now;
+            _shakeItems(gForce: gForce, dirX: -gX);
+          }
+        }
+      });
+    } catch (e) {
+      debugPrint('[ClawsCar] Accelerometer stream warning: $e');
+    }
+  }
+
+  /// Memicu efek kocok pada semua item di dalam etalase kaca
+  void _shakeItems({double gForce = 2.4, double dirX = 0.0}) {
+    if (_isOperating) return; // Jangan kocok saat capit sedang aktif bergerak turun
+    HapticFeedback.mediumImpact();
+
+    final rnd = math.Random();
+    for (final item in _items) {
+      if (item.isGrabbed || item.isDropped) continue;
+      // Lompatan vertikal mandiri ke atas
+      item.vy = - (rnd.nextDouble() * 10.0 + 7.5);
+      // Menggelinding ke kanan atau ke kiri secara mandiri beda-beda arah
+      final double spread = (rnd.nextDouble() - 0.5) * 15.0;
+      final double bias = dirX.abs() > 0.2 ? (dirX > 0 ? 3.5 : -3.5) : 0.0;
+      item.vx = spread + bias;
+      // Rotasi menggelinding mandiri
+      item.vRot = (rnd.nextDouble() - 0.5) * 0.55;
+    }
+
+    _startPhysicsLoop();
+  }
+
+  void _startPhysicsLoop() {
+    if (_physicsTimer != null && _physicsTimer!.isActive) return;
+
+    _physicsTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      bool hasActiveMovement = false;
+      const double gravity = 0.70;
+
+      for (final item in _items) {
+        if (item.isGrabbed || item.isDropped) continue;
+
+        if (item.vy.abs() > 0.05 || item.vx.abs() > 0.05 || item.pixelY < _chamberMaxY) {
+          hasActiveMovement = true;
+          item.pixelX += item.vx;
+          item.pixelY += item.vy;
+          item.rotation += item.vRot;
+          item.vy += gravity;
+
+          // Batas Kaca Kiri (tidak boleh tembus kaca)
+          if (item.pixelX < _chamberMinX) {
+            item.pixelX = _chamberMinX;
+            item.vx = -item.vx * 0.50; // Membal dari kaca kiri
+          }
+          // Batas Kaca Kanan (tidak boleh tembus kaca)
+          if (item.pixelX > _chamberMaxX) {
+            item.pixelX = _chamberMaxX;
+            item.vx = -item.vx * 0.50; // Membal dari kaca kanan
+          }
+          // Batas Kaca Atas (di bawah rel capit, jangan sampai keluar mesin)
+          if (item.pixelY < _chamberMinY) {
+            item.pixelY = _chamberMinY;
+            item.vy = 0.0;
+          }
+          // Batas Dasar Lantai Kaca
+          if (item.pixelY >= _chamberMaxY) {
+            item.pixelY = _chamberMaxY;
+            if (item.vy > 1.2) {
+              item.vy = -item.vy * 0.35; // Membal di lantai
+            } else {
+              item.vy = 0.0;
+            }
+            // Gesekan menggelinding di lantai
+            item.vx *= 0.88;
+            item.vRot *= 0.85;
+
+            if (item.vx.abs() < 0.1) item.vx = 0.0;
+            if (item.vy.abs() < 0.1) item.vy = 0.0;
+            if (item.vRot.abs() < 0.02) item.vRot = 0.0;
+          }
+        }
+      }
+
+      if (mounted) {
+        setState(() {});
+      }
+
+      if (!hasActiveMovement) {
+        timer.cancel();
+        _physicsTimer = null;
+      }
+    });
+  }
+
   Future<void> _loadUserData() async {
     final prefs = await SharedPreferences.getInstance();
     if (mounted) {
@@ -168,6 +441,104 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
         _credits = prefs.getInt('claws_car_coins') ?? 5;
       });
     }
+  }
+
+  // ============================================================
+  // POP UP TUKAR POIN KE KOIN SAAT KOIN HABIS (PILIH YA ATAU TIDAK)
+  // ============================================================
+  void _showOutOfCoinsPrompt() {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF0F172A),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: const BorderSide(color: Color(0xFFF59E0B), width: 1.8),
+        ),
+        title: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.monetization_on_rounded, color: Color(0xFFF59E0B), size: 24),
+            ),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Koin Capit Habis!',
+                style: GoogleFonts.inter(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Koin capit Anda telah habis. Apakah Anda ingin menukar poin dari game Parking Challenge menjadi koin capit sekarang?',
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                color: const Color(0xFF94A3B8),
+                height: 1.4,
+              ),
+            ),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1E293B),
+                borderRadius: BorderRadius.circular(10),
+                border: Border.all(color: const Color(0xFF334155)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 16),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Aturan: 10.000 Poin = 1 Koin Capit\nPoin Anda: ${_formatNumber(_userPoints)} Pts',
+                      style: GoogleFonts.inter(fontSize: 11, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text(
+              'Tidak',
+              style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontWeight: FontWeight.bold),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(ctx);
+              _showCoinConversionDialog();
+            },
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF10B981),
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: Text(
+              'Ya, Tukar Sekarang',
+              style: GoogleFonts.inter(fontWeight: FontWeight.bold),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showCoinConversionDialog() {
@@ -223,7 +594,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
             content: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                // Info saldo poin & koin saat ini
                 Container(
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
@@ -271,8 +641,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                   ),
                 ),
                 const SizedBox(height: 16),
-
-                // Selector jumlah koin yang ingin ditukar
                 Text(
                   'Jumlah Koin yang Ingin Ditukar:',
                   style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFFE2E8F0)),
@@ -308,8 +676,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                   ],
                 ),
                 const SizedBox(height: 10),
-
-                // Kebutuhan poin
                 Text(
                   'Membutuhkan ${_formatNumber(requiredPoints)} Poin',
                   style: GoogleFonts.inter(
@@ -374,107 +740,197 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     );
   }
 
-  void _showPrizeWonModal(int amount, int newWallet) {
-    // Sinkronisasi ke Supabase arcade_scores (aturan menimpa: 1 row highest, 1 row current)
-    ClawsCarBackend.instance.saveGameResult(
-      score: amount,
-      pointsEarned: (amount / 100).round(),
-    );
+  // ============================================================
+  // POP UP MUNCUL DARI LUBANG BUANG DARI KECIL LALU MEMBESAR
+  // BERUBAH JADI TEKS HADIAH SESUAI RULES USER + TOMBOL OKE
+  // ============================================================
+  Future<void> _showChuteEmergenceDialog(ClawItem? wonItem) async {
+    final bool isCoin = wonItem != null && wonItem.type == ClawItemType.coin;
+    int? updatedWallet;
 
-    showDialog(
+    if (isCoin) {
+      // Inject otomatis uang Rp 1.000 ke saldo user yang sedang main di Supabase
+      updatedWallet = await ClawsCarBackend.instance.injectPrizeMoney(amount: 1000);
+      final prefs = await SharedPreferences.getInstance();
+      final current = prefs.getInt('user_wallet_balance') ?? 0;
+      if (updatedWallet == null) {
+        updatedWallet = current + 1000;
+        await prefs.setInt('user_wallet_balance', updatedWallet);
+      }
+
+      setState(() {
+        _score += 2000;
+      });
+      _saveHighScoreIfBest();
+
+      ClawsCarBackend.instance.saveGameResult(
+        score: _score,
+        pointsEarned: 10,
+      );
+    }
+
+    if (!mounted) return;
+
+    await showGeneralDialog(
       context: context,
-      barrierDismissible: true,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: const BorderSide(color: Color(0xFF10B981), width: 2),
-        ),
-        contentPadding: const EdgeInsets.all(20),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 56,
-              height: 56,
+      barrierDismissible: false,
+      barrierLabel: 'Chute Emergence Prize',
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      transitionDuration: const Duration(milliseconds: 550),
+      transitionBuilder: (context, anim1, anim2, child) {
+        // Efek animasi: muncul dari titik lubang buang di kiri bawah (scale dari kecil membesar)
+        final curved = CurvedAnimation(parent: anim1, curve: Curves.easeOutBack);
+        return ScaleTransition(
+          alignment: const Alignment(-0.55, 0.60), // Berakar dari koordinat lubang pengeluaran hadiah
+          scale: curved,
+          child: FadeTransition(
+            opacity: anim1,
+            child: child,
+          ),
+        );
+      },
+      pageBuilder: (context, anim1, anim2) {
+        return Center(
+          child: Material(
+            color: Colors.transparent,
+            child: Container(
+              width: 320,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.all(22),
               decoration: BoxDecoration(
-                color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                shape: BoxShape.circle,
-                border: Border.all(color: const Color(0xFF10B981), width: 2),
-              ),
-              child: const Icon(Icons.attach_money_rounded, color: Color(0xFF10B981), size: 34),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              'HADIAH UANG TERCAPIT!',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontWeight: FontWeight.w900,
-                fontSize: 16,
-                letterSpacing: 0.5,
-              ),
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Selamat! Anda berhasil mencapit hadiah tunai:',
-              textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 12),
-            ),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-              decoration: BoxDecoration(
-                color: const Color(0xFF064E3B),
-                borderRadius: BorderRadius.circular(10),
-                border: Border.all(color: const Color(0xFF10B981)),
-              ),
-              child: Text(
-                'Rp ${_formatNumber(amount)}',
-                style: GoogleFonts.inter(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: const Color(0xFF34D399),
+                color: const Color(0xFF0F172A),
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(
+                  color: isCoin ? const Color(0xFF10B981) : const Color(0xFFEF4444),
+                  width: 2.2,
                 ),
+                boxShadow: [
+                  BoxShadow(
+                    color: isCoin
+                        ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                        : const Color(0xFFEF4444).withValues(alpha: 0.35),
+                    blurRadius: 28,
+                    spreadRadius: 3,
+                  ),
+                ],
               ),
-            ),
-            const SizedBox(height: 14),
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: const Color(0xFF1E293B),
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF38BDF8), size: 16),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      'Uang langsung masuk ke saldo ParkSmart Pay Anda: Rp ${_formatNumber(newWallet)}',
-                      style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFFE2E8F0)),
+                  // Gambar Item yang Keluar dari Lubang Buang (Coin, Ikan, Batu, atau Silang Luput)
+                  Container(
+                    width: 76,
+                    height: 76,
+                    decoration: BoxDecoration(
+                      color: isCoin
+                          ? const Color(0xFF10B981).withValues(alpha: 0.18)
+                          : const Color(0xFFEF4444).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: isCoin ? const Color(0xFF34D399) : const Color(0xFFF87171),
+                        width: 2,
+                      ),
+                    ),
+                    child: Center(
+                      child: wonItem != null
+                          ? Image.asset(
+                              wonItem.assetPath,
+                              width: 50,
+                              height: 50,
+                              fit: BoxFit.contain,
+                            )
+                          : const Icon(Icons.close_rounded, color: Color(0xFFF87171), size: 40),
+                    ),
+                  ),
+                  const SizedBox(height: 16),
+
+                  // TEKS RULES UTAMA SESUAI INSTRUKSI USER:
+                  // - Jika coin: "selamat dapat 1000 rupiah"
+                  // - Jika selain coin: "zonk" dan "tidak ada hadiah"
+                  Text(
+                    isCoin ? 'selamat dapat 1000 rupiah' : 'zonk',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 19,
+                      fontWeight: FontWeight.w900,
+                      color: isCoin ? const Color(0xFF34D399) : const Color(0xFFEF4444),
+                      letterSpacing: 0.5,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  Text(
+                    isCoin
+                        ? 'Saldo Rp 1.000 otomatis telah di-inject ke akun ParkSmart Pay Anda!'
+                        : 'tidak ada hadiah',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      color: const Color(0xFF94A3B8),
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+
+                  if (isCoin && updatedWallet != null) ...[
+                    const SizedBox(height: 14),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF1E293B),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF334155)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.account_balance_wallet_rounded, color: Color(0xFF38BDF8), size: 16),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Saldo Terkini: Rp ${_formatNumber(updatedWallet)}',
+                            style: GoogleFonts.inter(
+                              fontSize: 12,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+
+                  const SizedBox(height: 20),
+
+                  // TOMBOL OKE DI BAWAH TEKS SESUAI INSTRUKSI USER
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: isCoin ? const Color(0xFF10B981) : const Color(0xFF334155),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                      ),
+                      child: Text(
+                        'OKE',
+                        style: GoogleFonts.inter(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          letterSpacing: 1.2,
+                        ),
+                      ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => Navigator.pop(ctx),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF10B981),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                ),
-                child: Text('Ambil & Lanjutkan', style: GoogleFonts.inter(fontWeight: FontWeight.bold)),
-              ),
-            ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -522,82 +978,103 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   }
 
   // ============================================================
-  // LOGIKA ALUR CAPIT LENGKAP:
-  // 1. Awal: Menguncup normal (santai, tidak over-menguncup)
-  // 2. Klik: Membuka kuncup capitan dulu
-  // 3. Turun ke barang dalam kondisi terbuka lebar
-  // 4. Di dasar barang: Menguncup lagi / menjepit erat hadiah
-  // 5. Naik pas udah mentok ke atas
-  // 6. Geser ke lubang pembuangan hadiah di sebelah kiri
-  // 7. Di atas lubang hadiah: Terbuka kuncupnya melepaskan hadiah
-  // 8. Tutup lubang hadiah: Berayun buka-tutup natural (buka ke dalam lalu membal menutup)
-  // 9. Rel kembali ke tengah dan capit kembali menguncup normal
+  // LOGIKA AKSI CAPIT LENGKAP:
+  // 1. Cek Koin (Jika habis, muncul pop-up konfirmasi tukar poin)
+  // 2. Buka kuncup capit lebar
+  // 3. Meluncur turun ke arah barang di dalam kaca
+  // 4. Deteksi item kandidat di bawah capit: YANG PALING ATAS DIKENAI TERCAPIT
+  //    (Hanya 1 item individu mandiri yang terangkat)
+  // 5. Menguncup erat menjepit item
+  // 6. Naik mentok ke atas membawa item
+  // 7. Geser ke lubang pembuangan di sebelah kiri
+  // 8. Di atas lubang, capit terbuka melepaskan item jatuh ke lubang buang
+  // 9. Pintu flap berayun buka-tutup natural
+  // 10. Item berkurang dari etalase mesin
+  // 11. Muncul dari lubang buang dari kecil membesar jadi teks rules user + OKE
+  // 12. Rel kembali ke tengah
   // ============================================================
   Future<void> _triggerClawAction() async {
     if (_isOperating) return;
     if (_credits <= 0) {
-      _showCoinConversionDialog();
+      _showOutOfCoinsPrompt();
       return;
     }
 
     setState(() {
       _isOperating = true;
       _credits--;
+      _heldItem = null;
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('claws_car_coins', _credits);
     HapticFeedback.heavyImpact();
 
-    // 1. Dari posisi awal "menguncup normal", MEMBUKA KUNCUP CAPITAN DULU
+    // 1. Dari posisi awal, MEMBUKA KUNCUP CAPITAN DULU
     await _animateClawPose(1.0, duration: const Duration(milliseconds: 280), curve: Curves.easeOutBack);
     HapticFeedback.lightImpact();
 
-    // 2. Dalam kondisi TERBUKA LEBAR, capit meluncur TURUN ke barang
+    // 2. Meluncur TURUN ke barang dalam kondisi TERBUKA LEBAR
     await _dropController.forward();
     HapticFeedback.mediumImpact();
 
-    // 3. Di dasar barang, capit MENGUNCUP LAGI (menjepit erat hadiah)
+    // 3. Deteksi item yang tepat berada di bawah capit horizontal crane:
+    final double cranePixelX = _chamberMinX + _craneX * (_chamberMaxX - _chamberMinX);
+    final availableItems = _items.where((it) => !it.isGrabbed && !it.isDropped).toList();
+
+    const double grabRadius = 34.0;
+    final candidates = availableItems.where((it) {
+      return (it.pixelX - cranePixelX).abs() < grabRadius;
+    }).toList();
+
+    // "yang tercapit adalah yang paling atas dikenai, 1 biji individu mandiri"
+    ClawItem? targetItem;
+    if (candidates.isNotEmpty) {
+      // Sort berdasarkan pixelY terkecil (tertinggi di layar)
+      candidates.sort((a, b) => a.pixelY.compareTo(b.pixelY));
+      targetItem = candidates.first;
+      targetItem.isGrabbed = true;
+      _heldItem = targetItem;
+    }
+
+    // 4. Di dasar barang, capit MENGUNCUP LAGI (menjepit erat hadiah jika kena)
     await _animateClawPose(2.0, duration: const Duration(milliseconds: 320), curve: Curves.easeInOut);
     HapticFeedback.heavyImpact();
     await Future.delayed(const Duration(milliseconds: 160));
 
-    // 4. Dalam kondisi MENJEPIT, capit NAIK PAS UDAH MENTOK ke atas
+    // 5. Dalam kondisi MENJEPIT, capit NAIK MENTOK ke atas membawa item
     await _dropController.reverse();
 
-    // 5. Meluncur geser ke lubang pembuangan hadiah di sebelah kiri
+    // 6. Meluncur geser ke lubang pembuangan hadiah di sebelah kiri
     _chuteStartCraneX = _craneX;
     await _chuteTravelController.forward();
     _chuteTravelController.reset();
     _craneX = 0.10;
 
-    // 6. Di atas lubang hadiah, TERBUKA KUNCUPNYA untuk melepaskan hadiah
+    // 7. Di atas lubang hadiah, capit TERBUKA KUNCUPNYA melepaskan hadiah
     await _animateClawPose(1.0, duration: const Duration(milliseconds: 260), curve: Curves.easeOut);
     HapticFeedback.heavyImpact();
 
-    // 7. Tutup lubang hadiah berayun buka-tutup secara natural
-    _flapController.forward(from: 0.0);
-
-    // Hadiah Uang Tunai Random: Rp 300, Rp 500, atau Rp 1.000 (langsung masuk ke saldo user)
-    final randomOptions = [300, 500, 1000];
-    final wonCash = randomOptions[math.Random().nextInt(randomOptions.length)];
-
-    final currentWallet = prefs.getInt('user_wallet_balance') ?? 145000;
-    final updatedWallet = currentWallet + wonCash;
-    await prefs.setInt('user_wallet_balance', updatedWallet);
-
-    setState(() {
-      _score += wonCash * 2;
-    });
-    _saveHighScoreIfBest();
-
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      _showPrizeWonModal(wonCash, updatedWallet);
+    // Item terlepas dan jatuh masuk ke rongga lubang buang
+    if (targetItem != null) {
+      targetItem.isGrabbed = false;
+      targetItem.isDropped = true;
+      // Kurangi item dari mesin etalase secara permanen untuk sesi ini
+      _items.remove(targetItem);
     }
 
-    await Future.delayed(const Duration(milliseconds: 500));
+    // 8. Tutup flap lubang hadiah berayun buka-tutup natural
+    _flapController.forward(from: 0.0);
 
-    // 8. Rel bergerak kembali ke posisi tengah santai, dan capit kembali MENGUNCUP NORMAL
+    await Future.delayed(const Duration(milliseconds: 300));
+
+    // 9. Muncul dari lubang buang dari kecil membesar dan berubah jadi teks
+    if (mounted) {
+      await _showChuteEmergenceDialog(targetItem);
+    }
+
+    await Future.delayed(const Duration(milliseconds: 200));
+
+    // 10. Rel bergerak kembali ke posisi tengah santai, dan capit kembali MENGUNCUP NORMAL
     _chuteStartCraneX = _craneX;
     final centerTween = Tween<double>(begin: _craneX, end: 0.50);
     final returnController = AnimationController(
@@ -620,17 +1097,20 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     if (mounted) {
       setState(() {
         _craneX = 0.50;
-        _clawPose = 0.0; // Kembali menguncup normal
+        _clawPose = 0.0;
+        _heldItem = null;
         _isOperating = false;
-        if (_credits <= 0) {
-          _showGameOverModal();
-        }
       });
+
+      // Jika koin habis, tampilkan pop up ajakan tukar poin
+      if (_credits <= 0) {
+        _showOutOfCoinsPrompt();
+      }
     }
   }
 
   // ============================================================
-  // JOYSTICK INTERAKSI FLEKSIBEL (SENTUH DI MANA SAJA DALAM AREA)
+  // JOYSTICK INTERAKSI FLEKSIBEL
   // ============================================================
   void _onJoystickPanDown(DragDownDetails details, BoxConstraints constraints) {
     if (_isOperating) return;
@@ -677,150 +1157,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     _joystickSpringController.forward(from: 0.0);
   }
 
-  void _restartGame() {
-    setState(() {
-      _score = 0;
-      _credits = 5;
-      _craneX = 0.50;
-      _isOperating = false;
-      _clawPose = 0.0;
-    });
-  }
-
-  void _showGameOverModal() {
-    _saveHighScoreIfBest();
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: const Color(0xFF0F172A),
-        insetPadding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(18),
-          side: const BorderSide(color: Color(0xFFEF4444), width: 2),
-        ),
-        contentPadding: const EdgeInsets.fromLTRB(18, 14, 18, 14),
-        content: ConstrainedBox(
-          constraints: BoxConstraints(
-            maxWidth: 340,
-            maxHeight: MediaQuery.of(ctx).size.height * 0.85,
-          ),
-          child: SingleChildScrollView(
-            physics: const BouncingScrollPhysics(),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 50,
-                  height: 50,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEF4444).withValues(alpha: 0.2),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: const Color(0xFFF87171), width: 2),
-                  ),
-                  child: const Icon(Icons.precision_manufacturing_rounded, color: Color(0xFFF87171), size: 28),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'PERMAINAN SELESAI!',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                    fontSize: 17,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Kredit koin kesempatan Anda telah habis.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.inter(color: const Color(0xFF94A3B8), fontSize: 13),
-                ),
-                const SizedBox(height: 12),
-                Container(
-                  width: double.infinity,
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF1E293B),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFF334155)),
-                  ),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      Column(
-                        children: [
-                          Text('SKOR AKHIR', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF64748B))),
-                          Text('$_score pts',
-                              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFFFCD34D))),
-                        ],
-                      ),
-                      Container(width: 1, height: 26, color: const Color(0xFF334155)),
-                      Column(
-                        children: [
-                          Text('HIGH SCORE', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF64748B))),
-                          Text('$_highScore pts',
-                              style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF34D399))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFEF4444),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      if (_credits <= 0) {
-                        _showCoinConversionDialog();
-                      } else {
-                        _restartGame();
-                      }
-                    },
-                    child: Text(
-                      _credits > 0 ? 'Main Lagi ($_credits Koin Tersisa)' : 'Tukar 10.000 Poin Jadi Koin Capit',
-                      style: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 13),
-                    ),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                SizedBox(
-                  width: double.infinity,
-                  child: OutlinedButton(
-                    style: OutlinedButton.styleFrom(
-                      backgroundColor: Colors.transparent,
-                      side: const BorderSide(color: Colors.white, width: 1.2),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 11),
-                    ),
-                    onPressed: () {
-                      Navigator.pop(ctx);
-                      Navigator.pop(context);
-                    },
-                    child: Text(
-                      'Kembali ke Menu',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 13,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
   String _formatNumber(int n) {
     if (n == 0) return '0';
     return n.toString().replaceAllMapped(
@@ -830,7 +1166,20 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.paused || state == AppLifecycleState.inactive) {
+      SoundService.stopClawsMusic();
+    } else if (state == AppLifecycleState.resumed) {
+      SoundService.startClawsMusic();
+    }
+  }
+
+  @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    SoundService.stopClawsMusic();
+    _accelSub?.cancel();
+    _physicsTimer?.cancel();
     _continuousMoveTimer?.cancel();
     _saveHighScoreIfBest();
     _dropController.dispose();
@@ -850,252 +1199,300 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     return Theme(
       data: AppTheme.light,
       child: Scaffold(
-      backgroundColor: const Color(0xFF090D16),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // ============================================================
-            // 1. TOP HEADER & STATUS BAR
-            // ============================================================
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(color: const Color(0xFF475569)),
-                          ),
-                          child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0), size: 20),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'CLAWS CAR 3D',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w900,
-                              color: const Color(0xFFF472B6),
-                              letterSpacing: 1.5,
+        backgroundColor: const Color(0xFF090D16),
+        body: SafeArea(
+          child: Column(
+            children: [
+              // ============================================================
+              // 1. TOP HEADER & STATUS BAR DENGAN TOMBOL KOCOK
+              // ============================================================
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 38,
+                            height: 38,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(10),
+                              border: Border.all(color: const Color(0xFF475569)),
                             ),
+                            child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0), size: 20),
                           ),
-                          Text(
-                            'Arcade Claw Machine',
-                            style: GoogleFonts.inter(fontSize: 11, color: const Color(0xFF94A3B8)),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
-                  Row(
-                    children: [
-                      // Poin dari Game Parking Challenge
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1E293B),
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: const Color(0xFFF59E0B)),
                         ),
-                        child: Row(
+                        const SizedBox(width: 10),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 16),
-                            const SizedBox(width: 4),
                             Text(
-                              '${_formatNumber(_userPoints)} Pts',
+                              'CLAWS CAR 3D',
                               style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFF59E0B),
+                                fontSize: 15,
+                                fontWeight: FontWeight.w900,
+                                color: const Color(0xFFF472B6),
+                                letterSpacing: 1.2,
                               ),
+                            ),
+                            Text(
+                              '${_items.length} Item • Rekor: ${_formatNumber(_highScore)}',
+                              style: GoogleFonts.inter(fontSize: 10.5, color: const Color(0xFF94A3B8)),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(width: 8),
+                      ],
+                    ),
+                    Row(
+                      children: [
+                        // Tombol Kocok HP (Sensor Shake Simulator)
+                        GestureDetector(
+                          onTap: () => _shakeItems(),
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFFA855F7), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFFA855F7).withValues(alpha: 0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
+                                ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.vibration_rounded, color: Color(0xFFA855F7), size: 15),
+                                const SizedBox(width: 4),
+                                Text(
+                                  'Kocok',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.bold,
+                                    color: const Color(0xFFA855F7),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 6),
 
-                      // Tombol Koin Capit (Gambar Dolar) - Klik untuk Tukar Poin
-                      GestureDetector(
-                        onTap: _showCoinConversionDialog,
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+                        // Poin dari Game Parking Challenge
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
                           decoration: BoxDecoration(
                             color: const Color(0xFF1E293B),
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: const Color(0xFF10B981), width: 1.2),
-                            boxShadow: [
-                              BoxShadow(
-                                color: const Color(0xFF10B981).withValues(alpha: 0.2),
-                                blurRadius: 6,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
+                            border: Border.all(color: const Color(0xFFF59E0B)),
                           ),
                           child: Row(
                             children: [
-                              const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 16),
-                              const SizedBox(width: 4),
+                              const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 15),
+                              const SizedBox(width: 3),
                               Text(
-                                '$_credits Koin',
+                                '${_formatNumber(_userPoints)} Pts',
                                 style: GoogleFonts.inter(
-                                  fontSize: 12.5,
+                                  fontSize: 11,
                                   fontWeight: FontWeight.bold,
-                                  color: Colors.white,
+                                  color: const Color(0xFFF59E0B),
                                 ),
-                              ),
-                              const SizedBox(width: 4),
-                              Container(
-                                padding: const EdgeInsets.all(2),
-                                decoration: const BoxDecoration(
-                                  color: Color(0xFF10B981),
-                                  shape: BoxShape.circle,
-                                ),
-                                child: const Icon(Icons.add, size: 9, color: Colors.white),
                               ),
                             ],
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
+                        const SizedBox(width: 6),
 
-            // ============================================================
-            // 2. VIEWPORT 3D: MESIN CAPIT RAKSASA TINGGI PENUH & RUANGAN 3D
-            // (Tinggi dimaksimalkan ke atas dan ke bawah sesuai permintaan)
-            // ============================================================
-            Expanded(
-              child: AnimatedBuilder(
-                animation: Listenable.merge([
-                  _dropAnimation,
-                  _clawPoseController,
-                  _flapAnimation,
-                  _marqueeLightController,
-                ]),
-                builder: (context, _) {
-                  return CustomPaint(
-                    painter: _ClawMachine3DScenePainter(
-                      craneX: _craneX,
-                      dropProgress: _dropAnimation.value,
-                      clawPose: _clawPose,
-                      flapProgress: _flapAnimation.value,
-                      marqueePhase: _marqueeLightController.value,
-                    ),
-                    size: Size.infinite,
-                  );
-                },
-              ),
-            ),
-
-            // ============================================================
-            // 3. KONTROL DI HP (HINT DIHILANGKAN TOTAL)
-            // Kiri: Joystick dengan dudukan bawahController & stik atasController
-            // Kanan: Tombol merah 3D murni kode dengan efek turun saat diklik
-            // ============================================================
-            Container(
-              height: 145,
-              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                crossAxisAlignment: CrossAxisAlignment.center,
-                children: [
-                  // --- KIRI: DUDUKAN & STIK JOYSTICK ---
-                  LayoutBuilder(
-                    builder: (context, constraints) {
-                      const double joyBoxWidth = 135.0;
-                      const double joyBoxHeight = 130.0;
-
-                      final double tiltAngle = (_joystickOffset.dx / 38.0) * (math.pi / 7.5);
-
-                      return GestureDetector(
-                        behavior: HitTestBehavior.opaque,
-                        onPanDown: (d) => _onJoystickPanDown(d, const BoxConstraints(maxWidth: joyBoxWidth, maxHeight: joyBoxHeight)),
-                        onPanUpdate: (d) => _onJoystickPanUpdate(d, const BoxConstraints(maxWidth: joyBoxWidth, maxHeight: joyBoxHeight)),
-                        onPanEnd: _onJoystickPanEnd,
-                        onPanCancel: _onJoystickPanCancel,
-                        child: SizedBox(
-                          width: joyBoxWidth,
-                          height: joyBoxHeight,
-                          child: Stack(
-                            clipBehavior: Clip.none,
-                            alignment: Alignment.center,
-                            children: [
-                              // Dudukan Joystick (bawahController.png)
-                              Positioned(
-                                bottom: 12,
-                                child: Image.asset(
-                                  'assets/images/bawahController.png',
-                                  width: 118,
-                                  fit: BoxFit.contain,
+                        // Tombol Koin Capit
+                        GestureDetector(
+                          onTap: _showCoinConversionDialog,
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(8),
+                              border: Border.all(color: const Color(0xFF10B981), width: 1.2),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: const Color(0xFF10B981).withValues(alpha: 0.2),
+                                  blurRadius: 6,
+                                  offset: const Offset(0, 2),
                                 ),
-                              ),
+                              ],
+                            ),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.monetization_on_rounded, color: Color(0xFF10B981), size: 15),
+                                const SizedBox(width: 3),
+                                Text(
+                                  '$_credits',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 11.5,
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                                const SizedBox(width: 3),
+                                Container(
+                                  padding: const EdgeInsets.all(1.5),
+                                  decoration: const BoxDecoration(
+                                    color: Color(0xFF10B981),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(Icons.add, size: 8, color: Colors.white),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
 
-                              // Stik Pegangan (atasController.png) dinaikkan posisinya secara vertikal pas di lubang socket
-                              Positioned(
-                                bottom: 56,
-                                child: Transform(
-                                  alignment: Alignment.bottomCenter,
-                                  transform: Matrix4.translationValues(_joystickOffset.dx, _joystickOffset.dy * 0.35, 0)
-                                    ..rotateZ(tiltAngle),
+              // ============================================================
+              // 2. VIEWPORT 3D: MESIN CAPIT DENGAN ETALASE KACA DAN ITEM REAL
+              // ============================================================
+              Expanded(
+                child: AnimatedBuilder(
+                  animation: Listenable.merge([
+                    _dropAnimation,
+                    _clawPoseController,
+                    _flapAnimation,
+                    _marqueeLightController,
+                  ]),
+                  builder: (context, _) {
+                    return CustomPaint(
+                      painter: _ClawMachine3DScenePainter(
+                        craneX: _craneX,
+                        dropProgress: _dropAnimation.value,
+                        clawPose: _clawPose,
+                        flapProgress: _flapAnimation.value,
+                        marqueePhase: _marqueeLightController.value,
+                        items: _items,
+                        heldItem: _heldItem,
+                        coinImage: _coinImage,
+                        fishImage: _fishImage,
+                        rockImage: _rockImage,
+                        onBoundsCalculated: (minX, maxX, minY, maxY) {
+                          _chamberMinX = minX;
+                          _chamberMaxX = maxX;
+                          _chamberMinY = minY;
+                          _chamberMaxY = maxY;
+
+                          // Inisialisasi posisi piksel awal item di dalam etalase kaca jika belum ada
+                          if (!_hasInitialPositions && _items.isNotEmpty) {
+                            _hasInitialPositions = true;
+                            for (final it in _items) {
+                              it.pixelX = minX + it.normalizedX * (maxX - minX);
+                              it.pixelY = minY + it.normalizedY * (maxY - minY);
+                            }
+                          }
+                        },
+                      ),
+                      size: Size.infinite,
+                    );
+                  },
+                ),
+              ),
+
+              // ============================================================
+              // 3. KONTROL JOYSTICK & TOMBOL CAPIT REALISTIS
+              // ============================================================
+              Container(
+                height: 145,
+                padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Joystick Dudukan & Stik
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        const double joyBoxWidth = 135.0;
+                        const double joyBoxHeight = 130.0;
+
+                        final double tiltAngle = (_joystickOffset.dx / 38.0) * (math.pi / 7.5);
+
+                        return GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onPanDown: (d) => _onJoystickPanDown(d, const BoxConstraints(maxWidth: joyBoxWidth, maxHeight: joyBoxHeight)),
+                          onPanUpdate: (d) => _onJoystickPanUpdate(d, const BoxConstraints(maxWidth: joyBoxWidth, maxHeight: joyBoxHeight)),
+                          onPanEnd: _onJoystickPanEnd,
+                          onPanCancel: _onJoystickPanCancel,
+                          child: SizedBox(
+                            width: joyBoxWidth,
+                            height: joyBoxHeight,
+                            child: Stack(
+                              clipBehavior: Clip.none,
+                              alignment: Alignment.center,
+                              children: [
+                                Positioned(
+                                  bottom: 12,
                                   child: Image.asset(
-                                    'assets/images/atasController.png',
-                                    width: 54,
+                                    'assets/images/bawahController.png',
+                                    width: 118,
                                     fit: BoxFit.contain,
                                   ),
                                 ),
-                              ),
-                            ],
+                                Positioned(
+                                  bottom: 56,
+                                  child: Transform(
+                                    alignment: Alignment.bottomCenter,
+                                    transform: Matrix4.translationValues(_joystickOffset.dx, _joystickOffset.dy * 0.35, 0)
+                                      ..rotateZ(tiltAngle),
+                                    child: Image.asset(
+                                      'assets/images/atasController.png',
+                                      width: 54,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      );
-                    },
-                  ),
+                        );
+                      },
+                    ),
 
-                  // --- KANAN: TOMBOL MERAH ARCADE DENGAN EFEK TEKAN TURUN ---
-                  GestureDetector(
-                    onTapDown: (_) {
-                      setState(() => _isCapitButtonPressed = true);
-                    },
-                    onTapUp: (_) {
-                      setState(() => _isCapitButtonPressed = false);
-                      _triggerClawAction();
-                    },
-                    onTapCancel: () {
-                      setState(() => _isCapitButtonPressed = false);
-                    },
-                    child: SizedBox(
-                      width: 95,
-                      height: 95,
-                      child: Center(
-                        child: _buildRealisticRedArcadeButton(isPressed: _isCapitButtonPressed),
+                    // Tombol Merah Arcade
+                    GestureDetector(
+                      onTapDown: (_) {
+                        setState(() => _isCapitButtonPressed = true);
+                      },
+                      onTapUp: (_) {
+                        setState(() => _isCapitButtonPressed = false);
+                        _triggerClawAction();
+                      },
+                      onTapCancel: () {
+                        setState(() => _isCapitButtonPressed = false);
+                      },
+                      child: SizedBox(
+                        width: 95,
+                        height: 95,
+                        child: Center(
+                          child: _buildRealisticRedArcadeButton(isPressed: _isCapitButtonPressed),
+                        ),
                       ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
-    ));
+    );
   }
 
-  // ============================================================
-  // WIDGET KODE TOMBOL MERAH 3D (MIRIP GAMBAR REFERENSI DENGAN EFEK TURUN)
-  // ============================================================
+  // Widget Tombol Merah 3D
   Widget _buildRealisticRedArcadeButton({required bool isPressed}) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 60),
@@ -1104,7 +1501,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       height: 86,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
-        // Bezel logam luar (Outer Chrome/Steel Ring)
         gradient: const SweepGradient(
           colors: [
             Color(0xFFE2E8F0),
@@ -1131,7 +1527,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
         ],
       ),
       child: Center(
-        // Cincin groove dalam
         child: Container(
           width: 74,
           height: 74,
@@ -1141,7 +1536,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
             border: Border.all(color: const Color(0xFF1E293B), width: 1.5),
           ),
           child: Center(
-            // Kubah Merah Arcade yang turun saat ditekan
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 60),
               transform: Matrix4.translationValues(0, isPressed ? 3.5 : 0, 0),
@@ -1153,10 +1547,10 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                   center: Alignment(-0.25, -0.35),
                   radius: 0.85,
                   colors: [
-                    Color(0xFFFF4D4D), // Highlight merah terang
-                    Color(0xFFDC2626), // Merah arcade
-                    Color(0xFF991B1B), // Merah gelap
-                    Color(0xFF580C0C), // Bayangan lekukan dasar
+                    Color(0xFFFF4D4D),
+                    Color(0xFFDC2626),
+                    Color(0xFF991B1B),
+                    Color(0xFF580C0C),
                   ],
                 ),
                 boxShadow: isPressed
@@ -1177,7 +1571,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
               ),
               child: Stack(
                 children: [
-                  // Pantulan cahaya kilau oval melengkung di atas kubah (Specular highlight)
                   Positioned(
                     top: 6,
                     left: 12,
@@ -1226,14 +1619,20 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
 }
 
 // ============================================================
-// CUSTOM PAINTER: MESIN CAPIT 3D TINGGI MAKSIMAL + LOGIKA BANGUN RUANG
+// CUSTOM PAINTER: MESIN CAPIT 3D TINGGI MAKSIMAL + ITEM DALAM KACA
 // ============================================================
 class _ClawMachine3DScenePainter extends CustomPainter {
   final double craneX; // 0.0 to 1.0
   final double dropProgress; // 0.0 to 1.0
   final double clawPose; // 0.0 = menguncup normal, 1.0 = terbuka lebar, 2.0 = menjepit rapat
-  final double flapProgress; // -0.16 s/d 1.0 (berayun buka tutup natural)
+  final double flapProgress; // -0.16 s/d 1.0
   final double marqueePhase; // 0.0 to 1.0
+  final List<ClawItem> items;
+  final ClawItem? heldItem;
+  final ui.Image? coinImage;
+  final ui.Image? fishImage;
+  final ui.Image? rockImage;
+  final void Function(double minX, double maxX, double minY, double maxY)? onBoundsCalculated;
 
   _ClawMachine3DScenePainter({
     required this.craneX,
@@ -1241,6 +1640,12 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     required this.clawPose,
     required this.flapProgress,
     required this.marqueePhase,
+    required this.items,
+    this.heldItem,
+    this.coinImage,
+    this.fishImage,
+    this.rockImage,
+    this.onBoundsCalculated,
   });
 
   @override
@@ -1253,7 +1658,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     // ------------------------------------------------------------
     final double horizonY = h * 0.40;
 
-    // Dinding aula arcade belakang
     final backWallPaint = Paint()
       ..shader = const LinearGradient(
         begin: Alignment.topCenter,
@@ -1262,7 +1666,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       ).createShader(Rect.fromLTRB(0, 0, w, horizonY));
     canvas.drawRect(Rect.fromLTRB(0, 0, w, horizonY), backWallPaint);
 
-    // Garis neon aksen arcade di tembok belakang
     final neonLinePaint = Paint()
       ..color = const Color(0xFF6366F1).withValues(alpha: 0.22)
       ..strokeWidth = 1.5;
@@ -1270,7 +1673,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     canvas.drawLine(Offset(0, horizonY * 0.70), Offset(w, horizonY * 0.70), neonLinePaint);
 
     // ------------------------------------------------------------
-    // B. RUANG 3D: LANTAI PERSPEKTIF (TILED FLOOR)
+    // B. RUANG 3D: LANTAI PERSPEKTIF
     // ------------------------------------------------------------
     final floorPaint = Paint()
       ..shader = const LinearGradient(
@@ -1280,7 +1683,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       ).createShader(Rect.fromLTRB(0, horizonY, w, h));
     canvas.drawRect(Rect.fromLTRB(0, horizonY, w, h), floorPaint);
 
-    // Garis ubin perspektif menuju titik lenyap
     final tilePaint = Paint()
       ..color = const Color(0xFF06B6D4).withValues(alpha: 0.12)
       ..strokeWidth = 1.2;
@@ -1296,28 +1698,26 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     }
 
     // ------------------------------------------------------------
-    // C. DIMENSI KOTAK 3D MESIN CAPIT (DIKECILKAN HEIGHT-NYA SECARA PROPORSIONAL)
+    // C. DIMENSI KOTAK 3D MESIN CAPIT
     // ------------------------------------------------------------
     final double boxW = w * 0.76;
     final double boxLeft = (w - boxW) * 0.42;
     final double boxRight = boxLeft + boxW;
 
-    // Proporsi height mesin dan posisi vertikal diturunkan ke bawah agar tidak banyak ruang kosong di bawah:
     final double marqueeTop = h * 0.15;
     final double marqueeHeight = h * 0.08;
     final double glassTop = marqueeTop + marqueeHeight;
 
-    final double glassHeight = h * 0.36; // Etalase kaca proporsional
+    final double glassHeight = h * 0.36; // Etalase kaca
     final double bodyTop = glassTop + glassHeight;
 
-    final double bodyHeight = h * 0.33; // Body bawah proporsional
-    final double boxBottom = bodyTop + bodyHeight; // h * 0.92, pas di lantai atas kontrol panel
+    final double bodyHeight = h * 0.33; // Body bawah
+    final double boxBottom = bodyTop + bodyHeight;
 
-    // Vektor kedalaman 3D rusuk
     const double depthDx = 30.0;
     const double depthDy = -18.0;
 
-    // 1. Bayangan mesin di lantai
+    // Bayangan mesin di lantai
     final shadowPath = Path()
       ..moveTo(boxLeft - 12, boxBottom + 4)
       ..lineTo(boxRight + depthDx + 12, boxBottom + depthDy + 4)
@@ -1332,9 +1732,8 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // ------------------------------------------------------------
-    // D. SISI SAMPING KEDALAMAN 3D (RIGHT SIDE DEPTH FACES)
+    // D. SISI SAMPING KEDALAMAN 3D
     // ------------------------------------------------------------
-    // Sisi samping kanan atap marquee
     final rightMarqueePath = Path()
       ..moveTo(boxRight, marqueeTop)
       ..lineTo(boxRight + depthDx, marqueeTop + depthDy)
@@ -1351,7 +1750,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ).createShader(rightMarqueePath.getBounds()),
     );
 
-    // Sisi samping kanan kaca transparan (depth glass)
     final rightGlassPath = Path()
       ..moveTo(boxRight, glassTop)
       ..lineTo(boxRight + depthDx, glassTop + depthDy)
@@ -1370,7 +1768,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ..strokeWidth = 1.5,
     );
 
-    // Sisi samping kanan body bawah
     final rightBodyPath = Path()
       ..moveTo(boxRight, bodyTop)
       ..lineTo(boxRight + depthDx, bodyTop + depthDy)
@@ -1387,7 +1784,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ).createShader(rightBodyPath.getBounds()),
     );
 
-    // Rusuk luar samping
     final rusukPaint = Paint()
       ..color = const Color(0xFFF472B6).withValues(alpha: 0.6)
       ..style = PaintingStyle.stroke
@@ -1396,7 +1792,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     canvas.drawLine(Offset(boxRight, boxBottom), Offset(boxRight + depthDx, boxBottom + depthDy), rusukPaint);
 
     // ------------------------------------------------------------
-    // E. ATAP ATAS 3D (TOP ROOF FACE)
+    // E. ATAP ATAS 3D
     // ------------------------------------------------------------
     final topRoofPath = Path()
       ..moveTo(boxLeft, marqueeTop)
@@ -1415,7 +1811,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // ------------------------------------------------------------
-    // F. RUANG DALAM KACA (POLOSAN DULU)
+    // F. RUANG DALAM KACA & LANTAI ETALASE
     // ------------------------------------------------------------
     final innerBackRect = Rect.fromLTRB(boxLeft + 4, glassTop + 4, boxRight - 4, bodyTop);
     final innerBackPaint = Paint()
@@ -1426,7 +1822,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       ).createShader(innerBackRect);
     canvas.drawRect(innerBackRect, innerBackPaint);
 
-    // Lantai dalam etalase mesin capit
     final innerFloorPath = Path()
       ..moveTo(boxLeft + 4, bodyTop)
       ..lineTo(boxLeft + depthDx * 0.7, bodyTop + depthDy * 0.7)
@@ -1438,47 +1833,65 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       Paint()..color = const Color(0xFF334155),
     );
 
-    // Kumpulan barang hadiah uang tunai rupiah (Uang Kertas Rp 1.000, Rp 500, Rp 300) di dasar lantai
-    final cashColors = [
-      const Color(0xFF059669), // Hijau Rp 1.000
-      const Color(0xFF0284C7), // Biru Rp 500
-      const Color(0xFFD97706), // Emas Rp 300
-      const Color(0xFF059669), // Hijau Rp 1.000
-      const Color(0xFF0284C7), // Biru Rp 500
-      const Color(0xFFD97706), // Emas Rp 300
-    ];
-    for (int i = 0; i < cashColors.length; i++) {
-      final double px = boxLeft + 22.0 + i * ((boxW - 44.0) / (cashColors.length - 1));
-      final double py = bodyTop - 7.0 + (i % 2 == 0 ? -3.0 : 2.0);
-      final cashRect = Rect.fromCenter(center: Offset(px, py), width: 24, height: 14);
+    // ------------------------------------------------------------
+    // G. MENGGAMBAR ITEM-ITEM DI DALAM KACA (UKURAN 1.5 CM / ~48px)
+    // KOIN, IKAN, DAN BATU BERTUMPUK 2 LAPIS MANDIRI
+    // ------------------------------------------------------------
+    const double itemSize = 48.0; // 1.5 cm di layar mobile standard (160 dpi)
+    const double itemRadius = itemSize * 0.5;
 
-      // Banknote body
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(cashRect, const Radius.circular(3)),
-        Paint()..color = cashColors[i],
-      );
-      // Border
-      canvas.drawRRect(
-        RRect.fromRectAndRadius(cashRect, const Radius.circular(3)),
+    final double minChamberX = boxLeft + 16.0 + itemRadius;
+    final double maxChamberX = boxRight - 16.0 - itemRadius;
+    final double minChamberY = glassTop + 28.0 + itemRadius;
+    final double maxChamberY = bodyTop - 6.0 - itemRadius;
+
+    if (onBoundsCalculated != null) {
+      onBoundsCalculated!(minChamberX, maxChamberX, minChamberY, maxChamberY);
+    }
+
+    // Gambar seluruh item mandiri yang ada di dalam mesin
+    for (final item in items) {
+      if (item.isGrabbed || item.isDropped) continue;
+
+      canvas.save();
+      final double ix = item.pixelX != 0.0 ? item.pixelX : (minChamberX + item.normalizedX * (maxChamberX - minChamberX));
+      final double iy = item.pixelY != 0.0 ? item.pixelY : (minChamberY + item.normalizedY * (maxChamberY - minChamberY));
+
+      // Bayangan item di dasar lantai etalase
+      canvas.drawOval(
+        Rect.fromCenter(center: Offset(ix, iy + itemRadius * 0.7), width: itemSize * 0.75, height: 8),
         Paint()
-          ..color = Colors.white.withValues(alpha: 0.6)
-          ..style = PaintingStyle.stroke
-          ..strokeWidth = 0.9,
+          ..color = Colors.black.withValues(alpha: 0.35)
+          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
       );
-      // Center Rp emblem circle
-      canvas.drawCircle(
-        Offset(px, py),
-        3.5,
-        Paint()..color = Colors.white.withValues(alpha: 0.7),
-      );
+
+      canvas.translate(ix, iy);
+      canvas.rotate(item.rotation);
+
+      ui.Image? targetImg;
+      if (item.type == ClawItemType.coin) targetImg = coinImage;
+      if (item.type == ClawItemType.ikan) targetImg = fishImage;
+      if (item.type == ClawItemType.batu) targetImg = rockImage;
+
+      if (targetImg != null) {
+        final src = Rect.fromLTWH(0, 0, targetImg.width.toDouble(), targetImg.height.toDouble());
+        final dst = Rect.fromCenter(center: Offset.zero, width: itemSize, height: itemSize);
+        canvas.drawImageRect(targetImg, src, dst, Paint()..filterQuality = FilterQuality.medium);
+      } else {
+        // Fallback drawing jika image decoding asinkron sedang berlangsung
+        final circlePaint = Paint()
+          ..color = item.type == ClawItemType.coin
+              ? const Color(0xFFFBBF24)
+              : (item.type == ClawItemType.ikan ? const Color(0xFF38BDF8) : const Color(0xFF94A3B8));
+        canvas.drawCircle(Offset.zero, itemRadius, circlePaint);
+      }
+      canvas.restore();
     }
 
     // ------------------------------------------------------------
-    // G. MEKANISME PENGGERAK CAPIT & REL ATAS
-    // Rel dan carriage bergerak smooth ke kanan/kiri mengikuti joystick
+    // H. MEKANISME PENGGERAK CAPIT & REL ATAS
     // ------------------------------------------------------------
     final double railY = glassTop + 14.0;
-    // Batang rel atas
     canvas.drawLine(
       Offset(boxLeft + 12, railY),
       Offset(boxRight - 12, railY),
@@ -1495,7 +1908,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    // Posisi horizontal carriage penggerak
     final double cranePixelX = boxLeft + 28.0 + craneX * (boxW - 56.0);
     final trolleyRect = Rect.fromCenter(center: Offset(cranePixelX, railY), width: 34, height: 16);
     canvas.drawRRect(
@@ -1506,7 +1918,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ).createShader(trolleyRect),
     );
 
-    // Perhitungan jarak turun kabel baja
     final double maxDropDistance = (bodyTop - railY) - 46.0;
     final double clawCurrentY = railY + 8.0 + dropProgress * maxDropDistance;
 
@@ -1537,14 +1948,29 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       Paint()..color = Colors.white,
     );
 
+    // JIKA ADA ITEM YANG SEDANG DICAPIT: GAMBAR DI UJUNG CAPITAN
+    if (heldItem != null && heldItem!.isGrabbed) {
+      canvas.save();
+      final double hx = cranePixelX;
+      final double hy = clawCurrentY + 22.0;
+      canvas.translate(hx, hy);
+      canvas.rotate(heldItem!.rotation);
+
+      ui.Image? targetImg;
+      if (heldItem!.type == ClawItemType.coin) targetImg = coinImage;
+      if (heldItem!.type == ClawItemType.ikan) targetImg = fishImage;
+      if (heldItem!.type == ClawItemType.batu) targetImg = rockImage;
+
+      if (targetImg != null) {
+        final src = Rect.fromLTWH(0, 0, targetImg.width.toDouble(), targetImg.height.toDouble());
+        final dst = Rect.fromCenter(center: Offset.zero, width: itemSize, height: itemSize);
+        canvas.drawImageRect(targetImg, src, dst, Paint()..filterQuality = FilterQuality.medium);
+      }
+      canvas.restore();
+    }
+
     // ------------------------------------------------------------
-    // ANIMASI CAPIT BESI (ARAH ROTASI KINI DIBALIK / REVERSED):
-    // Sudut positif pada lengan kiri memutar keluar ke arah kiri (-X).
-    // Sudut negatif pada lengan kanan memutar keluar ke arah kanan (+X).
-    //
-    // 0.0 = Menguncup normal (idle santai, gap ~11px, tidak menyilang)
-    // 1.0 = Membuka kuncup capitan (terbuka lebar ke luar, gap ~43px)
-    // 2.0 = Menguncup lagi (menjepit erat hadiah di dasar, gap ~2.6px)
+    // ANIMASI CAPIT BESI
     // ------------------------------------------------------------
     double angleLeft;
     double angleRight;
@@ -1552,16 +1978,12 @@ class _ClawMachine3DScenePainter extends CustomPainter {
 
     if (clawPose <= 1.0) {
       final double t = clawPose.clamp(0.0, 1.0);
-      // Dari Menguncup Normal (+0.14) -> Membuka Lebar (+0.62)
       angleLeft = 0.14 + t * 0.48;
-      // Dari Menguncup Normal (-0.14) -> Membuka Lebar (-0.62)
       angleRight = -0.14 - t * 0.48;
       angleCenter = t * 0.18;
     } else {
       final double t = (clawPose - 1.0).clamp(0.0, 1.0);
-      // Dari Membuka Lebar (+0.62) -> Menjepit Rapat (+0.01)
       angleLeft = 0.62 - t * 0.61;
-      // Dari Membuka Lebar (-0.62) -> Menjepit Rapat (-0.01)
       angleRight = -0.62 + t * 0.61;
       angleCenter = 0.18 * (1.0 - t);
     }
@@ -1572,7 +1994,8 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     _drawWideSteelProng(canvas, Offset(cranePixelX, clawCurrentY + 16), angleCenter, isCenter: true, isOpen: isOpen);
 
     // ------------------------------------------------------------
-    // H. KACA DEPAN DENGAN EFEK PANTULAN GLASS (SPECULAR GLARE)
+    // I. KACA DEPAN DENGAN EFEK PANTULAN GLASS (SPECULAR GLARE)
+    // Menjadikan item berada secara realistis DI DALAM KACA
     // ------------------------------------------------------------
     final frontGlassRect = Rect.fromLTRB(boxLeft, glassTop, boxRight, bodyTop);
 
@@ -1632,7 +2055,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     canvas.drawLine(Offset(boxLeft, glassTop), Offset(boxRight, glassTop), cornerPostPaint);
 
     // ------------------------------------------------------------
-    // I. ATAP / MARQUEE DEPAN DENGAN TEKS & LAMPU BERKEDIP
+    // J. ATAP / MARQUEE DEPAN DENGAN TEKS & LAMPU BERKEDIP
     // ------------------------------------------------------------
     final marqueeRect = Rect.fromLTRB(boxLeft, marqueeTop, boxRight, glassTop);
     canvas.drawRRect(
@@ -1661,7 +2084,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    // Teks Marquee
     final textPainter = TextPainter(
       text: TextSpan(
         text: '★ CLAWS CAR ★',
@@ -1686,7 +2108,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       ),
     );
 
-    // Lampu running neon
     final int lightCount = 9;
     for (int i = 0; i < lightCount; i++) {
       final double lx = boxLeft + 16.0 + i * ((boxW - 32.0) / (lightCount - 1));
@@ -1699,7 +2120,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     }
 
     // ------------------------------------------------------------
-    // J. BODY BAWAH 3D & KONSOL KONTROL MENONJOL KE DEPAN
+    // K. BODY BAWAH 3D & KONSOL KONTROL
     // ------------------------------------------------------------
     final bodyRect = Rect.fromLTRB(boxLeft, bodyTop, boxRight, boxBottom);
     canvas.drawRect(
@@ -1712,7 +2133,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ).createShader(bodyRect),
     );
 
-    // Konsol miring menonjol ke depan
     final double shelfTop = bodyTop + 5.0;
     final double shelfHeight = 32.0;
 
@@ -1739,7 +2159,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ..strokeWidth = 1.8,
     );
 
-    // Detail dekoratif di konsol kontrol
+    // Detail konsol kontrol
     canvas.drawCircle(Offset(boxLeft + 45, shelfTop + 16), 6, Paint()..color = const Color(0xFF1E293B));
     canvas.drawLine(
       Offset(boxLeft + 45, shelfTop + 16),
@@ -1769,8 +2189,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
 
     // ------------------------------------------------------------
-    // K. LUBANG PENGELUARAN HADIAH 3D DENGAN PINTU FLAP BERAYUN 3D
-    // Berayun buka-tutup natural: terbuka masuk ke dalam lalu membal menutup
+    // L. LUBANG PENGELUARAN HADIAH 3D DENGAN PINTU FLAP BERAYUN
     // ------------------------------------------------------------
     final double chuteW = boxW * 0.34;
     final double chuteH = 50.0;
@@ -1779,7 +2198,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
 
     final chuteRect = Rect.fromLTWH(chuteX, chuteY, chuteW, chuteH);
 
-    // Bingkai luar lubang
     canvas.drawRRect(
       RRect.fromRectAndRadius(chuteRect, const Radius.circular(8)),
       Paint()
@@ -1788,16 +2206,13 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ).createShader(chuteRect),
     );
 
-    // Rongga kedalaman 3D hitam lubang hadiah
     final innerChuteRect = Rect.fromLTWH(chuteX + 4, chuteY + 4, chuteW - 8, chuteH - 8);
     canvas.drawRRect(
       RRect.fromRectAndRadius(innerChuteRect, const Radius.circular(6)),
       Paint()..color = Colors.black,
     );
 
-    // PINTU FLAP LOGAM DENGAN PERSPEKTIF 3D DEPAN-BELAKANG (LOGIKA BANGUN RUANG)
-    // Saat flapProgress berayun (0.0 -> 1.0 -> -0.16 -> 0.08 -> 0.0):
-    // Pintu berayun masuk ke dalam rongga mesin lalu membal natural kembali ke posisi normal menutup rapat.
+    // Pintu flap logam berayun 3D
     final double swingAngle = flapProgress * (math.pi / 2.8);
     final double flapLen = (chuteH - 14) * math.cos(swingAngle);
     final double insetX = 6.0 * math.sin(swingAngle);
@@ -1812,7 +2227,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
       ..lineTo(chuteX + 8 + insetX, flapBotY)
       ..close();
 
-    // Shader logam flap berbayang saat berayun ke dalam
     canvas.drawPath(
       flapPath,
       Paint()
@@ -1825,7 +2239,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
           ],
         ).createShader(flapPath.getBounds()),
     );
-    // Garis tepi 3D flap
     canvas.drawPath(
       flapPath,
       Paint()
@@ -1834,7 +2247,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ..strokeWidth = 1.0,
     );
 
-    // Border neon pada lubang pengeluaran hadiah
     canvas.drawRRect(
       RRect.fromRectAndRadius(chuteRect, const Radius.circular(8)),
       Paint()
@@ -1843,7 +2255,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ..strokeWidth = 2,
     );
 
-    // Label "PRIZE WIN"
     final prizeLabel = TextPainter(
       text: const TextSpan(
         text: 'PRIZE WIN',
@@ -1862,7 +2273,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     );
   }
 
-  // Helper menggambar cakar capit baja lebar (prongs wide open & separated)
   void _drawWideSteelProng(
     Canvas canvas,
     Offset origin,
@@ -1878,16 +2288,13 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     final prongPath = Path();
     prongPath.moveTo(0, 0);
 
-    // Ruas atas cakar mengarah keluar lebar
     final double upperDx = isLeft ? -7 : (isCenter ? 0 : 7);
     prongPath.lineTo(upperDx, 16);
 
-    // Lengkungan cakar bawah
     final double curveDx = isLeft ? -14 : (isCenter ? 0 : 14);
     final double tipDx = isLeft ? 2 : (isCenter ? 0 : -2);
     prongPath.quadraticBezierTo(curveDx, 32, tipDx, 36);
 
-    // Ujung kait cakar tajam
     prongPath.lineTo(tipDx + (isLeft ? 4 : (isCenter ? 0 : -4)), 33);
     prongPath.quadraticBezierTo(curveDx * 0.7, 28, upperDx * 0.5, 14);
     prongPath.close();
@@ -1915,10 +2322,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant _ClawMachine3DScenePainter oldDelegate) {
-    return oldDelegate.craneX != craneX ||
-        oldDelegate.dropProgress != dropProgress ||
-        oldDelegate.clawPose != clawPose ||
-        oldDelegate.flapProgress != flapProgress ||
-        oldDelegate.marqueePhase != marqueePhase;
+    return true; // Repaint selalu aktif untuk mendukung fisika dan animasi capit
   }
 }

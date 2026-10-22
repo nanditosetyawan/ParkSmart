@@ -1,6 +1,10 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
+import '../../../core/services/session_service.dart';
+import '../../profile/backend/payment_methods_backend.dart';
+import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk ClawsCarScreen (Game Mesin Capit Mobil)
 /// Menangani pencatatan skor game capit mobil ke tabel `public.arcade_scores`.
@@ -146,4 +150,89 @@ class ClawsCarBackend extends ChangeNotifier {
       debugPrint('[ClawsCarBackend] Error exchangePointsForCoins: $e');
     }
   }
+
+  /// Menginjeksi hadiah uang tunai langsung ke saldo akun pengguna di Supabase
+  Future<int?> injectPrizeMoney({required int amount}) async {
+    try {
+      String uid = '';
+      if (SessionService.instance.userId != null && SessionService.instance.userId!.isNotEmpty) {
+        uid = SessionService.instance.userId!;
+      } else if (ProfileBackend.instance.userId.isNotEmpty) {
+        uid = ProfileBackend.instance.userId;
+      } else {
+        final prefs = await SharedPreferences.getInstance();
+        uid = prefs.getString('user_profile_id') ?? prefs.getString('ps_session_user_id') ?? '';
+      }
+
+      if (uid.isEmpty) {
+        final authUser = _client.auth.currentUser;
+        if (authUser != null) {
+          final row = await _client.from('users').select('id').eq('auth_user_id', authUser.id).maybeSingle();
+          if (row != null && row['id'] != null) {
+            uid = row['id'].toString();
+          }
+        }
+      }
+
+      if (uid.isEmpty) {
+        final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+        if (email.isNotEmpty) {
+          final row = await _client.from('users').select('id').eq('email', email).maybeSingle();
+          if (row != null && row['id'] != null) {
+            uid = row['id'].toString();
+          }
+        }
+      }
+
+      // Fallback ke akun pengguna aktif utama 'user@gmail.com'
+      if (uid.isEmpty) {
+        final row = await _client.from('users').select('id').eq('email', 'user@gmail.com').maybeSingle();
+        if (row != null && row['id'] != null) {
+          uid = row['id'].toString();
+        }
+      }
+
+      if (uid.isNotEmpty) {
+        // 1. Ambil saldo saat ini dari database
+        final userRow = await _client.from('users').select('wallet_balance').eq('id', uid).maybeSingle();
+        final currentBalance = (userRow?['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+        final newBalance = currentBalance + amount;
+
+        // 2. Update saldo di tabel users
+        await _client.from('users').update({
+          'wallet_balance': newBalance,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', uid);
+
+        // 3. Catat transaksi di tabel payments
+        final txnCode = 'CLM-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+        await _client.from('payments').insert({
+          'transaction_code': txnCode,
+          'user_id': uid,
+          'transaction_type': 'wallet_topup',
+          'payment_method': 'wallet',
+          'amount': amount,
+          'description': 'Hadiah Koin Mesin Capit Claws Car (Rp $amount)',
+          'status': 'success',
+          'completed_at': DateTime.now().toIso8601String(),
+        });
+
+        // 4. Update SharedPreferences
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('user_wallet_balance', newBalance.toInt());
+
+        // 5. Invalidate cache dan perbarui backend
+        await DatabaseCacheBalancerService.instance.invalidatePrefix('user_');
+        PaymentMethodsBackend.instance.fetchBalance();
+        ProfileBackend.instance.fetchProfile();
+
+        debugPrint('[ClawsCarBackend] Berhasil inject Rp $amount ke user $uid. Saldo baru: Rp $newBalance');
+        return newBalance.toInt();
+      }
+    } catch (e) {
+      debugPrint('[ClawsCarBackend] Error injectPrizeMoney: $e');
+    }
+    return null;
+  }
 }
+

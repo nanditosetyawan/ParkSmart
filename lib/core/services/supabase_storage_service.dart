@@ -50,6 +50,25 @@ class SupabaseStorageService {
     }
   }
 
+  /// Hapus foto dari bucket `kyc-documents` (digunakan untuk rollback saat foto kedua gagal)
+  Future<bool> deleteKycImage(String pathOrUrl) async {
+    try {
+      String cleanPath = pathOrUrl;
+      if (cleanPath.contains('/$kycBucket/')) {
+        cleanPath = cleanPath.split('/$kycBucket/').last;
+      }
+      if (cleanPath.contains('?')) {
+        cleanPath = cleanPath.split('?').first;
+      }
+      await _client.storage.from(kycBucket).remove([cleanPath]);
+      debugPrint('[SupabaseStorage] Berhasil rollback/menghapus file KYC: $cleanPath');
+      return true;
+    } catch (e) {
+      debugPrint('[SupabaseStorage] Gagal menghapus file KYC ($pathOrUrl): $e');
+      return false;
+    }
+  }
+
   /// Unggah foto fisik kendaraan (Mobil / Motor) dengan kompresi kualitas 70% (tidak buram)
   Future<String?> uploadVehiclePhoto({
     required Uint8List rawBytes,

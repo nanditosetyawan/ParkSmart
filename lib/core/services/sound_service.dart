@@ -47,6 +47,25 @@ class SoundService {
     }
   }
 
+  /// Memutar musik latar mesin capit (musiccrawls.mp3) secara looping tanpa batas (unlimited)
+  /// selama pemain membuka dan berada di halaman game claws_car.
+  static Future<void> startClawsMusic() async {
+    try {
+      await _channel.invokeMethod('startClawsMusic');
+    } catch (e) {
+      debugPrint('[SoundService] Info startClawsMusic: $e');
+    }
+  }
+
+  /// Menghentikan musik latar mesin capit claws_car (misal saat user keluar atau berpindah halaman).
+  static Future<void> stopClawsMusic() async {
+    try {
+      await _channel.invokeMethod('stopClawsMusic');
+    } catch (e) {
+      debugPrint('[SoundService] Info stopClawsMusic: $e');
+    }
+  }
+
   /// Menghentikan seluruh suara yang aktif saat keluar dari game (dispose).
   static Future<void> stopAllSounds() async {
     try {

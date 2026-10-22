@@ -1,6 +1,6 @@
 -- ============================================================================
 -- SCRIPT DATA AWAL (SEED DATA) - PARKSMART ID
--- Path: lib/database/seed.sql & seed.sql
+-- Path: lib/database/seed.sql
 -- Status: Sinkron 100% dengan Database Supabase Aktif Saat Ini
 -- ============================================================================
 

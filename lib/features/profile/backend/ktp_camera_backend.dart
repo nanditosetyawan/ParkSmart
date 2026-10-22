@@ -102,7 +102,204 @@ class KtpCameraBackend extends ChangeNotifier {
     }
   }
 
-  /// Finalisasi submit KYC ke tabel `public.user_kyc`
+  void reset() {
+    _ktpImageUrl = null;
+    _selfieImageUrl = null;
+    _errorMessage = null;
+    _isUploading = false;
+    notifyListeners();
+  }
+
+  /// Mengunggah KEDUA foto (KTP & Selfie) secara terkoordinasi dengan rollback atomik.
+  /// Sesuai aturan:
+  /// - Foto pertama (KTP) dikompres & diunggah terlebih dahulu.
+  /// - Jika foto pertama gagal -> STOP, batalkan seluruh pengiriman, jangan kirim foto kedua.
+  /// - Jika foto pertama sukses tapi foto kedua gagal -> BATALKAN KEDUANYA (hapus/rollback foto pertama dari Supabase Storage).
+  /// - Hanya jika kedua foto sukses barulah data pengajuan disimpan bersamaan ke tabel `public.user_kyc`.
+  Future<bool> uploadBothAndSubmitKyc({
+    required Uint8List ktpBytes,
+    required Uint8List selfieBytes,
+    required String nik,
+    required String fullName,
+    String? birthPlaceCity,
+    DateTime? birthDate,
+    String? address,
+    String? gender,
+    String? religion,
+    String? occupation,
+    String? userId,
+    void Function(String statusMessage)? onProgressStatus,
+  }) async {
+    _isUploading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    String? uploadedKtpUrl;
+    String? uploadedSelfieUrl;
+
+    try {
+      final loggedInUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
+      String uid = userId ?? loggedInUid ?? _client.auth.currentUser?.id ?? '';
+      if (uid.isEmpty) {
+        final existingUser = await _client.from('users').select('id').order('created_at', ascending: true).limit(1).maybeSingle();
+        uid = existingUser?['id']?.toString() ?? '00000000-0000-0000-0000-000000000000';
+      }
+
+      // 1. TAHAP FOTO PERTAMA (KTP)
+      onProgressStatus?.call('Mengompres (~95%) & Mengunggah Foto 1 (KTP)...');
+      debugPrint('[KtpCameraBackend] Mengunggah foto ke-1 (KTP)...');
+      uploadedKtpUrl = await SupabaseStorageService.instance.uploadKycImage(
+        rawBytes: ktpBytes,
+        userId: uid,
+        docType: 'ktp',
+      );
+
+      // ATURAN 1: Jika foto pertama gagal, STOP langsung jangan kirim foto kedua
+      if (uploadedKtpUrl == null || uploadedKtpUrl.isEmpty) {
+        _errorMessage = 'Foto pertama (KTP) gagal diunggah ke storage. Proses dihentikan.';
+        debugPrint('[KtpCameraBackend] Foto ke-1 (KTP) gagal -> STOP!');
+        return false;
+      }
+
+      // 2. TAHAP FOTO KEDUA (SELFIE)
+      onProgressStatus?.call('Mengompres (~95%) & Mengunggah Foto 2 (Selfie)...');
+      debugPrint('[KtpCameraBackend] Foto ke-1 sukses ($uploadedKtpUrl). Mengunggah foto ke-2 (Selfie)...');
+      uploadedSelfieUrl = await SupabaseStorageService.instance.uploadKycImage(
+        rawBytes: selfieBytes,
+        userId: uid,
+        docType: 'selfie',
+      );
+
+      // ATURAN 2: Jika foto pertama sukses tapi foto kedua gagal, BATALKAN KEDUANYA (Rollback foto pertama)
+      if (uploadedSelfieUrl == null || uploadedSelfieUrl.isEmpty) {
+        debugPrint('[KtpCameraBackend] Foto ke-2 (Selfie) gagal! Melakukan rollback pembatalan foto ke-1...');
+        await SupabaseStorageService.instance.deleteKycImage(uploadedKtpUrl);
+        uploadedKtpUrl = null;
+        _ktpImageUrl = null;
+        _selfieImageUrl = null;
+        _errorMessage = 'Foto kedua (Selfie) gagal diunggah. Pengiriman dibatalkan dan foto pertama telah dihapus.';
+        return false;
+      }
+
+      // KEDUA FOTO TELAH SUKSES DIUNGGAH
+      _ktpImageUrl = uploadedKtpUrl;
+      _selfieImageUrl = uploadedSelfieUrl;
+      notifyListeners();
+
+      // 3. TAHAP PENYIMPANAN BERSAMAAN KE DATABASE user_kyc
+      onProgressStatus?.call('Menyimpan pengajuan KYC ke database...');
+      debugPrint('[KtpCameraBackend] Kedua foto berhasil. Menyimpan data pengajuan ke database user_kyc...');
+
+      final dbSuccess = await _insertOrUpdateUserKyc(
+        targetUserId: uid,
+        nik: nik,
+        fullName: fullName,
+        birthPlaceCity: birthPlaceCity,
+        birthDate: birthDate,
+        address: address,
+        gender: gender,
+        religion: religion,
+        occupation: occupation,
+        ktpUrl: uploadedKtpUrl,
+        selfieUrl: uploadedSelfieUrl,
+      );
+
+      if (!dbSuccess) {
+        // Rollback kedua berkas jika database gagal
+        debugPrint('[KtpCameraBackend] Gagal simpan ke database -> Rollback kedua foto dari storage...');
+        await SupabaseStorageService.instance.deleteKycImage(uploadedKtpUrl);
+        await SupabaseStorageService.instance.deleteKycImage(uploadedSelfieUrl);
+        _ktpImageUrl = null;
+        _selfieImageUrl = null;
+        _errorMessage = 'Gagal menyimpan pengajuan ke database. Pengiriman kedua foto dibatalkan.';
+        return false;
+      }
+
+      debugPrint('[KtpCameraBackend] Transaksi 2 foto & KYC selesai secara utuh!');
+      return true;
+    } catch (e) {
+      debugPrint('[KtpCameraBackend] Exception uploadBothAndSubmitKyc: $e');
+      _errorMessage = e.toString();
+      // Rollback jika terjadi exception
+      if (uploadedKtpUrl != null) {
+        await SupabaseStorageService.instance.deleteKycImage(uploadedKtpUrl);
+      }
+      if (uploadedSelfieUrl != null) {
+        await SupabaseStorageService.instance.deleteKycImage(uploadedSelfieUrl);
+      }
+      _ktpImageUrl = null;
+      _selfieImageUrl = null;
+      return false;
+    } finally {
+      _isUploading = false;
+      notifyListeners();
+    }
+  }
+
+  Future<bool> _insertOrUpdateUserKyc({
+    required String targetUserId,
+    required String nik,
+    required String fullName,
+    String? birthPlaceCity,
+    DateTime? birthDate,
+    String? address,
+    String? gender,
+    String? religion,
+    String? occupation,
+    required String ktpUrl,
+    required String selfieUrl,
+  }) async {
+    try {
+      final existingKyc = await _client
+          .from('user_kyc')
+          .select('id, nik')
+          .eq('user_id', targetUserId)
+          .maybeSingle();
+
+      String finalNik = nik;
+      if (existingKyc != null && existingKyc['nik'] != null && existingKyc['nik'].toString().isNotEmpty) {
+        finalNik = existingKyc['nik'].toString();
+      } else {
+        final digits = targetUserId.replaceAll(RegExp(r'[^0-9]'), '');
+        finalNik = ('3171${digits}987654321012').substring(0, 16);
+      }
+
+      final payload = {
+        'user_id': targetUserId,
+        'nik': finalNik,
+        'full_name': fullName,
+        'birth_place_city': birthPlaceCity ?? 'Jakarta',
+        'birth_date': birthDate?.toIso8601String().split('T').first ?? '1998-01-01',
+        'address': address ?? 'Indonesia',
+        'gender': gender ?? 'Laki-laki',
+        'religion': religion ?? 'Islam',
+        'occupation': occupation ?? 'Karyawan',
+        'ktp_image_url': ktpUrl,
+        'selfie_image_url': selfieUrl,
+        'status': 'pending',
+        'reject_reason': null,
+        'reviewed_by': null,
+        'reviewed_at': null,
+        'submitted_at': DateTime.now().toIso8601String(),
+        'updated_at': DateTime.now().toIso8601String(),
+      };
+
+      if (existingKyc != null && existingKyc['id'] != null) {
+        await _client.from('user_kyc').update(payload).eq('id', existingKyc['id']);
+      } else {
+        await _client.from('user_kyc').insert(payload);
+      }
+
+      await DatabaseCacheBalancerService.instance.invalidatePrefix('kyc_');
+      await ProfileBackend.instance.fetchProfile();
+      return true;
+    } catch (err) {
+      debugPrint('[KtpCameraBackend] Error simpan database: $err');
+      return false;
+    }
+  }
+
+  /// Finalisasi submit KYC ke tabel `public.user_kyc` (kompatibilitas backward)
   Future<bool> submitKycApplication({
     required String nik,
     required String fullName,
@@ -122,7 +319,6 @@ class KtpCameraBackend extends ChangeNotifier {
       final loggedInUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
       final uid = userId ?? loggedInUid ?? _client.auth.currentUser?.id;
 
-      // Cari atau fallback ke user pertama jika testing
       String targetUserId;
       if (uid != null && uid.isNotEmpty) {
         targetUserId = uid;
@@ -131,56 +327,19 @@ class KtpCameraBackend extends ChangeNotifier {
         targetUserId = existingUser != null ? existingUser['id'].toString() : '00000000-0000-0000-0000-000000000000';
       }
 
-      // Cek apakah data pengajuan KYC untuk user ini sudah ada di database
-      final existingKyc = await _client
-          .from('user_kyc')
-          .select('id, nik')
-          .eq('user_id', targetUserId)
-          .maybeSingle();
-
-      String finalNik = nik;
-      if (existingKyc != null && existingKyc['nik'] != null && existingKyc['nik'].toString().isNotEmpty) {
-        finalNik = existingKyc['nik'].toString();
-      } else {
-        // Buat NIK 16 digit yang unik per user_id agar tidak melanggar unique constraint
-        final digits = targetUserId.replaceAll(RegExp(r'[^0-9]'), '');
-        finalNik = ('3171${digits}987654321012').substring(0, 16);
-      }
-
-      final payload = {
-        'user_id': targetUserId,
-        'nik': finalNik,
-        'full_name': fullName,
-        'birth_place_city': birthPlaceCity ?? 'Jakarta',
-        'birth_date': birthDate?.toIso8601String().split('T').first ?? '1998-01-01',
-        'address': address ?? 'Indonesia',
-        'gender': gender ?? 'Laki-laki',
-        'religion': religion ?? 'Islam',
-        'occupation': occupation ?? 'Karyawan',
-        'ktp_image_url': _ktpImageUrl,
-        'selfie_image_url': _selfieImageUrl,
-        'status': 'pending',
-        'reject_reason': null,
-        'reviewed_by': null,
-        'reviewed_at': null,
-        'submitted_at': DateTime.now().toIso8601String(),
-        'updated_at': DateTime.now().toIso8601String(),
-      };
-
-      if (existingKyc != null && existingKyc['id'] != null) {
-        await _client.from('user_kyc').update(payload).eq('id', existingKyc['id']);
-      } else {
-        await _client.from('user_kyc').insert(payload);
-      }
-
-      // Invalidasi cache KYC agar admin dan profil langsung membaca data terkini
-      await DatabaseCacheBalancerService.instance.invalidatePrefix('kyc_');
-
-      // Segarkan status profil pengguna secara instan
-      await ProfileBackend.instance.fetchProfile();
-
-      debugPrint('[KtpCameraBackend] Sukses submit KYC ke user_kyc');
-      return true;
+      return await _insertOrUpdateUserKyc(
+        targetUserId: targetUserId,
+        nik: nik,
+        fullName: fullName,
+        birthPlaceCity: birthPlaceCity,
+        birthDate: birthDate,
+        address: address,
+        gender: gender,
+        religion: religion,
+        occupation: occupation,
+        ktpUrl: _ktpImageUrl ?? '',
+        selfieUrl: _selfieImageUrl ?? '',
+      );
     } catch (e) {
       debugPrint('[KtpCameraBackend] Gagal submit KYC: $e');
       _errorMessage = e.toString();

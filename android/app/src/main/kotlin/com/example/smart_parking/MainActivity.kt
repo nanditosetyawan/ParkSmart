@@ -9,6 +9,7 @@ class MainActivity : FlutterFragmentActivity() {
     private val CHANNEL = "com.example.smart_parking/audio"
     private var sfxPlayer: MediaPlayer? = null
     private var inGamePlayer: MediaPlayer? = null
+    private var clawsPlayer: MediaPlayer? = null
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
@@ -79,6 +80,18 @@ class MainActivity : FlutterFragmentActivity() {
                         result.error("ERROR", e.message, null)
                     }
                 }
+                "startClawsMusic" -> {
+                    try {
+                        startClawsMusic(loop = true)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                "stopClawsMusic" -> {
+                    stopClawsMusic()
+                    result.success(true)
+                }
                 "stopAllSounds" -> {
                     stopAllSounds()
                     result.success(true)
@@ -136,8 +149,39 @@ class MainActivity : FlutterFragmentActivity() {
         }
     }
 
+    private fun startClawsMusic(loop: Boolean = true) {
+        try {
+            clawsPlayer?.stop()
+            clawsPlayer?.release()
+            clawsPlayer = null
+
+            var resId = resources.getIdentifier("musiccrawls", "raw", packageName)
+            if (resId == 0) {
+                resId = resources.getIdentifier("music_crawls", "raw", packageName)
+            }
+            if (resId != 0) {
+                clawsPlayer = MediaPlayer.create(this, resId)
+                clawsPlayer?.isLooping = loop
+                clawsPlayer?.start()
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    private fun stopClawsMusic() {
+        try {
+            clawsPlayer?.stop()
+            clawsPlayer?.release()
+            clawsPlayer = null
+        } catch (e: Exception) {
+            clawsPlayer = null
+        }
+    }
+
     private fun stopAllSounds() {
         stopInGameSound()
+        stopClawsMusic()
         try {
             sfxPlayer?.stop()
             sfxPlayer?.release()

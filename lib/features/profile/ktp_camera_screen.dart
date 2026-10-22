@@ -19,6 +19,8 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
   bool _isCameraInitialized = false;
   bool _isProcessing = false;
   String _processingStatus = '';
+  Uint8List? _ktpBytes;
+  Uint8List? _selfieBytes;
 
   @override
   void initState() {
@@ -51,134 +53,131 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
 
   Future<void> _processImageBytes(Uint8List bytes) async {
     if (!mounted) return;
-    setState(() {
-      _isProcessing = true;
-      _processingStatus = _step == 1 
-          ? 'Mengompres brutal (~95%) & Mengunggah KTP...' 
-          : 'Mengompres brutal (~95%) & Mengunggah Selfie...';
-    });
-
-    final backend = KtpCameraBackend.instance;
-    final currentUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
-    final currentUName = ProfileBackend.instance.name.isNotEmpty ? ProfileBackend.instance.name : 'Pengguna';
 
     if (_step == 1) {
-      final success = await backend.uploadKtpPhoto(bytes: bytes, userId: currentUid);
+      // TAHAP 1: Simpan foto KTP di memori lokal (JANGAN langsung kirim ke server/database)
+      setState(() {
+        _ktpBytes = bytes;
+        _step = 2;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Foto KTP berhasil disimpan! Lanjut ke foto selfie bersama KTP.'),
+          backgroundColor: Color(0xFF10B981),
+          duration: Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // TAHAP 2: Foto Selfie telah diambil. Sekarang KEDUA foto siap dikirim bersamaan!
+      _selfieBytes = bytes;
+
+      if (_ktpBytes == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Foto KTP belum tersedia, silakan ambil foto KTP terlebih dahulu.'),
+            backgroundColor: Color(0xFFEF4444),
+          ),
+        );
+        setState(() {
+          _step = 1;
+        });
+        return;
+      }
+
+      setState(() {
+        _isProcessing = true;
+        _processingStatus = 'Mengompres (~95%) & Memvalidasi 2 berkas foto...';
+      });
+
+      final backend = KtpCameraBackend.instance;
+      final currentUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
+      final currentUName = ProfileBackend.instance.name.isNotEmpty ? ProfileBackend.instance.name : 'Pengguna';
+
+      // Kirim KEDUA foto bersamaan dengan mekanisme transaksi atomik:
+      // 1. Jika foto pertama gagal -> STOP, batalkan seluruh pengiriman, jangan kirim foto kedua.
+      // 2. Jika foto pertama sukses tapi foto kedua gagal -> BATALKAN KEDUANYA (rollback foto pertama dari storage).
+      // 3. Hanya jika kedua foto berhasil diunggah barulah data pengajuan disimpan bersamaan ke database.
+      final bool success = await backend.uploadBothAndSubmitKyc(
+        ktpBytes: _ktpBytes!,
+        selfieBytes: _selfieBytes!,
+        nik: '3171012304950001',
+        fullName: currentUName,
+        birthPlaceCity: 'Surakarta',
+        birthDate: DateTime(1961, 6, 21),
+        address: 'Jl. Kutai Utara, Solo',
+        gender: 'Laki-laki',
+        religion: 'Islam',
+        occupation: 'Wirausaha',
+        userId: currentUid,
+        onProgressStatus: (msg) {
+          if (mounted) {
+            setState(() {
+              _processingStatus = msg;
+            });
+          }
+        },
+      );
+
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
       });
 
       if (success) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Foto KTP berhasil dikompresi 95% & diunggah! Lanjut tahap selfie.'),
-            backgroundColor: Color(0xFF10B981),
-            duration: Duration(seconds: 2),
-          ),
-        );
-        setState(() {
-          _step = 2;
-        });
-      } else {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(backend.errorMessage ?? 'Gagal mengunggah foto KTP.'),
-            backgroundColor: const Color(0xFFEF4444),
-          ),
-        );
-      }
-    } else {
-      final success = await backend.uploadSelfiePhoto(bytes: bytes, userId: currentUid);
-      if (!mounted) return;
-
-      if (success) {
-        setState(() {
-          _processingStatus = 'Menyimpan pengajuan KYC ke database...';
-        });
-
-        // Submit pengajuan KYC ke Supabase user_kyc
-        final submitSuccess = await backend.submitKycApplication(
-          userId: currentUid,
-          nik: '3171012304950001',
-          fullName: currentUName,
-          birthPlaceCity: 'Surakarta',
-          birthDate: DateTime(1961, 6, 21),
-          address: 'Jl. Kutai Utara, Solo',
-          gender: 'Laki-laki',
-          religion: 'Islam',
-          occupation: 'Wirausaha',
-        );
-
-        if (!mounted) return;
-        setState(() {
-          _isProcessing = false;
-        });
-
-        if (submitSuccess) {
-          showDialog(
-            context: context,
-            barrierDismissible: false,
-            builder: (ctx) => AlertDialog(
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-              backgroundColor: const Color(0xFF1E232B),
-              title: Row(
-                children: [
-                  const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
-                  const SizedBox(width: 10),
-                  Text(
-                    'KYC Berhasil Diajukan',
-                    style: GoogleFonts.plusJakartaSans(
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
-                      fontSize: 18,
-                    ),
-                  ),
-                ],
-              ),
-              content: Text(
-                'Foto KTP & Selfie berhasil dikompresi 95% dan diunggah ke Supabase Storage (kyc-documents). Berkas telah tersimpan di antrean verifikasi Super Admin (ACC).',
-                style: GoogleFonts.plusJakartaSans(
-                  color: const Color(0xFFCBD5E1),
-                  fontSize: 14,
-                  height: 1.5,
-                ),
-              ),
-              actions: [
-                ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF38BDF8),
-                    foregroundColor: const Color(0xFF0F172A),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  ),
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    Navigator.pop(context); // Kembali ke profil
-                  },
-                  child: Text(
-                    'Selesai',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (ctx) => AlertDialog(
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            backgroundColor: const Color(0xFF1E232B),
+            title: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Color(0xFF10B981), size: 28),
+                const SizedBox(width: 10),
+                Text(
+                  'KYC Berhasil Diajukan',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white,
+                    fontWeight: FontWeight.bold,
+                    fontSize: 18,
                   ),
                 ),
               ],
             ),
-          );
-        } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(backend.errorMessage ?? 'Gagal menyimpan pengajuan KYC.'),
-              backgroundColor: const Color(0xFFEF4444),
+            content: Text(
+              'Kedua foto (KTP & Selfie) berhasil dikompresi 95% dan diunggah secara bersamaan ke Supabase Storage (kyc-documents). Berkas telah tersimpan di antrean verifikasi Super Admin (ACC).',
+              style: GoogleFonts.plusJakartaSans(
+                color: const Color(0xFFCBD5E1),
+                fontSize: 14,
+                height: 1.5,
+              ),
             ),
-          );
-        }
+            actions: [
+              ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF38BDF8),
+                  foregroundColor: const Color(0xFF0F172A),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  Navigator.pop(ctx);
+                  Navigator.pop(context); // Kembali ke profil
+                },
+                child: Text(
+                  'Selesai',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        );
       } else {
-        setState(() {
-          _isProcessing = false;
-        });
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(backend.errorMessage ?? 'Gagal mengunggah foto selfie.'),
+            content: Text(backend.errorMessage ?? 'Gagal memproses pengajuan KYC.'),
             backgroundColor: const Color(0xFFEF4444),
+            duration: const Duration(seconds: 4),
           ),
         );
       }
@@ -263,11 +262,27 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
             child: Row(
               children: [
                 GestureDetector(
-                  onTap: () => Navigator.pop(context),
+                  onTap: () {
+                    if (_step == 2) {
+                      setState(() {
+                        _step = 1;
+                        _ktpBytes = null;
+                        _selfieBytes = null;
+                      });
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                          content: Text('Kembali ke tahap 1: Silakan ambil ulang foto KTP Anda.'),
+                          duration: Duration(seconds: 2),
+                        ),
+                      );
+                    } else {
+                      Navigator.pop(context);
+                    }
+                  },
                   child: Container(
                     width: 40, height: 40,
                     decoration: BoxDecoration(color: Colors.black.withValues(alpha: 0.5), shape: BoxShape.circle),
-                    child: const Icon(Icons.close, color: Colors.white),
+                    child: Icon(_step == 2 ? Icons.arrow_back : Icons.close, color: Colors.white),
                   ),
                 ),
                 const SizedBox(width: 16),
