@@ -86,6 +86,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     } catch (_) {}
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      AdminDashboardBackend.instance.fetchDashboardMetrics(),
+      AdminKycBackend.instance.fetchKycList(),
+      _loadSuperAdminProfile(),
+    ]);
+  }
+
   @override
   void dispose() {
     AdminDashboardBackend.instance.stopPeriodicMetrics();
@@ -768,52 +776,58 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ],
         ),
 
-        body: ListView(
-          padding: const EdgeInsets.all(20),
-          children: [
-            // Welcome Header
-            Text('Dashboard Super Admin', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-            const SizedBox(height: 4),
-            
+        body: RefreshIndicator(
+          onRefresh: _handleRefresh,
+          color: const Color(0xFF6D28D9),
+          backgroundColor: Colors.white,
+          child: ListView(
+            physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+            padding: const EdgeInsets.all(20),
+            children: [
+              // Welcome Header
+              Text('Dashboard Super Admin', style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+              const SizedBox(height: 4),
+              
 
-            // ─── SECTION 1: STATISTIK MONITORING DIVISI (READ-ONLY) DENGAN GRAFIK GUNUNG ───
-            _buildMountainChartSection(currentMetric),
-            const SizedBox(height: 24),
+              // ─── SECTION 1: STATISTIK MONITORING DIVISI (READ-ONLY) DENGAN GRAFIK GUNUNG ───
+              _buildMountainChartSection(currentMetric),
+              const SizedBox(height: 24),
 
 
-            // 🪪 SECTION: KONFIRMASI PENDAFTARAN KTP (VERIFIKASI KYC IDENTITAS)
-            _buildKycConfirmationSection(context),
-            const SizedBox(height: 24),
+              // 🪪 SECTION: KONFIRMASI PENDAFTARAN KTP (VERIFIKASI KYC IDENTITAS)
+              _buildKycConfirmationSection(context),
+              const SizedBox(height: 24),
 
-            // ─── SECTION 3: FITUR INTI KHUSUS SUPER ADMIN (BUKAN AKSES DIVISI LAIN) ───
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text('Tata Kelola & Wewenang Inti', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFEDE9FE),
-                    borderRadius: BorderRadius.circular(6),
+              // ─── SECTION 3: FITUR INTI KHUSUS SUPER ADMIN (BUKAN AKSES DIVISI LAIN) ───
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text('Tata Kelola & Wewenang Inti', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEDE9FE),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text('Domain Khusus', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6D28D9))),
                   ),
-                  child: Text('Domain Khusus', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6D28D9))),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
+                ],
+              ),
+              const SizedBox(height: 12),
 
-            // Fitur 1: Emergency Maintenance Mode Toggle
-            _buildMaintenanceSwitchCard(context),
-            const SizedBox(height: 12),
+              // Fitur 1: Emergency Maintenance Mode Toggle
+              _buildMaintenanceSwitchCard(context),
+              const SizedBox(height: 12),
 
-            // Fitur 2: Konfigurasi Engine AI (Gemini / GPT)
-            _buildAiConfigCard(context),
-            const SizedBox(height: 24),
+              // Fitur 2: Konfigurasi Engine AI (Gemini / GPT)
+              _buildAiConfigCard(context),
+              const SizedBox(height: 24),
 
-            // ─── SECTION 4: AUDIT TRAIL LOG ADMIN DENGAN KONTROL PANGKAS LOG ───
-            _buildAuditTrailSection(),
-            const SizedBox(height: 80),
-          ],
+              // ─── SECTION 4: AUDIT TRAIL LOG ADMIN DENGAN KONTROL PANGKAS LOG ───
+              _buildAuditTrailSection(),
+              const SizedBox(height: 80),
+            ],
+          ),
         ),
 
         floatingActionButton: FloatingActionButton.extended(

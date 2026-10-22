@@ -25,7 +25,7 @@ class ExploreMapBackend extends ChangeNotifier {
       // Targeted Column Query: Hanya mengambil kolom yang dibutuhkan oleh marker peta & pop-up
       var query = _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_ev, rating, review_count, status, image_url, images, facilities');
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities');
 
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         query = query.ilike('name', '%${searchQuery.trim()}%');
@@ -37,6 +37,8 @@ class ExploreMapBackend extends ChangeNotifier {
         final lat = (row['latitude'] as num?)?.toDouble() ?? -6.1754;
         final lng = (row['longitude'] as num?)?.toDouble() ?? 106.7933;
         final rateMobil = (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+        final rateEv = (row['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
+        final rateMotor = (row['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
         final capacity = (row['total_capacity'] as int?) ?? 50;
         final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
         final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
@@ -67,6 +69,9 @@ class ExploreMapBackend extends ChangeNotifier {
           'rating': (row['rating'] as num?)?.toDouble() ?? 4.5,
           'reviews': '${row['review_count'] ?? 0}',
           'hours': row['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
+          'hourly_rate_mobil': rateMobil,
+          'hourly_rate_motor': rateMotor,
+          'hourly_rate_ev': rateEv,
           'photos': photos,
           'image_url': photos.first,
           'facilities': facilities,

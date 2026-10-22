@@ -25,7 +25,7 @@ class FavoriteBackend extends ChangeNotifier {
       // Targeted Column Query: Hanya mengambil informasi ringkas tempat parkir favorit
       final response = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, rating, review_count, status, image_url, facilities')
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, facilities')
           .order('rating', ascending: false);
 
       if (response.isNotEmpty) {
@@ -33,9 +33,12 @@ class FavoriteBackend extends ChangeNotifier {
           final lat = (row['latitude'] as num?)?.toDouble() ?? -6.1788;
           final lng = (row['longitude'] as num?)?.toDouble() ?? 106.7916;
           final rateMobil = (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+          final rateEv = (row['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
+          final rateMotor = (row['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
           final capacity = (row['total_capacity'] as int?) ?? 40;
           final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
           final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
+          final activeRate = isEv ? rateEv : rateMobil;
 
           return {
             'id': row['id'],
@@ -45,10 +48,13 @@ class FavoriteBackend extends ChangeNotifier {
             'slots': capacity,
             'isEv': isEv,
             'distance': '500m',
-            'price': 'Rp ${rateMobil.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+            'price': 'Rp ${activeRate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
             'rating': (row['rating'] as num?)?.toDouble() ?? 4.7,
             'reviews': '${row['review_count'] ?? 1000}',
             'hours': row['status'] == 'open' ? 'Buka 24 Jam' : 'Tutup Sementara',
+            'hourly_rate_mobil': rateMobil,
+            'hourly_rate_motor': rateMotor,
+            'hourly_rate_ev': rateEv,
             'photos': [
               row['image_url'] ?? 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
             ],

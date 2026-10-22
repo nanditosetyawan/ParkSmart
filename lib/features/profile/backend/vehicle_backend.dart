@@ -118,4 +118,37 @@ class VehicleBackend extends ChangeNotifier {
       return true;
     }
   }
+
+  /// Update photo_url kendaraan di database dan refresh list
+  Future<bool> updateVehiclePhoto(String vehicleId, String photoUrl) async {
+    try {
+      await _client
+          .from('vehicles')
+          .update({'photo_url': photoUrl, 'updated_at': DateTime.now().toIso8601String()})
+          .eq('id', vehicleId);
+      // Update lokal juga agar UI langsung refresh
+      _vehicles = _vehicles.map((v) {
+        if (v.id == vehicleId) {
+          return VehicleItem(
+            id: v.id,
+            brand: v.brand,
+            model: v.model,
+            plateNumber: v.plateNumber,
+            vehicleType: v.vehicleType,
+            category: v.category,
+            color: v.color,
+            plateExpiry: v.plateExpiry,
+            photoUrl: photoUrl,
+            isDefault: v.isDefault,
+          );
+        }
+        return v;
+      }).toList();
+      notifyListeners();
+      return true;
+    } catch (e) {
+      debugPrint('Error updateVehiclePhoto: $e');
+      return false;
+    }
+  }
 }

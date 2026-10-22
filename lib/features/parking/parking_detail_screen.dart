@@ -27,6 +27,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   late final PageController _heroPhotoController;
   int _currentPhotoIndex = 0;
   Position? _userPosition;
+  String _selectedVehicleRateType = 'mobil'; // 'mobil', 'ev', 'motor'
 
   @override
   void initState() {
@@ -563,19 +564,75 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                'TARIF PARKIR',
-                                style: AppTypography.overline(
-                                  color: isDark ? theme.textMuted : AppColors.textSecondary,
-                                ),
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Text(
+                                    'TARIF PARKIR BERDASARKAN TIPE',
+                                    style: AppTypography.overline(
+                                      color: isDark ? theme.textMuted : AppColors.textSecondary,
+                                    ),
+                                  ),
+                                  Text(
+                                    _selectedVehicleRateType == 'ev'
+                                        ? '⚡ EV Charging'
+                                        : (_selectedVehicleRateType == 'motor' ? '🛵 Motor' : '🚗 Mobil'),
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.w700,
+                                      color: _selectedVehicleRateType == 'ev'
+                                          ? const Color(0xFF17A18A)
+                                          : const Color(0xFFD96B43),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const SizedBox(height: 8),
+                              const SizedBox(height: 12),
+                              // Selector Pills: Mobil, EV, Motor
+                              Row(
+                                children: [
+                                  Expanded(
+                                    child: _buildRateTypeChip(
+                                      label: 'Mobil',
+                                      icon: Icons.directions_car,
+                                      typeKey: 'mobil',
+                                      isDark: isDark,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildRateTypeChip(
+                                      label: '⚡ EV',
+                                      icon: Icons.bolt,
+                                      typeKey: 'ev',
+                                      isDark: isDark,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: _buildRateTypeChip(
+                                      label: 'Motor',
+                                      icon: Icons.two_wheeler,
+                                      typeKey: 'motor',
+                                      isDark: isDark,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              const SizedBox(height: 16),
                               ListenableBuilder(
                                 listenable: ParkingDetailBackend.instance,
                                 builder: (context, _) {
                                   final loc = ParkingDetailBackend.instance.locationDetail;
                                   final rateMobil = (loc?['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
-                                  final rateStr = CurrencyService.instance.format(rateMobil);
+                                  final rateEv = (loc?['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
+                                  final rateMotor = (loc?['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
+
+                                  final activeRate = _selectedVehicleRateType == 'ev'
+                                      ? rateEv
+                                      : (_selectedVehicleRateType == 'motor' ? rateMotor : rateMobil);
+                                  final rateStr = CurrencyService.instance.format(activeRate);
+
                                   return Row(
                                     crossAxisAlignment: CrossAxisAlignment.baseline,
                                     textBaseline: TextBaseline.alphabetic,
@@ -586,7 +643,9 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                           fontSize: 28,
                                           fontWeight: FontWeight.w800,
                                           letterSpacing: -0.5,
-                                          color: const Color(0xFFD96B43),
+                                          color: _selectedVehicleRateType == 'ev'
+                                              ? const Color(0xFF17A18A)
+                                              : const Color(0xFFD96B43),
                                         ),
                                       ),
                                       Text(
@@ -602,12 +661,16 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                               const SizedBox(height: 12),
                               _InfoRow(
                                 icon: Icons.more_time,
-                                text: 'Rp 3.000 / jam selanjutnya',
+                                text: _selectedVehicleRateType == 'ev'
+                                    ? 'Stasiun pengisian cepat EV terintegrasi'
+                                    : (_selectedVehicleRateType == 'motor'
+                                        ? 'Tarif hemat untuk kendaraan roda dua'
+                                        : 'Rp 3.000 / jam selanjutnya (Mobil Reguler)'),
                                 isDark: isDark,
                               ),
                               _InfoRow(
-                                icon: Icons.nights_stay_outlined,
-                                text: 'Menginap (12 jam): Rp 30.000',
+                                icon: Icons.verified_user_outlined,
+                                text: 'Tarif resmi terhubung langsung ke mesin tiket & gerbang gate',
                                 isDark: isDark,
                               ),
                             ],
@@ -754,7 +817,13 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                  builder: (context, _) {
                                    final loc = ParkingDetailBackend.instance.locationDetail;
                                    final rateMobil = (loc?['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
-                                   final rateStr = CurrencyService.instance.format(rateMobil);
+                                   final rateEv = (loc?['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
+                                   final rateMotor = (loc?['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
+
+                                   final activeRate = _selectedVehicleRateType == 'ev'
+                                       ? rateEv
+                                       : (_selectedVehicleRateType == 'motor' ? rateMotor : rateMobil);
+                                   final rateStr = CurrencyService.instance.format(activeRate);
                                    return Text(
                                      '$rateStr / jam',
                                      style: GoogleFonts.plusJakartaSans(
@@ -798,10 +867,18 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                   }
                                   final locId = loc['id']?.toString();
                                   final locName = loc['name']?.toString() ?? 'Lokasi Parkir';
-                                  final hourly = (loc['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0;
+                                  final hourly = _selectedVehicleRateType == 'ev'
+                                      ? ((loc['hourly_rate_ev'] as num?)?.toDouble() ?? 7500.0)
+                                      : (_selectedVehicleRateType == 'motor'
+                                          ? ((loc['hourly_rate_motor'] as num?)?.toDouble() ?? 2000.0)
+                                          : ((loc['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0));
+                                  final slotTypeLabel = _selectedVehicleRateType == 'ev'
+                                      ? 'Slot EV'
+                                      : (_selectedVehicleRateType == 'motor' ? 'Slot Motor' : 'Slot Reguler');
                                   CheckoutBackend.instance.setBookingDetails(
                                     locationId: locId,
                                     locationName: locName,
+                                    slotType: slotTypeLabel,
                                     hourlyRate: hourly,
                                     durationHours: 1,
                                   );
@@ -854,6 +931,53 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
           ),
         );
       },
+    );
+  }
+
+  Widget _buildRateTypeChip({
+    required String label,
+    required IconData icon,
+    required String typeKey,
+    required bool isDark,
+  }) {
+    final isSelected = _selectedVehicleRateType == typeKey;
+    final activeColor = typeKey == 'ev' ? const Color(0xFF17A18A) : const Color(0xFF114177);
+    return GestureDetector(
+      onTap: () => setState(() => _selectedVehicleRateType = typeKey),
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(vertical: 8),
+        decoration: BoxDecoration(
+          color: isSelected
+              ? activeColor
+              : (isDark ? const Color(0xFF1E293B) : const Color(0xFFF3F4F6)),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+            color: isSelected
+                ? activeColor
+                : (isDark ? const Color(0xFF334155) : const Color(0xFFE5E7EB)),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 15,
+              color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF4B5563)),
+            ),
+            const SizedBox(width: 4),
+            Text(
+              label,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w600,
+                color: isSelected ? Colors.white : (isDark ? Colors.white70 : const Color(0xFF4B5563)),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

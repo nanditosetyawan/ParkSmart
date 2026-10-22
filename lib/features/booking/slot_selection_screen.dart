@@ -723,7 +723,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 const SizedBox(height: 2),
                                 Text(
                                   CurrencyService.instance.format(
-                                    (SlotSelectionBackend.instance.currentLocation?['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0,
+                                    SlotSelectionBackend.instance.getHourlyRateForSlot(_selectedSlot),
                                   ),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
@@ -733,7 +733,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '(1 Jam Pertama)',
+                                  '(1 Jam Pertama • ${SlotSelectionBackend.instance.getSlotTypeLabel(_selectedSlot)})',
                                   style: AppTypography.caption(
                                     color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                   ),
@@ -751,14 +751,32 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 ? floors[_selectedFloor]
                                 : 'Lantai 1';
                             final loc = SlotSelectionBackend.instance.currentLocation;
-                            final rate = (loc?['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0;
+                            final rate = SlotSelectionBackend.instance.getHourlyRateForSlot(_selectedSlot);
+                            final slotType = SlotSelectionBackend.instance.getSlotTypeLabel(_selectedSlot);
+
+                            final matchSlot = SlotSelectionBackend.instance.slots.firstWhere(
+                              (s) => (s['slot_code']?.toString() ?? s['code']?.toString()) == _selectedSlot,
+                              orElse: () => {},
+                            );
+                            final slotId = matchSlot['id']?.toString();
+
+                            final now = DateTime.now();
+                            final start = DateTime(now.year, now.month, now.day, now.hour, now.minute);
+                            final endHour = (now.hour + 1).clamp(0, 23);
+                            final endMinute = endHour == 23 ? 59 : now.minute;
+                            final end = DateTime(now.year, now.month, now.day, endHour, endMinute);
+
                             CheckoutBackend.instance.setBookingDetails(
                               locationId: loc?['id']?.toString(),
                               locationName: loc?['name']?.toString() ?? 'Pakuwon Mall',
+                              slotId: slotId,
                               slotCode: _selectedSlot ?? 'A-01',
                               floorName: activeFloorName,
+                              slotType: slotType,
                               hourlyRate: rate,
                               durationHours: 1,
+                              startTime: start,
+                              endTime: end,
                             );
                             Navigator.push(
                               context,

@@ -215,8 +215,13 @@ class _HomeScreenState extends State<HomeScreen> {
     return 'Tersedia Lengang ($density%)';
   }
 
-  /// Tarik ke bawah (Pull to Refresh) untuk me-reload & menyambungkan GPS
+  /// Tarik ke bawah (Pull to Refresh) untuk me-reload data parkir & GPS
   Future<void> _refreshGpsLocation() async {
+    // Muat ulang data parkir Supabase agar lokasi baru langsung tampil di homescreen
+    try {
+      await HomeBackend.instance.loadHomeData();
+    } catch (_) {}
+
     try {
       // 1. Cek Service Enabled
       bool serviceEnabled = await Geolocator.isLocationServiceEnabled();
@@ -2075,7 +2080,18 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                   builder: (context) {
                     final lat = (loc['latitude'] as num?)?.toDouble() ?? -6.1754;
                     final lng = (loc['longitude'] as num?)?.toDouble() ?? 106.7933;
-                    final rate = (loc['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+                    final rateMobil = (loc['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
+                    final rateEv = (loc['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
+                    final selectedCat = HomeBackend.instance.selectedCategory;
+
+                    int displayRate = rateMobil;
+                    String rateSuffix = '/ jam';
+                    if (selectedCat == 'Parkir EV') {
+                      displayRate = rateEv;
+                      rateSuffix = '/ j (EV)';
+                    }
+                    final formattedPrice = 'Rp ${displayRate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} $rateSuffix';
+
                     final capacity = (loc['total_capacity'] as num?)?.toInt() ?? 50;
                     final ratingVal = (loc['rating'] as num?)?.toDouble() ?? 4.8;
                     final reviewsVal = loc['review_count']?.toString() ?? '100';
@@ -2104,7 +2120,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'slots': capacity,
                       'isEv': isEv,
                       'distance': '1.2 km',
-                      'price': 'Rp ${rate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+                      'price': formattedPrice,
                       'rating': ratingVal,
                       'reviews': reviewsVal,
                       'hours': loc['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
@@ -2122,7 +2138,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       child: _buildCard(
                         title: loc['name'] ?? 'Spot Parkir',
                         subtitle: subText,
-                        price: 'Rp ${rate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+                        price: formattedPrice,
                         imageUrl: primaryImg,
                         rating: ratingVal.toStringAsFixed(1),
                         isEv: isEv,

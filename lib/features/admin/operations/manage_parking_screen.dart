@@ -185,12 +185,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     );
   }
 
+  Future<void> _handleRefreshData() async {
+    await ManageParkingBackend.instance.fetchLocations();
+    if (_selectedLocationId.isNotEmpty) {
+      await ManageParkingBackend.instance.fetchSlotsForLocation(_selectedLocationId);
+    }
+  }
+
   // ==================== TAB 1: DAFTAR LOKASI & ATURAN TARIF ====================
   Widget _buildLocationsListTab() {
     final list = _filteredLocations;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      color: const Color(0xFF114177),
+      backgroundColor: Colors.white,
+      onRefresh: _handleRefreshData,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(16),
       children: [
         // 1. Search Bar (Google Style)
         Container(
@@ -327,8 +339,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         else
           ...list.map((loc) => _buildLocationCard(loc)),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLocationCard(Map<String, dynamic> loc) {
     final total = (loc['totalSlots'] is num && loc['totalSlots'] > 0) ? (loc['totalSlots'] as num).toInt() : 1;
@@ -585,56 +598,65 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   Widget _buildFloorPlanDesignerTab() {
     final loc = _activeLocation;
     if (loc == null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: const BoxDecoration(
-                  color: Color(0xFFEFF6FF),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.business_outlined, size: 40, color: Color(0xFF114177)),
+      return RefreshIndicator(
+        color: const Color(0xFF114177),
+        backgroundColor: Colors.white,
+        onRefresh: _handleRefreshData,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 60),
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: const BoxDecoration(
+                      color: Color(0xFFEFF6FF),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.business_outlined, size: 40, color: Color(0xFF114177)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Belum Ada Gedung Parkir',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A18),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Silakan tambahkan lokasi parkir pertama di tab "Daftar Lokasi & Tarif" terlebih dahulu untuk mendesain denah lantai & tata letak slot.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: const Color(0xFF64748B),
+                      height: 1.4,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  ElevatedButton.icon(
+                    onPressed: _showAddLocationDialog,
+                    icon: const Icon(Icons.add_location_alt_rounded, size: 18, color: Colors.white),
+                    label: Text(
+                      'Tambah Lokasi Sekarang',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF114177),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 16),
-              Text(
-                'Belum Ada Gedung Parkir',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1A1A18),
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Silakan tambahkan lokasi parkir pertama di tab "Daftar Lokasi & Tarif" terlebih dahulu untuk mendesain denah lantai & tata letak slot.',
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 12,
-                  color: const Color(0xFF64748B),
-                  height: 1.4,
-                ),
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton.icon(
-                onPressed: _showAddLocationDialog,
-                icon: const Icon(Icons.add_location_alt_rounded, size: 18, color: Colors.white),
-                label: Text(
-                  'Tambah Lokasi Sekarang',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.white),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFF114177),
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       );
     }
@@ -653,9 +675,14 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final zoneASlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneA');
     final zoneBSlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneB');
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
+    return RefreshIndicator(
+      color: const Color(0xFF114177),
+      backgroundColor: Colors.white,
+      onRefresh: _handleRefreshData,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(16),
+        children: [
         // 1. Dropdown Pilih Lokasi Parkir
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
@@ -1074,8 +1101,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
           ),
         ),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildLegendItem(String label, Color color) {
     return Row(
@@ -2263,7 +2291,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'Pilih Sumber Foto (Kompres & Simpan ke Supabase)',
+                    'Pilih Sumber Foto',
                     style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
                   ),
                   IconButton(

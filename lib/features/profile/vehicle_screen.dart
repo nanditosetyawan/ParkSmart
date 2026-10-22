@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/supabase_storage_service.dart';
 import '../vehicle/add_vehicle_screen.dart';
 import '../history/verified_parking_sessions_screen.dart';
 import 'backend/vehicle_backend.dart';
@@ -13,10 +15,161 @@ class VehicleScreen extends StatefulWidget {
 }
 
 class _VehicleScreenState extends State<VehicleScreen> {
+  bool _isUploadingPhoto = false;
+
   @override
   void initState() {
     super.initState();
     VehicleBackend.instance.fetchVehicles();
+  }
+
+  /// Upload foto kendaraan yang sudah ada
+  Future<void> _uploadPhotoForVehicle(String vehicleId) async {
+    try {
+      final picker = ImagePicker();
+      final XFile? picked = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 1920,
+        maxHeight: 1920,
+      );
+      if (picked == null) return;
+
+      setState(() => _isUploadingPhoto = true);
+
+      final rawBytes = await picked.readAsBytes();
+
+      final photoUrl = await SupabaseStorageService.instance.uploadVehiclePhoto(
+        rawBytes: rawBytes,
+        userId: vehicleId, // path unique per vehicle
+      );
+
+      if (photoUrl != null) {
+        await VehicleBackend.instance.updateVehiclePhoto(vehicleId, photoUrl);
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Foto kendaraan berhasil diupload!'),
+              backgroundColor: Color(0xFF10B981),
+            ),
+          );
+        }
+      } else {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Gagal mengupload foto kendaraan'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Error: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isUploadingPhoto = false);
+    }
+  }
+
+  /// Widget foto kendaraan: tampilkan foto nyata atau placeholder
+  Widget _buildVehiclePhotoWidget(String? photoUrl, String vehicleId, bool isDark) {
+    final hasPhoto = photoUrl != null && photoUrl.isNotEmpty;
+    return GestureDetector(
+      onTap: _isUploadingPhoto ? null : () => _uploadPhotoForVehicle(vehicleId),
+      child: Stack(
+        children: [
+          Container(
+            height: 176,
+            width: double.infinity,
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              color: isDark ? const Color(0xFF1E293B) : const Color(0xFFF1F5F9),
+            ),
+            child: hasPhoto
+                ? ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: Image.network(
+                      photoUrl,
+                      fit: BoxFit.cover,
+                      width: double.infinity,
+                      height: 176,
+                      errorBuilder: (_, e, s) => _photoPlaceholder(isDark),
+                    ),
+                  )
+                : _photoPlaceholder(isDark),
+          ),
+          // Overlay "Ganti Foto" atau "Tambah Foto" di pojok kanan atas
+          Positioned(
+            top: 10,
+            right: 10,
+            child: _isUploadingPhoto
+                ? Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.7),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const SizedBox(
+                      width: 16,
+                      height: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    ),
+                  )
+                : Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.65),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const Icon(Icons.camera_alt, size: 13, color: Colors.white),
+                        const SizedBox(width: 4),
+                        Text(
+                          hasPhoto ? 'Ganti Foto' : 'Tambah Foto',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w600,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _photoPlaceholder(bool isDark) {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.directions_car_outlined,
+            size: 48,
+            color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Tap untuk tambah foto',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 12,
+              color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   void _showDeleteVehiclePopup(BuildContext context, [String? vehicleId]) {
@@ -343,45 +496,40 @@ class _VehicleScreenState extends State<VehicleScreen> {
                             ],
                           ),
                           const SizedBox(height: 16),
-                          Container(
-                            height: 176,
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              borderRadius: BorderRadius.circular(16),
-                              image: DecorationImage(
-                                image: NetworkImage(
-                                  (VehicleBackend.instance.defaultVehicle?.photoUrl != null &&
-                                          VehicleBackend.instance.defaultVehicle!.photoUrl!.isNotEmpty)
-                                      ? VehicleBackend.instance.defaultVehicle!.photoUrl!
-                                      : 'https://lh3.googleusercontent.com/aida-public/AB6AXuAVnuwsaKhsc7ics-r8dq6xuhI1zrkeHWSoZpyeq7EGmKQYw_C4-dH5RuUyb8nRM_xEGAiy_s1PFU9iUZV8tTt6--jZfseZAh0cZzgeIN9Xb1Ast9BcH5Cokm2HgwLn_xJgSfbo-f_0EtvOuGrZhDzpZKtCkpM02ODxLjayW4pG6ArEONBVHlKbqLWK-KfYXVz7aTTfb1ng9nNOIsi0YE8MOPywan78pT3axi0Zbww-sKrIymmec4yi',
-                                ),
-                                fit: BoxFit.cover,
+                          // Foto kendaraan utama — dari storage atau placeholder
+                          Stack(
+                            children: [
+                              _buildVehiclePhotoWidget(
+                                VehicleBackend.instance.defaultVehicle?.photoUrl,
+                                VehicleBackend.instance.defaultVehicle?.id ?? '',
+                                isDark,
                               ),
-                            ),
-                            child: Align(
-                              alignment: Alignment.bottomRight,
-                              child: Container(
-                                margin: const EdgeInsets.all(10),
-                                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF020304).withValues(alpha: 0.8),
-                                  borderRadius: BorderRadius.circular(16),
-                                ),
-                                child: Row(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    const Icon(Icons.directions_car, size: 14, color: Colors.white),
-                                    const SizedBox(width: 4),
-                                    Text(
-                                      VehicleBackend.instance.defaultVehicle != null
-                                          ? '${VehicleBackend.instance.defaultVehicle!.brand} ${VehicleBackend.instance.defaultVehicle!.model}'
-                                          : 'Toyota Raize',
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
-                                    ),
-                                  ],
+                              // Label nama kendaraan di pojok kiri bawah
+                              Positioned(
+                                bottom: 10,
+                                left: 10,
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF020304).withValues(alpha: 0.8),
+                                    borderRadius: BorderRadius.circular(16),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      const Icon(Icons.directions_car, size: 14, color: Colors.white),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        VehicleBackend.instance.defaultVehicle != null
+                                            ? '${VehicleBackend.instance.defaultVehicle!.brand} ${VehicleBackend.instance.defaultVehicle!.model}'
+                                            : '',
+                                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
+                                      ),
+                                    ],
+                                  ),
                                 ),
                               ),
-                            ),
+                            ],
                           ),
                           const SizedBox(height: 12),
                           Row(
@@ -807,46 +955,42 @@ class _VehicleScreenState extends State<VehicleScreen> {
               ],
             ),
             const SizedBox(height: 16),
-            Container(
-              height: 176,
-              width: double.infinity,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                image: DecorationImage(
-                  image: NetworkImage(
-                    (vehicle.photoUrl != null && vehicle.photoUrl!.isNotEmpty)
-                        ? vehicle.photoUrl!
-                        : 'https://images.unsplash.com/photo-1549399542-7e3f8b79c341?w=800&auto=format&fit=crop&q=80',
-                  ),
-                  fit: BoxFit.cover,
+            // Foto kendaraan cadangan — dari storage atau placeholder
+            Stack(
+              children: [
+                _buildVehiclePhotoWidget(
+                  vehicle.photoUrl,
+                  vehicle.id,
+                  isDark,
                 ),
-              ),
-              child: Align(
-                alignment: Alignment.bottomRight,
-                child: Container(
-                  margin: const EdgeInsets.all(10),
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF020304).withValues(alpha: 0.8),
-                    borderRadius: BorderRadius.circular(16),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(
-                        vehicle.vehicleType.toLowerCase().contains('motor') ? Icons.two_wheeler : Icons.directions_car,
-                        size: 14,
-                        color: Colors.white,
-                      ),
-                      const SizedBox(width: 4),
-                      Text(
-                        '${vehicle.brand} ${vehicle.model}',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
-                      ),
-                    ],
+                // Label nama kendaraan di pojok kiri bawah
+                Positioned(
+                  bottom: 10,
+                  left: 10,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF020304).withValues(alpha: 0.8),
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Icon(
+                          vehicle.vehicleType.toLowerCase().contains('motor') ? Icons.two_wheeler : Icons.directions_car,
+                          size: 14,
+                          color: Colors.white,
+                        ),
+                        const SizedBox(width: 4),
+                        Text(
+                          '${vehicle.brand} ${vehicle.model}',
+                          style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
-              ),
+              ],
             ),
             const SizedBox(height: 12),
             Row(

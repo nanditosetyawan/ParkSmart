@@ -239,7 +239,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                             ),
                                           ),
                                           Text(
-                                            '${CheckoutBackend.instance.floorName} - Slot ${CheckoutBackend.instance.slotCode}',
+                                            '${CheckoutBackend.instance.floorName} - Slot ${CheckoutBackend.instance.slotCode} • ${CheckoutBackend.instance.slotType}',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -382,7 +382,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     child: Column(
                       children: [
-                        _priceRow('Tarif Parkir (${CheckoutBackend.instance.durationHours} Jam)', CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
+                        _priceRow('Tarif Parkir (${CheckoutBackend.instance.durationHours} Jam • ${CheckoutBackend.instance.slotType})', CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Divider(
@@ -480,20 +480,95 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () async {
+                          final now = DateTime.now();
+                          final start = CheckoutBackend.instance.scheduledStartTime ?? now;
+                          final end = CheckoutBackend.instance.scheduledEndTime ??
+                              start.add(Duration(hours: CheckoutBackend.instance.durationHours));
+
+                          // 1. Validasi jam masuk tidak di masa lalu
+                          if (start.isBefore(now.subtract(const Duration(minutes: 2)))) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Jam masuk tidak boleh di masa lalu. Silakan atur ulang jam masuk.'),
+                                backgroundColor: Colors.redAccent,
+                              ),
+                            );
+                            return;
+                          }
+
+                          // 2. Validasi ketat bentrok slot jam yang sudah diambil
+                          final hasConflict = await CheckoutBackend.instance.checkSlotConflict(
+                            startTime: start,
+                            endTime: end,
+                          );
+
+                          if (hasConflict) {
+                            if (context.mounted) {
+                              final availableSlots = await CheckoutBackend.instance.getAvailableTimeSlotsToday();
+                              if (context.mounted) {
+                                final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+                                final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+                                showDialog(
+                                  context: context,
+                                  barrierDismissible: false,
+                                  builder: (dialogCtx) => _SlotConflictDialog(
+                                    slotCode: CheckoutBackend.instance.slotCode,
+                                    startStr: startStr,
+                                    endStr: endStr,
+                                    availableSlots: availableSlots,
+                                    onSelectWindow: (w) {
+                                      CheckoutBackend.instance.setBookingDetails(
+                                        startTime: w.start,
+                                        endTime: w.end,
+                                        durationHours: (w.end.difference(w.start).inMinutes / 60.0).ceil().clamp(1, 24),
+                                      );
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text('Jadwal dialihkan ke ${w.label}'),
+                                          backgroundColor: const Color(0xFF17A18A),
+                                        ),
+                                      );
+                                    },
+                                    onChooseOtherSlot: () {
+                                      Navigator.pop(dialogCtx);
+                                      Navigator.pop(context);
+                                    },
+                                  ),
+                                );
+                              }
+                            }
+                            return; // JANGAN DILOLOSKAN PAYMENT!
+                          }
+
                           final booking = await CheckoutBackend.instance.confirmAndCreateBooking();
+                          if (booking == null) {
+                            if (context.mounted) {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('Gagal membuat pesanan. Slot mungkin baru saja dibooking pengguna lain.'),
+                                  backgroundColor: Colors.redAccent,
+                                ),
+                              );
+                            }
+                            return;
+                          }
+
                           final veh = CheckoutBackend.instance.selectedVehicle;
                           final vehicleName = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Land Cruiser';
                           final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
-                          final bId = booking?['id']?.toString();
+                          final bId = booking['id']?.toString();
+
+                          final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+                          final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
 
                           BookingConfirmationBackend.instance.setConfirmedPass(
-                            bookingCode: booking?['booking_code'] ?? '#PS-88210-CP',
+                            bookingCode: booking['booking_code'] ?? '#PS-88210-CP',
                             locationName: CheckoutBackend.instance.locationName,
                             locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
                             slotCode: CheckoutBackend.instance.slotCode,
                             vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota Land Cruiser',
                             plateNumber: plateNumber,
-                            validTime: '14:00 - 16:00',
+                            validTime: '$startStr - $endStr WIB',
                             bookingId: bId,
                             ticketStatus: TicketMark.belumDibayar,
                             totalPrice: CheckoutBackend.instance.totalPayment,
@@ -578,6 +653,263 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   }
 }
 
+// Dialog Peringatan Bentrok Jadwal & Rekomendasi Jam Kosong Hari Ini
+class _SlotConflictDialog extends StatelessWidget {
+  final String slotCode;
+  final String startStr;
+  final String endStr;
+  final List<AvailableTimeWindow> availableSlots;
+  final ValueChanged<AvailableTimeWindow> onSelectWindow;
+  final VoidCallback onChooseOtherSlot;
+
+  const _SlotConflictDialog({
+    required this.slotCode,
+    required this.startStr,
+    required this.endStr,
+    required this.availableSlots,
+    required this.onSelectWindow,
+    required this.onChooseOtherSlot,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+
+    return Dialog(
+      backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+      child: Padding(
+        padding: const EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Header Icon & Title
+            Row(
+              children: [
+                Container(
+                  width: 44,
+                  height: 44,
+                  decoration: BoxDecoration(
+                    color: Colors.redAccent.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.event_busy_rounded,
+                    color: Colors.redAccent,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Slot Penuh pada Jam Tersebut',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 15.5,
+                          fontWeight: FontWeight.w700,
+                          color: isDark ? Colors.white : const Color(0xFF0F172A),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        'Slot $slotCode sudah terisi untuk $startStr - $endStr',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 16),
+            Divider(color: isDark ? const Color(0xFF333C4A) : const Color(0xFFE2E8F0), height: 1),
+            const SizedBox(height: 14),
+
+            Text(
+              availableSlots.isEmpty
+                  ? 'Status Ketersediaan Hari Ini:'
+                  : 'Pilih Jadwal Jam Tersedia Hari Ini:',
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12.5,
+                fontWeight: FontWeight.w700,
+                color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF334155),
+              ),
+            ),
+            const SizedBox(height: 10),
+
+            // Scrollable list of available slots
+            if (availableSlots.isEmpty)
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 16),
+                decoration: BoxDecoration(
+                  color: isDark ? const Color(0xFF262C36) : const Color(0xFFF8FAFC),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0)),
+                ),
+                child: Column(
+                  children: [
+                    const Icon(Icons.do_not_disturb_on_rounded, size: 32, color: Colors.redAccent),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Slot ini sudah penuh total untuk sisa hari ini.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: isDark ? Colors.white : const Color(0xFF0F172A),
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Silakan kembali dan pilih slot parkir lain.',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11.5,
+                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                      ),
+                    ),
+                  ],
+                ),
+              )
+            else
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxHeight: 220),
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  physics: const BouncingScrollPhysics(),
+                  itemCount: availableSlots.length,
+                  separatorBuilder: (_, _) => const SizedBox(height: 8),
+                  itemBuilder: (context, index) {
+                    final window = availableSlots[index];
+                    return Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: isDark ? const Color(0xFF262C36) : const Color(0xFFF8FAFC),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isDark ? const Color(0xFF334155) : const Color(0xFFE2E8F0),
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            padding: const EdgeInsets.all(6),
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF17A18A).withValues(alpha: 0.12),
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: const Icon(
+                              Icons.access_time_filled_rounded,
+                              size: 18,
+                              color: Color(0xFF17A18A),
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  window.label,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w700,
+                                    color: isDark ? Colors.white : const Color(0xFF0F172A),
+                                  ),
+                                ),
+                                const SizedBox(height: 1),
+                                Text(
+                                  'Tersedia (${window.durationLabel})',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: const Color(0xFF17A18A),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(context);
+                              onSelectWindow(window);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFF17A18A),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                              minimumSize: Size.zero,
+                              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Pilih',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 11.5,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                ),
+              ),
+
+            const SizedBox(height: 16),
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: onChooseOtherSlot,
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: isDark ? Colors.white70 : const Color(0xFF475569),
+                      side: BorderSide(color: isDark ? const Color(0xFF475569) : const Color(0xFFCBD5E1)),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                    child: Text(
+                      'Pilih Slot Lain',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
+                    ),
+                  ),
+                ),
+                if (availableSlots.isNotEmpty) ...[
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      style: TextButton.styleFrom(
+                        foregroundColor: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF114177),
+                        padding: const EdgeInsets.symmetric(vertical: 10),
+                      ),
+                      child: Text(
+                        'Atur Jam Manual',
+                        style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 class _JadwalSelector extends StatefulWidget {
   const _JadwalSelector();
   @override
@@ -591,21 +923,54 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
   @override
   void initState() {
     super.initState();
-    final now = TimeOfDay.now();
-    _arrivalTime = TimeOfDay(hour: (now.hour + 1) % 24, minute: 0);
-    final initialDuration = CheckoutBackend.instance.durationHours;
-    _departureTime = TimeOfDay(
-      hour: (_arrivalTime.hour + initialDuration) % 24,
-      minute: _arrivalTime.minute,
-    );
-    WidgetsBinding.instance.addPostFrameCallback((_) => _syncToBackend());
+    CheckoutBackend.instance.addListener(_onBackendDetailsChanged);
+    _initTimes();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _syncToBackend();
+      _checkAndShowConflictModal();
+    });
+  }
+
+  @override
+  void dispose() {
+    CheckoutBackend.instance.removeListener(_onBackendDetailsChanged);
+    super.dispose();
+  }
+
+  void _onBackendDetailsChanged() {
+    final start = CheckoutBackend.instance.scheduledStartTime;
+    final end = CheckoutBackend.instance.scheduledEndTime;
+    if (start != null && end != null) {
+      final newArr = TimeOfDay(hour: start.hour, minute: start.minute);
+      final newDep = TimeOfDay(hour: end.hour, minute: end.minute);
+      if (newArr != _arrivalTime || newDep != _departureTime) {
+        if (mounted) {
+          setState(() {
+            _arrivalTime = newArr;
+            _departureTime = newDep;
+          });
+        }
+      }
+    }
+  }
+
+  void _initTimes() {
+    final now = DateTime.now();
+    final bStart = CheckoutBackend.instance.scheduledStartTime ?? now;
+    final effectiveStart = bStart.isBefore(now) ? now : bStart;
+
+    _arrivalTime = TimeOfDay(hour: effectiveStart.hour, minute: effectiveStart.minute);
+
+    final endHour = (_arrivalTime.hour + 1).clamp(0, 23);
+    final endMinute = endHour == 23 ? 59 : _arrivalTime.minute;
+    _departureTime = TimeOfDay(hour: endHour, minute: endMinute);
   }
 
   int _calculateDuration(TimeOfDay inTime, TimeOfDay outTime) {
     int inMinutes = inTime.hour * 60 + inTime.minute;
     int outMinutes = outTime.hour * 60 + outTime.minute;
     if (outMinutes <= inMinutes) {
-      outMinutes += 24 * 60; // Next day
+      outMinutes = (inMinutes + 60).clamp(0, 23 * 60 + 59);
     }
     final diff = outMinutes - inMinutes;
     final hours = (diff / 60.0).ceil();
@@ -616,14 +981,71 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
     final now = DateTime.now();
     final start = DateTime(now.year, now.month, now.day, _arrivalTime.hour, _arrivalTime.minute);
     var end = DateTime(now.year, now.month, now.day, _departureTime.hour, _departureTime.minute);
-    if (end.isBefore(start)) {
-      end = end.add(const Duration(days: 1));
+
+    // Tetap pada hari yang sama (maksimal 23:59 hari ini)
+    if (end.isBefore(start) || end.isAtSameMomentAs(start)) {
+      if (start.hour >= 23) {
+        end = DateTime(now.year, now.month, now.day, 23, 59);
+      } else {
+        end = DateTime(now.year, now.month, now.day, start.hour + 1, start.minute);
+      }
     }
+
     final hours = _calculateDuration(_arrivalTime, _departureTime);
     CheckoutBackend.instance.setBookingDetails(
       durationHours: hours,
       startTime: start,
       endTime: end,
+    );
+  }
+
+  Future<void> _checkAndShowConflictModal() async {
+    final now = DateTime.now();
+    final start = DateTime(now.year, now.month, now.day, _arrivalTime.hour, _arrivalTime.minute);
+    final end = DateTime(now.year, now.month, now.day, _departureTime.hour, _departureTime.minute);
+
+    final hasConflict = await CheckoutBackend.instance.checkSlotConflict(
+      startTime: start,
+      endTime: end,
+    );
+
+    if (hasConflict && mounted) {
+      final availableSlots = await CheckoutBackend.instance.getAvailableTimeSlotsToday();
+      if (!mounted) return;
+      _showConflictDialog(availableSlots, start, end);
+    }
+  }
+
+  void _showConflictDialog(List<AvailableTimeWindow> availableSlots, DateTime start, DateTime end) {
+    final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+    final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => _SlotConflictDialog(
+        slotCode: CheckoutBackend.instance.slotCode,
+        startStr: startStr,
+        endStr: endStr,
+        availableSlots: availableSlots,
+        onSelectWindow: (window) {
+          setState(() {
+            _arrivalTime = TimeOfDay(hour: window.start.hour, minute: window.start.minute);
+            _departureTime = TimeOfDay(hour: window.end.hour, minute: window.end.minute);
+            _syncToBackend();
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Jadwal dialihkan ke ${window.label}'),
+              backgroundColor: const Color(0xFF17A18A),
+            ),
+          );
+        },
+        onChooseOtherSlot: () {
+          Navigator.pop(ctx);
+          Navigator.pop(context); // Kembali ke denah slot
+        },
+      ),
     );
   }
 
@@ -729,23 +1151,78 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
   }
 
   void _showArrivalTimePicker() async {
-    final selectedTime = await _pickTime(_arrivalTime, 'PILIH JAM KEDATANGAN (IN)');
-    if (selectedTime != null) {
-      setState(() {
-        _arrivalTime = selectedTime;
-        _syncToBackend();
-      });
+    final selectedTime = await _pickTime(_arrivalTime, 'PILIH JAM KEDATANGAN (HARI INI)');
+    if (selectedTime == null) return;
+
+    final now = TimeOfDay.now();
+    final nowMinutes = now.hour * 60 + now.minute;
+    final selMinutes = selectedTime.hour * 60 + selectedTime.minute;
+
+    // Batasi jam tidak boleh di masa lalu (toleransi 1 menit jika tepat pada menit saat ini)
+    if (selMinutes < nowMinutes - 1) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Jam masuk tidak boleh di masa lalu (Jam saat ini ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}).'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
     }
+
+    // Batas maksimal masuk hari ini 23:45
+    if (selMinutes >= 23 * 60 + 55) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Maksimal jam kedatangan pukul 23:45 untuk pemesanan hari ini.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
+    }
+
+    setState(() {
+      _arrivalTime = selectedTime;
+      final depMinutes = _departureTime.hour * 60 + _departureTime.minute;
+      if (depMinutes <= selMinutes) {
+        final newDepHour = (_arrivalTime.hour + 1).clamp(0, 23);
+        final newDepMinute = newDepHour == 23 ? 59 : _arrivalTime.minute;
+        _departureTime = TimeOfDay(hour: newDepHour, minute: newDepMinute);
+      }
+      _syncToBackend();
+    });
+
+    _checkAndShowConflictModal();
   }
 
   void _showDepartureTimePicker() async {
-    final selectedTime = await _pickTime(_departureTime, 'PILIH JAM KELUAR (OUT)');
-    if (selectedTime != null) {
-      setState(() {
-        _departureTime = selectedTime;
-        _syncToBackend();
-      });
+    final selectedTime = await _pickTime(_departureTime, 'PILIH JAM KELUAR (HARI INI)');
+    if (selectedTime == null) return;
+
+    final arrMinutes = _arrivalTime.hour * 60 + _arrivalTime.minute;
+    final selMinutes = selectedTime.hour * 60 + selectedTime.minute;
+
+    if (selMinutes <= arrMinutes) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Jam keluar harus setelah jam masuk (${_arrivalTime.hour.toString().padLeft(2, '0')}:${_arrivalTime.minute.toString().padLeft(2, '0')}) dan maksimal 23:59 hari ini.'),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+      }
+      return;
     }
+
+    setState(() {
+      _departureTime = selectedTime;
+      _syncToBackend();
+    });
+
+    _checkAndShowConflictModal();
   }
 
   @override

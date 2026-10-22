@@ -63,6 +63,13 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
     } catch (_) {}
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      AdminFinanceDashboardBackend.instance.fetchFinanceDashboard(),
+      _loadAdminInfo(),
+    ]);
+  }
+
   void _onQuarterChartTouch(double localX, double canvasWidth, int pointCount, int activeCount) {
     if (pointCount <= 1 || canvasWidth <= 0 || activeCount <= 0) return;
     const double marginHorizontal = 12.0;
@@ -376,9 +383,11 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
   // ==================== TAB 1: RINGKASAN & ARUS KAS ====================
   Widget _buildTabCashflowAndSummary(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () => AdminFinanceDashboardBackend.instance.fetchFinanceDashboard(),
+      onRefresh: _handleRefresh,
       color: const Color(0xFFD97706),
+      backgroundColor: Colors.white,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.all(18),
         children: [
           // 1. Total Omzet dengan Mountain Chart Bulanan

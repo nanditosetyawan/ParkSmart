@@ -76,12 +76,18 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
     } catch (_) {}
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      AdminCsDashboardBackend.instance.fetchCsDashboardData(),
+      _loadAdminInfo(),
+    ]);
+  }
+
   @override
   void dispose() {
     AdminCsDashboardBackend.instance.disposeRealtime();
     super.dispose();
   }
-
 
   @override
   Widget build(BuildContext context) {
@@ -453,9 +459,11 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
   // ==================== TAB 0: LAYANAN CS & OVERVIEW ====================
   Widget _buildTabOverview(BuildContext context) {
     return RefreshIndicator(
-      onRefresh: () => AdminCsDashboardBackend.instance.fetchCsDashboardData(),
+      onRefresh: _handleRefresh,
       color: const Color(0xFF0D9488),
+      backgroundColor: Colors.white,
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.all(18),
         children: [
         Row(
@@ -657,52 +665,58 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
 
   // ==================== TAB 1: CUSTOMER & CRM ====================
   Widget _buildTabCrm(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(18),
-      children: [
-        Text(
-          'Pusat Pengguna & Hubungan Pelanggan (CRM)',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            color: const Color(0xFF1A1A18),
+    return RefreshIndicator(
+      onRefresh: _handleRefresh,
+      color: const Color(0xFF0D9488),
+      backgroundColor: Colors.white,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(18),
+        children: [
+          Text(
+            'Pusat Pengguna & Hubungan Pelanggan (CRM)',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: const Color(0xFF1A1A18),
+            ),
           ),
-        ),
-        Text(
-          'Kelola database profil customer dan pantau review rating kepuasan',
-          style: GoogleFonts.plusJakartaSans(
-            fontSize: 11,
-            color: const Color(0xFF76777B),
+          Text(
+            'Kelola database profil customer dan pantau review rating kepuasan',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 11,
+              color: const Color(0xFF76777B),
+            ),
           ),
-        ),
-        const SizedBox(height: 16),
+          const SizedBox(height: 16),
 
-        _buildCrmHubCard(
-          icon: Icons.person_search_rounded,
-          color: const Color(0xFF114177),
-          title: 'Database Profil Pengguna (CRM)',
-          subtitle: 'Histori transaksi, status verifikasi akun, dan aktivitas booking',
-          actionText: 'Buka Profil CRM',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen()),
+          _buildCrmHubCard(
+            icon: Icons.person_search_rounded,
+            color: const Color(0xFF114177),
+            title: 'Database Profil Pengguna (CRM)',
+            subtitle: 'Histori transaksi, status verifikasi akun, dan aktivitas booking',
+            actionText: 'Buka Profil CRM',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const AdminCustomerProfilesScreen()),
+            ),
           ),
-        ),
-        const SizedBox(height: 12),
+          const SizedBox(height: 12),
 
-        _buildCrmHubCard(
-          icon: Icons.rate_review_rounded,
-          color: const Color(0xFFD97706),
-          title: 'Ulasan & Feedback Pelanggan',
-          subtitle: 'Rating bintang, saran perbaikan fasilitas, dan tanggapan customer',
-          actionText: 'Kelola Ulasan',
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const FeedbackAdminScreen()),
+          _buildCrmHubCard(
+            icon: Icons.rate_review_rounded,
+            color: const Color(0xFFD97706),
+            title: 'Ulasan & Feedback Pelanggan',
+            subtitle: 'Rating bintang, saran perbaikan fasilitas, dan tanggapan customer',
+            actionText: 'Kelola Ulasan',
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(builder: (_) => const FeedbackAdminScreen()),
+            ),
           ),
-        ),
-        const SizedBox(height: 24),
-      ],
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 

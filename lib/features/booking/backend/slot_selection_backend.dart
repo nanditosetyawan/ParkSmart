@@ -63,7 +63,7 @@ class SlotSelectionBackend extends ChangeNotifier {
       // 1. Ambil info ringkas lokasi (Targeted Column Query)
       var locQuery = _client
           .from('parking_locations')
-          .select('id, name, address, latitude, longitude, hourly_rate_mobil, total_capacity, floors');
+          .select('id, name, address, latitude, longitude, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, total_capacity, floors');
 
       if (locationId != null) {
         _currentLocation = await locQuery.eq('id', locationId).maybeSingle();
@@ -87,7 +87,61 @@ class SlotSelectionBackend extends ChangeNotifier {
           .eq('floor_name', activeFloor);
 
       final response = await slotQuery.order('slot_code', ascending: true);
-      _slots = List<Map<String, dynamic>>.from(response);
+      final rawSlots = List<Map<String, dynamic>>.from(response);
+
+      // 4. Periksa apakah ada slot yang sudah terisi penuh hari ini (now sampai 23:59)
+      try {
+        final now = DateTime.now();
+        final windowStart = now;
+        final windowEnd = DateTime(now.year, now.month, now.day, 23, 59, 59);
+
+        final activeBookingsRes = await _client
+            .from('bookings')
+            .select('slot_id, start_time, end_time, booking_status')
+            .eq('location_id', _currentLocation!['id'])
+            .neq('booking_status', 'cancelled');
+
+        final Map<String, List<Map<String, DateTime>>> slotBookingsMap = {};
+        for (final b in activeBookingsRes) {
+          final sId = b['slot_id']?.toString();
+          if (sId == null || sId.isEmpty) continue;
+
+          final bStart = DateTime.parse(b['start_time'].toString()).toLocal();
+          final bEnd = DateTime.parse(b['end_time'].toString()).toLocal();
+
+          if (bEnd.isBefore(windowStart) || bStart.isAfter(windowEnd)) continue;
+
+          final clampedStart = bStart.isBefore(windowStart) ? windowStart : bStart;
+          final clampedEnd = bEnd.isAfter(windowEnd) ? windowEnd : bEnd;
+
+          if (clampedEnd.isAfter(clampedStart)) {
+            slotBookingsMap.putIfAbsent(sId, () => []).add({
+              'start': clampedStart,
+              'end': clampedEnd,
+            });
+          }
+        }
+
+        for (int i = 0; i < rawSlots.length; i++) {
+          final slot = Map<String, dynamic>.from(rawSlots[i]);
+          final slotId = slot['id']?.toString();
+          final dbStatus = slot['status']?.toString().toLowerCase() ?? 'available';
+
+          if (dbStatus == 'available' && slotId != null && slotBookingsMap.containsKey(slotId)) {
+            final intervals = slotBookingsMap[slotId]!;
+            final isFullToday = _checkIsSlotFullToday(intervals, windowStart, windowEnd);
+            if (isFullToday) {
+              slot['status'] = 'occupied';
+              slot['is_fully_booked_today'] = true;
+            }
+          }
+          rawSlots[i] = slot;
+        }
+      } catch (checkErr) {
+        debugPrint('[SlotSelectionBackend] Error checking today slot bookings: $checkErr');
+      }
+
+      _slots = rawSlots;
     } catch (e) {
       debugPrint('[SlotSelectionBackend] fetchSlots error: $e');
       _slots = [];
@@ -95,6 +149,52 @@ class SlotSelectionBackend extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Cek apakah seluruh sisa waktu hari ini (now - 23:59) sudah habis dipesan tanpa ada jeda >= 15 menit
+  static bool _checkIsSlotFullToday(
+    List<Map<String, DateTime>> intervals,
+    DateTime windowStart,
+    DateTime windowEnd,
+  ) {
+    if (intervals.isEmpty) return false;
+    intervals.sort((a, b) => a['start']!.compareTo(b['start']!));
+
+    List<Map<String, DateTime>> merged = [];
+    for (final item in intervals) {
+      if (merged.isEmpty) {
+        merged.add(Map.from(item));
+      } else {
+        final last = merged.last;
+        if (item['start']!.isBefore(last['end']!) || item['start']!.isAtSameMomentAs(last['end']!)) {
+          if (item['end']!.isAfter(last['end']!)) {
+            last['end'] = item['end']!;
+          }
+        } else {
+          merged.add(Map.from(item));
+        }
+      }
+    }
+
+    DateTime ptr = windowStart;
+    for (final booked in merged) {
+      if (booked['start']!.isAfter(ptr)) {
+        if (booked['start']!.difference(ptr).inMinutes >= 15) {
+          return false; // Ada jeda kosong yang bisa dipesan
+        }
+      }
+      if (booked['end']!.isAfter(ptr)) {
+        ptr = booked['end']!;
+      }
+    }
+
+    if (windowEnd.isAfter(ptr)) {
+      if (windowEnd.difference(ptr).inMinutes >= 15) {
+        return false; // Ada jeda kosong sampai 23:59
+      }
+    }
+
+    return true; // Penuh hari ini
   }
 
   /// Mengecek apakah slot tertentu tersedia
@@ -112,5 +212,56 @@ class SlotSelectionBackend extends ChangeNotifier {
   int get availableCount {
     if (_slots.isEmpty) return 0;
     return _slots.where((s) => s['status']?.toString().toLowerCase() == 'available').length;
+  }
+
+  /// Mengambil tarif per jam berdasarkan data slot atau kode slot tertentu
+  double getHourlyRateForSlot(dynamic slotOrCode) {
+    if (_currentLocation == null) return 5000.0;
+
+    Map<String, dynamic>? slotMap;
+    if (slotOrCode is Map<String, dynamic>) {
+      slotMap = slotOrCode;
+    } else if (slotOrCode is String) {
+      try {
+        slotMap = _slots.firstWhere(
+          (s) => (s['slot_code']?.toString() ?? s['code']?.toString()) == slotOrCode,
+        );
+      } catch (_) {}
+    }
+
+    final rawType = (slotMap?['slot_type']?.toString() ?? slotMap?['type']?.toString() ?? 'mobil').toLowerCase();
+    if (rawType == 'ev') {
+      return (_currentLocation!['hourly_rate_ev'] as num?)?.toDouble() ?? 7500.0;
+    } else if (rawType == 'motor') {
+      return (_currentLocation!['hourly_rate_motor'] as num?)?.toDouble() ?? 2000.0;
+    } else {
+      return (_currentLocation!['hourly_rate_mobil'] as num?)?.toDouble() ?? 5000.0;
+    }
+  }
+
+  /// Label tipe slot
+  String getSlotTypeLabel(dynamic slotOrCode) {
+    Map<String, dynamic>? slotMap;
+    if (slotOrCode is Map<String, dynamic>) {
+      slotMap = slotOrCode;
+    } else if (slotOrCode is String) {
+      try {
+        slotMap = _slots.firstWhere(
+          (s) => (s['slot_code']?.toString() ?? s['code']?.toString()) == slotOrCode,
+        );
+      } catch (_) {}
+    }
+
+    final rawType = (slotMap?['slot_type']?.toString() ?? slotMap?['type']?.toString() ?? 'mobil').toLowerCase();
+    if (rawType == 'ev') {
+      return 'Slot EV';
+    } else if (rawType == 'motor') {
+      return 'Slot Motor';
+    } else if (rawType == 'difabel' || rawType.contains('disabilitas')) {
+      return 'Slot Difabel';
+    } else if (rawType == 'vip') {
+      return 'Slot VIP';
+    }
+    return 'Slot Reguler';
   }
 }

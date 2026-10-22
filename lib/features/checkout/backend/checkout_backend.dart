@@ -38,11 +38,17 @@ class CheckoutBackend extends ChangeNotifier {
   String? _locationId;
   String? get locationId => _locationId;
 
+  String? _slotId;
+  String? get slotId => _slotId;
+
   String _slotCode = '-';
   String get slotCode => _slotCode;
 
   String _floorName = '-';
   String get floorName => _floorName;
+
+  String _slotType = 'Slot Reguler';
+  String get slotType => _slotType;
 
   DateTime? _scheduledStartTime;
   DateTime? get scheduledStartTime => _scheduledStartTime;
@@ -64,8 +70,10 @@ class CheckoutBackend extends ChangeNotifier {
   void setBookingDetails({
     String? locationId,
     String? locationName,
+    String? slotId,
     String? slotCode,
     String? floorName,
+    String? slotType,
     int? durationHours,
     double? hourlyRate,
     DateTime? startTime,
@@ -73,8 +81,10 @@ class CheckoutBackend extends ChangeNotifier {
   }) {
     if (locationId != null) _locationId = locationId;
     if (locationName != null) _locationName = locationName;
+    if (slotId != null) _slotId = slotId;
     if (slotCode != null) _slotCode = slotCode;
     if (floorName != null) _floorName = floorName;
+    if (slotType != null) _slotType = slotType;
     if (durationHours != null) _durationHours = durationHours;
     if (hourlyRate != null) _hourlyRate = hourlyRate;
     if (startTime != null) _scheduledStartTime = startTime;
@@ -136,10 +146,13 @@ class CheckoutBackend extends ChangeNotifier {
           .maybeSingle();
       if (loc != null) {
         final vType = vehicle?['vehicle_type']?.toString().toLowerCase();
-        if (vType == 'motor') {
-          _hourlyRate = (loc['hourly_rate_motor'] as num?)?.toDouble() ?? _hourlyRate;
-        } else if (vType == 'ev') {
+        final isEvSlot = _slotType.toLowerCase().contains('ev');
+        final isMotorSlot = _slotType.toLowerCase().contains('motor');
+
+        if (isEvSlot || vType == 'ev') {
           _hourlyRate = (loc['hourly_rate_ev'] as num?)?.toDouble() ?? _hourlyRate;
+        } else if (isMotorSlot || vType == 'motor') {
+          _hourlyRate = (loc['hourly_rate_motor'] as num?)?.toDouble() ?? _hourlyRate;
         } else {
           _hourlyRate = (loc['hourly_rate_mobil'] as num?)?.toDouble() ?? _hourlyRate;
         }
@@ -181,8 +194,8 @@ class CheckoutBackend extends ChangeNotifier {
       }
 
       // 2. Ambil slot_id jika ada
-      String? actualSlotId;
-      if (_slotCode != '-' && _slotCode.isNotEmpty) {
+      String? actualSlotId = _slotId;
+      if ((actualSlotId == null || actualSlotId.isEmpty) && _slotCode != '-' && _slotCode.isNotEmpty) {
         final slotRes = await _client
             .from('parking_slots')
             .select('id')
@@ -190,6 +203,18 @@ class CheckoutBackend extends ChangeNotifier {
             .eq('slot_code', _slotCode)
             .maybeSingle();
         actualSlotId = slotRes?['id'] as String?;
+      }
+
+      // Validasi ketat bentrok slot sebelum insert ke database
+      if (actualSlotId != null) {
+        final hasConflict = await checkSlotConflict(
+          slotId: actualSlotId,
+          startTime: startTime,
+          endTime: endTime,
+        );
+        if (hasConflict) {
+          throw Exception('Slot ini sudah dibooking oleh pengguna lain pada rentang jam tersebut.');
+        }
       }
 
       // 3. Insert ke tabel bookings (status awal 'unpaid' dengan hold time 2:59 menit)
@@ -200,8 +225,8 @@ class CheckoutBackend extends ChangeNotifier {
         'slot_id': actualSlotId,
         'vehicle_id': _selectedVehicle?['id'],
         'booking_type': 'reservation',
-        'start_time': startTime.toIso8601String(),
-        'end_time': endTime.toIso8601String(),
+        'start_time': startTime.toUtc().toIso8601String(),
+        'end_time': endTime.toUtc().toIso8601String(),
         'duration_hours': _durationHours,
         'total_price': totalPayment,
         'payment_status': 'unpaid',
@@ -220,8 +245,8 @@ class CheckoutBackend extends ChangeNotifier {
         'id': 'mock-booking-${DateTime.now().millisecondsSinceEpoch}',
         'booking_code': bookingCode,
         'total_price': totalPayment,
-        'start_time': startTime.toIso8601String(),
-        'end_time': endTime.toIso8601String(),
+        'start_time': startTime.toUtc().toIso8601String(),
+        'end_time': endTime.toUtc().toIso8601String(),
         'created_at': DateTime.now().toIso8601String(),
       };
     } catch (e) {
@@ -231,6 +256,175 @@ class CheckoutBackend extends ChangeNotifier {
       _isLoading = false;
       notifyListeners();
     }
+  }
+
+  /// Memeriksa apakah slot yang dipilih bentrok dengan reservasi yang sudah ada
+  Future<bool> checkSlotConflict({
+    String? slotId,
+    String? slotCode,
+    String? locationId,
+    required DateTime startTime,
+    required DateTime endTime,
+  }) async {
+    try {
+      String? targetSlotId = slotId ?? _slotId;
+      if (targetSlotId == null || targetSlotId.isEmpty) {
+        final locId = locationId ?? _locationId;
+        final sCode = slotCode ?? _slotCode;
+        if (locId != null && sCode.isNotEmpty && sCode != '-') {
+          final sRes = await _client
+              .from('parking_slots')
+              .select('id')
+              .eq('location_id', locId)
+              .eq('slot_code', sCode)
+              .maybeSingle();
+          targetSlotId = sRes?['id'] as String?;
+        }
+      }
+      if (targetSlotId == null) return false;
+
+      final bookings = await _client
+          .from('bookings')
+          .select('id, start_time, end_time, booking_status')
+          .eq('slot_id', targetSlotId)
+          .neq('booking_status', 'cancelled');
+
+      for (final b in bookings) {
+        final bStart = DateTime.parse(b['start_time'].toString()).toLocal();
+        final bEnd = DateTime.parse(b['end_time'].toString()).toLocal();
+
+        // Formula overlap: startA < endB && endA > startB
+        if (startTime.isBefore(bEnd) && endTime.isAfter(bStart)) {
+          return true;
+        }
+      }
+      return false;
+    } catch (e) {
+      debugPrint('[CheckoutBackend] checkSlotConflict error: $e');
+      return false;
+    }
+  }
+
+  /// Menghitung jadwal jam yang masih kosong dan tersedia hari ini untuk slot terpilih
+  Future<List<AvailableTimeWindow>> getAvailableTimeSlotsToday({
+    String? slotId,
+    String? slotCode,
+    String? locationId,
+  }) async {
+    try {
+      String? targetSlotId = slotId ?? _slotId;
+      if (targetSlotId == null || targetSlotId.isEmpty) {
+        final locId = locationId ?? _locationId;
+        final sCode = slotCode ?? _slotCode;
+        if (locId != null && sCode.isNotEmpty && sCode != '-') {
+          final sRes = await _client
+              .from('parking_slots')
+              .select('id')
+              .eq('location_id', locId)
+              .eq('slot_code', sCode)
+              .maybeSingle();
+          targetSlotId = sRes?['id'] as String?;
+        }
+      }
+      if (targetSlotId == null) return [];
+
+      final now = DateTime.now();
+      final windowStart = now;
+      final windowEnd = DateTime(now.year, now.month, now.day, 23, 59);
+
+      if (windowStart.isAfter(windowEnd)) return [];
+
+      final bookings = await _client
+          .from('bookings')
+          .select('start_time, end_time, booking_status')
+          .eq('slot_id', targetSlotId)
+          .neq('booking_status', 'cancelled');
+
+      List<Map<String, DateTime>> bookedIntervals = [];
+      for (final b in bookings) {
+        final bStart = DateTime.parse(b['start_time'].toString()).toLocal();
+        final bEnd = DateTime.parse(b['end_time'].toString()).toLocal();
+
+        if (bEnd.isBefore(windowStart) || bStart.isAfter(windowEnd)) continue;
+
+        final clampedStart = bStart.isBefore(windowStart) ? windowStart : bStart;
+        final clampedEnd = bEnd.isAfter(windowEnd) ? windowEnd : bEnd;
+
+        if (clampedEnd.isAfter(clampedStart)) {
+          bookedIntervals.add({'start': clampedStart, 'end': clampedEnd});
+        }
+      }
+
+      bookedIntervals.sort((a, b) => a['start']!.compareTo(b['start']!));
+
+      // Gabungkan interval booking yang saling tumpang tindih / berdekatan
+      List<Map<String, DateTime>> merged = [];
+      for (final interval in bookedIntervals) {
+        if (merged.isEmpty) {
+          merged.add(Map.from(interval));
+        } else {
+          final last = merged.last;
+          if (interval['start']!.isBefore(last['end']!) ||
+              interval['start']!.isAtSameMomentAs(last['end']!)) {
+            if (interval['end']!.isAfter(last['end']!)) {
+              last['end'] = interval['end']!;
+            }
+          } else {
+            merged.add(Map.from(interval));
+          }
+        }
+      }
+
+      // Cari celah jam kosong yang tersisa
+      List<AvailableTimeWindow> windows = [];
+      DateTime ptr = windowStart;
+
+      for (final booked in merged) {
+        if (booked['start']!.isAfter(ptr)) {
+          final diff = booked['start']!.difference(ptr).inMinutes;
+          if (diff >= 15) {
+            windows.add(_createWindow(ptr, booked['start']!));
+          }
+        }
+        if (booked['end']!.isAfter(ptr)) {
+          ptr = booked['end']!;
+        }
+      }
+
+      if (windowEnd.isAfter(ptr)) {
+        final diff = windowEnd.difference(ptr).inMinutes;
+        if (diff >= 15) {
+          windows.add(_createWindow(ptr, windowEnd));
+        }
+      }
+
+      return windows;
+    } catch (e) {
+      debugPrint('[CheckoutBackend] getAvailableTimeSlotsToday error: $e');
+      return [];
+    }
+  }
+
+  AvailableTimeWindow _createWindow(DateTime start, DateTime end) {
+    final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+    final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+    final diffMinutes = end.difference(start).inMinutes;
+    final hours = diffMinutes ~/ 60;
+    final mins = diffMinutes % 60;
+    String durText = '';
+    if (hours > 0 && mins > 0) {
+      durText = '$hours jam $mins mnt';
+    } else if (hours > 0) {
+      durText = '$hours jam';
+    } else {
+      durText = '$mins mnt';
+    }
+    return AvailableTimeWindow(
+      start: start,
+      end: end,
+      label: '$startStr - $endStr WIB',
+      durationLabel: durText,
+    );
   }
 
   /// Memproses pembayaran booking setelah validasi PIN sukses
@@ -307,3 +501,18 @@ class CheckoutBackend extends ChangeNotifier {
     }
   }
 }
+
+class AvailableTimeWindow {
+  final DateTime start;
+  final DateTime end;
+  final String label;
+  final String durationLabel;
+
+  const AvailableTimeWindow({
+    required this.start,
+    required this.end,
+    required this.label,
+    required this.durationLabel,
+  });
+}
+

@@ -300,77 +300,96 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     );
   }
 
+  Future<void> _handleRefresh() async {
+    await Future.wait([
+      AdminOperationsDashboardBackend.instance.fetchDashboardData(),
+      _loadAdminInfo(),
+    ]);
+  }
+
   // ==================== TAB 0: LOKASI & LAPANGAN ====================
   Widget _buildTabLocations(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
-      children: [
-        // 4 KPI Real-Time
-        _buildRealtimeKpiSection(),
-        const SizedBox(height: 18),
+    return RefreshIndicator(
+      color: const Color(0xFF114177),
+      backgroundColor: Colors.white,
+      onRefresh: _handleRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(16),
+        children: [
+          // 4 KPI Real-Time
+          _buildRealtimeKpiSection(),
+          const SizedBox(height: 18),
 
-        // Daftar Fasilitas Lapangan
-        _buildFacilityListSection(context),
-        const SizedBox(height: 24),
-      ],
+          // Daftar Fasilitas Lapangan
+          _buildFacilityListSection(context),
+          const SizedBox(height: 24),
+        ],
+      ),
     );
   }
 
   // ==================== TAB 1: GRAFIK & ANALITIK ====================
   Widget _buildTabAnalytics(BuildContext context) {
     if (_cityDensityList.isEmpty) {
-      return ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: const Color(0xFFE5E7EB)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 4,
-                  offset: const Offset(0, 2),
-                ),
-              ],
+      return RefreshIndicator(
+        color: const Color(0xFF114177),
+        backgroundColor: Colors.white,
+        onRefresh: _handleRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+          padding: const EdgeInsets.all(16),
+          children: [
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 48, horizontal: 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(color: const Color(0xFFE5E7EB)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.02),
+                    blurRadius: 4,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    width: 56,
+                    height: 56,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF114177).withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.analytics_outlined, size: 30, color: Color(0xFF114177)),
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    'Belum Ada Data Analitik Lapangan',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: const Color(0xFF1A1A18),
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Text(
+                    'Data keterisian fisik dan proporsi armada akan terisi secara otomatis setelah titik tempat parkir dan sesi kendaraan ditambahkan ke database.',
+                    textAlign: TextAlign.center,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      color: const Color(0xFF76777B),
+                      height: 1.4,
+                    ),
+                  ),
+                ],
+              ),
             ),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 56,
-                  height: 56,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFF114177).withValues(alpha: 0.08),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(Icons.analytics_outlined, size: 30, color: Color(0xFF114177)),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Belum Ada Data Analitik Lapangan',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: const Color(0xFF1A1A18),
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  'Data keterisian fisik dan proporsi armada akan terisi secara otomatis setelah titik tempat parkir dan sesi kendaraan ditambahkan ke database.',
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 12,
-                    color: const Color(0xFF76777B),
-                    height: 1.4,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+          ],
+        ),
       );
     }
 
@@ -385,8 +404,13 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
     final totalVehicles = totalMobil + totalMotor + totalEv;
 
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      color: const Color(0xFF114177),
+      backgroundColor: Colors.white,
+      onRefresh: _handleRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(16),
       children: [
         // Konteks Header Analitik
         Container(
@@ -474,8 +498,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         ),
         const SizedBox(height: 24),
       ],
-    );
-  }
+    ),
+  );
+}
 
   Widget _buildFleetLegendItem(IconData icon, String title, String value, Color color) {
     return Row(
@@ -502,10 +527,14 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   }
 
   // ==================== TAB 2: AKTIVITAS LAPANGAN REAL-TIME ====================
-  // ==================== TAB 2: AKTIVITAS LAPANGAN REAL-TIME ====================
   Widget _buildTabActivity(BuildContext context) {
-    return ListView(
-      padding: const EdgeInsets.all(16),
+    return RefreshIndicator(
+      color: const Color(0xFF114177),
+      backgroundColor: Colors.white,
+      onRefresh: _handleRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
+        padding: const EdgeInsets.all(16),
       children: [
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -844,8 +873,9 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         ],
         const SizedBox(height: 24),
       ],
-    );
-  }
+    ),
+  );
+}
 
   // 🚗 MODAL AKSI KENDARAAN AKTIF (KIRIM PENGINGAT & FORCE CHECK-OUT)
   void _showActiveVehicleActionModal(Map<String, dynamic> session) {
