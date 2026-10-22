@@ -88,7 +88,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ParkingDetailBackend.instance, FavoriteBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ParkingDetailBackend.instance, FavoriteBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -494,7 +494,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                       ),
                                       const SizedBox(height: 4),
                                       ListenableBuilder(
-                                        listenable: ParkingDetailBackend.instance,
+                                        listenable: Listenable.merge([ParkingDetailBackend.instance, CurrencyService.instance]),
                                         builder: (context, _) {
                                           final available = ParkingDetailBackend.instance.availableSlots;
                                           final floors = ParkingDetailBackend.instance.floors;
@@ -621,7 +621,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                               ),
                               const SizedBox(height: 16),
                               ListenableBuilder(
-                                listenable: ParkingDetailBackend.instance,
+                                listenable: Listenable.merge([ParkingDetailBackend.instance, CurrencyService.instance]),
                                 builder: (context, _) {
                                   final loc = ParkingDetailBackend.instance.locationDetail;
                                   final rateMobil = (loc?['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
@@ -834,7 +834,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 ),
                               ),
                                ListenableBuilder(
-                                 listenable: ParkingDetailBackend.instance,
+                                 listenable: Listenable.merge([ParkingDetailBackend.instance, CurrencyService.instance]),
                                  builder: (context, _) {
                                    final loc = ParkingDetailBackend.instance.locationDetail;
                                    final rateMobil = (loc?['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;

@@ -2,15 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/services/session_service.dart';
+import '../../../../core/services/currency_service.dart';
 import '../../profile/backend/profile_backend.dart';
 import '../../profile/backend/vehicle_backend.dart';
 
 class VerifiedSessionItem {
   final String id;
+  final String dbId;
   final String locationName;
   final String slot;
   final String date;
   final String duration;
+  final num rawAmount;
   final String amount;
   final String blockHash;
   final String timestamp;
@@ -20,10 +23,12 @@ class VerifiedSessionItem {
 
   const VerifiedSessionItem({
     required this.id,
+    this.dbId = '',
     required this.locationName,
     required this.slot,
     required this.date,
     required this.duration,
+    this.rawAmount = 0,
     required this.amount,
     required this.blockHash,
     required this.timestamp,
@@ -59,6 +64,9 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
 
   int _totalDurationHours = 0;
   int get totalDurationHours => _totalDurationHours;
+
+  num _rawThisMonthSpending = 0;
+  num get rawThisMonthSpending => _rawThisMonthSpending;
 
   String _thisMonthSpending = 'Rp 0';
   String get thisMonthSpending => _thisMonthSpending;
@@ -110,10 +118,6 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
     } catch (_) {
       return '-';
     }
-  }
-
-  String _formatCurrency(int n) {
-    return n.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
   }
 
   Future<String> _resolveUserIdAsync() async {
@@ -197,7 +201,8 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
           _allSessions = [];
           _totalSessions = 0;
           _totalDurationHours = 0;
-          _thisMonthSpending = 'Rp 0';
+          _rawThisMonthSpending = 0;
+          _thisMonthSpending = CurrencyService.instance.format(0);
           _isLoading = false;
           notifyListeners();
           return;
@@ -296,11 +301,13 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
 
           list.add(VerifiedSessionItem(
             id: row['session_code']?.toString() ?? sid,
+            dbId: sid,
             locationName: locName,
             slot: slotLabel,
             date: _formatWibDate(checkInRaw),
             duration: '$durationHr Jam',
-            amount: 'Rp ${_formatCurrency(fee)}',
+            rawAmount: fee,
+            amount: CurrencyService.instance.format(fee),
             blockHash: hash,
             timestamp: createdStr,
             timeIn: 'Masuk: ${_formatTimeOnly(checkInRaw)}',
@@ -371,11 +378,13 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
 
             list.add(VerifiedSessionItem(
               id: bRow['booking_code']?.toString() ?? bId,
+              dbId: bId,
               locationName: locName,
               slot: slotLabel,
               date: _formatWibDate(startRaw),
               duration: '$durationHr Jam',
-              amount: 'Rp ${_formatCurrency(fee)}',
+              rawAmount: fee,
+              amount: CurrencyService.instance.format(fee),
               blockHash: hash,
               timestamp: createdStr,
               timeIn: 'Jadwal Masuk: ${_formatTimeOnly(startRaw)}',
@@ -389,7 +398,8 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
       _allSessions = list;
       _totalSessions = list.length;
       _totalDurationHours = totalHours;
-      _thisMonthSpending = 'Rp ${_formatCurrency(monthlySpending)}';
+      _rawThisMonthSpending = monthlySpending;
+      _thisMonthSpending = CurrencyService.instance.format(monthlySpending);
     } catch (e) {
       debugPrint('[VerifiedParkingSessionsBackend] fetchSessions error: $e');
     } finally {

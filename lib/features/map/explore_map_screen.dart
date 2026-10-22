@@ -18,6 +18,7 @@ import '../home/home_screen.dart';
 import '../favorite/favorite_screen.dart';
 import '../navigation/ar_navigation_screen.dart';
 import 'backend/explore_map_backend.dart';
+import '../../core/services/currency_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../profile/backend/feedback_backend.dart';
 
@@ -43,6 +44,22 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   Map<String, dynamic>? _selectedParking;
   final DraggableScrollableController _placeDetailsController = DraggableScrollableController();
   int _selectedDetailTab = 0; // 0: Ringkasan, 1: Ulasan, 2: Tentang
+
+  String _formatParkingPrice(Map<String, dynamic> loc) {
+    final num? rate = (loc['hourly_rate_active'] as num?) ??
+        (loc['hourly_rate_mobil'] as num?) ??
+        (loc['hourly_rate_ev'] as num?);
+    if (rate != null && rate > 0) {
+      return '${CurrencyService.instance.format(rate)} / jam';
+    }
+    final p = loc['price']?.toString() ?? '';
+    final digits = RegExp(r'\d+').allMatches(p).map((m) => m.group(0)).join();
+    final val = num.tryParse(digits);
+    if (val != null && val > 0) {
+      return '${CurrencyService.instance.format(val)} / jam';
+    }
+    return '${CurrencyService.instance.format(5000)} / jam';
+  }
 
   final List<String> _feedbackTopics = const [
     'Akurasi Sensor ANPR',
@@ -711,7 +728,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           'point': const LatLng(-7.2625, 112.7397),
           'slots': 120,
           'isEv': true,
-          'price': 'Rp 5.000/j',
+          'hourly_rate_mobil': 5000,
+          'hourly_rate_active': 5000,
+          'price': '${CurrencyService.instance.format(5000)}/j',
         },
         {
           'name': 'Galaxy Mall Surabaya Parking',
@@ -719,7 +738,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           'point': const LatLng(-7.2736, 112.7806),
           'slots': 64,
           'isEv': true,
-          'price': 'Rp 5.000/j',
+          'hourly_rate_mobil': 5000,
+          'hourly_rate_active': 5000,
+          'price': '${CurrencyService.instance.format(5000)}/j',
         },
       ]);
     } else if (q.contains('bandung') && !_parkingLocations.any((loc) => (loc['name'] as String).contains('PVJ'))) {
@@ -730,7 +751,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           'point': const LatLng(-6.8897, 107.5959),
           'slots': 90,
           'isEv': true,
-          'price': 'Rp 5.000/j',
+          'hourly_rate_mobil': 5000,
+          'hourly_rate_active': 5000,
+          'price': '${CurrencyService.instance.format(5000)}/j',
         },
         {
           'name': 'TSM Bandung Parking Area',
@@ -738,7 +761,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           'point': const LatLng(-6.9261, 107.6366),
           'slots': 75,
           'isEv': true,
-          'price': 'Rp 5.000/j',
+          'hourly_rate_mobil': 5000,
+          'hourly_rate_active': 5000,
+          'price': '${CurrencyService.instance.format(5000)}/j',
         },
       ]);
     }
@@ -794,7 +819,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, ExploreMapBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -1581,7 +1606,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
                                       // Kategori & Biaya
                                       Text(
-                                        '${loc['type']} • ${loc['price']} • Tersedia ${loc['slots']} slot',
+                                        '${loc['type']} • ${_formatParkingPrice(loc)} • Tersedia ${loc['slots']} slot',
                                         style: GoogleFonts.inter(
                                           fontSize: 13,
                                           color: isDark ? theme.textMuted : const Color(0xFF5F6368),
@@ -1911,7 +1936,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                               }
                               final int slots = (loc['slots'] as int?) ?? 20;
                               final String subtitleText = '$dist • $slots slot tersedia';
-                              final String price = loc['price'] as String;
+                              final String price = _formatParkingPrice(loc);
                               final bool isEv = (loc['isEv'] as bool?) ?? false;
                               final String rating = (loc['rating'] ?? 4.7).toString();
 
@@ -2305,7 +2330,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
               children: [
                 Text('Rincian Parkir', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: ThemeService.instance.isDarkMode ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 12),
-                _buildInfoRow(Icons.payments_outlined, 'Tarif Resmi', loc['price'] as String),
+                _buildInfoRow(Icons.payments_outlined, 'Tarif Resmi', _formatParkingPrice(loc)),
                 const Divider(height: 18),
                 _buildInfoRow(Icons.event_seat_outlined, 'Kapasitas', '${loc['slots']} Slot Tersedia'),
                 const Divider(height: 18),

@@ -31,6 +31,7 @@ import '../map/explore_map_screen.dart';
 import '../game/game_lobby_screen.dart' as game;
 import 'backend/home_backend.dart';
 import '../../core/services/session_service.dart';
+import '../../core/services/currency_service.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -2024,7 +2025,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final locations = HomeBackend.instance.recommendedLocations;
 
@@ -2097,6 +2098,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     final lng = (loc['longitude'] as num?)?.toDouble() ?? 106.7933;
                     final rateMobil = (loc['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
                     final rateEv = (loc['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
+                    final rateMotor = (loc['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
                     final selectedCat = HomeBackend.instance.selectedCategory;
 
                     int displayRate = rateMobil;
@@ -2105,7 +2107,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       displayRate = rateEv;
                       rateSuffix = '/ j (EV)';
                     }
-                    final formattedPrice = 'Rp ${displayRate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} $rateSuffix';
+                    final formattedPrice = '${CurrencyService.instance.format(displayRate)} $rateSuffix';
 
                     final capacity = (loc['total_capacity'] as num?)?.toInt() ?? 50;
                     final ratingVal = (loc['rating'] as num?)?.toDouble() ?? 4.8;
@@ -2141,6 +2143,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'hours': loc['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
                       'photos': photos,
                       'facilities': facilities,
+                      'hourly_rate_mobil': rateMobil,
+                      'hourly_rate_ev': rateEv,
+                      'hourly_rate_motor': rateMotor,
+                      'hourly_rate_active': displayRate,
                     };
 
                     final distLabel = loc['distance_label']?.toString();

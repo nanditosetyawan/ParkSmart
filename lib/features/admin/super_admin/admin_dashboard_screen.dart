@@ -932,7 +932,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.admin_panel_settings_outlined, color: Color(0xFF6D28D9)),
-            title: Text('Manajemen Admin & RBAC', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
+            title: Text('Manajemen Admin', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
             onTap: () {
               Navigator.pop(context);
               Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminUserManagementScreen()));

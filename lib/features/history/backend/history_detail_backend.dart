@@ -65,12 +65,36 @@ class HistoryDetailBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final bool isUuid = RegExp(
+        r'^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$',
+      ).hasMatch(id);
+
       // 1. Cek pada tabel parking_sessions
-      final res = await _client
-          .from('parking_sessions')
-          .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
-          .eq('id', id)
-          .maybeSingle();
+      Map<String, dynamic>? res;
+      if (isUuid) {
+        res = await _client
+            .from('parking_sessions')
+            .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
+            .eq('id', id)
+            .maybeSingle();
+      } else {
+        res = await _client
+            .from('parking_sessions')
+            .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
+            .eq('session_code', id)
+            .maybeSingle();
+
+        if (res == null) {
+          final b = await _client.from('bookings').select('id').eq('booking_code', id).maybeSingle();
+          if (b != null) {
+            res = await _client
+                .from('parking_sessions')
+                .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, check_out_time, total_fee, parking_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, vehicles(brand, model, plate_number))')
+                .eq('booking_id', b['id'])
+                .maybeSingle();
+          }
+        }
+      }
 
       if (res != null) {
         _hasData = true;
@@ -165,11 +189,20 @@ class HistoryDetailBackend extends ChangeNotifier {
 
       } else {
         // 2. Jika tidak ada di parking_sessions, cari pada tabel bookings
-        final bRes = await _client
-            .from('bookings')
-            .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
-            .eq('id', id)
-            .maybeSingle();
+        Map<String, dynamic>? bRes;
+        if (isUuid) {
+          bRes = await _client
+              .from('bookings')
+              .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
+              .eq('id', id)
+              .maybeSingle();
+        } else {
+          bRes = await _client
+              .from('bookings')
+              .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, created_at, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
+              .eq('booking_code', id)
+              .maybeSingle();
+        }
 
         if (bRes != null) {
           _hasData = true;

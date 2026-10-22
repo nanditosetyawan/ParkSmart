@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import '../parking/parking_detail_screen.dart';
 import 'backend/favorite_backend.dart';
 
@@ -50,7 +51,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, FavoriteBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, FavoriteBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -261,7 +262,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              '${loc['distance']} • ${loc['price']}',
+                                              '${loc['distance']} • ${CurrencyService.instance.format((loc['hourly_rate_active'] as num?) ?? (isEv ? (loc['hourly_rate_ev'] as num?) : (loc['hourly_rate_mobil'] as num?)) ?? 5000)} / jam',
                                               style: GoogleFonts.inter(
                                                 fontSize: 12,
                                                 color: textSub,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'history_detail_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/currency_service.dart';
 import '../profile/backend/vehicle_backend.dart';
 import 'backend/verified_parking_sessions_backend.dart';
 
@@ -20,7 +21,6 @@ class VerifiedParkingSessionsScreen extends StatefulWidget {
 }
 
 class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsScreen> {
-  String _selectedFilter = 'Semua Bulan';
 
   @override
   void initState() {
@@ -34,7 +34,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, VerifiedParkingSessionsBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, VerifiedParkingSessionsBackend.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -190,7 +190,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                             children: [
                               Text('Bulan Ini', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
                               Text(
-                                backend.thisMonthSpending,
+                                CurrencyService.instance.format(backend.rawThisMonthSpending),
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -208,8 +208,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
 
               const SizedBox(height: 24),
 
-              // 2. Filter Chips
-           
+       
 
               const SizedBox(height: 24),
 
@@ -291,9 +290,10 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                     padding: const EdgeInsets.only(bottom: 12),
                     child: _HistoryItem(
                       id: item.id,
+                      dbId: item.dbId,
                       mallName: item.locationName,
                       slot: item.slot,
-                      price: item.amount,
+                      price: CurrencyService.instance.format(item.rawAmount),
                       paymentMethod: 'Auto-Debit',
                       date: item.date,
                       duration: item.duration,
@@ -332,63 +332,9 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
   }
 }
 
-class _FilterChip extends StatelessWidget {
-  final String label;
-  final IconData? icon;
-  final bool isSelected;
-  final bool isDark;
-  final VoidCallback onTap;
-
-  const _FilterChip({
-    required this.label,
-    this.icon,
-    required this.isSelected,
-    required this.isDark,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final bgColor = isSelected
-        ? (isDark ? Colors.white : const Color(0xFF020304))
-        : (isDark ? const Color(0xFF1E232B) : Colors.white);
-    final textColor = isSelected
-        ? (isDark ? const Color(0xFF111418) : Colors.white)
-        : (isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A));
-
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-        decoration: BoxDecoration(
-          color: bgColor,
-          borderRadius: BorderRadius.circular(24),
-          border: isDark && !isSelected ? Border.all(color: const Color(0xFF2D3542)) : null,
-          boxShadow: [
-            if (isSelected)
-              BoxShadow(
-                color: isDark ? Colors.black45 : Colors.black26,
-                blurRadius: 8,
-                offset: const Offset(0, 4),
-              )
-          ],
-        ),
-        child: Row(
-          children: [
-            if (icon != null) ...[
-              Icon(icon, size: 16, color: textColor),
-              const SizedBox(width: 6),
-            ],
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: textColor)),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _HistoryItem extends StatelessWidget {
   final String id;
+  final String? dbId;
   final String mallName;
   final String slot;
   final String price;
@@ -403,6 +349,7 @@ class _HistoryItem extends StatelessWidget {
 
   const _HistoryItem({
     required this.id,
+    this.dbId,
     required this.mallName,
     required this.slot,
     required this.price,
@@ -538,7 +485,8 @@ class _HistoryItem extends StatelessWidget {
               ),
               GestureDetector(
                 onTap: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryDetailScreen(id: id)));
+                  final targetId = (dbId != null && dbId!.isNotEmpty) ? dbId! : id;
+                  Navigator.push(context, MaterialPageRoute(builder: (_) => HistoryDetailScreen(id: targetId)));
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),

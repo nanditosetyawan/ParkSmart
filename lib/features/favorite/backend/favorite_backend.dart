@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
+import '../../../core/services/currency_service.dart';
 import '../../home/backend/home_backend.dart';
 import '../../profile/backend/profile_backend.dart';
 
@@ -127,13 +128,14 @@ class FavoriteBackend extends ChangeNotifier {
           'slots': capacity,
           'isEv': isEv,
           'distance': '500m',
-          'price': 'Rp ${activeRate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+          'price': '${CurrencyService.instance.format(activeRate)} / jam',
           'rating': (row['rating'] as num?)?.toDouble() ?? 4.7,
           'reviews': '${row['review_count'] ?? 1000}',
           'hours': row['status'] == 'open' ? 'Buka 24 Jam' : 'Tutup Sementara',
           'hourly_rate_mobil': rateMobil,
           'hourly_rate_motor': rateMotor,
           'hourly_rate_ev': rateEv,
+          'hourly_rate_active': activeRate,
           'photos': [
             row['image_url'] ?? 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
           ],
@@ -227,13 +229,14 @@ class FavoriteBackend extends ChangeNotifier {
               'slots': capacity,
               'isEv': isEv,
               'distance': '500m',
-              'price': 'Rp ${activeRate.toString().replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.')} / jam',
+              'price': '${CurrencyService.instance.format(activeRate)} / jam',
               'rating': (row['rating'] as num?)?.toDouble() ?? 4.7,
               'reviews': '${row['review_count'] ?? 1000}',
               'hours': row['status'] == 'open' ? 'Buka 24 Jam' : 'Tutup Sementara',
               'hourly_rate_mobil': rateMobil,
               'hourly_rate_motor': rateMotor,
               'hourly_rate_ev': rateEv,
+              'hourly_rate_active': activeRate,
               'photos': [
                 row['image_url'] ?? 'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
               ],

@@ -576,21 +576,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       const SizedBox(height: 10),
                       Row(
                         children: [
-                          Expanded(
-                            child: OutlinedButton.icon(
-                              onPressed: () {
-                                Navigator.pop(ctx);
-                                _showResetCredentialDialog(admin);
-                              },
-                              icon: const Icon(Icons.lock_reset, size: 16, color: Color(0xFF114177)),
-                              label: Text('Reset Kredensial', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177))),
-                              style: OutlinedButton.styleFrom(
-                                side: const BorderSide(color: Color(0xFF114177)),
-                                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                                padding: const EdgeInsets.symmetric(vertical: 10),
-                              ),
-                            ),
-                          ),
+                          
                           const SizedBox(width: 8),
                           Expanded(
                             child: ElevatedButton.icon(
@@ -1203,7 +1189,7 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
               children: [
                 Row(
                   children: [
-                    _buildStatCard('Kuota RBAC', '${_admins.length}/4 Role', const Color(0xFF6D28D9), const Color(0xFFEDE9FE)),
+                    _buildStatCard('Kuota', '${_admins.length}/4 Role', const Color(0xFF6D28D9), const Color(0xFFEDE9FE)),
                     const SizedBox(width: 10),
                     _buildStatCard('Akun Aktif', '$activeCount', const Color(0xFF17A18A), const Color(0xFFD1F2EB)),
                     const SizedBox(width: 10),
