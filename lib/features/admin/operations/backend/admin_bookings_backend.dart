@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../../core/utils/ticket_status_helper.dart';
+import 'admin_operations_dashboard_backend.dart';
 
 /// Backend khusus untuk AdminBookingsScreen (admin_bookings_screen.dart)
 /// Mengelola data reservasi booking tiket parkir yang masuk ke sistem
@@ -110,10 +111,17 @@ class AdminBookingsBackend extends ChangeNotifier {
     }
 
     try {
+      final bRes = await _client.from('bookings').select('slot_id').eq('booking_code', bookingCode).maybeSingle();
+      if (bRes != null && bRes['slot_id'] != null) {
+        await _client.from('parking_slots').update({'status': 'available'}).eq('id', bRes['slot_id']);
+      }
+
       await _client.from('bookings').update({
         'booking_status': 'cancelled',
         'cancel_reason': reason,
       }).eq('booking_code', bookingCode);
+
+      await AdminOperationsDashboardBackend.instance.fetchDashboardData();
       return true;
     } catch (e) {
       debugPrint('[AdminBookingsBackend] cancelBooking error: $e');

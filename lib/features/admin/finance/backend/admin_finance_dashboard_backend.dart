@@ -25,6 +25,20 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
     return dt.toUtc().add(const Duration(hours: 7));
   }
 
+  String _formatShortWib(dynamic val) {
+    if (val == null) return 'Hari ini';
+    try {
+      final dt = _parseToWib(val);
+      final hour = dt.hour.toString().padLeft(2, '0');
+      final minute = dt.minute.toString().padLeft(2, '0');
+      const months = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+      return '${dt.day} ${months[dt.month - 1]}, $hour:$minute';
+    } catch (_) {
+      final s = val.toString();
+      return s.length >= 10 ? s.substring(0, 10) : 'Hari ini';
+    }
+  }
+
   // 📊 State 4 Kuartal (Q1, Q2, Q3, Q4)
   int availableQuartersCount = 4;
   int latestQuarterIndex = 3;
@@ -84,10 +98,10 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
       }
       latestQuarterIndex = availableQuartersCount - 1;
 
-      // 2. Ambil seluruh transaksi pembayaran sukses dari database
+      // 2. Ambil seluruh transaksi pembayaran sukses dari database (join ke tabel users)
       final paymentsRes = await _client
           .from('payments')
-          .select('id, transaction_code, amount, payment_method, status, transaction_type, description, created_at, completed_at')
+          .select('id, transaction_code, amount, payment_method, status, transaction_type, description, created_at, completed_at, users(id, full_name, email, phone)')
           .order('created_at', ascending: false);
 
       if (paymentsRes.isNotEmpty) {
@@ -174,11 +188,20 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
           quarterlyChartData = [0.0, 0.0, 0.0, 0.0];
         }
 
-        recentTransactions = paymentsRes.take(5).map<Map<String, dynamic>>((p) {
+        recentTransactions = paymentsRes.take(15).map<Map<String, dynamic>>((p) {
           final amt = (p['amount'] as num?)?.toInt() ?? 0;
           final method = (p['payment_method'] ?? 'WALLET').toString().toUpperCase();
-          final type = (p['transaction_type'] ?? 'parking_payment').toString();
-          final isIncome = type != 'refund';
+          final trxType = (p['transaction_type'] ?? 'parking_payment').toString().toLowerCase();
+          final isIncome = trxType != 'refund';
+
+          final userData = p['users'] as Map<String, dynamic>?;
+          final userName = (userData?['full_name'] as String?)?.trim();
+          final userEmail = (userData?['email'] as String?)?.trim();
+          final userDisplayName = (userName != null && userName.isNotEmpty)
+              ? userName
+              : ((userEmail != null && userEmail.isNotEmpty)
+                  ? userEmail.split('@').first
+                  : 'Pelanggan');
 
           IconData icon = Icons.account_balance_wallet;
           Color iconBg = const Color(0xFFFEF3C7);
@@ -188,21 +211,35 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
             icon = Icons.qr_code_2;
             iconBg = const Color(0xFFD1F2EB);
             iconColor = const Color(0xFF17A18A);
-          } else if (type == 'refund') {
+          } else if (trxType == 'wallet_topup') {
+            icon = Icons.add_card;
+            iconBg = const Color(0xFFD1F2EB);
+            iconColor = const Color(0xFF17A18A);
+          } else if (trxType == 'wallet_injection') {
+            icon = Icons.admin_panel_settings_outlined;
+            iconBg = const Color(0xFFFDECE7);
+            iconColor = const Color(0xFFE07A5F);
+          } else if (trxType == 'refund') {
             icon = Icons.replay;
             iconBg = const Color(0xFFFDE8E4);
             iconColor = const Color(0xFFD94B4B);
+          } else if (trxType == 'penalty' || trxType == 'penalty_overstay') {
+            icon = Icons.warning_amber_rounded;
+            iconBg = const Color(0xFFFDE8E4);
+            iconColor = const Color(0xFFD94B4B);
           }
+
+          final rawDesc = p['description']?.toString() ?? 'Transaksi $method';
 
           return {
             'icon': icon,
             'iconBg': iconBg,
             'iconColor': iconColor,
-            'title': p['description'] ?? 'Transaksi ParkSmart #$method',
-            'subtitle': 'Kode #${p['transaction_code'] ?? 'TRX-001'}',
+            'title': '$rawDesc • $userDisplayName',
+            'subtitle': 'Kode #${p['transaction_code'] ?? 'TRX-001'} • $userDisplayName',
             'amount': '${isIncome ? '+' : '-'}Rp ${_formatCurrency(amt)}',
             'isIncome': isIncome,
-            'time': p['created_at'] != null ? p['created_at'].toString().substring(0, 10) : 'Hari ini',
+            'time': _formatShortWib(p['created_at']),
           };
         }).toList();
       } else {

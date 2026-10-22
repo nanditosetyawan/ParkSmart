@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_service.dart';
 import '../../../core/services/supabase_storage_service.dart';
 import '../../profile/backend/vehicle_backend.dart';
 import '../../profile/backend/profile_backend.dart';
@@ -16,6 +18,48 @@ class AddVehicleBackend extends ChangeNotifier {
   String? _errorMessage;
   String? get errorMessage => _errorMessage;
 
+  Future<String> _resolveUserIdAsync() async {
+    final sessionUid = SessionService.instance.userId;
+    if (sessionUid != null && sessionUid.trim().isNotEmpty) {
+      return sessionUid.trim();
+    }
+
+    final profileUid = ProfileBackend.instance.userId;
+    if (profileUid.trim().isNotEmpty) {
+      return profileUid.trim();
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedId = prefs.getString('ps_session_user_id') ?? prefs.getString('user_profile_id');
+      if (savedId != null && savedId.trim().isNotEmpty) {
+        return savedId.trim();
+      }
+    } catch (_) {}
+
+    final authUser = _client.auth.currentUser;
+    if (authUser != null) {
+      try {
+        final row = await _client.from('users').select('id').eq('auth_user_id', authUser.id).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+    if (email.trim().isNotEmpty) {
+      try {
+        final row = await _client.from('users').select('id').eq('email', email.trim()).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    return '';
+  }
+
   Future<bool> saveVehicle({
     required String plateNumber,
     required String vehicleName,
@@ -29,42 +73,73 @@ class AddVehicleBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = _client.auth.currentUser;
-      final userId = user?.id ?? ProfileBackend.instance.userId;
+      final actualUserId = await _resolveUserIdAsync();
+      if (actualUserId.isEmpty) {
+        throw Exception('Sesi pengguna tidak valid. Silakan login kembali.');
+      }
+
+      final formattedPlate = plateNumber.trim().toUpperCase();
+      if (formattedPlate.isEmpty) {
+        throw Exception('Nomor plat kendaraan tidak boleh kosong.');
+      }
+
+      // Cek apakah nomor plat sudah pernah didaftarkan oleh user ini
+      final existingPlate = await _client
+          .from('vehicles')
+          .select('id')
+          .eq('user_id', actualUserId)
+          .eq('plate_number', formattedPlate)
+          .maybeSingle();
+
+      if (existingPlate != null) {
+        throw Exception('Nomor plat $formattedPlate sudah terdaftar di akun Anda.');
+      }
 
       final type = category == 'motor' ? 'motor' : 'mobil';
 
-      // 1. Upload foto kendaraan fisik jika pengguna memilih foto (dikompres kualitas 70% jernih)
+      // Pisahkan brand dan model agar tidak terduplikasi (contoh: "KIJANG" tidak menjadi "KIJANG KIJANG")
+      final trimmedName = vehicleName.trim();
+      final parts = trimmedName.split(RegExp(r'\s+'));
+      final brand = parts.isNotEmpty ? parts.first : 'Kendaraan';
+      final model = parts.length > 1 ? parts.sublist(1).join(' ') : parts.first;
+
+      // 1. Upload foto kendaraan fisik jika ada
       String? photoUrl;
       if (vehiclePhotoBytes != null && vehiclePhotoBytes.isNotEmpty) {
-        photoUrl = await SupabaseStorageService.instance.uploadVehiclePhoto(
-          rawBytes: vehiclePhotoBytes,
-          userId: userId,
-        );
+        try {
+          photoUrl = await SupabaseStorageService.instance.uploadVehiclePhoto(
+            rawBytes: vehiclePhotoBytes,
+            userId: actualUserId,
+          );
+        } catch (e) {
+          debugPrint('[AddVehicleBackend] Upload photo warning: $e');
+        }
       }
 
-      // Catatan: Foto STNK TIDAK disimpan ke database/storage (hanya diekstrak via OCR).
-      // Sedangkan foto fisik kendaraan disimpan ke kolom `photo_url`.
-      final currentVehicles = VehicleBackend.instance.vehicles;
-      final isFirst = currentVehicles.isEmpty;
+      // Cek apakah ini kendaraan pertama di database untuk user ini
+      final existingVehicles = await _client
+          .from('vehicles')
+          .select('id')
+          .eq('user_id', actualUserId);
+      final isFirst = existingVehicles.isEmpty;
+
       final data = {
-        'user_id': userId,
-        'plate_number': plateNumber.trim().toUpperCase(),
-        'brand': vehicleName.split(' ').first,
-        'model': vehicleName,
+        'user_id': actualUserId,
+        'plate_number': formattedPlate,
+        'brand': brand,
+        'model': model,
         'vehicle_type': type,
         'vehicle_category': category,
         'color': color,
+        'plate_expiry': (plateExpiry != null && plateExpiry.trim().isNotEmpty) ? plateExpiry.trim() : 'Aktif Selamanya',
         'is_default': isFirst,
-        if (photoUrl != null) ...{'photo_url': photoUrl},
-        'created_at': DateTime.now().toIso8601String(),
+        if (photoUrl != null && photoUrl.isNotEmpty) 'photo_url': photoUrl,
+        'created_at': DateTime.now().toUtc().toIso8601String(),
+        'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
-      try {
-        await _client.from('vehicles').insert(data);
-      } catch (e) {
-        debugPrint('Supabase insert vehicle error: $e');
-      }
+      // Simpan ke database Supabase
+      await _client.from('vehicles').insert(data);
 
       // Refresh vehicle list in profile
       await VehicleBackend.instance.fetchVehicles();
@@ -73,7 +148,13 @@ class AddVehicleBackend extends ChangeNotifier {
       notifyListeners();
       return true;
     } catch (e) {
-      _errorMessage = e.toString();
+      debugPrint('[AddVehicleBackend] saveVehicle error: $e');
+      final errStr = e.toString();
+      if (errStr.contains('uq_user_plate')) {
+        _errorMessage = 'Nomor plat ini sudah terdaftar pada akun Anda.';
+      } else {
+        _errorMessage = errStr.replaceAll('Exception: ', '');
+      }
       _isLoading = false;
       notifyListeners();
       return false;

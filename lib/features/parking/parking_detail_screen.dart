@@ -659,20 +659,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 },
                               ),
                               const SizedBox(height: 12),
-                              _InfoRow(
-                                icon: Icons.more_time,
-                                text: _selectedVehicleRateType == 'ev'
-                                    ? 'Stasiun pengisian cepat EV terintegrasi'
-                                    : (_selectedVehicleRateType == 'motor'
-                                        ? 'Tarif hemat untuk kendaraan roda dua'
-                                        : 'Rp 3.000 / jam selanjutnya (Mobil Reguler)'),
-                                isDark: isDark,
-                              ),
-                              _InfoRow(
-                                icon: Icons.verified_user_outlined,
-                                text: 'Tarif resmi terhubung langsung ke mesin tiket & gerbang gate',
-                                isDark: isDark,
-                              ),
+                             
                             ],
                           ),
                         ),
@@ -1072,32 +1059,6 @@ class _NavBtn extends StatelessWidget {
   }
 }
 
-class _InfoRow extends StatelessWidget {
-  final IconData icon;
-  final String text;
-  final bool isDark;
-  const _InfoRow({required this.icon, required this.text, this.isDark = false});
-
-  @override
-  Widget build(BuildContext context) {
-    final theme = ThemeService.instance;
-    return Padding(
-      padding: const EdgeInsets.only(top: 8),
-      child: Row(
-        children: [
-          Icon(icon, size: 18, color: isDark ? const Color(0xFF2DD4BF) : AppColors.textMuted),
-          const SizedBox(width: 8),
-          Text(
-            text,
-            style: AppTypography.bodyMd(
-              color: isDark ? theme.textMuted : AppColors.textSecondary,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
 
 class _AmenityChip extends StatelessWidget {
   final IconData icon;

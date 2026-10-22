@@ -4,6 +4,9 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/profile/backend/profile_backend.dart';
+import '../../features/profile/backend/payment_methods_backend.dart';
+import '../../features/checkout/backend/checkout_backend.dart';
+import '../../features/home/backend/home_backend.dart';
 import '../../main.dart' show navigatorKey;
 
 /// Layanan Pengelola Sesi Terpadu (User & Admin) - ParkSmart ID
@@ -341,6 +344,20 @@ class SessionService with WidgetsBindingObserver {
     } catch (e) {
       debugPrint('[SessionService] Error clearSession: $e');
     }
+
+    // Reset seluruh backend in-memory state agar data akun sebelumnya tidak bocor
+    try {
+      ProfileBackend.instance.clearProfile();
+    } catch (_) {}
+    try {
+      PaymentMethodsBackend.instance.clear();
+    } catch (_) {}
+    try {
+      CheckoutBackend.instance.clear();
+    } catch (_) {}
+    try {
+      HomeBackend.instance.clear();
+    } catch (_) {}
   }
 
   void dispose() {

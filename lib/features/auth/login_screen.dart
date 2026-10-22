@@ -399,6 +399,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           userType: 'user',
           identifier: 'jokowi.dodo@gmail.com',
           userName: 'Jokowi Dodo',
+          userId: 'e2b8c4d1-7a3f-4e92-8d15-9c64712035ba',
         );
         if (mounted) {
           Navigator.pushReplacement(
@@ -1062,16 +1063,34 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                                   return;
                                                 }
 
+                                                final uid = userResponse['id'].toString();
+                                                final uName = userResponse['full_name'] ?? 'Pengguna';
+                                                final uEmail = userResponse['email'] ?? targetEmail;
+                                                final uPhone = userResponse['phone'] ?? '';
+                                                final uTier = userResponse['member_tier']?.toString().toUpperCase() ?? 'BRONZE';
+                                                final uBal = userResponse['wallet_balance'] != null
+                                                    ? (double.tryParse(userResponse['wallet_balance'].toString()) ?? 0).toInt()
+                                                    : 0;
+
                                                 ProfileBackend.instance.setLoggedInUser(
-                                                  id: userResponse['id'].toString(),
-                                                  fullName: userResponse['full_name'] ?? 'Pengguna',
-                                                  email: userResponse['email'] ?? targetEmail,
-                                                  phone: userResponse['phone'] ?? '',
-                                                  memberTier: userResponse['member_tier']?.toString().toUpperCase() ?? 'BRONZE',
-                                                  walletBalance: userResponse['wallet_balance'] != null
-                                                      ? (double.tryParse(userResponse['wallet_balance'].toString()) ?? 0).toInt()
-                                                      : 0,
+                                                  id: uid,
+                                                  fullName: uName,
+                                                  email: uEmail,
+                                                  phone: uPhone,
+                                                  memberTier: uTier,
+                                                  walletBalance: uBal,
                                                 );
+
+                                                HomeBackend.instance.setLoggedInUser(
+                                                  id: uid,
+                                                  userName: uName,
+                                                  walletBalance: uBal.toDouble(),
+                                                  memberTier: uTier,
+                                                );
+
+                                                VehicleBackend.instance.fetchVehicles();
+                                                PaymentMethodsBackend.instance.fetchBalance();
+                                                CheckoutBackend.instance.setUserId(uid);
 
                                                 if (_remember) {
                                                   await _saveCredentials();
@@ -1080,7 +1099,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                                 await SessionService.instance.startSession(
                                                   userType: 'user',
                                                   identifier: targetEmail,
-                                                  userName: userResponse['full_name'] ?? 'Pengguna',
+                                                  userName: uName,
+                                                  userId: uid,
                                                 );
 
                                                 if (context.mounted) {

@@ -48,7 +48,8 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       type == 'Parkir' ||
       type == 'Top-up Wallet' ||
       type == 'Penalty' ||
-      type == 'Penalti Overstay';
+      type == 'Penalti Overstay' ||
+      type == 'Injeksi Admin';
 
   List<Map<String, dynamic>> get _filteredTransactions {
     final q = _searchController.text.toLowerCase();
@@ -56,6 +57,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       final matchesSearch = t['id'].toString().toLowerCase().contains(q) ||
           t['user']['name'].toString().toLowerCase().contains(q) ||
           t['user']['phone'].toString().toLowerCase().contains(q) ||
+          (t['user']['email']?.toString().toLowerCase().contains(q) ?? false) ||
           t['location'].toString().toLowerCase().contains(q) ||
           t['description'].toString().toLowerCase().contains(q);
 

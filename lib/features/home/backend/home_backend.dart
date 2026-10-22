@@ -73,6 +73,20 @@ class HomeBackend extends ChangeNotifier {
     notifyListeners();
   }
 
+  /// Reset seluruh state HomeScreen ketika user logout atau switch akun
+  void clear() {
+    _userId = '';
+    _userName = 'Pengguna';
+    _walletBalance = 0.0;
+    _points = 0;
+    _memberTier = 'BRONZE';
+    _unreadNotificationCount = 0;
+    _recommendedLocations = [];
+    _activeSessions = [];
+    _activeSession = null;
+    notifyListeners();
+  }
+
   /// Memuat seluruh data pendukung HomeScreen dari Supabase
   Future<void> loadHomeData() async {
     _isLoading = true;

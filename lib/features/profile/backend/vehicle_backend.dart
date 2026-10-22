@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
 import 'profile_backend.dart';
@@ -29,6 +30,17 @@ class VehicleItem {
     required this.isDefault,
   });
 
+  /// Nama kendaraan yang bersih dan tidak terduplikasi (contoh: 'KIJANG' bukan 'KIJANG KIJANG')
+  String get displayName {
+    final b = brand.trim();
+    final m = model.trim();
+    if (b.isEmpty) return m.isNotEmpty ? m : 'Kendaraan';
+    if (m.isEmpty) return b;
+    if (m.toLowerCase() == b.toLowerCase()) return b;
+    if (m.toLowerCase().startsWith(b.toLowerCase())) return m;
+    return '$b $m';
+  }
+
   factory VehicleItem.fromMap(Map<String, dynamic> map) {
     return VehicleItem(
       id: map['id']?.toString() ?? '',
@@ -38,7 +50,7 @@ class VehicleItem {
       vehicleType: map['vehicle_type']?.toString() ?? 'mobil',
       category: map['vehicle_category']?.toString() ?? 'suv',
       color: map['color']?.toString() ?? 'Abu-Abu Metalik',
-      plateExpiry: map['plate_expiry']?.toString() ?? '08 • 29',
+      plateExpiry: map['plate_expiry']?.toString() ?? 'Aktif Selamanya',
       photoUrl: map['photo_url']?.toString(),
       isDefault: map['is_default'] == true,
     );
@@ -66,21 +78,56 @@ class VehicleBackend extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<String> _resolveUserIdAsync() async {
+    final sessionUid = SessionService.instance.userId;
+    if (sessionUid != null && sessionUid.trim().isNotEmpty) {
+      return sessionUid.trim();
+    }
+
+    final profileUid = ProfileBackend.instance.userId;
+    if (profileUid.trim().isNotEmpty) {
+      return profileUid.trim();
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedId = prefs.getString('ps_session_user_id') ?? prefs.getString('user_profile_id');
+      if (savedId != null && savedId.trim().isNotEmpty) {
+        return savedId.trim();
+      }
+    } catch (_) {}
+
+    final authUser = _client.auth.currentUser;
+    if (authUser != null) {
+      try {
+        final row = await _client.from('users').select('id').eq('auth_user_id', authUser.id).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+    if (email.trim().isNotEmpty) {
+      try {
+        final row = await _client.from('users').select('id').eq('email', email.trim()).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    return '';
+  }
+
   Future<void> fetchVehicles() async {
     _isLoading = true;
     notifyListeners();
 
     try {
-      final user = _client.auth.currentUser;
-      String? userId = user?.id;
+      final userId = await _resolveUserIdAsync();
 
-      if (userId == null || userId.isEmpty) {
-        userId = ProfileBackend.instance.userId.isNotEmpty
-            ? ProfileBackend.instance.userId
-            : SessionService.instance.userId;
-      }
-
-      if (userId == null || userId.isEmpty) {
+      if (userId.isEmpty) {
         _vehicles = [];
         return;
       }
@@ -107,10 +154,13 @@ class VehicleBackend extends ChangeNotifier {
 
   Future<bool> setDefaultVehicle(String vehicleId) async {
     try {
-      // Set all to false first
-      await _client.from('vehicles').update({'is_default': false}).neq('id', 'none');
+      final userId = await _resolveUserIdAsync();
+      if (userId.isEmpty) return false;
+
+      // Set all user's vehicles to false first
+      await _client.from('vehicles').update({'is_default': false}).eq('user_id', userId);
       // Set chosen one to true
-      await _client.from('vehicles').update({'is_default': true}).eq('id', vehicleId);
+      await _client.from('vehicles').update({'is_default': true}).eq('id', vehicleId).eq('user_id', userId);
       await fetchVehicles();
       return true;
     } catch (e) {

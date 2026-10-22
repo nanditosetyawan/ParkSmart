@@ -2,10 +2,18 @@ import 'package:flutter/material.dart';
 import 'history_detail_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../profile/backend/vehicle_backend.dart';
 import 'backend/verified_parking_sessions_backend.dart';
 
 class VerifiedParkingSessionsScreen extends StatefulWidget {
-  const VerifiedParkingSessionsScreen({super.key});
+  final String? vehicleId;
+  final VehicleItem? vehicleItem;
+
+  const VerifiedParkingSessionsScreen({
+    super.key,
+    this.vehicleId,
+    this.vehicleItem,
+  });
 
   @override
   State<VerifiedParkingSessionsScreen> createState() => _VerifiedParkingSessionsScreenState();
@@ -17,7 +25,10 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
   @override
   void initState() {
     super.initState();
-    VerifiedParkingSessionsBackend.instance.fetchSessions();
+    VerifiedParkingSessionsBackend.instance.fetchSessions(
+      vehicleId: widget.vehicleId,
+      vehicleItem: widget.vehicleItem,
+    );
   }
 
   @override
@@ -46,7 +57,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'Parking Spot Detail',
+              'Riwayat Parkir Kendaraan',
               style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: textMain),
             ),
             actions: [
@@ -82,19 +93,29 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                         Container(
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                           decoration: BoxDecoration(
-                            color: isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFBBEED4),
+                            color: backend.isDefault
+                                ? (isDark ? const Color(0xFF064E3B).withValues(alpha: 0.5) : const Color(0xFFBBEED4))
+                                : (isDark ? const Color(0xFF78350F).withValues(alpha: 0.5) : const Color(0xFFFEF3C7)),
                             borderRadius: BorderRadius.circular(12),
                           ),
                           child: Row(
                             children: [
-                              Icon(Icons.stars, size: 15, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF002115)),
+                              Icon(
+                                backend.isDefault ? Icons.stars : Icons.shield_outlined,
+                                size: 15,
+                                color: backend.isDefault
+                                    ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF002115))
+                                    : (isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E)),
+                              ),
                               const SizedBox(width: 6),
                               Text(
-                                'Kendaraan Utama',
+                                backend.isDefault ? 'Kendaraan Utama' : 'Kendaraan Cadangan',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
-                                  color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF002115),
+                                  color: backend.isDefault
+                                      ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF002115))
+                                      : (isDark ? const Color(0xFFFCD34D) : const Color(0xFF92400E)),
                                 ),
                               ),
                             ],
@@ -111,13 +132,22 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                           width: 96,
                           height: 80,
                           decoration: BoxDecoration(
+                            color: isDark ? theme.surfaceField : const Color(0xFFE2E8F0),
                             borderRadius: BorderRadius.circular(16),
-                            image: const DecorationImage(
-                              image: NetworkImage(
-                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuAVnuwsaKhsc7ics-r8dq6xuhI1zrkeHWSoZpyeq7EGmKQYw_C4-dH5RuUyb8nRM_xEGAiy_s1PFU9iUZV8tTt6--jZfseZAh0cZzgeIN9Xb1Ast9BcH5Cokm2HgwLn_xJgSfbo-f_0EtvOuGrZhDzpZKtCkpM02ODxLjayW4pG6ArEONBVHlKbqLWK-KfYXVz7aTTfb1ng9nNOIsi0YE8MOPywan78pT3axi0Zbww-sKrIymmec4yi'),
-                              fit: BoxFit.cover,
-                            ),
+                            image: (backend.photoUrl != null && backend.photoUrl!.isNotEmpty)
+                                ? DecorationImage(
+                                    image: NetworkImage(backend.photoUrl!),
+                                    fit: BoxFit.cover,
+                                  )
+                                : null,
                           ),
+                          child: (backend.photoUrl == null || backend.photoUrl!.isEmpty)
+                              ? Icon(
+                                  Icons.directions_car,
+                                  size: 40,
+                                  color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
+                                )
+                              : null,
                         ),
                         const SizedBox(width: 16),
                         Expanded(
@@ -179,42 +209,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
               const SizedBox(height: 24),
 
               // 2. Filter Chips
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
-                  children: [
-                    _FilterChip(
-                      label: 'Semua Bulan',
-                      isSelected: _selectedFilter == 'Semua Bulan',
-                      isDark: isDark,
-                      onTap: () => setState(() => _selectedFilter = 'Semua Bulan'),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Oktober 2026',
-                      icon: Icons.calendar_today,
-                      isSelected: _selectedFilter == 'Oktober 2026',
-                      isDark: isDark,
-                      onTap: () => setState(() => _selectedFilter = 'Oktober 2026'),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'September 2026',
-                      isSelected: _selectedFilter == 'September 2026',
-                      isDark: isDark,
-                      onTap: () => setState(() => _selectedFilter = 'September 2026'),
-                    ),
-                    const SizedBox(width: 8),
-                    _FilterChip(
-                      label: 'Mall & Komersil',
-                      icon: Icons.local_mall,
-                      isSelected: _selectedFilter == 'Mall & Komersil',
-                      isDark: isDark,
-                      onTap: () => setState(() => _selectedFilter = 'Mall & Komersil'),
-                    ),
-                  ],
-                ),
-              ),
+           
 
               const SizedBox(height: 24),
 
@@ -302,9 +297,9 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                       paymentMethod: 'Auto-Debit',
                       date: item.date,
                       duration: item.duration,
-                      timeIn: 'Masuk: Terverifikasi',
-                      timeOut: 'Keluar: Selesai',
-                      status: 'Selesai',
+                      timeIn: item.timeIn,
+                      timeOut: item.timeOut,
+                      status: item.status,
                       icon: Icons.local_parking,
                       isDark: isDark,
                     ),

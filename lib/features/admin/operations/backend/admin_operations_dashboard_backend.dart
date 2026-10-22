@@ -88,8 +88,26 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
           .select('id, code, name, city, province, address, total_capacity, car_slots_capacity, motor_slots_capacity, ev_slots_capacity, status')
           .order('name', ascending: true);
 
+      // 1b. Slot & Okupansi Real dari Database (parking_slots, bookings, parking_sessions)
+      final allSlots = await _client
+          .from('parking_slots')
+          .select('id, location_id, slot_type, status');
+
+      final activeBookingsRes = await _client
+          .from('bookings')
+          .select('id, location_id, slot_id, booking_status, payment_status')
+          .inFilter('booking_status', ['upcoming', 'active'])
+          .eq('payment_status', 'paid');
+
+      final activeSessionsRes = await _client
+          .from('parking_sessions')
+          .select('id, location_id, slot_id, status')
+          .inFilter('status', ['active', 'overstay']);
+
       _totalLocationsCount = locs.length;
       int totalCap = 0;
+      int totalOccupiedAcrossAll = 0;
+
       for (var l in locs) {
         totalCap += (l['total_capacity'] as num?)?.toInt() ?? 0;
       }
@@ -97,34 +115,89 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
 
       if (locs.isNotEmpty) {
         _locations = locs.map<Map<String, dynamic>>((row) {
+          final locId = row['id']?.toString() ?? '';
           final total = (row['total_capacity'] as num?)?.toInt() ?? 0;
+
+          final locSlots = allSlots.where((s) => s['location_id'] == locId).toList();
+          final occupiedSlotIds = <String>{};
+          int occupiedSlotsCount = 0;
+          int occupiedMobil = 0;
+          int occupiedMotor = 0;
+          int occupiedEv = 0;
+
+          for (final s in locSlots) {
+            final st = (s['status']?.toString() ?? '').toLowerCase();
+            final sType = (s['slot_type']?.toString() ?? '').toLowerCase();
+            if (st == 'occupied' || st == 'terisi' || st == 'reserved' || st == 'booked' || st == 'dipesan') {
+              occupiedSlotsCount++;
+              occupiedSlotIds.add(s['id'].toString());
+              if (sType.contains('ev')) {
+                occupiedEv++;
+              } else if (sType.contains('motor')) {
+                occupiedMotor++;
+              } else {
+                occupiedMobil++;
+              }
+            }
+          }
+
+          int extraOccupancy = 0;
+          for (final b in activeBookingsRes) {
+            if (b['location_id'] == locId) {
+              final sId = b['slot_id']?.toString();
+              if (sId == null || !occupiedSlotIds.contains(sId)) {
+                extraOccupancy++;
+              }
+            }
+          }
+          for (final s in activeSessionsRes) {
+            if (s['location_id'] == locId) {
+              final sId = s['slot_id']?.toString();
+              if (sId == null || !occupiedSlotIds.contains(sId)) {
+                extraOccupancy++;
+              }
+            }
+          }
+
+          final locOccupied = occupiedSlotsCount + extraOccupancy;
+          totalOccupiedAcrossAll += locOccupied;
+
+          final available = total > locOccupied ? total - locOccupied : 0;
+          final ratio = total > 0 ? (locOccupied / total) : 0.0;
+
           final statusDb = row['status']?.toString().toLowerCase();
           String statusLabel = 'Normal';
           Color statusCol = const Color(0xFF17A18A);
-          if (statusDb == 'crowded') {
-            statusLabel = 'Padat';
-            statusCol = const Color(0xFFE07A5F);
-          } else if (statusDb == 'full') {
+          if (ratio >= 0.85 || statusDb == 'full') {
             statusLabel = 'Kritis';
             statusCol = const Color(0xFFD94B4B);
+          } else if (ratio >= 0.60 || statusDb == 'crowded') {
+            statusLabel = 'Padat';
+            statusCol = const Color(0xFFE07A5F);
           }
 
           return {
             'id': row['code']?.toString() ?? row['id']?.toString() ?? 'LOC-000',
-            'db_id': row['id']?.toString(),
+            'db_id': locId,
             'name': row['name']?.toString() ?? 'Lokasi Parkir',
             'city': row['city']?.toString() ?? 'Kota',
             'province': row['province']?.toString() ?? '',
             'zone': row['address']?.toString() ?? 'Area Parkir',
             'total': total,
-            'occupied': 0,
+            'occupied': locOccupied,
+            'available': available,
             'status': statusLabel,
             'statusColor': statusCol,
             'mobil': (row['car_slots_capacity'] as num?)?.toInt() ?? (total * 0.7).round(),
             'motor': (row['motor_slots_capacity'] as num?)?.toInt() ?? (total * 0.2).round(),
             'ev': (row['ev_slots_capacity'] as num?)?.toInt() ?? (total * 0.1).round(),
+            'occupiedMobil': occupiedMobil,
+            'occupiedMotor': occupiedMotor,
+            'occupiedEv': occupiedEv,
           };
         }).toList();
+
+        _occupiedSlotsCount = totalOccupiedAcrossAll;
 
         final Map<String, List<Map<String, dynamic>>> cityMap = {};
         for (var l in _locations) {
@@ -173,6 +246,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
       } else {
         _locations = [];
         _cityDensityList = [];
+        _occupiedSlotsCount = 0;
       }
 
       // 2. Sesi Aktif & Overstay Real dari Database
@@ -248,6 +322,13 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
           final plate = vehData?['plate_number']?.toString() ?? '-';
           final vType = vehData?['vehicle_type']?.toString().toLowerCase() == 'motor' ? 'Motor' : 'Mobil';
 
+          DateTime? parsedStart = DateTime.tryParse(row['start_time']?.toString() ?? '');
+          String timeFormatted = '08:00';
+          if (parsedStart != null) {
+            final wibDt = parsedStart.toUtc().add(const Duration(hours: 7));
+            timeFormatted = '${wibDt.hour.toString().padLeft(2, '0')}:${wibDt.minute.toString().padLeft(2, '0')}';
+          }
+
           return {
             'id': row['booking_code']?.toString() ?? 'BKG-001',
             'code': row['booking_code']?.toString() ?? 'PRK-001',
@@ -258,7 +339,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
             'floor': floorName,
             'vehicleType': vType,
             'plate': plate,
-            'time': '${row['start_time']?.toString().split('T').last.substring(0, 5) ?? '08:00'} WIB',
+            'time': '$timeFormatted WIB',
             'duration': '${row['duration_hours'] ?? 2} jam',
             'status': isConfirmed ? 'Dikonfirmasi' : 'Menunggu',
             'totalPrice': 'Rp $price',
@@ -268,15 +349,6 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
       } else {
         _liveBookings = [];
       }
-
-      // 4. Status Slot Terisi
-      final occupiedSlots = await _client
-          .from('parking_slots')
-          .select('id')
-          .eq('status', 'occupied')
-          .count(CountOption.exact);
-
-      _occupiedSlotsCount = occupiedSlots.count;
 
       // 4. Seluruh Sesi Parkir untuk Kalkulasi Chart 4 Minggu per Bulan
       final allSessionsRes = await _client

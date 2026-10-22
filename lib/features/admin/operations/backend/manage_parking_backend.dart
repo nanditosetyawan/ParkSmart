@@ -31,8 +31,25 @@ class ManageParkingBackend extends ChangeNotifier {
           .select('id, code, name, type, city, province, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images, image_url, floors')
           .order('name', ascending: true);
 
+      // Ambil seluruh slot, booking aktif, dan sesi aktif untuk kalkulasi okupansi real-time
+      final allSlots = await _client
+          .from('parking_slots')
+          .select('id, location_id, slot_type, status');
+
+      final activeBookingsRes = await _client
+          .from('bookings')
+          .select('id, location_id, slot_id, booking_status, payment_status')
+          .inFilter('booking_status', ['upcoming', 'active'])
+          .eq('payment_status', 'paid');
+
+      final activeSessionsRes = await _client
+          .from('parking_sessions')
+          .select('id, location_id, slot_id, status')
+          .inFilter('status', ['active', 'overstay']);
+
       if (res.isNotEmpty) {
         locations = res.map<Map<String, dynamic>>((row) {
+          final locId = row['id']?.toString() ?? '';
           final total = (row['total_capacity'] as num?)?.toInt() ?? 100;
           final List<String> imagesList = [];
           if (row['images'] is List) {
@@ -43,12 +60,46 @@ class ManageParkingBackend extends ChangeNotifier {
             imagesList.insert(0, primaryUrl);
           }
 
+          final locSlots = allSlots.where((s) => s['location_id'] == locId).toList();
+          final occupiedSlotIds = <String>{};
+          int occupiedSlotsCount = 0;
+
+          for (final s in locSlots) {
+            final st = (s['status']?.toString() ?? '').toLowerCase();
+            if (st == 'occupied' || st == 'terisi' || st == 'reserved' || st == 'booked' || st == 'dipesan') {
+              occupiedSlotsCount++;
+              occupiedSlotIds.add(s['id'].toString());
+            }
+          }
+
+          int extraOccupancy = 0;
+          for (final b in activeBookingsRes) {
+            if (b['location_id'] == locId) {
+              final sId = b['slot_id']?.toString();
+              if (sId == null || !occupiedSlotIds.contains(sId)) {
+                extraOccupancy++;
+              }
+            }
+          }
+          for (final s in activeSessionsRes) {
+            if (s['location_id'] == locId) {
+              final sId = s['slot_id']?.toString();
+              if (sId == null || !occupiedSlotIds.contains(sId)) {
+                extraOccupancy++;
+              }
+            }
+          }
+
+          final locOccupied = occupiedSlotsCount + extraOccupancy;
+          final availableSlots = total > locOccupied ? total - locOccupied : 0;
+          final ratio = total > 0 ? (locOccupied / total) : 0.0;
+
           final statusStr = row['status']?.toString().toLowerCase() ?? 'active';
           String displayStatus = 'Aktif';
-          if (statusStr == 'crowded') {
-            displayStatus = 'Padat';
-          } else if (statusStr == 'full') {
+          if (ratio >= 0.85 || statusStr == 'full') {
             displayStatus = 'Tutup';
+          } else if (ratio >= 0.60 || statusStr == 'crowded') {
+            displayStatus = 'Padat';
           } else if (statusStr == 'maintenance') {
             displayStatus = 'Maintenance';
           }
@@ -59,7 +110,7 @@ class ManageParkingBackend extends ChangeNotifier {
           }
 
           return {
-            'id': row['id']?.toString() ?? '',
+            'id': locId,
             'code': row['code']?.toString() ?? '',
             'name': row['name']?.toString() ?? 'Lokasi Parkir',
             'typeLabel': row['type']?.toString() ?? 'Pusat Perbelanjaan',
@@ -69,7 +120,8 @@ class ManageParkingBackend extends ChangeNotifier {
             'latitude': (row['latitude'] as num?)?.toDouble() ?? -6.1754,
             'longitude': (row['longitude'] as num?)?.toDouble() ?? 106.7933,
             'totalSlots': total,
-            'occupiedSlots': 0,
+            'occupiedSlots': locOccupied,
+            'availableSlots': availableSlots,
             'status': displayStatus,
             'floors': floorsList,
             'operatingHours': row['operating_hours']?.toString() ?? 'Buka 24 Jam',
@@ -117,6 +169,24 @@ class ManageParkingBackend extends ChangeNotifier {
   /// Menghitung total slot yang sudah dibuat di lokasi ini pada SEMUA lantai
   int getTotalSlotsCount(String locationId) {
     return _locationSlots[locationId]?.length ?? 0;
+  }
+
+  /// Menghitung slot terisi atau dipesan yang sudah dibuat di lokasi ini pada SEMUA lantai
+  int getOccupiedSlotsCount(String locationId) {
+    final all = _locationSlots[locationId] ?? [];
+    return all.where((s) {
+      final st = (s['status']?.toString() ?? '').toLowerCase();
+      return st == 'occupied' || st == 'terisi' || st == 'reserved' || st == 'booked' || st == 'dipesan';
+    }).length;
+  }
+
+  /// Menghitung slot kosong / tersedia yang sudah dibuat di lokasi ini pada SEMUA lantai
+  int getAvailableSlotsCount(String locationId) {
+    final all = _locationSlots[locationId] ?? [];
+    return all.where((s) {
+      final st = (s['status']?.toString() ?? '').toLowerCase();
+      return st == 'available' || st == 'tersedia';
+    }).length;
   }
 
   /// Mengambil daftar slot untuk lantai dan zona tertentu
@@ -265,16 +335,16 @@ class ManageParkingBackend extends ChangeNotifier {
       final lowerStatus = status.toLowerCase();
       if (lowerStatus == 'terisi' || lowerStatus == 'occupied') {
         dbStatus = 'occupied';
-      } else if (lowerStatus == 'maintenance') {
+      } else if (lowerStatus == 'maintenance' || lowerStatus == 'perbaikan') {
         dbStatus = 'maintenance';
-      } else if (lowerStatus == 'reserved') {
+      } else if (lowerStatus == 'reserved' || lowerStatus == 'dipesan' || lowerStatus == 'booked') {
         dbStatus = 'reserved';
       }
 
       await _client.from('parking_slots').update({
         'slot_type': dbSlotType,
         'status': dbStatus,
-        'current_plate_number': (dbStatus == 'occupied') ? plate : null,
+        'current_plate_number': (dbStatus == 'occupied' || dbStatus == 'reserved') ? plate : null,
       }).eq('id', slotId);
 
       await fetchSlotsForLocation(locationId);

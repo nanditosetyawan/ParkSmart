@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
@@ -25,6 +26,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _adminName = 'BAHLIL ETANOL';
   String _adminEmail = 'bahlil@parksmart.id';
+  Timer? _autoRefreshTimer;
 
   @override
   void initState() {
@@ -32,6 +34,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     _loadAdminInfo();
     AdminOperationsDashboardBackend.instance.addListener(_onBackendChanged);
     AdminOperationsDashboardBackend.instance.fetchDashboardData();
+    _autoRefreshTimer = Timer.periodic(const Duration(seconds: 12), (_) {
+      if (mounted) {
+        AdminOperationsDashboardBackend.instance.fetchDashboardData();
+      }
+    });
   }
 
   Future<void> _loadAdminInfo() async {
@@ -69,6 +76,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   @override
   void dispose() {
+    _autoRefreshTimer?.cancel();
     AdminOperationsDashboardBackend.instance.removeListener(_onBackendChanged);
     super.dispose();
   }
@@ -269,7 +277,10 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     final isSelected = _currentTabIndex == index;
     return Expanded(
       child: InkWell(
-        onTap: () => setState(() => _currentTabIndex = index),
+        onTap: () {
+          setState(() => _currentTabIndex = index);
+          AdminOperationsDashboardBackend.instance.fetchDashboardData();
+        },
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [

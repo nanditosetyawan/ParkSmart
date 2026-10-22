@@ -500,7 +500,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                       style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF1A1A18)),
                     ),
                     Text(
-                      '${(occupancy * 100).toStringAsFixed(0)}% Okupansi',
+                      'Sisa ${total > occupied ? total - occupied : 0} Slot • ${(occupancy * 100).toStringAsFixed(0)}%',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
@@ -670,7 +670,8 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     // Ambil data kapasitas gedung dan slot aktual dari database Supabase
     final int totalCap = (loc['totalSlots'] as num?)?.toInt() ?? 0;
     final int totalCreated = ManageParkingBackend.instance.getTotalSlotsCount(loc['id']);
-    final int remainingQuota = (totalCap - totalCreated).clamp(0, totalCap);
+    final int occupiedSlots = ManageParkingBackend.instance.getOccupiedSlotsCount(loc['id']);
+    final int availableSlots = (totalCap > occupiedSlots) ? (totalCap - occupiedSlots) : 0;
 
     final zoneASlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneA');
     final zoneBSlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneB');
@@ -819,17 +820,17 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                       const Icon(Icons.pie_chart_outline_rounded, size: 16, color: Color(0xFF114177)),
                       const SizedBox(width: 6),
                       Text(
-                        'Alokasi Slot Terpasang:',
+                        'Kapasitas & Okupansi:',
                         style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
                       ),
                     ],
                   ),
                   Text(
-                    '$totalCreated / $totalCap Slot (${remainingQuota == 0 ? "Penuh" : "Sisa $remainingQuota"})',
+                    '$occupiedSlots / $totalCap Terisi (Sisa $availableSlots Slot)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11.5,
                       fontWeight: FontWeight.bold,
-                      color: remainingQuota == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                      color: availableSlots == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
                     ),
                   ),
                 ],
@@ -838,11 +839,11 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: totalCap > 0 ? (totalCreated / totalCap).clamp(0.0, 1.0) : 0.0,
+                  value: totalCap > 0 ? (occupiedSlots / totalCap).clamp(0.0, 1.0) : 0.0,
                   minHeight: 6,
                   backgroundColor: const Color(0xFFE2E8F0),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    remainingQuota == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                    availableSlots == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
                   ),
                 ),
               ),
@@ -1071,6 +1072,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 children: [
                   _buildLegendItem('Reguler', const Color(0xFF114177)),
                   _buildLegendItem('EV Ready ⚡', const Color(0xFF17A18A)),
+                  _buildLegendItem('Dipesan 📋', const Color(0xFFF59E0B)),
                   _buildLegendItem('Terisi 🚗', const Color(0xFFD94B4B)),
                 ],
               ),
@@ -1120,6 +1122,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
   Widget _buildVisualSlotItem(Map<String, dynamic> slot, String locId, String floorName, String zoneKey) {
     final statusStr = (slot['status']?.toString() ?? 'available').toLowerCase();
     final bool isOccupied = statusStr == 'occupied' || statusStr == 'terisi';
+    final bool isReserved = statusStr == 'reserved' || statusStr == 'booked' || statusStr == 'dipesan';
+    final bool isMaintenance = statusStr == 'maintenance' || statusStr == 'perbaikan';
+
     final slotTypeStr = (slot['slot_type']?.toString() ?? slot['type']?.toString() ?? 'mobil').toLowerCase();
     final bool isEV = slotTypeStr == 'ev';
     final bool isDifabel = slotTypeStr == 'difabel' || slotTypeStr.contains('disabilitas');
@@ -1148,20 +1153,32 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final String slotCode = slot['slot_code']?.toString() ?? slot['code']?.toString() ?? '-';
     final String? plateNumber = slot['current_plate_number']?.toString() ?? slot['plate']?.toString();
 
+    final Color slotBgColor = isOccupied
+        ? const Color(0xFFFDE8E4)
+        : (isReserved
+            ? const Color(0xFFFEF3C7)
+            : (isMaintenance
+                ? const Color(0xFFF3F4F6)
+                : (isEV ? const Color(0xFFE8F7F4) : Colors.white)));
+
+    final Color slotBorderColor = isOccupied
+        ? const Color(0xFFD94B4B)
+        : (isReserved
+            ? const Color(0xFFF59E0B)
+            : (isMaintenance
+                ? const Color(0xFF9CA3AF)
+                : (isEV ? const Color(0xFF17A18A) : const Color(0xFFE5E7EB))));
+
     return GestureDetector(
       onTap: () => _showEditSlotModal(slot, locId, floorName, zoneKey),
       child: Container(
         width: 78,
         decoration: BoxDecoration(
-          color: isOccupied
-              ? const Color(0xFFFDE8E4)
-              : (isEV ? const Color(0xFFE8F7F4) : Colors.white),
+          color: slotBgColor,
           borderRadius: BorderRadius.circular(12),
           border: Border.all(
-            color: isOccupied
-                ? const Color(0xFFD94B4B)
-                : (isEV ? const Color(0xFF17A18A) : const Color(0xFFE5E7EB)),
-            width: isEV ? 1.5 : 1,
+            color: slotBorderColor,
+            width: (isEV || isReserved || isOccupied) ? 1.5 : 1,
           ),
           boxShadow: [
             BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 4, offset: const Offset(0, 2)),
@@ -1193,6 +1210,20 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               Text(
                 (plateNumber != null && plateNumber.isNotEmpty) ? plateNumber : 'Terisi',
                 style: GoogleFonts.jetBrainsMono(fontSize: 8, fontWeight: FontWeight.w600, color: const Color(0xFFD94B4B)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            else if (isReserved)
+              Text(
+                (plateNumber != null && plateNumber.isNotEmpty) ? plateNumber : 'Dipesan',
+                style: GoogleFonts.plusJakartaSans(fontSize: 8.5, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )
+            else if (isMaintenance)
+              Text(
+                'Perbaikan',
+                style: GoogleFonts.plusJakartaSans(fontSize: 8, fontWeight: FontWeight.w600, color: const Color(0xFF6B7280)),
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               )
@@ -1753,7 +1784,9 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final rawStatus = (slot['status']?.toString() ?? 'available').toLowerCase();
     String status = (rawStatus == 'occupied' || rawStatus == 'terisi')
         ? 'Terisi'
-        : ((rawStatus == 'maintenance') ? 'Maintenance' : 'Tersedia');
+        : ((rawStatus == 'reserved' || rawStatus == 'booked' || rawStatus == 'dipesan')
+            ? 'Dipesan'
+            : ((rawStatus == 'maintenance' || rawStatus == 'perbaikan') ? 'Maintenance' : 'Tersedia'));
 
     final plateCtrl = TextEditingController(text: slot['current_plate_number']?.toString() ?? slot['plate']?.toString() ?? '');
 
@@ -1798,12 +1831,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
                   contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 ),
-                items: ['Tersedia', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
+                items: ['Tersedia', 'Dipesan', 'Terisi', 'Maintenance'].map((s) => DropdownMenuItem(value: s, child: Text(s))).toList(),
                 onChanged: (v) => setSheetState(() => status = v ?? 'Tersedia'),
               ),
-              if (status == 'Terisi') ...[
+              if (status == 'Terisi' || status == 'Dipesan') ...[
                 const SizedBox(height: 10),
-                _buildInputField('Plat Kendaraan yang Parkir', plateCtrl, Icons.badge_outlined),
+                _buildInputField('Plat Kendaraan yang Parkir / Memesan', plateCtrl, Icons.badge_outlined),
               ],
               const SizedBox(height: 18),
               Row(

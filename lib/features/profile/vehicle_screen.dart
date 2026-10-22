@@ -521,7 +521,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                       const SizedBox(width: 4),
                                       Text(
                                         VehicleBackend.instance.defaultVehicle != null
-                                            ? '${VehicleBackend.instance.defaultVehicle!.brand} ${VehicleBackend.instance.defaultVehicle!.model}'
+                                            ? VehicleBackend.instance.defaultVehicle!.displayName
                                             : '',
                                         style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
                                       ),
@@ -662,7 +662,15 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               Expanded(
                                 child: GestureDetector(
                                   onTap: () {
-                                    Navigator.push(context, MaterialPageRoute(builder: (context) => const VerifiedParkingSessionsScreen()));
+                                    Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) => VerifiedParkingSessionsScreen(
+                                          vehicleId: VehicleBackend.instance.defaultVehicle?.id,
+                                          vehicleItem: VehicleBackend.instance.defaultVehicle,
+                                        ),
+                                      ),
+                                    );
                                   },
                                   child: Container(
                                     height: 48,
@@ -797,7 +805,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
             ),
             const SizedBox(height: 18),
             Text(
-              '${vehicle.brand} ${vehicle.model}',
+              vehicle.displayName,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -845,7 +853,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                   if (ok && context.mounted) {
                     ScaffoldMessenger.of(context).showSnackBar(
                       SnackBar(
-                        content: Text('${vehicle.brand} ${vehicle.model} sekarang menjadi kendaraan utama.'),
+                        content: Text('${vehicle.displayName} sekarang menjadi kendaraan utama.'),
                         backgroundColor: const Color(0xFF15803D),
                       ),
                     );
@@ -983,7 +991,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          '${vehicle.brand} ${vehicle.model}',
+                          vehicle.displayName,
                           style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: Colors.white),
                         ),
                       ],
@@ -1120,7 +1128,15 @@ class _VehicleScreenState extends State<VehicleScreen> {
                 Expanded(
                   child: GestureDetector(
                     onTap: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => const VerifiedParkingSessionsScreen()));
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => VerifiedParkingSessionsScreen(
+                            vehicleId: vehicle.id,
+                            vehicleItem: vehicle,
+                          ),
+                        ),
+                      );
                     },
                     child: Container(
                       height: 48,
@@ -1159,7 +1175,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       if (ok && context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text('${vehicle.brand} ${vehicle.model} berhasil dijadikan Kendaraan Utama!'),
+                            content: Text('${vehicle.displayName} berhasil dijadikan Kendaraan Utama!'),
                             backgroundColor: const Color(0xFF15803D),
                           ),
                         );

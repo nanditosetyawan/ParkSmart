@@ -769,8 +769,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           child: Container(
                             width: 36, height: 36,
                             margin: const EdgeInsets.only(right: 8),
-                            decoration: BoxDecoration(color: AppColors.surfaceDim, shape: BoxShape.circle),
-                            child: Icon(Icons.tune, size: 18, color: AppColors.textPrimary),
+                            decoration: BoxDecoration( shape: BoxShape.circle),
+                           
                           ),
                         ),
                       ],
