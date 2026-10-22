@@ -21,6 +21,7 @@ class SessionService with WidgetsBindingObserver {
   static const String _kIsLoggedIn = 'ps_session_is_logged_in';
   static const String _kUserType = 'ps_session_user_type';
   static const String _kIdentifier = 'ps_session_identifier';
+  static const String _kUserId = 'ps_session_user_id';
   static const String _kUserName = 'ps_session_user_name';
   static const String _kAdminRole = 'ps_session_admin_role';
   static const String _kLastActiveTime = 'ps_session_last_active_time';
@@ -30,6 +31,7 @@ class SessionService with WidgetsBindingObserver {
   bool _isLoggedIn = false;
   String? _userType; // 'user' | 'admin'
   String? _identifier;
+  String? _userId;
   String? _userName;
   String? _adminRole;
   DateTime? _lastActiveTime;
@@ -45,6 +47,7 @@ class SessionService with WidgetsBindingObserver {
   bool get isLoggedIn => _isLoggedIn;
   String? get userType => _userType;
   String? get identifier => _identifier;
+  String? get userId => _userId;
   String? get userName => _userName;
   String? get adminRole => _adminRole;
 
@@ -73,6 +76,7 @@ class SessionService with WidgetsBindingObserver {
       _isLoggedIn = prefs.getBool(_kIsLoggedIn) ?? false;
       _userType = prefs.getString(_kUserType);
       _identifier = prefs.getString(_kIdentifier);
+      _userId = prefs.getString(_kUserId);
       _userName = prefs.getString(_kUserName);
       _adminRole = prefs.getString(_kAdminRole);
 
@@ -119,11 +123,13 @@ class SessionService with WidgetsBindingObserver {
     required String userType,
     required String identifier,
     required String userName,
+    String? userId,
     String? adminRole,
   }) async {
     _isLoggedIn = true;
     _userType = userType;
     _identifier = identifier;
+    _userId = userId;
     _userName = userName;
     _adminRole = adminRole;
     _lastActiveTime = DateTime.now();
@@ -139,6 +145,11 @@ class SessionService with WidgetsBindingObserver {
       await prefs.setBool(_kIsLoggedIn, true);
       await prefs.setString(_kUserType, userType);
       await prefs.setString(_kIdentifier, identifier);
+      if (userId != null && userId.isNotEmpty) {
+        await prefs.setString(_kUserId, userId);
+      } else {
+        await prefs.remove(_kUserId);
+      }
       await prefs.setString(_kUserName, userName);
       if (adminRole != null) {
         await prefs.setString(_kAdminRole, adminRole);
@@ -151,7 +162,7 @@ class SessionService with WidgetsBindingObserver {
       debugPrint('[SessionService] Error startSession: $e');
     }
 
-    debugPrint('[SessionService] Sesi $userType dimulai untuk $userName ($identifier). Batas waktu: 30 menit.');
+    debugPrint('[SessionService] Sesi $userType dimulai untuk $userName ($identifier, uid: $userId). Batas waktu: 30 menit.');
   }
 
   /// Mencatat sentuhan/interaksi pengguna di layar agar countdown 30 menit diperbarui
@@ -302,6 +313,7 @@ class SessionService with WidgetsBindingObserver {
     _isLoggedIn = false;
     _userType = null;
     _identifier = null;
+    _userId = null;
     _userName = null;
     _adminRole = null;
     _lastActiveTime = null;
@@ -317,10 +329,15 @@ class SessionService with WidgetsBindingObserver {
       await prefs.setBool(_kIsLoggedIn, false);
       await prefs.remove(_kUserType);
       await prefs.remove(_kIdentifier);
+      await prefs.remove(_kUserId);
       await prefs.remove(_kUserName);
       await prefs.remove(_kAdminRole);
       await prefs.remove(_kLastActiveTime);
       await prefs.remove(_kBackgroundTime);
+      await prefs.remove('user_profile_id');
+      await prefs.remove('user_profile_name');
+      await prefs.remove('user_profile_email');
+      await prefs.remove('user_profile_phone');
     } catch (e) {
       debugPrint('[SessionService] Error clearSession: $e');
     }

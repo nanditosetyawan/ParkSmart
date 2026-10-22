@@ -1,7 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
-
+import '../../../core/services/session_service.dart';
 import 'profile_backend.dart';
 
 /// Backend khusus untuk SettingsScreen
@@ -19,11 +19,11 @@ class SettingsBackend extends ChangeNotifier {
   String? get errorMessage => _errorMessage;
 
   Map<String, dynamic> _userSettings = {
-    'full_name': 'Jokowi Dodo',
-    'email': 'jokowi.dodo@gmail.com',
-    'phone': '+62 811-2345-6789',
+    'full_name': 'Pengguna',
+    'email': '',
+    'phone': '',
     'avatar_url': null,
-    'is_biometric_enabled': true,
+    'is_biometric_enabled': false,
   };
   Map<String, dynamic> get userSettings => _userSettings;
 
@@ -34,35 +34,43 @@ class SettingsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id ?? ProfileBackend.instance.userId;
+      final uid = userId ??
+          (ProfileBackend.instance.userId.isNotEmpty
+              ? ProfileBackend.instance.userId
+              : (SessionService.instance.userId ?? ''));
+
+      if (uid.isEmpty) {
+        _userSettings = {
+          'full_name': ProfileBackend.instance.name,
+          'email': ProfileBackend.instance.email,
+          'phone': ProfileBackend.instance.phone,
+          'avatar_url': ProfileBackend.instance.avatarUrl,
+          'is_biometric_enabled': false,
+        };
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
 
       final data = await DatabaseCacheBalancerService.instance.getBalanced<Map<String, dynamic>?>(
-        queryKey: 'user_profile_settings_${uid.isNotEmpty ? uid : 'default'}',
+        queryKey: 'user_profile_settings_$uid',
         ttl: const Duration(minutes: 5),
         queryFn: () async {
-          if (uid.isNotEmpty) {
-            return await _client
-                .from('users')
-                .select('full_name, email, phone, avatar_url, is_biometric_enabled')
-                .eq('id', uid)
-                .maybeSingle();
-          } else {
-            return await _client
-                .from('users')
-                .select('full_name, email, phone, avatar_url, is_biometric_enabled')
-                .limit(1)
-                .maybeSingle();
-          }
+          return await _client
+              .from('users')
+              .select('full_name, email, phone, avatar_url, is_biometric_enabled')
+              .eq('id', uid)
+              .maybeSingle();
         },
       );
 
       if (data != null) {
         _userSettings = {
-          'full_name': data['full_name'] ?? _userSettings['full_name'],
-          'email': data['email'] ?? _userSettings['email'],
-          'phone': data['phone'] ?? _userSettings['phone'],
-          'avatar_url': data['avatar_url'] ?? _userSettings['avatar_url'],
-          'is_biometric_enabled': data['is_biometric_enabled'] ?? true,
+          'full_name': data['full_name'] ?? ProfileBackend.instance.name,
+          'email': data['email'] ?? ProfileBackend.instance.email,
+          'phone': data['phone'] ?? ProfileBackend.instance.phone,
+          'avatar_url': data['avatar_url'] ?? ProfileBackend.instance.avatarUrl,
+          'is_biometric_enabled': data['is_biometric_enabled'] ?? false,
         };
       }
     } catch (e) {

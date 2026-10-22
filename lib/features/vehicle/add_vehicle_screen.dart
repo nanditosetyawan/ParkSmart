@@ -418,164 +418,86 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                 color: theme.textPrimary,
                               ),
                             ),
-                            GestureDetector(
-                              onTap: _openCameraScanner,
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                                decoration: BoxDecoration(
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                              decoration: BoxDecoration(
+                                color: _scannedPlate != null
+                                    ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5))
+                                    : (isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB)),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
                                   color: _scannedPlate != null
-                                      ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFECFDF5))
-                                      : (isDark ? const Color(0xFF451A03) : const Color(0xFFFFFBEB)),
-                                  borderRadius: BorderRadius.circular(12),
-                                  border: Border.all(
-                                    color: _scannedPlate != null
-                                        ? (isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0))
-                                        : (isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A)),
+                                      ? (isDark ? const Color(0xFF047857) : const Color(0xFFA7F3D0))
+                                      : (isDark ? const Color(0xFFB45309) : const Color(0xFFFDE68A)),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 6,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: _scannedPlate != null
+                                          ? const Color(0xFF10B981)
+                                          : const Color(0xFFF59E0B),
+                                      shape: BoxShape.circle,
+                                    ),
                                   ),
-                                ),
-                                child: Row(
-                                  children: [
-                                    Container(
-                                      width: 6,
-                                      height: 6,
-                                      decoration: BoxDecoration(
-                                        color: _scannedPlate != null
-                                            ? const Color(0xFF10B981)
-                                            : const Color(0xFFF59E0B),
-                                        shape: BoxShape.circle,
-                                      ),
+                                  const SizedBox(width: 5),
+                                  Text(
+                                    _scannedPlate != null
+                                        ? 'Terverifikasi Foto'
+                                        : 'Wajib Foto (2x)',
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      color: _scannedPlate != null
+                                          ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857))
+                                          : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309)),
                                     ),
-                                    const SizedBox(width: 5),
-                                    Text(
-                                      _scannedPlate != null
-                                          ? 'Terverifikasi Foto'
-                                          : 'Wajib Foto (2x)',
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 11,
-                                        fontWeight: FontWeight.bold,
-                                        color: _scannedPlate != null
-                                            ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857))
-                                            : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309)),
-                                      ),
-                                    ),
-                                  ],
-                                ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
                         ),
                         const SizedBox(height: 12),
 
-                        // KOTAK HITAM PLAT (BUKAN INPUT TEKS - HASIL OLAHAN FOTO 2X)
-                        GestureDetector(
-                          onTap: _openCameraScanner,
-                          child: Container(
-                            height: 72,
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF111215),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: _scannedPlate != null
-                                    ? const Color(0xFF34D399)
-                                    : (isDark ? theme.border : const Color(0xFF2B2D33)),
-                                width: 2,
-                              ),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.35),
-                                  blurRadius: 8,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
+                        // KOTAK HITAM PLAT (BUKAN TOMBOL - TEMPAT HASIL OLAHAN FOTO 2X)
+                        Container(
+                          width: double.infinity,
+                          height: 72,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF111215),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(
+                              color: _scannedPlate != null
+                                  ? const Color(0xFF34D399)
+                                  : (isDark ? theme.border : const Color(0xFF2B2D33)),
+                              width: 2,
                             ),
-                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                            child: _scannedPlate == null
-                                ? Row(
-                                    children: [
-                                      Expanded(
-                                        child: Row(
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.all(8),
-                                              decoration: BoxDecoration(
-                                                color: Colors.white.withValues(alpha: 0.08),
-                                                borderRadius: BorderRadius.circular(8),
-                                                border: Border.all(color: Colors.white12),
-                                              ),
-                                              child: const Icon(
-                                                Icons.camera_alt,
-                                                color: Color(0xFF34D399),
-                                                size: 20,
-                                              ),
-                                            ),
-                                            const SizedBox(width: 12),
-                                            Expanded(
-                                              child: Column(
-                                                crossAxisAlignment: CrossAxisAlignment.start,
-                                                mainAxisAlignment: MainAxisAlignment.center,
-                                                children: [
-                                                  Text(
-                                                    'AMBIL FOTO PLAT & STNK (2X)',
-                                                    style: GoogleFonts.plusJakartaSans(
-                                                      fontSize: 12,
-                                                      fontWeight: FontWeight.w800,
-                                                      color: Colors.white,
-                                                      letterSpacing: 1,
-                                                    ),
-                                                  ),
-                                                  const SizedBox(height: 2),
-                                                  Text(
-                                                    'Ketuk di sini untuk memindai • Gambar tidak disimpan',
-                                                    style: GoogleFonts.plusJakartaSans(
-                                                      fontSize: 10,
-                                                      color: const Color(0xFF94A3B8),
-                                                    ),
-                                                  ),
-                                                ],
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 1,
-                                        height: double.infinity,
-                                        color: Colors.white24,
-                                        margin: const EdgeInsets.symmetric(horizontal: 10),
-                                      ),
-                                      Column(
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.35),
+                                blurRadius: 8,
+                                offset: const Offset(0, 3),
+                              ),
+                            ],
+                          ),
+                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                          child: _scannedPlate == null
+                              ? const SizedBox(width: double.infinity)
+                              : Row(
+                                  children: [
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         mainAxisAlignment: MainAxisAlignment.center,
                                         children: [
-                                          Text(
-                                            '-- • --',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFF94A3B8),
-                                              letterSpacing: 2,
-                                            ),
-                                          ),
-                                          Text(
-                                            'IDN',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
-                                              color: const Color(0xFFA3A3A3),
-                                              letterSpacing: 1,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ],
-                                  )
-                                : Row(
-                                    children: [
-                                      Expanded(
-                                        child: Column(
-                                          crossAxisAlignment: CrossAxisAlignment.start,
-                                          mainAxisAlignment: MainAxisAlignment.center,
-                                          children: [
-                                            Text(
+                                          FittedBox(
+                                            fit: BoxFit.scaleDown,
+                                            alignment: Alignment.centerLeft,
+                                            child: Text(
                                               _scannedPlate!,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 22,
@@ -584,49 +506,49 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                                 letterSpacing: 4,
                                               ),
                                             ),
-                                            Text(
-                                              'KORLANTAS POLRI',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 8,
-                                                color: const Color(0xFFA3A3A3),
-                                                letterSpacing: 1.5,
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      Container(
-                                        width: 1,
-                                        height: double.infinity,
-                                        color: Colors.white24,
-                                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                                      ),
-                                      Column(
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          Text(
-                                            _scannedExpiry ?? '08 • 29',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w800,
-                                              color: const Color(0xFFE5E5E5),
-                                              letterSpacing: 2,
-                                            ),
                                           ),
                                           Text(
-                                            'IDN',
+                                            'KORLANTAS POLRI',
                                             style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 9,
-                                              fontWeight: FontWeight.bold,
+                                              fontSize: 8,
                                               color: const Color(0xFFA3A3A3),
-                                              letterSpacing: 1,
+                                              letterSpacing: 1.5,
                                             ),
                                           ),
                                         ],
                                       ),
-                                    ],
-                                  ),
-                          ),
+                                    ),
+                                    Container(
+                                      width: 1,
+                                      height: double.infinity,
+                                      color: Colors.white24,
+                                      margin: const EdgeInsets.symmetric(horizontal: 12),
+                                    ),
+                                    Column(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        Text(
+                                          _scannedExpiry ?? '10 • 26',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w800,
+                                            color: const Color(0xFFE5E5E5),
+                                            letterSpacing: 2,
+                                          ),
+                                        ),
+                                        Text(
+                                          'IDN',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 9,
+                                            fontWeight: FontWeight.bold,
+                                            color: const Color(0xFFA3A3A3),
+                                            letterSpacing: 1,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
                         ),
                         const SizedBox(height: 8),
                         Row(
@@ -642,8 +564,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             Expanded(
                               child: Text(
                                 _scannedPlate != null
-                                    ? 'Plat dan masa berlaku terisi dari foto (ketuk untuk foto ulang).'
-                                    : 'Bukan input teks manual. Wajib difoto 2x (plat & STNK). Gambar hanya diolah.',
+                                    ? 'Plat dan masa berlaku terisi dari foto (gunakan tombol "Buka Kamera" di atas jika ingin foto ulang).'
+                                    : 'Gunakan tombol "Buka Kamera" di atas untuk memindai plat & STNK. Plat hitam akan terisi otomatis.',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   color: _scannedPlate != null

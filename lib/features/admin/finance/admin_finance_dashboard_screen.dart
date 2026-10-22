@@ -792,17 +792,7 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
                   ),
                 ],
               ),
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFD97706).withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(20),
-                ),
-                child: Text(
-                  '${AdminFinanceDashboardBackend.instance.activeWalletUsers} User',
-                  style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.bold, color: const Color(0xFFD97706)),
-                ),
-              ),
+             
             ],
           ),
           const SizedBox(height: 12),

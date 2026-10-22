@@ -13,7 +13,7 @@ class PaymentMethodsBackend extends ChangeNotifier {
   bool _isLoading = false;
   bool get isLoading => _isLoading;
 
-  int _balance = 250000;
+  int _balance = 0;
   int get balance => _balance;
 
   bool _autoDebet = true;
@@ -50,31 +50,34 @@ class PaymentMethodsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final user = _client.auth.currentUser;
-      final userId = user?.id;
+      final uid = ProfileBackend.instance.userId.isNotEmpty
+          ? ProfileBackend.instance.userId
+          : (_client.auth.currentUser?.id ?? '');
 
-      dynamic query = _client.from('users').select('wallet_balance');
-      if (userId != null) {
-        query = query.eq('auth_user_id', userId);
+      if (uid.isEmpty) {
+        _balance = ProfileBackend.instance.walletBalance;
+        _isLoading = false;
+        notifyListeners();
+        return;
       }
-      final res = await query.limit(1);
 
-      if (res != null && (res as List).isNotEmpty) {
-        final val = res.first['wallet_balance'];
-        if (val != null) {
-          _balance = (double.tryParse(val.toString()) ?? _balance.toDouble()).toInt();
-        }
+      final res = await _client
+          .from('users')
+          .select('wallet_balance')
+          .eq('id', uid)
+          .maybeSingle();
+
+      if (res != null && res['wallet_balance'] != null) {
+        _balance = (double.tryParse(res['wallet_balance'].toString()) ?? 0).toInt();
       } else {
-        final prefs = await SharedPreferences.getInstance();
-        _balance = prefs.getInt('user_wallet_balance') ?? 250000;
+        _balance = 0;
       }
 
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt('user_wallet_balance', _balance);
     } catch (e) {
       debugPrint('PaymentMethodsBackend fetchBalance fallback: $e');
-      final prefs = await SharedPreferences.getInstance();
-      _balance = prefs.getInt('user_wallet_balance') ?? 250000;
+      _balance = 0;
     } finally {
       _isLoading = false;
       notifyListeners();

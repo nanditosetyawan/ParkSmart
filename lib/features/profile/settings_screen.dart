@@ -18,9 +18,9 @@ class SettingsScreen extends StatefulWidget {
 }
 
 class _SettingsScreenState extends State<SettingsScreen> {
-  String _userName = 'Jokowi Dodo';
-  String _userEmail = 'jokowi.dodo@gmail.com';
-  String _userPhone = '+62 811-2345-6789';
+  String _userName = ProfileBackend.instance.name;
+  String _userEmail = ProfileBackend.instance.email;
+  String _userPhone = ProfileBackend.instance.phone;
   String? _avatarUrl;
 
   @override
@@ -60,7 +60,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Widget _buildFallbackAvatar(double size) {
-    final initial = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'J';
+    final initial = _userName.trim().isNotEmpty ? _userName.trim()[0].toUpperCase() : 'U';
     return Container(
       width: size,
       height: size,
@@ -104,11 +104,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     await profile.fetchProfile();
 
     final prefName = prefs.getString('user_profile_name');
-    final name = (prefName != null && prefName.isNotEmpty && prefName != 'Arya Raditya')
+    final name = (prefName != null && prefName.isNotEmpty)
         ? prefName
         : profile.name;
     final prefEmail = prefs.getString('user_profile_email');
-    final email = (prefEmail != null && prefEmail.isNotEmpty && !prefEmail.contains('arya.raditya'))
+    final email = (prefEmail != null && prefEmail.isNotEmpty)
         ? prefEmail
         : profile.email;
     final prefPhone = prefs.getString('user_profile_phone');

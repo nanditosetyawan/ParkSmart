@@ -1,8 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/session_service.dart';
 import '../../core/services/theme_service.dart';
+import '../home/backend/home_backend.dart';
+import '../home/home_screen.dart';
 import '../profile/backend/profile_backend.dart';
+import '../profile/backend/vehicle_backend.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -107,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
         return;
       }
 
-      // 2. Simpan user baru ke database public.users
+      // 2. Simpan user baru ke database public.users (user fresh 0 rupiah, 0 poin, tier BRONZE)
       final inserted = await Supabase.instance.client
           .from('users')
           .insert({
@@ -125,9 +130,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .select()
           .single();
 
-      // 3. Simpan state user baru di ProfileBackend
+      final newUserId = inserted['id'].toString();
+
+      // 3. Simpan state user baru di ProfileBackend & HomeBackend
       ProfileBackend.instance.setLoggedInUser(
-        id: inserted['id'].toString(),
+        id: newUserId,
         fullName: name,
         email: email,
         phone: phone,
@@ -135,23 +142,49 @@ class _RegisterScreenState extends State<RegisterScreen> {
         walletBalance: 0,
       );
 
+      HomeBackend.instance.setLoggedInUser(
+        id: newUserId,
+        userName: name,
+        walletBalance: 0.0,
+        points: 0,
+        memberTier: 'BRONZE',
+      );
+
+      // 4. Bersihkan kendaraan lama agar user baru benar-benar fresh
+      VehicleBackend.instance.clearVehicles();
+
+      // 5. Mulai sesi user baru di SessionService
+      await SessionService.instance.startSession(
+        userType: 'user',
+        identifier: email,
+        userName: name,
+        userId: newUserId,
+      );
+
+      // 6. Simpan kredensial & profil baru ke SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('user_profile_id', newUserId);
+      await prefs.setString('user_profile_name', name);
+      await prefs.setString('user_profile_email', email);
+      await prefs.setString('user_profile_phone', phone);
+      await prefs.setString('saved_email', email);
+      await prefs.setString('saved_password', password);
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Registrasi akun berhasil! Silakan masuk dengan akun baru Anda.'),
-            backgroundColor: Color(0xFF0D9488),
-            duration: Duration(seconds: 3),
+          SnackBar(
+            content: Text('Registrasi akun berhasil! Selamat datang, $name.'),
+            backgroundColor: const Color(0xFF0D9488),
+            duration: const Duration(seconds: 3),
           ),
         );
 
-        if (Navigator.canPop(context)) {
-          Navigator.pop(context, email);
-        } else {
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (_) => LoginScreen(initialEmail: email)),
-          );
-        }
+        // Langsung arahkan user baru masuk ke HomeScreen
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          (route) => false,
+        );
       }
     } catch (e) {
       if (mounted) {

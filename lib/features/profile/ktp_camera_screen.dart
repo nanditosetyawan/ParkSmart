@@ -60,7 +60,7 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
 
     final backend = KtpCameraBackend.instance;
     final currentUid = ProfileBackend.instance.userId.isNotEmpty ? ProfileBackend.instance.userId : null;
-    final currentUName = ProfileBackend.instance.name.isNotEmpty ? ProfileBackend.instance.name : 'Jokowi jaka';
+    final currentUName = ProfileBackend.instance.name.isNotEmpty ? ProfileBackend.instance.name : 'Pengguna';
 
     if (_step == 1) {
       final success = await backend.uploadKtpPhoto(bytes: bytes, userId: currentUid);

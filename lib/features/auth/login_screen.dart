@@ -27,6 +27,8 @@ import '../admin/operations/admin_operations_dashboard_screen.dart';
 import '../admin/finance/admin_finance_dashboard_screen.dart';
 import '../admin/cs/admin_cs_dashboard_screen.dart';
 import '../profile/backend/profile_backend.dart';
+import '../profile/backend/vehicle_backend.dart';
+import '../home/backend/home_backend.dart';
 import '../../core/services/client_info_service.dart';
 import '../../core/services/session_service.dart';
 
@@ -194,16 +196,30 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 .eq('email', targetEmail)
                 .maybeSingle();
             if (userResponse != null && mounted) {
+              final uid = userResponse['id'].toString();
+              final userName = userResponse['full_name'] ?? 'Pengguna';
+              final userEmail = userResponse['email'] ?? targetEmail;
+              final userPhone = userResponse['phone'] ?? '';
+              final memberTier = userResponse['member_tier']?.toString().toUpperCase() ?? 'BRONZE';
+              final walletBalance = userResponse['wallet_balance'] != null
+                  ? (double.tryParse(userResponse['wallet_balance'].toString()) ?? 0).toInt()
+                  : 0;
+
               ProfileBackend.instance.setLoggedInUser(
-                id: userResponse['id'].toString(),
-                fullName: userResponse['full_name'] ?? 'Pengguna',
-                email: userResponse['email'] ?? targetEmail,
-                phone: userResponse['phone'] ?? '',
-                memberTier: userResponse['member_tier']?.toString().toUpperCase() ?? 'BRONZE',
-                walletBalance: userResponse['wallet_balance'] != null
-                    ? (double.tryParse(userResponse['wallet_balance'].toString()) ?? 0).toInt()
-                    : 0,
+                id: uid,
+                fullName: userName,
+                email: userEmail,
+                phone: userPhone,
+                memberTier: memberTier,
+                walletBalance: walletBalance,
               );
+              HomeBackend.instance.setLoggedInUser(
+                id: uid,
+                userName: userName,
+                walletBalance: walletBalance.toDouble(),
+                memberTier: memberTier,
+              );
+              VehicleBackend.instance.fetchVehicles();
             }
           } catch (_) {}
         }
@@ -214,6 +230,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           userType: 'user',
           identifier: targetEmail.isNotEmpty ? targetEmail : 'user@parksmart.id',
           userName: ProfileBackend.instance.name,
+          userId: ProfileBackend.instance.userId,
         );
         if (mounted) {
           Navigator.pushReplacement(
@@ -305,17 +322,35 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
 
+      final uid = response['id'].toString();
+      final userName = response['full_name'] ?? 'Pengguna';
+      final userEmail = response['email'] ?? email;
+      final userPhone = response['phone'] ?? '';
+      final memberTier = response['member_tier']?.toString().toUpperCase() ?? 'BRONZE';
+      final walletBalance = response['wallet_balance'] != null
+          ? (double.tryParse(response['wallet_balance'].toString()) ?? 0).toInt()
+          : 0;
+
       // Berhasil: simpan profil di ProfileBackend
       ProfileBackend.instance.setLoggedInUser(
-        id: response['id'].toString(),
-        fullName: response['full_name'] ?? 'Pengguna',
-        email: response['email'] ?? email,
-        phone: response['phone'] ?? '',
-        memberTier: response['member_tier']?.toString().toUpperCase() ?? 'BRONZE',
-        walletBalance: response['wallet_balance'] != null
-            ? (double.tryParse(response['wallet_balance'].toString()) ?? 0).toInt()
-            : 0,
+        id: uid,
+        fullName: userName,
+        email: userEmail,
+        phone: userPhone,
+        memberTier: memberTier,
+        walletBalance: walletBalance,
       );
+
+      // Simpan di HomeBackend
+      HomeBackend.instance.setLoggedInUser(
+        id: uid,
+        userName: userName,
+        walletBalance: walletBalance.toDouble(),
+        memberTier: memberTier,
+      );
+
+      // Muat kendaraan milik user ini
+      VehicleBackend.instance.fetchVehicles();
 
       if (_remember) {
         await _saveCredentials();
@@ -325,8 +360,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
       await SessionService.instance.startSession(
         userType: 'user',
-        identifier: response['email'] ?? email,
-        userName: response['full_name'] ?? 'Pengguna',
+        identifier: userEmail,
+        userName: userName,
+        userId: uid,
       );
 
       if (mounted) {

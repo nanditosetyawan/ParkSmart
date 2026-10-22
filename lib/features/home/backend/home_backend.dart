@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_service.dart';
+import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk HomeScreen (lib/features/home/home_screen.dart)
 /// Menggunakan Targeted Column Query untuk efisiensi maksimal
@@ -16,19 +18,19 @@ class HomeBackend extends ChangeNotifier {
   String _userId = '';
   String get userId => _userId;
 
-  String _userName = 'Jokowi jaka';
+  String _userName = 'Pengguna';
   String get userName => _userName;
 
-  double _walletBalance = 250000.0;
+  double _walletBalance = 0.0;
   double get walletBalance => _walletBalance;
 
-  int _points = 1250;
+  int _points = 0;
   int get points => _points;
 
-  String _memberTier = 'GOLD';
+  String _memberTier = 'BRONZE';
   String get memberTier => _memberTier;
 
-  int _unreadNotificationCount = 2;
+  int _unreadNotificationCount = 0;
   int get unreadNotificationCount => _unreadNotificationCount;
 
   List<Map<String, dynamic>> _recommendedLocations = [];
@@ -46,6 +48,21 @@ class HomeBackend extends ChangeNotifier {
 
   Position? _currentGpsPosition;
   Position? get currentGpsPosition => _currentGpsPosition;
+
+  void setLoggedInUser({
+    required String id,
+    required String userName,
+    double walletBalance = 0.0,
+    int points = 0,
+    String memberTier = 'BRONZE',
+  }) {
+    _userId = id;
+    _userName = userName;
+    _walletBalance = walletBalance;
+    _points = points;
+    _memberTier = memberTier;
+    notifyListeners();
+  }
 
   /// Memuat seluruh data pendukung HomeScreen dari Supabase
   Future<void> loadHomeData() async {
@@ -70,6 +87,15 @@ class HomeBackend extends ChangeNotifier {
   /// 1. Ambil nama & profil user
   Future<void> _fetchUserProfile() async {
     try {
+      String uid = _userId;
+      if (uid.isEmpty) {
+        uid = ProfileBackend.instance.userId.isNotEmpty
+            ? ProfileBackend.instance.userId
+            : (SessionService.instance.userId ?? '');
+      }
+
+      String email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+
       final user = _client.auth.currentUser;
       dynamic query = _client
           .from('users')
@@ -77,10 +103,13 @@ class HomeBackend extends ChangeNotifier {
 
       if (user != null) {
         query = query.eq('auth_user_id', user.id);
-      } else if (_userId.isNotEmpty) {
-        query = query.eq('id', _userId);
+      } else if (uid.isNotEmpty) {
+        query = query.eq('id', uid);
+      } else if (email.isNotEmpty) {
+        query = query.eq('email', email);
       } else {
-        query = query.order('created_at', ascending: true);
+        // Tidak ada user yang login! Jangan asal load user pertama
+        return;
       }
 
       final data = await query.limit(1).maybeSingle();
@@ -88,9 +117,9 @@ class HomeBackend extends ChangeNotifier {
       if (data != null) {
         _userId = data['id']?.toString() ?? _userId;
         _userName = data['full_name'] as String? ?? _userName;
-        _walletBalance = (data['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
-        _points = (data['points'] as int?) ?? _points;
-        _memberTier = data['member_tier'] as String? ?? _memberTier;
+        _walletBalance = (data['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+        _points = (data['points'] as int?) ?? 0;
+        _memberTier = data['member_tier'] as String? ?? 'BRONZE';
       }
     } catch (e) {
       debugPrint('[HomeBackend] _fetchUserProfile error: $e');
@@ -219,17 +248,24 @@ class HomeBackend extends ChangeNotifier {
   Future<void> _fetchActiveSession() async {
     try {
       final now = DateTime.now();
-      final uid = _userId.isNotEmpty ? _userId : (_client.auth.currentUser?.id ?? '');
+      final uid = _userId.isNotEmpty
+          ? _userId
+          : (ProfileBackend.instance.userId.isNotEmpty
+              ? ProfileBackend.instance.userId
+              : (SessionService.instance.userId ?? ''));
 
-      // 1. Ambil sesi parkir aktif (parking_sessions)
+      if (uid.isEmpty) {
+        _activeSessions = [];
+        _activeSession = null;
+        return;
+      }
+
+      // 1. Ambil sesi parkir aktif (parking_sessions) hanya milik user ini
       var query = _client
           .from('parking_sessions')
           .select('id, session_code, user_id, slot_id, booking_id, plate_number, vehicle_type, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name)')
-          .eq('status', 'active');
-
-      if (uid.isNotEmpty) {
-        query = query.or('user_id.eq.$uid,user_id.is.null');
-      }
+          .eq('status', 'active')
+          .eq('user_id', uid);
 
       final sessions = await query.order('check_in_time', ascending: false);
 

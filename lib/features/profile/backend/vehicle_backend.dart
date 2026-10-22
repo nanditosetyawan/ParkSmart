@@ -1,5 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/session_service.dart';
+import 'profile_backend.dart';
 
 /// Model kendaraan
 class VehicleItem {
@@ -59,26 +61,38 @@ class VehicleBackend extends ChangeNotifier {
   VehicleItem? get defaultVehicle =>
       _vehicles.isNotEmpty ? _vehicles.firstWhere((v) => v.isDefault, orElse: () => _vehicles.first) : null;
 
+  void clearVehicles() {
+    _vehicles = [];
+    notifyListeners();
+  }
+
   Future<void> fetchVehicles() async {
     _isLoading = true;
     notifyListeners();
 
     try {
       final user = _client.auth.currentUser;
-      final userId = user?.id;
+      String? userId = user?.id;
 
-      dynamic query = _client.from('vehicles').select(
-        'id, brand, model, plate_number, vehicle_type, vehicle_category, color, plate_expiry, photo_url, is_default',
-      );
-
-      if (userId != null) {
-        query = query.eq('user_id', userId);
+      if (userId == null || userId.isEmpty) {
+        userId = ProfileBackend.instance.userId.isNotEmpty
+            ? ProfileBackend.instance.userId
+            : SessionService.instance.userId;
       }
 
-      final res = await query.order('is_default', ascending: false);
+      if (userId == null || userId.isEmpty) {
+        _vehicles = [];
+        return;
+      }
 
-      if (res != null && (res as List).isNotEmpty) {
-        _vehicles = res.map((item) => VehicleItem.fromMap(item as Map<String, dynamic>)).toList();
+      final res = await _client
+          .from('vehicles')
+          .select('id, brand, model, plate_number, vehicle_type, vehicle_category, color, plate_expiry, photo_url, is_default')
+          .eq('user_id', userId)
+          .order('is_default', ascending: false);
+
+      if (res.isNotEmpty) {
+        _vehicles = res.map((item) => VehicleItem.fromMap(item)).toList();
       } else {
         _vehicles = [];
       }

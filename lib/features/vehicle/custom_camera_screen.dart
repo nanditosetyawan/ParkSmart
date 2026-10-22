@@ -1,8 +1,10 @@
+import 'dart:io';
 import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
 import 'backend/custom_camera_backend.dart';
 
 class CustomCameraScreen extends StatefulWidget {
@@ -54,16 +56,40 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
     super.dispose();
   }
 
-  /// Memproses gambar foto di memori RAM tanpa menyimpan ke penyimpanan
-  Future<void> _processImageBytes(dynamic bytes) async {
+  /// Memproses foto dengan On-Device Google ML Kit Text Recognition
+  /// Gambar hanya dibaca di memori RAM/cache sementara lalu langsung dihapus.
+  Future<void> _processImage({String? filePath, dynamic bytes}) async {
     if (!mounted || _isProcessing) return;
     setState(() => _isProcessing = true);
+
+    String ocrText = '';
+    if (filePath != null) {
+      try {
+        final inputImage = InputImage.fromFilePath(filePath);
+        final textRecognizer = TextRecognizer(script: TextRecognitionScript.latin);
+        final RecognizedText recognizedText = await textRecognizer.processImage(inputImage);
+        ocrText = recognizedText.text;
+        debugPrint('Google ML Kit OCR raw text: "$ocrText"');
+        await textRecognizer.close();
+      } catch (e) {
+        debugPrint('ML Kit text recognition error: $e');
+      } finally {
+        // Hapus file foto dari cache lokal demi privasi (tidak disimpan ke storage)
+        try {
+          final f = File(filePath);
+          if (f.existsSync()) f.deleteSync();
+        } catch (_) {}
+      }
+    }
 
     final backend = CustomCameraBackend.instance;
 
     if (_step == 1) {
       // Olah Foto 1: Plat Nomor
-      final result = await backend.processPlatImage(bytes: bytes);
+      final result = await backend.processPlatImage(
+        bytes: bytes,
+        ocrRawText: ocrText,
+      );
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
@@ -75,7 +101,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
         stepNumber: 1,
         title: 'Hasil Pindai Foto Plat Nomor',
         detectedValue: result,
-        subtitle: 'Foto berhasil diolah di memori (tidak disimpan ke server). Pastikan nomor plat sudah sesuai.',
+        subtitle: 'Nomor plat terdeteksi dari foto (tidak disimpan ke database). Silakan koreksi jika ada huruf/angka yang perlu disesuaikan.',
         buttonLabel: 'Lanjut Foto 2: Masa Berlaku STNK',
         onConfirm: (finalVal) {
           setState(() {
@@ -86,7 +112,10 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
       );
     } else {
       // Olah Foto 2: Masa Berlaku STNK
-      final result = await backend.processStnkExpiryImage(bytes: bytes);
+      final result = await backend.processStnkExpiryImage(
+        bytes: bytes,
+        ocrRawText: ocrText,
+      );
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
@@ -98,13 +127,13 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
         stepNumber: 2,
         title: 'Hasil Pindai Masa Berlaku STNK',
         detectedValue: result,
-        subtitle: 'Masa berlaku TNKB/Pajak 5 tahunan berhasil diolah di memori (gambar tidak disimpan).',
+        subtitle: 'Masa berlaku berhasil diolah ke format Bulan • Tahun (MM • YY). Gambar tidak disimpan ke database.',
         buttonLabel: 'Selesai & Terapkan ke Plat',
         onConfirm: (finalVal) {
           _detectedExpiry = finalVal;
           Navigator.pop(context, {
             'plateNumber': _detectedPlate ?? 'B 5678 KLM',
-            'plateExpiry': _detectedExpiry ?? '08 • 29',
+            'plateExpiry': _detectedExpiry ?? '10 • 26',
           });
         },
       );
@@ -288,15 +317,15 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
       try {
         final XFile file = await _controller!.takePicture();
         final bytes = await file.readAsBytes();
-        await _processImageBytes(bytes);
+        await _processImage(filePath: file.path, bytes: bytes);
       } catch (e) {
         debugPrint('Error taking picture: $e');
         // Fallback in-memory processing
-        await _processImageBytes(Uint8List.fromList([1, 2, 3, 4]));
+        await _processImage(filePath: null, bytes: Uint8List.fromList([1, 2, 3, 4]));
       }
     } else {
       // Fallback jika kamera perangkat tidak tersedia / di emulator
-      await _processImageBytes(Uint8List.fromList([1, 2, 3, 4]));
+      await _processImage(filePath: null, bytes: Uint8List.fromList([1, 2, 3, 4]));
     }
   }
 
@@ -307,7 +336,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
       final XFile? image = await picker.pickImage(source: ImageSource.gallery);
       if (image != null) {
         final bytes = await image.readAsBytes();
-        await _processImageBytes(bytes);
+        await _processImage(filePath: image.path, bytes: bytes);
       }
     } catch (e) {
       debugPrint('Error picking image: $e');
@@ -576,7 +605,7 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
 
                 // Tombol Simulasi / Cepat
                 GestureDetector(
-                  onTap: () => _processImageBytes(Uint8List.fromList([1, 2, 3])),
+                  onTap: () => _processImage(bytes: Uint8List.fromList([1, 2, 3])),
                   child: Column(
                     children: [
                       Container(
