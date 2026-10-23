@@ -305,6 +305,11 @@ class HistoryBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Jalankan pembersihan otomatis agar pesanan expired/lewat checkout langsung disinkronkan
+      try {
+        await _client.rpc('auto_process_expired_bookings_and_sessions');
+      } catch (_) {}
+
       final currentUserId = await _resolveUserIdAsync();
       if (currentUserId.isEmpty) {
         _items = [];

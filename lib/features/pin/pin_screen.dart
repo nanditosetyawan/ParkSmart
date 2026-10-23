@@ -4,7 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../home/home_screen.dart';
 import '../../core/services/notification_service.dart';
+import '../../core/services/language_service.dart';
 import '../checkout/backend/checkout_backend.dart';
+import '../profile/payment_methods_screen.dart';
 import 'backend/pin_backend.dart';
 
 class PinScreen extends StatefulWidget {
@@ -13,6 +15,7 @@ class PinScreen extends StatefulWidget {
   final String? customTitle;
   final bool backToHome;
   final String? bookingId;
+  final Future<bool> Function()? onConfirmPin;
 
   const PinScreen({
     super.key,
@@ -21,6 +24,7 @@ class PinScreen extends StatefulWidget {
     this.customTitle,
     this.backToHome = true,
     this.bookingId,
+    this.onConfirmPin,
   });
 
   @override
@@ -59,8 +63,134 @@ class _PinScreenState extends State<PinScreen> {
     final theme = ThemeService.instance;
     final isDark = theme.isDarkMode;
 
+    if (widget.onConfirmPin != null) {
+      final success = await widget.onConfirmPin!();
+      if (!success) {
+        if (!mounted) return;
+        setState(() {
+          _isProcessing = false;
+        });
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal memproses transaksi. Saldo Anda mungkin tidak mencukupi.'.tr),
+            backgroundColor: Colors.redAccent,
+          ),
+        );
+        return;
+      }
+    }
+
     if (widget.bookingId != null && widget.bookingId!.isNotEmpty) {
-      await CheckoutBackend.instance.markBookingAsPaid(widget.bookingId!);
+      final isPaid = await CheckoutBackend.instance.markBookingAsPaid(widget.bookingId!);
+      if (!isPaid) {
+        if (!mounted) return;
+        setState(() {
+          _isProcessing = false;
+        });
+        showDialog(
+          context: context,
+          barrierDismissible: false,
+          builder: (dialogCtx) {
+            return Dialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+              backgroundColor: isDark ? theme.surfaceField : Colors.white,
+              elevation: 16,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: isDark
+                            ? const Color(0xFFEF4444).withValues(alpha: 0.15)
+                            : const Color(0xFFDC2626).withValues(alpha: 0.12),
+                        shape: BoxShape.circle,
+                      ),
+                      child: const Icon(
+                        Icons.account_balance_wallet_outlined,
+                        color: Color(0xFFDC2626),
+                        size: 40,
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                    Text(
+                      'Saldo Tidak Mencukupi'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                        letterSpacing: -0.3,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Saldo ParkSmart Wallet Anda tidak mencukupi untuk melakukan pembayaran tiket ini. Silakan lakukan top up saldo terlebih dahulu.'.tr,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        height: 1.4,
+                        color: isDark ? theme.textMuted : const Color(0xFF62615B),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              Navigator.pop(dialogCtx);
+                              Navigator.pop(context);
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              side: BorderSide(color: isDark ? theme.border : const Color(0xFFD5D0C6)),
+                            ),
+                            child: Text(
+                              'Kembali'.tr,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.bold,
+                                color: isDark ? Colors.white70 : Colors.black87,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: ElevatedButton(
+                            onPressed: () {
+                              Navigator.pop(dialogCtx);
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                              );
+                            },
+                            style: ElevatedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 14),
+                              backgroundColor: const Color(0xFF17A18A),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                              elevation: 0,
+                            ),
+                            child: Text(
+                              'Top Up'.tr,
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+            );
+          },
+        );
+        return;
+      }
     }
 
     if (!mounted) return;

@@ -13,6 +13,7 @@ import 'settings_screen.dart' as settings;
 import 'feedback_screen.dart' as feedback;
 
 import '../../core/services/session_service.dart';
+import '../../core/services/language_service.dart';
 import 'edit_profile_screen.dart' as edit_profile;
 import 'backend/profile_backend.dart';
 
@@ -60,7 +61,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ProfileBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ProfileBackend.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final profile = ProfileBackend.instance;
@@ -81,7 +82,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Profil Pengguna', style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary, letterSpacing: -0.5)),
+                  Text('Profil Pengguna'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 20, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary, letterSpacing: -0.5)),
                   GestureDetector(
                     onTap: () {
                       Navigator.push(context, MaterialPageRoute(builder: (_) => const settings.SettingsScreen()));
@@ -146,7 +147,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 4),
                           Text('${profile.email}\n${profile.phone}', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, height: 1.5)),
                           const SizedBox(height: 16),
-                          _buildMemberBadge(profile.memberTier),
+                          _buildMemberBadge(profile.memberTier.tr),
                         ],
                       ),
                     ),
@@ -166,9 +167,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: Column(
                             children: [
-                              Text('TOTAL PARKIR', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
+                              Text('TOTAL PARKIR'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
-                              Text('${profile.totalParking} Kali', style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
+                              Text('${profile.totalParking} Kali'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
                             ],
                           ),
                         ),
@@ -176,7 +177,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         Expanded(
                           child: Column(
                             children: [
-                              Text('PENGHEMATAN', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
+                              Text('PENGHEMATAN'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, letterSpacing: 0.5)),
                               const SizedBox(height: 2),
                               Text(CurrencyService.instance.format(profile.totalSavings), style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold, color: const Color(0xFFC05621))),
                             ],
@@ -189,7 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   
                   // Menu Items
                   _MenuItem(
-                    icon: Icons.directions_car, subtitle: 'KENDARAAN TERDAFTAR', title: profile.primaryVehicle,
+                    icon: Icons.directions_car, subtitle: 'KENDARAAN TERDAFTAR'.tr, title: profile.primaryVehicle.tr,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const vehicle.VehicleScreen())),
                   ),
                   const SizedBox(height: 12),
@@ -197,15 +198,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     listenable: CurrencyService.instance,
                     builder: (context, _) => _MenuItem(
                       icon: Icons.account_balance_wallet,
-                      subtitle: 'METODE PEMBAYARAN',
+                      subtitle: 'METODE PEMBAYARAN'.tr,
                       title: 'ParkSmart Pay (${CurrencyService.instance.format(profile.walletBalance)})',
                       onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const PaymentMethodsScreen())),
                     ),
                   ),
                   const SizedBox(height: 12),
 
+                  // Menu Pilih Bahasa
                   _MenuItem(
-                    icon: Icons.contact_support, subtitle: 'CUSTOMER CARE', title: 'Bantuan & Dukungan',
+                    icon: Icons.language,
+                    subtitle: 'BAHASA'.tr,
+                    title: LanguageService.instance.isEnglish ? 'English (US/UK)' : 'Bahasa Indonesia',
+                    onTap: () => LanguageService.showLanguageSelectionModal(context),
+                  ),
+                  const SizedBox(height: 12),
+
+                  _MenuItem(
+                    icon: Icons.contact_support, subtitle: 'CUSTOMER CARE'.tr, title: 'Bantuan & Dukungan'.tr,
                     onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen())),
                   ),
                   const SizedBox(height: 24),
@@ -244,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         children: [
                           const Icon(Icons.logout, size: 18, color: Colors.white),
                           const SizedBox(width: 8),
-                          Text('KELUAR DARI AKUN', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.0)),
+                          Text('KELUAR DARI AKUN'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600, color: Colors.white, letterSpacing: 1.0)),
                         ],
                       ),
                     ),

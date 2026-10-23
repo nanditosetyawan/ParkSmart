@@ -75,12 +75,31 @@ class ExtendSessionBackend extends ChangeNotifier {
   String _plateNumber = 'B 1945 RI';
   String get plateNumber => _plateNumber;
 
+  double _walletBalance = 0.0;
+  double get walletBalance => _walletBalance;
+
   /// Memuat sesi parkir aktif yang dapat diperpanjang
   Future<void> fetchActiveSessionForExtend({String? sessionId}) async {
     _isLoading = true;
     notifyListeners();
 
     try {
+      final activeUserId = ProfileBackend.instance.userId.isNotEmpty
+          ? ProfileBackend.instance.userId
+          : (SessionService.instance.userId ?? '');
+
+      if (activeUserId.isNotEmpty) {
+        try {
+          final wallet = await _client
+              .from('wallets')
+              .select('balance')
+              .eq('user_id', activeUserId)
+              .maybeSingle();
+          if (wallet != null) {
+            _walletBalance = (wallet['balance'] as num?)?.toDouble() ?? 0.0;
+          }
+        } catch (_) {}
+      }
       var query = _client
           .from('parking_sessions')
           .select('id, slot_id, expected_check_out_time, check_in_time, parking_fee, total_fee, vehicle_desc, plate_number, booking_id');
@@ -209,42 +228,121 @@ class ExtendSessionBackend extends ChangeNotifier {
     if (optionIndex < 0 || optionIndex >= options.length) return false;
     final opt = options[optionIndex];
     final minutesToAdd = opt['minutes'] as int;
-    final cost = opt['amount'] as double;
+    final cost = (opt['amount'] as num).toDouble();
 
     _isLoading = true;
     notifyListeners();
 
     try {
-      final newEnd = (_expectedCheckOut ?? DateTime.now()).add(Duration(minutes: minutesToAdd));
+      if (_sessionId == null) {
+        await fetchActiveSessionForExtend();
+      }
+
       final activeUserId = ProfileBackend.instance.userId.isNotEmpty
           ? ProfileBackend.instance.userId
           : (SessionService.instance.userId ?? '');
 
-      if (_sessionId != null) {
-        // 1. Update parking_sessions
-        try {
-          final res = await _client.from('parking_sessions').update({
-            'expected_check_out_time': newEnd.toUtc().toIso8601String(),
-          }).or('id.eq.$_sessionId,session_code.eq.$_sessionId').select('id, booking_id');
+      // Base time: jika _expectedCheckOut masih di masa depan, tambahkan dari sana; jika tidak, dari sekarang
+      final now = DateTime.now();
+      final baseTime = (_expectedCheckOut != null && _expectedCheckOut!.isAfter(now))
+          ? _expectedCheckOut!
+          : now;
+      final newEnd = baseTime.add(Duration(minutes: minutesToAdd));
 
-          if (res.isNotEmpty && res[0]['booking_id'] != null) {
+      // Jika bayar menggunakan wallet, pastikan saldo cukup & kurangi saldo
+      if (paymentMethod.toLowerCase().contains('wallet')) {
+        final walletRes = await _client
+            .from('wallets')
+            .select('id, balance')
+            .eq('user_id', activeUserId)
+            .maybeSingle();
+
+        if (walletRes != null) {
+          final currentBal = (walletRes['balance'] as num?)?.toDouble() ?? 0.0;
+          if (currentBal < cost) {
+            debugPrint('[ExtendSessionBackend] Saldo wallet tidak cukup: $currentBal < $cost');
+            return false;
+          }
+          final newBal = currentBal - cost;
+          await _client.from('wallets').update({
+            'balance': newBal,
+            'updated_at': DateTime.now().toUtc().toIso8601String(),
+          }).eq('id', walletRes['id']);
+          _walletBalance = newBal;
+
+          try {
+            await _client.from('wallet_transactions').insert({
+              'wallet_id': walletRes['id'],
+              'user_id': activeUserId,
+              'amount': cost,
+              'type': 'expense',
+              'description': 'Perpanjangan Durasi Parkir ${opt['title']}',
+              'status': 'completed',
+            });
+          } catch (_) {}
+        }
+      }
+
+      if (_sessionId != null) {
+        // 1. Eksekusi RPC PostgreSQL atomik untuk memperpanjang sesi & booking
+        try {
+          final rpcRes = await _client.rpc('extend_parking_session', params: {
+            'p_session_id': _sessionId,
+            'p_additional_minutes': minutesToAdd,
+            'p_cost': cost,
+            'p_payment_method': paymentMethod,
+          });
+          debugPrint('[ExtendSessionBackend] extend_parking_session RPC result: $rpcRes');
+          if (rpcRes != null && rpcRes['new_end_time'] != null) {
+            final parsed = DateTime.tryParse(rpcRes['new_end_time'].toString())?.toLocal();
+            if (parsed != null) {
+              _expectedCheckOut = parsed;
+            }
+          } else {
+            _expectedCheckOut = newEnd;
+          }
+        } catch (rpcErr) {
+          debugPrint('[ExtendSessionBackend] rpc error, running direct update fallback: $rpcErr');
+          // Fallback direct update jika RPC bermasalah
+          try {
+            final res = await _client.from('parking_sessions').update({
+              'expected_check_out_time': newEnd.toUtc().toIso8601String(),
+              'extended_count': 1,
+              'extended_minutes': minutesToAdd,
+            }).or('id.eq.$_sessionId,session_code.eq.$_sessionId').select('id, booking_id');
+
+            if (res.isNotEmpty && res[0]['booking_id'] != null) {
+              await _client.from('bookings').update({
+                'end_time': newEnd.toUtc().toIso8601String(),
+                'extended_count': 1,
+                'extended_minutes': minutesToAdd,
+              }).eq('id', res[0]['booking_id']);
+            }
+          } catch (_) {}
+
+          try {
             await _client.from('bookings').update({
               'end_time': newEnd.toUtc().toIso8601String(),
-            }).eq('id', res[0]['booking_id']);
-          }
-        } catch (_) {}
+              'extended_count': 1,
+              'extended_minutes': minutesToAdd,
+            }).or('id.eq.$_sessionId,booking_code.eq.$_sessionId');
+          } catch (_) {}
 
-        // 2. Update bookings jika _sessionId adalah booking_id
-        try {
-          await _client.from('bookings').update({
-            'end_time': newEnd.toUtc().toIso8601String(),
-          }).or('id.eq.$_sessionId,booking_code.eq.$_sessionId');
-        } catch (_) {}
+          _expectedCheckOut = newEnd;
+        }
 
-        _expectedCheckOut = newEnd;
-        _currentDeadline = '${newEnd.hour.toString().padLeft(2, '0')}:${newEnd.minute.toString().padLeft(2, '0')} WIB';
+        final endToDisplay = _expectedCheckOut ?? newEnd;
+        _currentDeadline = '${endToDisplay.hour.toString().padLeft(2, '0')}:${endToDisplay.minute.toString().padLeft(2, '0')} WIB';
 
-        // 3. Catat pembayaran perpanjangan jam di tabel payments
+        final diff = endToDisplay.difference(DateTime.now()).inSeconds;
+        if (diff > 0) {
+          final hrs = (diff ~/ 3600).toString().padLeft(2, '0');
+          final mins = ((diff % 3600) ~/ 60).toString().padLeft(2, '0');
+          final secs = (diff % 60).toString().padLeft(2, '0');
+          _remainingTimeFormatted = '$hrs:$mins:$secs';
+        }
+
+        // 2. Catat pembayaran perpanjangan jam di tabel payments
         final code = 'PAY-EXT-${Random().nextInt(900000) + 100000}';
         try {
           await _client.from('payments').insert({
@@ -259,7 +357,7 @@ class ExtendSessionBackend extends ChangeNotifier {
           });
         } catch (_) {}
 
-        // 4. Sinkronisasi ke ActiveSessionBackend (sisi user) & Admin Dashboard (sisi admin)
+        // 3. Sinkronisasi ke ActiveSessionBackend (sisi user) & Admin Dashboard (sisi admin)
         await ActiveSessionBackend.instance.fetchActiveSession();
         await AdminOperationsDashboardBackend.instance.fetchDashboardData();
       }

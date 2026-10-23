@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../../theme/app_typography.dart';
 import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
@@ -44,9 +45,9 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
           Navigator.pop(context);
           MaintenanceService.showModularMaintenanceDialog(
             context,
-            title: 'Gateway Booking Sedang Maintenance',
+            title: 'Gateway Booking Sedang Maintenance'.tr,
             message:
-                'Layanan pemesanan dan reservasi tiket parkir sementara dinonaktifkan untuk pemeliharaan sistem. Anda tetap dapat menjelajahi peta dan fitur lainnya.',
+                'Layanan pemesanan dan reservasi tiket parkir sementara dinonaktifkan untuk pemeliharaan sistem. Anda tetap dapat menjelajahi peta dan fitur lainnya.'.tr,
             icon: Icons.event_busy,
           );
         }
@@ -100,7 +101,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, SlotSelectionBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, SlotSelectionBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -116,7 +117,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
-                'Pilih Slot Parkir',
+                'Pilih Slot Parkir'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -144,7 +145,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Denah Slot Parkir Belum Tersedia',
+                      'Denah Slot Parkir Belum Tersedia'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
@@ -154,7 +155,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Lokasi parkir belum dipilih atau belum ada denah slot yang terdaftar di lokasi ini.',
+                      'Lokasi parkir belum dipilih atau belum ada denah slot yang terdaftar di lokasi ini.'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
@@ -165,7 +166,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                     ElevatedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back, size: 18),
-                      label: const Text('Kembali ke Peta'),
+                      label: Text('Kembali ke Peta'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                         foregroundColor: isDark ? Colors.black : Colors.white,
@@ -237,7 +238,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                           final locName = loc?['name']?.toString() ?? widget.locationName ?? 'Lokasi Parkir';
                                           final dist = _getDistanceText(loc);
                                           return Text(
-                                            '$locName • $dist',
+                                            '${locName.tr} • $dist',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
@@ -265,7 +266,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                         builder: (context, _) {
                                           final count = SlotSelectionBackend.instance.availableCount;
                                           return Text(
-                                            '$count Slot',
+                                            '$count Slot'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 32,
                                               fontWeight: FontWeight.w700,
@@ -282,7 +283,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                               ? floors[_selectedFloor]
                                               : 'Lantai 1';
                                           return Text(
-                                            'Siap pakai di $fName',
+                                            'Siap pakai di $fName'.tr,
                                             style: AppTypography.bodySm(
                                               color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                             ),
@@ -326,7 +327,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                     const SizedBox(width: 8),
                                     Expanded(
                                       child: Text(
-                                        'Zona A untuk Mobil Reguler. Zona B untuk Stasiun EV Charging & Campuran.',
+                                        'Zona A untuk Mobil Reguler. Zona B untuk Stasiun EV Charging & Campuran.'.tr,
                                         style: AppTypography.bodySm(
                                           color: isDark ? Colors.white : const Color(0xFF45474A),
                                         ),
@@ -399,7 +400,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Terpilih',
+                                              'Terpilih'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w500,
@@ -450,8 +451,8 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                 children: [
                                   // Zone A Header
                                   _ZoneLabel(
-                                    label: 'Zona A (Posisi Atas)',
-                                    count: '$zoneAAvailable Tersedia',
+                                    label: 'Zona A (Posisi Atas)'.tr,
+                                    count: '$zoneAAvailable ${'Tersedia'.tr}',
                                     isDark: isDark,
                                   ),
                                   const SizedBox(height: 8),
@@ -471,7 +472,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                           Icon(Icons.crop_free_rounded, size: 28, color: isDark ? theme.textMuted : const Color(0xFF94A3B8)),
                                           const SizedBox(height: 6),
                                           Text(
-                                            'Belum ada slot di Zona A ($activeFloorName)',
+                                            'Belum ada slot di Zona A ($activeFloorName)'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
@@ -518,7 +519,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
-                                          'Jalur Sirkulasi $activeFloorName',
+                                          'Jalur Sirkulasi $activeFloorName'.tr,
                                           style: AppTypography.caption(
                                             color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                           ),
@@ -531,7 +532,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Satu Arah',
+                                          'Satu Arah'.tr,
                                           style: AppTypography.caption(
                                             color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                           ),
@@ -543,8 +544,8 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
 
                                   // Zone B Header
                                   _ZoneLabel(
-                                    label: 'Zona B (Posisi Bawah - EV Ready)',
-                                    count: '$zoneBAvailable Tersedia',
+                                    label: 'Zona B (Posisi Bawah - EV Ready)'.tr,
+                                    count: '$zoneBAvailable ${'Tersedia'.tr}',
                                     isDark: isDark,
                                   ),
                                   const SizedBox(height: 8),
@@ -564,7 +565,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                           const Icon(Icons.bolt_outlined, size: 28, color: Color(0xFF17A18A)),
                                           const SizedBox(height: 6),
                                           Text(
-                                            'Belum ada slot di Zona B ($activeFloorName)',
+                                            'Belum ada slot di Zona B ($activeFloorName)'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
@@ -599,18 +600,18 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                     children: [
                                       _LegendItem(
                                         color: isDark ? theme.card : _kSurfaceContainerLowest,
-                                        label: 'Tersedia',
+                                        label: 'Tersedia'.tr,
                                         border: isDark ? Colors.white : const Color(0xFFC6C6CA),
                                         isDark: isDark,
                                       ),
                                       _LegendItem(
                                         color: isDark ? const Color(0xFF1E293B) : _kSurfaceContainerHigh.withValues(alpha: 0.6),
-                                        label: 'Terisi Mobil',
+                                        label: 'Terisi Mobil'.tr,
                                         isDark: isDark,
                                       ),
                                       _LegendItem(
                                         color: const Color(0xFF114177),
-                                        label: 'Pilihan Anda',
+                                        label: 'Pilihan Anda'.tr,
                                         isDark: isDark,
                                       ),
                                     ],
@@ -664,7 +665,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                               ),
                               const SizedBox(width: 12),
                               Text(
-                                'Slot Selection',
+                                'Slot Selection'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.w600,
@@ -713,7 +714,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'TOTAL PEMBAYARAN AWAL',
+                                  'TOTAL PEMBAYARAN AWAL'.tr,
                                   style: AppTypography.overline(
                                     color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                   ),
@@ -733,7 +734,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                                   ),
                                 ),
                                 Text(
-                                  '(1 Jam Pertama • ${SlotSelectionBackend.instance.getSlotTypeLabel(_selectedSlot)})',
+                                  '(1 Jam Pertama • ${SlotSelectionBackend.instance.getSlotTypeLabel(_selectedSlot)})'.tr,
                                   style: AppTypography.caption(
                                     color: isDark ? theme.textMuted : const Color(0xFF45474A),
                                   ),
@@ -793,7 +794,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                             child: Row(
                               children: [
                                 Text(
-                                  'Lanjut Bayar',
+                                  'Lanjut Bayar'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w700,
@@ -842,7 +843,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 ? const Color(0xFFF59E0B)
                 : (isVip ? const Color(0xFFEAB308) : const Color(0xFF114177))));
 
-    String typeLabel = 'Reguler';
+    String typeLabel = 'Reguler'.tr;
     if (isEV) {
       typeLabel = '⚡ EV';
     } else if (isDifabel) {
@@ -931,14 +932,14 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                     const Icon(Icons.check_circle, size: 10, color: Colors.white),
                     const SizedBox(width: 3),
                     Text(
-                      'Pilihan',
+                      'Pilihan'.tr,
                       style: GoogleFonts.plusJakartaSans(fontSize: 8.5, fontWeight: FontWeight.bold, color: Colors.white),
                     ),
                   ],
                 )
               else if (!isAvailable)
                 Text(
-                  'Terisi',
+                  'Terisi'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 8.5,
                     fontWeight: FontWeight.w600,
@@ -947,7 +948,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                 )
               else
                 Text(
-                  'Tersedia',
+                  'Tersedia'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 8.5,
                     fontWeight: FontWeight.w600,

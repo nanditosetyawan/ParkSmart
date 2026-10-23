@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../history/history_screen.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'backend/profile_backend.dart';
@@ -28,6 +29,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     _loadBalance();
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
+    LanguageService.instance.addListener(_onLanguageChanged);
     PaymentMethodsBackend.instance.addListener(_onBackendChanged);
     PaymentMethodsBackend.instance.fetchBalance();
     PaymentMethodsBackend.instance.fetchTransactions();
@@ -60,10 +62,15 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     if (mounted) setState(() {});
   }
 
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void dispose() {
     CurrencyService.instance.removeListener(_onCurrencyChanged);
     ThemeService.instance.removeListener(_onThemeChanged);
+    LanguageService.instance.removeListener(_onLanguageChanged);
     PaymentMethodsBackend.instance.removeListener(_onBackendChanged);
     super.dispose();
   }
@@ -76,7 +83,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => ListenableBuilder(
-        listenable: ThemeService.instance,
+        listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
         builder: (sheetCtx, _) {
           final theme = ThemeService.instance;
           final isDark = theme.isDarkMode;
@@ -110,7 +117,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   ),
                   const SizedBox(height: 20),
                   Text(
-                    'Top Up ParkSmart Pay',
+                    'Top Up ParkSmart Pay'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -119,7 +126,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Pilih nominal isi ulang saldo parkir Anda',
+                    'Pilih nominal isi ulang saldo parkir Anda'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -179,8 +186,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             SnackBar(
                               content: Text(
                                 success
-                                    ? 'Top Up ${CurrencyService.instance.format(selectedAmount)} berhasil!'
-                                    : 'Gagal memproses Top Up. Silakan coba lagi.',
+                                    ? 'Top Up ${CurrencyService.instance.format(selectedAmount)} berhasil!'.tr
+                                    : 'Gagal memproses Top Up. Silakan coba lagi.'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontWeight: FontWeight.w600,
                                   color: isDark ? Colors.black : Colors.white,
@@ -202,7 +209,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(26)),
                       ),
                       child: Text(
-                        'Konfirmasi Top Up',
+                        'Konfirmasi Top Up'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -229,7 +236,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
       backgroundColor: Colors.transparent,
       isScrollControlled: true,
       builder: (ctx) => ListenableBuilder(
-        listenable: Listenable.merge([ThemeService.instance, PaymentMethodsBackend.instance]),
+        listenable: Listenable.merge([ThemeService.instance, PaymentMethodsBackend.instance, LanguageService.instance]),
         builder: (context, _) {
           final theme = ThemeService.instance;
           final isDark = theme.isDarkMode;
@@ -296,7 +303,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Riwayat Mutasi Saldo',
+                                    'Riwayat Mutasi Saldo'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 17,
                                       fontWeight: FontWeight.bold,
@@ -304,7 +311,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'Aktivitas ParkSmart Pay & Parkir',
+                                    'Aktivitas ParkSmart Pay & Parkir'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       color: theme.textSecondary,
@@ -366,7 +373,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'SALDO PARKSMART PAY',
+                                  'SALDO PARKSMART PAY'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 10,
                                     fontWeight: FontWeight.w700,
@@ -388,14 +395,14 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             Row(
                               children: [
                                 _buildMiniStatBadge(
-                                  label: 'Masuk',
+                                  label: 'Masuk'.tr,
                                   val: '+${CurrencyService.instance.format(backend.totalIncome)}',
                                   color: const Color(0xFF4ADE80),
                                   icon: Icons.south_west_rounded,
                                 ),
                                 const SizedBox(width: 8),
                                 _buildMiniStatBadge(
-                                  label: 'Keluar',
+                                  label: 'Keluar'.tr,
                                   val: '-${CurrencyService.instance.format(backend.totalExpense)}',
                                   color: const Color(0xFFFDBA74),
                                   icon: Icons.north_east_rounded,
@@ -415,19 +422,19 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       child: Row(
                         children: [
                           _buildHistoryFilterChip(
-                            label: 'Semua',
+                            label: 'Semua'.tr,
                             isSelected: filterType == 'all',
                             onTap: () => setSheetState(() => filterType = 'all'),
                           ),
                           const SizedBox(width: 8),
                           _buildHistoryFilterChip(
-                            label: 'Masuk (+)',
+                            label: 'Masuk (+)'.tr,
                             isSelected: filterType == 'in',
                             onTap: () => setSheetState(() => filterType = 'in'),
                           ),
                           const SizedBox(width: 8),
                           _buildHistoryFilterChip(
-                            label: 'Keluar (-)',
+                            label: 'Keluar (-)'.tr,
                             isSelected: filterType == 'out',
                             onTap: () => setSheetState(() => filterType = 'out'),
                           ),
@@ -530,7 +537,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                tx['title'] as String,
+                                                (tx['title'] as String).tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 13.5,
                                                   fontWeight: FontWeight.bold,
@@ -539,7 +546,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                               ),
                                               const SizedBox(height: 3),
                                               Text(
-                                                tx['subtitle'] as String,
+                                                (tx['subtitle'] as String).tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   color: theme.textSecondary,
@@ -547,7 +554,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                tx['date'] as String,
+                                                (tx['date'] as String).tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
                                                   color: theme.textSecondary.withValues(alpha: 0.8),
@@ -582,7 +589,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                                 borderRadius: BorderRadius.circular(6),
                                               ),
                                               child: Text(
-                                                tx['status'] as String,
+                                                (tx['status'] as String).tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 9.5,
                                                   fontWeight: FontWeight.bold,
@@ -630,7 +637,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Lihat Detail Sesi Parkir Lengkap',
+                                'Lihat Detail Sesi Parkir Lengkap'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 13.5,
                                   fontWeight: FontWeight.bold,
@@ -664,7 +671,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     showDialog(
       context: context,
       builder: (ctx) => ListenableBuilder(
-        listenable: ThemeService.instance,
+        listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
         builder: (context, _) {
           final theme = ThemeService.instance;
           final isDark = theme.isDarkMode;
@@ -696,7 +703,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   ),
                   const SizedBox(height: 12),
                   Text(
-                    tx['title'] as String,
+                    (tx['title'] as String).tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -718,15 +725,15 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   const SizedBox(height: 16),
                   Divider(color: theme.divider, height: 1),
                   const SizedBox(height: 14),
-                  _buildDetailRow('No. Referensi', tx['id'] as String),
+                  _buildDetailRow('No. Referensi'.tr, tx['id'] as String),
                   const SizedBox(height: 8),
-                  _buildDetailRow('Waktu Transaksi', tx['date'] as String),
+                  _buildDetailRow('Waktu Transaksi'.tr, (tx['date'] as String).tr),
                   const SizedBox(height: 8),
-                  _buildDetailRow('Metode/Kanal', tx['channel'] as String),
+                  _buildDetailRow('Metode/Kanal'.tr, (tx['channel'] as String).tr),
                   const SizedBox(height: 8),
-                  _buildDetailRow('Keterangan', tx['subtitle'] as String),
+                  _buildDetailRow('Keterangan'.tr, (tx['subtitle'] as String).tr),
                   const SizedBox(height: 8),
-                  _buildDetailRow('Status', tx['status'] as String, isBadge: true, isIncome: isIncome),
+                  _buildDetailRow('Status'.tr, (tx['status'] as String).tr, isBadge: true, isIncome: isIncome),
                   const SizedBox(height: 20),
                   SizedBox(
                     width: double.infinity,
@@ -739,7 +746,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(22)),
                       ),
                       child: Text(
-                        'Tutup',
+                        'Tutup'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -927,7 +934,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Tambah Metode Pembayaran',
+                        'Tambah Metode Pembayaran'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -950,7 +957,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Klik untuk memilih atau membatalkan pilihan dompet digital',
+                    'Klik untuk memilih atau membatalkan pilihan dompet digital'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 13,
                       color: theme.textSecondary,
@@ -1160,7 +1167,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -1215,7 +1222,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                           ),
                           const SizedBox(width: 10),
                           Text(
-                            'Metode Pembayaran',
+                            'Metode Pembayaran'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -1299,7 +1306,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                       ),
                                     ),
                                     child: Text(
-                                      'UTAMA',
+                                      'UTAMA'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 10,
                                         fontWeight: FontWeight.w800,
@@ -1312,7 +1319,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                               ),
                               const SizedBox(height: 20),
                               Text(
-                                'Saldo Aktif',
+                                'Saldo Aktif'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -1359,7 +1366,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              'Top Up Saldo',
+                                              'Top Up Saldo'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
@@ -1395,7 +1402,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                             ),
                                             const SizedBox(width: 8),
                                             Text(
-                                              'Riwayat',
+                                              'Riwayat'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 13,
                                                 fontWeight: FontWeight.bold,
@@ -1451,7 +1458,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Bayar Otomatis',
+                                      'Bayar Otomatis'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -1460,7 +1467,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                     ),
                                     const SizedBox(height: 2),
                                     Text(
-                                      'Bayar otomatis & potong saldo saat waktu parkir tersisa 5 menit',
+                                      'Bayar otomatis & potong saldo saat waktu parkir tersisa 5 menit'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
                                         color: theme.textSecondary,
@@ -1475,7 +1482,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                 onChanged: (val) {
                                   setState(() => _autoDebet = val);
                                   _showSuccessToast(
-                                    val ? 'Bayar otomatis diaktifkan' : 'Bayar otomatis dinonaktifkan',
+                                    val ? 'Bayar otomatis diaktifkan'.tr : 'Bayar otomatis dinonaktifkan'.tr,
                                   );
                                 },
                               ),
@@ -1490,7 +1497,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'METODE TERSIMPAN',
+                              'METODE TERSIMPAN'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w700,
@@ -1501,7 +1508,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             GestureDetector(
                               onTap: _showAddMethodDialog,
                               child: Text(
-                                '+ Tambah',
+                                '+ Tambah'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -1584,7 +1591,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Tambah Metode Pembayaran Lain',
+                                  'Tambah Metode Pembayaran Lain'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,

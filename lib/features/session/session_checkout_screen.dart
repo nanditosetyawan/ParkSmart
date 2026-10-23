@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import '../profile/feedback_screen.dart' as feedback;
 import 'backend/session_checkout_backend.dart';
 
@@ -23,7 +24,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, SessionCheckoutBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, SessionCheckoutBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final backend = SessionCheckoutBackend.instance;
         final theme = ThemeService.instance;
@@ -58,7 +59,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                         ),
                       ),
                       Text(
-                        'Selesai Parkir',
+                        'Selesai Parkir'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 17,
                           fontWeight: FontWeight.bold,
@@ -106,7 +107,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'Tidak Ada Kendaraan di Area Parkir',
+                                  'Tidak Ada Kendaraan di Area Parkir'.tr,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
@@ -116,7 +117,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Saat ini tidak ada sesi parkir aktif yang perlu diselesaikan checkout.',
+                                  'Saat ini tidak ada sesi parkir aktif yang perlu diselesaikan checkout.'.tr,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
@@ -127,7 +128,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                 ElevatedButton.icon(
                                   onPressed: () => Navigator.pop(context),
                                   icon: const Icon(Icons.arrow_back, size: 18),
-                                  label: const Text('Kembali'),
+                                  label: Text('Kembali'.tr),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                                     foregroundColor: isDark ? Colors.black : Colors.white,
@@ -184,7 +185,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                   ),
                                   const SizedBox(width: 8),
                                   Text(
-                                    '${backend.gateExitName} • Siap Keluar',
+                                    '${backend.gateExitName} • Siap Keluar'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -197,7 +198,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                             ),
                             const SizedBox(height: 10),
                             Text(
-                              'Terima Kasih, ${backend.userName}.',
+                              'Terima Kasih, ${backend.userName}.'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 28,
                                 fontWeight: FontWeight.bold,
@@ -208,7 +209,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Sesi parkir Anda telah selesai. Palang keluar akan terbuka otomatis saat mendekati ${backend.gateExitName}.',
+                              'Sesi parkir Anda telah selesai. Palang keluar akan terbuka otomatis saat mendekati ${backend.gateExitName}.'.tr,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
@@ -319,14 +320,14 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          'Durasi Total',
+                                          'Durasi Total'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
                                           ),
                                         ),
                                         Text(
-                                          'Waktu (WIB)',
+                                          'Waktu (WIB)'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -341,7 +342,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                       textBaseline: TextBaseline.alphabetic,
                                       children: [
                                         Text(
-                                          backend.totalDuration,
+                                          backend.totalDuration.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 18,
                                             fontWeight: FontWeight.bold,
@@ -390,7 +391,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'RINCIAN TARIF',
+                                    'RINCIAN TARIF'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 13,
                                       fontWeight: FontWeight.bold,
@@ -400,13 +401,13 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   _ReceiptRow(
-                                    label: 'Tarif Parkir (${backend.totalDuration})',
+                                    label: 'Tarif Parkir (${backend.totalDuration})'.tr,
                                     value: CurrencyService.instance.format(backend.parkingFeeOnly),
                                   ),
                                   if (backend.serviceFee > 0) ...[
                                     const SizedBox(height: 4),
                                     _ReceiptRow(
-                                      label: 'Biaya Layanan',
+                                      label: 'Biaya Layanan'.tr,
                                       value: CurrencyService.instance.format(backend.serviceFee),
                                     ),
                                   ],
@@ -416,7 +417,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                       children: [
                                         Text(
-                                          'Diskon Promo Member',
+                                          'Diskon Promo Member'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.w500,
@@ -459,7 +460,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Total Terbayar',
+                                        'Total Terbayar'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -494,7 +495,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                             ),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Lunas',
+                                              'Lunas'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 12,
                                                 fontWeight: FontWeight.bold,
@@ -533,7 +534,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                   ),
                                   const SizedBox(width: 6),
                                   Text(
-                                    'Gerbang Siap Terbuka • Sensor Aktif',
+                                    'Gerbang Siap Terbuka • Sensor Aktif'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w500,
@@ -572,7 +573,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
-                                  'Buka Palang Keluar',
+                                  'Buka Palang Keluar'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 16,
                                     fontWeight: FontWeight.bold,
@@ -615,7 +616,7 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Unduh Struk / E-Receipt',
+                                  'Unduh Struk / E-Receipt'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
@@ -651,7 +652,7 @@ class _ReceiptRow extends StatelessWidget {
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
         Text(
-          label,
+          label.tr,
           style: GoogleFonts.plusJakartaSans(
             fontSize: 14,
             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),

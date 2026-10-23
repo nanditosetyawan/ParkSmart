@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/supabase_storage_service.dart';
+import '../../core/services/language_service.dart';
 import '../vehicle/add_vehicle_screen.dart';
 import '../history/verified_parking_sessions_screen.dart';
 import 'backend/vehicle_backend.dart';
@@ -47,17 +48,17 @@ class _VehicleScreenState extends State<VehicleScreen> {
         await VehicleBackend.instance.updateVehiclePhoto(vehicleId, photoUrl);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Foto kendaraan berhasil diupload!'),
-              backgroundColor: Color(0xFF10B981),
+            SnackBar(
+              content: Text('Foto kendaraan berhasil diupload!'.tr),
+              backgroundColor: const Color(0xFF10B981),
             ),
           );
         }
       } else {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Gagal mengupload foto kendaraan'),
+            SnackBar(
+              content: Text('Gagal mengupload foto kendaraan'.tr),
               backgroundColor: Colors.red,
             ),
           );
@@ -133,7 +134,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                         const Icon(Icons.camera_alt, size: 13, color: Colors.white),
                         const SizedBox(width: 4),
                         Text(
-                          hasPhoto ? 'Ganti Foto' : 'Tambah Foto',
+                          hasPhoto ? 'Ganti Foto'.tr : 'Tambah Foto'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -161,7 +162,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            'Tap untuk tambah foto',
+            'Tap untuk tambah foto'.tr,
             style: GoogleFonts.plusJakartaSans(
               fontSize: 12,
               color: isDark ? const Color(0xFF64748B) : const Color(0xFF94A3B8),
@@ -192,7 +193,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Hapus Kendaraan?',
+              'Hapus Kendaraan?'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -201,7 +202,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
             ),
             const SizedBox(height: 8),
             Text(
-              'Apakah Anda yakin ingin menghapus kendaraan ini?',
+              'Apakah Anda yakin ingin menghapus kendaraan ini?'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 14,
                 color: theme.textSecondary,
@@ -222,7 +223,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        'Batal',
+                        'Batal'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -242,7 +243,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       }
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(content: Text('Kendaraan berhasil dihapus')),
+                          SnackBar(content: Text('Kendaraan berhasil dihapus'.tr)),
                         );
                       }
                     },
@@ -254,7 +255,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       ),
                       alignment: Alignment.center,
                       child: Text(
-                        'Hapus',
+                        'Hapus'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
@@ -276,7 +277,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, VehicleBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, VehicleBackend.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -355,7 +356,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'GARASI DIGITAL',
+                              'GARASI DIGITAL'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -364,7 +365,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               ),
                             ),
                             Text(
-                              'Kendaraan Terdaftar',
+                              'Kendaraan Terdaftar'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -405,7 +406,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                             ),
                             const SizedBox(height: 20),
                             Text(
-                              'Belum Ada Kendaraan Terdaftar',
+                              'Belum Ada Kendaraan Terdaftar'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 18,
                                 fontWeight: FontWeight.bold,
@@ -414,7 +415,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                             ),
                             const SizedBox(height: 8),
                             Text(
-                              'Tambahkan nomor plat kendaraan Anda untuk kemudahan deteksi otomatis gate ANPR dan reservasi slot parkir.',
+                              'Tambahkan nomor plat kendaraan Anda untuk kemudahan deteksi otomatis gate ANPR dan reservasi slot parkir.'.tr,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
@@ -463,7 +464,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Kendaraan Utama',
+                                      'Kendaraan Utama'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.bold,
@@ -548,7 +549,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                     ),
                                   ),
                                   Text(
-                                    '${VehicleBackend.instance.defaultVehicle?.color ?? 'Abu-Abu Metalik'} • Milik Pribadi',
+                                    '${VehicleBackend.instance.defaultVehicle?.color ?? 'Abu-Abu Metalik'} • Milik Pribadi'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       color: theme.textSecondary,
@@ -580,7 +581,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Golongan Tarif',
+                                                'Golongan Tarif'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,
@@ -589,7 +590,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                               ),
                                               const SizedBox(height: 2),
                                               Text(
-                                                'Gol. I (${(VehicleBackend.instance.defaultVehicle?.category ?? 'SUV').toUpperCase()})',
+                                                'Gol. I (${(VehicleBackend.instance.defaultVehicle?.category ?? 'SUV').toUpperCase()})'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 14,
                                                   fontWeight: FontWeight.bold,
@@ -613,7 +614,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Masa Berlaku',
+                                                'Masa Berlaku'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,
@@ -633,8 +634,8 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                                     child: Text(
                                                       (VehicleBackend.instance.defaultVehicle?.plateExpiry != null &&
                                                               VehicleBackend.instance.defaultVehicle!.plateExpiry.isNotEmpty)
-                                                          ? VehicleBackend.instance.defaultVehicle!.plateExpiry
-                                                          : 'Aktif Selamanya',
+                                                          ? VehicleBackend.instance.defaultVehicle!.plateExpiry.tr
+                                                          : 'Aktif Selamanya'.tr,
                                                       style: GoogleFonts.plusJakartaSans(
                                                         fontSize: 14,
                                                         fontWeight: FontWeight.bold,
@@ -685,7 +686,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                         Icon(Icons.history, size: 18, color: theme.iconColor),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'Riwayat Parkir',
+                                          'Riwayat Parkir'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
                                             fontWeight: FontWeight.bold,
@@ -752,7 +753,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                           const Icon(Icons.add_circle, size: 22),
                           const SizedBox(width: 8),
                           Text(
-                            'Tambah Kendaraan Baru',
+                            'Tambah Kendaraan Baru'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -833,7 +834,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                   child: const Icon(Icons.stars, color: Color(0xFF10B981), size: 22),
                 ),
                 title: Text(
-                  'Jadikan Kendaraan Utama',
+                  'Jadikan Kendaraan Utama'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 14,
                     fontWeight: FontWeight.bold,
@@ -841,7 +842,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                   ),
                 ),
                 subtitle: Text(
-                  'Pilihan default otomatis untuk setiap reservasi parkir',
+                  'Pilihan default otomatis untuk setiap reservasi parkir'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 12,
                     color: theme.textSecondary,
@@ -874,7 +875,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                 child: const Icon(Icons.delete_outline, color: Color(0xFFEF4444), size: 22),
               ),
               title: Text(
-                'Hapus Kendaraan',
+                'Hapus Kendaraan'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.bold,
@@ -882,7 +883,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                 ),
               ),
               subtitle: Text(
-                'Hapus kendaraan ini dari daftar garasi Anda',
+                'Hapus kendaraan ini dari daftar garasi Anda'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12,
                   color: theme.textSecondary,
@@ -937,7 +938,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Cadangan',
+                        'Cadangan'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -1017,7 +1018,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       ),
                     ),
                     Text(
-                      '${vehicle.color} • Milik Pribadi',
+                      '${vehicle.color} • Milik Pribadi'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
                         color: theme.textSecondary,
@@ -1049,7 +1050,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Golongan Tarif',
+                                  'Golongan Tarif'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
@@ -1058,7 +1059,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  'Gol. I (${vehicle.category.toUpperCase()})',
+                                  'Gol. I (${vehicle.category.toUpperCase()})'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -1082,7 +1083,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'Masa Berlaku',
+                                  'Masa Berlaku'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w500,
@@ -1100,7 +1101,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                                     const SizedBox(width: 4),
                                     Expanded(
                                       child: Text(
-                                        vehicle.plateExpiry.isNotEmpty ? vehicle.plateExpiry : 'Aktif Selamanya',
+                                        vehicle.plateExpiry.isNotEmpty ? vehicle.plateExpiry.tr : 'Aktif Selamanya'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -1151,7 +1152,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                           Icon(Icons.history, size: 18, color: theme.iconColor),
                           const SizedBox(width: 8),
                           Text(
-                            'Riwayat Parkir',
+                            'Riwayat Parkir'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 14,
                               fontWeight: FontWeight.bold,
@@ -1189,7 +1190,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                       ),
                       child: Center(
                         child: Text(
-                          'Jadikan Utama',
+                          'Jadikan Utama'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             fontWeight: FontWeight.bold,

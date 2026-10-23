@@ -23,6 +23,11 @@ class AdminBookingsBackend extends ChangeNotifier {
   /// Evaluasi otomatis: auto-cancel unpaid > 179s & auto-complete paid lewat endTime
   Future<void> _evaluateBookingsCleanup() async {
     try {
+      // Jalankan stored procedure pembersihan di Supabase
+      try {
+        await _client.rpc('auto_process_expired_bookings_and_sessions');
+      } catch (_) {}
+
       final nowUtc = DateTime.now().toUtc();
 
       // 1. Unpaid booking yang sudah lebih dari 2 menit 59 detik (179s)

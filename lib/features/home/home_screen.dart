@@ -32,6 +32,7 @@ import '../game/game_lobby_screen.dart' as game;
 import 'backend/home_backend.dart';
 import '../../core/services/session_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -135,9 +136,14 @@ class _HomeScreenState extends State<HomeScreen> {
   StreamSubscription<Position>? _positionSub;
   StreamSubscription<MagnetometerEvent>? _magSub;
 
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
+  }
+
   @override
   void initState() {
     super.initState();
+    LanguageService.instance.addListener(_onLanguageChanged);
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
@@ -159,6 +165,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    LanguageService.instance.removeListener(_onLanguageChanged);
     _positionSub?.cancel();
     _magSub?.cancel();
     super.dispose();
@@ -196,9 +203,9 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _trafficBadgeText {
     final density = _trafficDensity;
-    if (density >= 80) return 'Macet';
-    if (density >= 50) return 'Ramai';
-    return 'Lancar';
+    if (density >= 80) return 'Macet'.tr;
+    if (density >= 50) return 'Ramai'.tr;
+    return 'Lancar'.tr;
   }
 
   Color get _trafficStatusColor {
@@ -210,11 +217,11 @@ class _HomeScreenState extends State<HomeScreen> {
 
   String get _trafficAreaText {
     final density = _trafficDensity;
-    if (density >= 95) return 'Macet Total ($density%)';
-    if (density >= 80) return 'Macet Padat ($density%)';
-    if (density >= 65) return 'Padat Merayap ($density%)';
-    if (density >= 45) return 'Ramai Lancar ($density%)';
-    return 'Tersedia Lengang ($density%)';
+    if (density >= 95) return 'Macet Total ($density%)'.tr;
+    if (density >= 80) return 'Macet Padat ($density%)'.tr;
+    if (density >= 65) return 'Padat Merayap ($density%)'.tr;
+    if (density >= 45) return 'Ramai Lancar ($density%)'.tr;
+    return 'Tersedia Lengang ($density%)'.tr;
   }
 
   /// Tarik ke bawah (Pull to Refresh) untuk me-reload data parkir & GPS
@@ -572,11 +579,11 @@ class _HomeScreenState extends State<HomeScreen> {
                               displayName = '${parts[0]} ${parts[1]}';
                             }
                           }
-                          return Text('Halo, $displayName', style: AppTypography.displayLg());
+                          return Text('Halo, $displayName'.tr, style: AppTypography.displayLg());
                         },
                       ),
                       const SizedBox(height: 4),
-                      Text('Temukan slot parkir nyaman hari ini', style: AppTypography.bodySm(color: AppColors.textSecondary)),
+                      Text('Temukan slot parkir nyaman hari ini'.tr, style: AppTypography.bodySm(color: AppColors.textSecondary)),
 
                       // ─── Maintenance & Warning Live Banner ──────────────────
                       ListenableBuilder(
@@ -743,7 +750,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             textInputAction: TextInputAction.done,
                             style: AppTypography.bodyMd(),
                             decoration: InputDecoration(
-                              hintText: 'Cari gedung atau area parkir...',
+                              hintText: 'Cari gedung atau area parkir...'.tr,
                               hintStyle: AppTypography.bodyMd(color: AppColors.textMuted),
                               border: InputBorder.none,
                               enabledBorder: InputBorder.none,
@@ -946,7 +953,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               child: Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('KEPADATAN AREA', style: AppTypography.overline(color: AppColors.textSecondary)),
+                                  Text('KEPADATAN AREA'.tr, style: AppTypography.overline(color: AppColors.textSecondary)),
                                   Text(_trafficAreaText, style: AppTypography.metricMd()),
                                 ],
                               ),
@@ -1000,7 +1007,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Sesi Parkir Aktif (${sessions.length})', style: AppTypography.headlineMd()),
+                                Text('${'Sesi Parkir Aktif'.tr} (${sessions.length})', style: AppTypography.headlineMd()),
                                 Container(
                                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                                   decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
@@ -1013,7 +1020,7 @@ class _HomeScreenState extends State<HomeScreen> {
                               final locName = session['location_name'] ?? 'Spot Parkir';
                               final slotCode = session['slot_code'] ?? 'A-01';
                               final floorName = session['floor_name'] ?? 'Lantai B1';
-                              final title = session['title'] ?? 'SESI PARKIR AKTIF';
+                              final title = (session['title'] ?? 'SESI PARKIR AKTIF').toString();
                               final imageUrl = session['image_url'] ??
                                   'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr';
 
@@ -1043,11 +1050,11 @@ class _HomeScreenState extends State<HomeScreen> {
                                       ),
                                       const SizedBox(width: 14),
                                       Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                        Text(title, style: AppTypography.overline(color: AppColors.secondary)),
+                                        Text(title.tr, style: AppTypography.overline(color: AppColors.secondary)),
                                         const SizedBox(height: 2),
                                         Text(locName, style: AppTypography.headlineSm()),
                                         const SizedBox(height: 2),
-                                        Text('Spot $slotCode • $floorName', style: AppTypography.caption(color: AppColors.textSecondary)),
+                                        Text('Spot $slotCode • $floorName'.tr, style: AppTypography.caption(color: AppColors.textSecondary)),
                                       ])),
                                       Container(
                                         width: 40, height: 40,
@@ -1063,7 +1070,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                         children: [
                                           Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                            Text('SISA WAKTU', style: AppTypography.overline(color: AppColors.textSecondary)),
+                                            Text('SISA WAKTU'.tr, style: AppTypography.overline(color: AppColors.textSecondary)),
                                             const SizedBox(height: 2),
                                             _HomeSessionCountdownTimer(endTime: session['end_time']),
                                           ]),
@@ -1079,7 +1086,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                               decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
                                                 boxShadow: const [AppShadows.float]),
                                               child: Row(children: [
-                                                Text('Buka Tiket', style: AppTypography.buttonSm(color: AppColors.white)),
+                                                Text('Buka Tiket'.tr, style: AppTypography.buttonSm(color: AppColors.white)),
                                                 const SizedBox(width: 6),
                                                 Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
                                               ]),
@@ -1733,26 +1740,26 @@ class _CategoryListState extends State<_CategoryList> {
             padding: const EdgeInsets.symmetric(horizontal: 20),
             children: [
               _CategoryPill(
-                label: 'Terdekat', 
+                label: 'Terdekat'.tr, 
                 icon: Icons.near_me, 
                 active: selected == 'Terdekat',
                 onTap: () => HomeBackend.instance.setFilterCategory('Terdekat'),
               ),
               _CategoryPill(
-                label: 'Mall', 
+                label: 'Mall'.tr, 
                 icon: Icons.storefront_outlined,
                 active: selected == 'Mall',
                 onTap: () => HomeBackend.instance.setFilterCategory('Mall'),
               ),
               _CategoryPill(
-                label: 'Parkir EV', 
+                label: 'Parkir EV'.tr, 
                 icon: Icons.bolt, 
                 tealIcon: true,
                 active: selected == 'Parkir EV',
                 onTap: () => HomeBackend.instance.setFilterCategory('Parkir EV'),
               ),
               _CategoryPill(
-                label: 'Games', 
+                label: 'Games'.tr, 
                 icon: Icons.sports_esports, 
                 tealIcon: true,
                 active: selected == 'Games',
@@ -1855,7 +1862,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       Icon(isEv ? Icons.electric_car : Icons.local_parking, size: 13, color: Colors.white),
                       const SizedBox(width: 4),
                       Text(
-                        isEv ? 'Khusus EV' : 'Mobil & Motor',
+                        (isEv ? 'Khusus EV' : 'Mobil & Motor').tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -1965,7 +1972,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'TARIF PARKIR',
+                                'TARIF PARKIR'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 9.5,
                                   fontWeight: FontWeight.w700,
@@ -2025,7 +2032,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final locations = HomeBackend.instance.recommendedLocations;
 
@@ -2038,7 +2045,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Rekomendasi Lainnya', style: AppTypography.headlineMd()),
+                  Text('Rekomendasi Lainnya'.tr, style: AppTypography.headlineMd()),
                   GestureDetector(
                     onTap: () async {
                       if (_isLoading) return;
@@ -2050,7 +2057,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     },
                     child: _isLoading 
                       ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text('Muat Ulang', style: AppTypography.buttonSm(color: AppColors.secondary)),
+                      : Text('Muat Ulang'.tr, style: AppTypography.buttonSm(color: AppColors.secondary)),
                   ),
                 ],
               ),
@@ -2074,8 +2081,8 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       const SizedBox(height: 12),
                       Text(
                         HomeBackend.instance.selectedCategory == 'Terdekat'
-                            ? 'Belum ada rekomendasi parkir aktif'
-                            : 'Belum ada tempat parkir untuk kategori "${HomeBackend.instance.selectedCategory}"',
+                            ? 'Belum ada rekomendasi parkir aktif'.tr
+                            : 'Belum ada tempat parkir untuk kategori "${HomeBackend.instance.selectedCategory.tr}"',
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
@@ -2085,7 +2092,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Semua tempat parkir diinput langsung oleh Admin Operasional',
+                        'Semua tempat parkir diinput langsung oleh Admin Operasional'.tr,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,

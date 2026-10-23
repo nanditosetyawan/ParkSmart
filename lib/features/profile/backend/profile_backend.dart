@@ -24,6 +24,9 @@ class ProfileBackend extends ChangeNotifier {
   int _totalParking = 0;
   int _totalSavings = 0;
   int _walletBalance = 0;
+  int _totalSpent = 0;
+  int _monthlySpent = 0;
+  String _memberHashCode = '#7b9e-4a81-d02f';
   String _primaryVehicle = 'Belum Ada Kendaraan';
 
   String _kycStatus = 'none'; // 'none', 'pending', 'approved', 'rejected'
@@ -44,6 +47,9 @@ class ProfileBackend extends ChangeNotifier {
   int get totalParking => _totalParking;
   int get totalSavings => _totalSavings;
   int get walletBalance => _walletBalance;
+  int get totalSpent => _totalSpent;
+  int get monthlySpent => _monthlySpent;
+  String get memberHashCode => _memberHashCode;
   String get primaryVehicle => _primaryVehicle;
 
   void setLoggedInUser({
@@ -107,7 +113,7 @@ class ProfileBackend extends ChangeNotifier {
       final authUserId = user?.id;
 
       dynamic query = _client.from('users').select(
-        'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance, avatar_url, saran_kuliah, pesan_kuliah',
+        'id, full_name, email, phone, member_tier, total_parking_count, total_savings, wallet_balance, total_spent, monthly_spent, member_hash_code, avatar_url, saran_kuliah, pesan_kuliah',
       );
 
       if (authUserId != null) {
@@ -146,6 +152,17 @@ class ProfileBackend extends ChangeNotifier {
         } else {
           _walletBalance = 0;
         }
+        if (data['total_spent'] != null) {
+          _totalSpent = (double.tryParse(data['total_spent'].toString()) ?? 0).toInt();
+        } else {
+          _totalSpent = 0;
+        }
+        if (data['monthly_spent'] != null) {
+          _monthlySpent = (double.tryParse(data['monthly_spent'].toString()) ?? 0).toInt();
+        } else {
+          _monthlySpent = 0;
+        }
+        _memberHashCode = data['member_hash_code']?.toString() ?? '#7b9e-4a81-d02f';
         _saranKuliah = data['saran_kuliah']?.toString() ?? '';
         _pesanKuliah = data['pesan_kuliah']?.toString() ?? '';
 

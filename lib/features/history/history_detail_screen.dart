@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import 'backend/history_detail_backend.dart';
 
@@ -23,7 +24,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HistoryDetailBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HistoryDetailBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -159,7 +160,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                             letterSpacing: -0.5,
                           ),
                           children: [
-                            const TextSpan(text: 'Detail Transaksi\n'),
+                            TextSpan(text: '${'Detail Transaksi'.tr}\n'),
                             TextSpan(
                               text: '#${backend.transactionCode}',
                               style: TextStyle(
@@ -208,7 +209,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                         ),
                                         const SizedBox(width: 6),
                                         Text(
-                                          backend.status,
+                                          backend.status.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.w700,
@@ -222,7 +223,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
 
                                   // 2. Bawahnya: Nama Gedung
                                   Text(
-                                    'NAMA GEDUNG',
+                                    'NAMA GEDUNG'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -286,7 +287,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.center,
                                       children: [
                                         Text(
-                                          'TOTAL BIAYA',
+                                          'TOTAL BIAYA'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 12,
                                             fontWeight: FontWeight.bold,
@@ -315,7 +316,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                 children: [
                                   _ReceiptRow(
                                     icon: Icons.schedule,
-                                    label: 'Waktu Parkir',
+                                    label: 'Waktu Parkir'.tr,
                                     isDark: isDark,
                                     valueWidget: Column(
                                       crossAxisAlignment: CrossAxisAlignment.end,
@@ -330,7 +331,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                             style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                           ),
                                           Text(
-                                            'Sedang Berlangsung',
+                                            'Sedang Berlangsung'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
@@ -349,17 +350,17 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                   Divider(color: divider, height: 1),
                                   _ReceiptRow(
                                     icon: Icons.directions_car,
-                                    label: 'Kendaraan',
+                                    label: 'Kendaraan'.tr,
                                     isDark: isDark,
                                     valueWidget: Text(
-                                      backend.vehicleInfo,
+                                      backend.vehicleInfo.tr,
                                       style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: textMain),
                                     ),
                                   ),
                                   Divider(color: divider, height: 1),
                                   _ReceiptRow(
                                     icon: Icons.account_balance_wallet,
-                                    label: 'Metode Bayar',
+                                    label: 'Metode Bayar'.tr,
                                     isDark: isDark,
                                     valueWidget: Container(
                                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -373,7 +374,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                           Icon(Icons.payments, size: 15, color: terracotta),
                                           const SizedBox(width: 6),
                                           Text(
-                                            backend.paymentMethod,
+                                            backend.paymentMethod.tr,
                                             style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
                                           ),
                                         ],
@@ -416,7 +417,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'Verifikasi Blockchain',
+                                        'Verifikasi Blockchain'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 15,
                                           fontWeight: FontWeight.bold,

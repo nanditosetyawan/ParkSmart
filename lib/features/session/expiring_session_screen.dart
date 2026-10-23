@@ -2,11 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import 'active_session_screen.dart';
 import 'session_checkout_screen.dart';
 import '../pin/pin_screen.dart';
+import '../profile/payment_methods_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../home/backend/home_backend.dart';
+import 'backend/extend_session_backend.dart';
 
 class ExpiringSessionScreen extends StatefulWidget {
   const ExpiringSessionScreen({super.key});
@@ -26,6 +29,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
   void initState() {
     super.initState();
     _startTimer();
+    ExtendSessionBackend.instance.fetchActiveSessionForExtend();
   }
 
   void _startTimer() {
@@ -55,7 +59,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -99,7 +103,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                         ),
                       ),
                       Text(
-                        'Sesi Berakhir Segera',
+                        'Sesi Berakhir Segera'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -135,7 +139,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'Tidak Ada Sesi Hampir Berakhir',
+                                  'Tidak Ada Sesi Hampir Berakhir'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -144,7 +148,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Peringatan ini akan aktif otomatis ketika waktu sesi parkir Anda tersisa kurang dari 15 menit.',
+                                  'Peringatan ini akan aktif otomatis ketika waktu sesi parkir Anda tersisa kurang dari 15 menit.'.tr,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
@@ -162,7 +166,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                       borderRadius: BorderRadius.circular(16),
                                     ),
                                     child: Text(
-                                      'Kembali',
+                                      'Kembali'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -201,7 +205,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                   mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
                                     Text(
-                                      'SISA WAKTU',
+                                      'SISA WAKTU'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -239,7 +243,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                               ),
                               const SizedBox(height: 16),
                               Text(
-                                'Waktu Parkir Hampir Habis',
+                                'Waktu Parkir Hampir Habis'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
@@ -269,7 +273,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'PILIHAN PERPANJANGAN CEPAT',
+                                  'PILIHAN PERPANJANGAN CEPAT'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -278,7 +282,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                   ),
                                 ),
                                 Text(
-                                  'Tarif normal',
+                                  'Tarif normal'.tr,
                                   style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textMuted),
                                 ),
                               ],
@@ -288,7 +292,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                               children: [
                                 Expanded(
                                   child: _ExtensionButton(
-                                    time: '+30 Menit',
+                                    time: '+30 Menit'.tr,
                                     price: CurrencyService.instance.format(2500),
                                     isSelected: _selectedExtIndex == 0,
                                     isDark: isDark,
@@ -298,7 +302,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: _ExtensionButton(
-                                    time: '+1 Jam',
+                                    time: '+1 Jam'.tr,
                                     price: CurrencyService.instance.format(5000),
                                     isSelected: _selectedExtIndex == 1,
                                     isDark: isDark,
@@ -308,7 +312,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 const SizedBox(width: 8),
                                 Expanded(
                                   child: _ExtensionButton(
-                                    time: '+2 Jam',
+                                    time: '+2 Jam'.tr,
                                     price: CurrencyService.instance.format(10000),
                                     isSelected: _selectedExtIndex == 2,
                                     isDark: isDark,
@@ -344,7 +348,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                       ),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Rincian Parkir Aktif',
+                                        'Rincian Parkir Aktif'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -362,7 +366,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      'Sesi Berjalan',
+                                      'Sesi Berjalan'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 12,
                                         fontWeight: FontWeight.w600,
@@ -375,14 +379,14 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                               Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Divider(color: divider, height: 1)),
                               _DetailRow(
                                 icon: Icons.pin_drop,
-                                label: 'Lokasi Slot',
+                                label: 'Lokasi Slot'.tr,
                                 value: '${HomeBackend.instance.activeSession?['location_name'] ?? 'Pakuwon Mall'} • Slot ${HomeBackend.instance.activeSession?['slot_code'] ?? 'A-01'}',
                                 isDark: isDark,
                               ),
                               const SizedBox(height: 12),
                               _DetailRow(
                                 icon: Icons.directions_car,
-                                label: 'Kendaraan',
+                                label: 'Kendaraan'.tr,
                                 value: '${(HomeBackend.instance.activeSession?['vehicle_desc'] != null && HomeBackend.instance.activeSession!['vehicle_desc'].toString().isNotEmpty) ? HomeBackend.instance.activeSession!['vehicle_desc'] : 'Toyota Land Cruiser'} • ${(HomeBackend.instance.activeSession?['plate_number'] != null && HomeBackend.instance.activeSession!['plate_number'].toString().isNotEmpty) ? HomeBackend.instance.activeSession!['plate_number'] : 'B 1945 RI'}',
                                 isDark: isDark,
                               ),
@@ -394,7 +398,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                     children: [
                                       Icon(Icons.account_balance_wallet, size: 16, color: textMuted),
                                       const SizedBox(width: 6),
-                                      Text('Biaya Saat Ini', style: GoogleFonts.plusJakartaSans(fontSize: 13, color: textMuted)),
+                                      Text('Biaya Saat Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: textMuted)),
                                     ],
                                   ),
                                   Text(
@@ -440,9 +444,10 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                       ),
                                       if (_selectedPaymentMethod == 'ParkSmart Wallet')
                                         Text(
-                                          'Saldo Aktif: ${CurrencyService.instance.format(45000)}',
+                                          '${'Saldo'.tr}: ${CurrencyService.instance.format(ExtendSessionBackend.instance.walletBalance)}',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
+                                            fontWeight: FontWeight.w600,
                                             color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF1F4F3C),
                                           ),
                                         ),
@@ -453,7 +458,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                               GestureDetector(
                                 onTap: () => _showPaymentMethodDialog(isDark, cardBg, textMain, cardBorder),
                                 child: Text(
-                                  'Ubah',
+                                  'Ubah'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -471,13 +476,30 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed: () {
-                              Navigator.pushReplacement(
+                            onPressed: () async {
+                              final selectedOption = ExtendSessionBackend.instance.options[_selectedExtIndex];
+                              final isWallet = _selectedPaymentMethod.toLowerCase().contains('wallet');
+                              final cost = (selectedOption['amount'] as num?)?.toDouble() ?? 5000.0;
+                              final currentBal = ExtendSessionBackend.instance.walletBalance;
+
+                              if (isWallet && currentBal < cost) {
+                                _showInsufficientBalanceModal(currentBal, cost);
+                                return;
+                              }
+
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (_) => const PinScreen(
-                                    nextScreen: ActiveSessionScreen(),
+                                  builder: (_) => PinScreen(
+                                    nextScreen: const ActiveSessionScreen(),
                                     transactionType: 'perpanjangan parkir',
+                                    customTitle: 'Konfirmasi PIN Perpanjangan'.tr,
+                                    onConfirmPin: () async {
+                                      return await ExtendSessionBackend.instance.extendSession(
+                                        optionIndex: _selectedExtIndex,
+                                        paymentMethod: _selectedPaymentMethod,
+                                      );
+                                    },
                                   ),
                                 ),
                               );
@@ -493,7 +515,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                                 const Icon(Icons.add_circle, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Perpanjang Durasi Parkir',
+                                  'Perpanjang Durasi Parkir'.tr,
                                   style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold),
                                 ),
                               ],
@@ -519,7 +541,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                               children: [
                                 Icon(Icons.exit_to_app, size: 18, color: textMuted),
                                 const SizedBox(width: 8),
-                                Text('Siap Check-out Sekarang', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
+                                Text('Siap Check-out Sekarang'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.w600)),
                               ],
                             ),
                           ),
@@ -535,7 +557,7 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
                             ),
                             const SizedBox(width: 6),
                             Text(
-                              'Denda overstay otomatis ${CurrencyService.instance.format(5000)}/jam via ParkSmart Wallet',
+                              'Denda overstay otomatis ${CurrencyService.instance.format(5000)}/jam via ParkSmart Wallet'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.w500,
@@ -690,6 +712,149 @@ class _ExpiringSessionScreenState extends State<ExpiringSessionScreen> {
       ),
     );
   }
+
+  void _showInsufficientBalanceModal(double currentBalance, double cost) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final shortage = cost - currentBalance;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                        : const Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Color(0xFFDC2626),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Saldo Tidak Mencukupi'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Saldo ParkSmart Wallet Anda tidak mencukupi untuk perpanjangan waktu parkir ini.'.tr,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF262C36) : const Color(0xFFF7F5EE),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Saldo Saat Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(currentBalance), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Biaya Perpanjangan'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(cost), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFB923C))),
+                        ],
+                      ),
+                      const Divider(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Kekurangan Saldo'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFDC2626))),
+                          Text(CurrencyService.instance.format(shortage), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFFDC2626))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: BorderSide(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
+                        ),
+                        child: Text(
+                          'Batal'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogCtx);
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                          );
+                          await ExtendSessionBackend.instance.fetchActiveSessionForExtend();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFF17A18A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Top Up Saldo'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
 }
 
 class _ExtensionButton extends StatelessWidget {
@@ -729,7 +894,7 @@ class _ExtensionButton extends StatelessWidget {
         child: Column(
           children: [
             Text(
-              time,
+              time.tr,
               style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: textColor),
             ),
             const SizedBox(height: 2),
@@ -774,7 +939,7 @@ class _DetailRow extends StatelessWidget {
           children: [
             Icon(icon, size: 16, color: textSub),
             const SizedBox(width: 6),
-            Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: textSub)),
+            Text(label.tr, style: GoogleFonts.plusJakartaSans(fontSize: 13, color: textSub)),
           ],
         ),
         Text(
@@ -785,3 +950,4 @@ class _DetailRow extends StatelessWidget {
     );
   }
 }
+

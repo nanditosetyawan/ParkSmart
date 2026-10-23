@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import '../parking/parking_detail_screen.dart';
 import 'backend/favorite_backend.dart';
 
@@ -51,7 +52,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, FavoriteBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, FavoriteBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -84,7 +85,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'Favorite Parking',
+              'Favorite Parking'.tr,
               style: GoogleFonts.inter(
                 color: textMain,
                 fontWeight: FontWeight.w700,
@@ -110,7 +111,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                     onChanged: _onSearchChanged,
                     style: GoogleFonts.inter(color: textMain, fontSize: 14),
                     decoration: InputDecoration(
-                      hintText: 'Cari tempat favorit...',
+                      hintText: 'Cari tempat favorit...'.tr,
                       hintStyle: GoogleFonts.inter(color: textSub, fontSize: 14),
                       prefixIcon: Icon(Icons.search, color: textSub),
                       border: InputBorder.none,
@@ -159,7 +160,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                   ),
                                   const SizedBox(height: 20),
                                   Text(
-                                    'Belum Ada Tempat Favorit',
+                                    'Belum Ada Tempat Favorit'.tr,
                                     style: GoogleFonts.inter(
                                       color: textMain,
                                       fontSize: 18,
@@ -168,7 +169,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Simpan lokasi parkir langganan Anda dengan menekan ikon favorit pada halaman detail parkir.',
+                                    'Simpan lokasi parkir langganan Anda dengan menekan ikon favorit pada halaman detail parkir.'.tr,
                                     textAlign: TextAlign.center,
                                     style: GoogleFonts.inter(
                                       color: textSub,
@@ -287,7 +288,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                                     borderRadius: BorderRadius.circular(6),
                                                   ),
                                                   child: Text(
-                                                    isEv ? 'EV Charging' : 'Parkir Reguler',
+                                                    isEv ? 'EV Charging'.tr : 'Parkir Reguler'.tr,
                                                     style: GoogleFonts.inter(
                                                       fontSize: 10,
                                                       fontWeight: FontWeight.w600,
@@ -310,7 +311,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                                         borderRadius: BorderRadius.circular(8),
                                                       ),
                                                       child: Text(
-                                                        'Buka',
+                                                        'Buka'.tr,
                                                         style: GoogleFonts.inter(
                                                           color: Colors.white,
                                                           fontSize: 12,

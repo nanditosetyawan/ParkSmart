@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import 'backend/edit_profile_backend.dart';
 import 'backend/profile_backend.dart';
 
@@ -114,15 +115,15 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
     final phone = _phoneController.text.trim();
 
     if (name.isEmpty) {
-      _showToast('Nama lengkap tidak boleh kosong', isError: true);
+      _showToast('Nama lengkap tidak boleh kosong'.tr, isError: true);
       return;
     }
     if (email.isEmpty || !email.contains('@')) {
-      _showToast('Format email tidak valid', isError: true);
+      _showToast('Format email tidak valid'.tr, isError: true);
       return;
     }
     if (phone.isEmpty) {
-      _showToast('Nomor telepon tidak boleh kosong', isError: true);
+      _showToast('Nomor telepon tidak boleh kosong'.tr, isError: true);
       return;
     }
 
@@ -160,7 +161,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               const Icon(Icons.check_circle, color: Colors.white, size: 20),
               const SizedBox(width: 10),
               Text(
-                'Data diri berhasil diperbarui!',
+                'Data diri berhasil diperbarui!'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
@@ -236,7 +237,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
             const SizedBox(height: 16),
             Text(
-              'Ubah Foto Profil',
+              'Ubah Foto Profil'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 17,
                 fontWeight: FontWeight.bold,
@@ -257,7 +258,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: Icon(Icons.camera_alt, color: isDark ? Colors.white : const Color(0xFF1C1C18), size: 20),
               ),
               title: Text(
-                'Ambil Foto dari Kamera',
+                'Ambil Foto dari Kamera'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -282,7 +283,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 child: Icon(Icons.photo_library, color: isDark ? Colors.white : const Color(0xFF1C1C18), size: 20),
               ),
               title: Text(
-                'Pilih dari Galeri',
+                'Pilih dari Galeri'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
                   fontWeight: FontWeight.w600,
@@ -367,7 +368,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -418,7 +419,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                       ),
                       const SizedBox(width: 14),
                       Text(
-                        'Edit Data Diri',
+                        'Edit Data Diri'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -507,7 +508,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                         GestureDetector(
                           onTap: _showPhotoOptions,
                           child: Text(
-                            'Ubah Foto Profil',
+                            'Ubah Foto Profil'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               fontWeight: FontWeight.w700,
@@ -540,7 +541,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'INFORMASI PENGGUNA',
+                                'INFORMASI PENGGUNA'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   fontWeight: FontWeight.w800,
@@ -552,10 +553,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               // Nama Lengkap
                               _buildFormField(
-                                label: 'Nama Lengkap',
+                                label: 'Nama Lengkap'.tr,
                                 controller: _nameController,
                                 icon: Icons.person_outline,
-                                hint: 'Masukkan nama lengkap',
+                                hint: 'Masukkan nama lengkap'.tr,
                                 isDark: isDark,
                                 theme: theme,
                               ),
@@ -563,11 +564,11 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               // Email
                               _buildFormField(
-                                label: 'Alamat Email',
+                                label: 'Alamat Email'.tr,
                                 controller: _emailController,
                                 icon: Icons.mail_outline,
                                 keyboardType: TextInputType.emailAddress,
-                                hint: 'Masukkan alamat email',
+                                hint: 'Masukkan alamat email'.tr,
                                 isDark: isDark,
                                 theme: theme,
                               ),
@@ -575,7 +576,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               // Nomor Telepon
                               _buildFormField(
-                                label: 'Nomor Telepon / WhatsApp',
+                                label: 'Nomor Telepon / WhatsApp'.tr,
                                 controller: _phoneController,
                                 icon: Icons.phone_outlined,
                                 keyboardType: TextInputType.phone,
@@ -587,7 +588,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               // Jenis Kelamin Selector
                               Text(
-                                'Jenis Kelamin',
+                                'Jenis Kelamin'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -609,7 +610,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Tanggal Lahir',
+                                    'Tanggal Lahir'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -661,7 +662,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                               mainAxisSize: MainAxisSize.min,
                                               children: [
                                                 Text(
-                                                  'Pilih',
+                                                  'Pilih'.tr,
                                                   style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 11,
                                                     fontWeight: FontWeight.bold,
@@ -687,10 +688,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
                               // Alamat
                               _buildFormField(
-                                label: 'Alamat Tinggal / Domisili',
+                                label: 'Alamat Tinggal / Domisili'.tr,
                                 controller: _addressController,
                                 icon: Icons.location_on_outlined,
-                                hint: 'Alamat lengkap',
+                                hint: 'Alamat lengkap'.tr,
                                 maxLines: 2,
                                 isDark: isDark,
                                 theme: theme,
@@ -730,7 +731,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                       const Icon(Icons.check, size: 18),
                                       const SizedBox(width: 8),
                                       Text(
-                                        'Simpan Perubahan',
+                                        'Simpan Perubahan'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14.5,
                                           fontWeight: FontWeight.bold,
@@ -852,7 +853,7 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
               ),
               const SizedBox(width: 6),
               Text(
-                gender,
+                gender.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 12.5,
                   fontWeight: FontWeight.w700,

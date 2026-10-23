@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../session/expiring_session_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/notification_backend.dart';
@@ -17,6 +18,13 @@ class _NotificationScreenState extends State<NotificationScreen> {
   void initState() {
     super.initState();
     NotificationBackend.instance.fetchNotifications();
+    NotificationBackend.instance.initRealtimeSubscription();
+  }
+
+  @override
+  void dispose() {
+    NotificationBackend.instance.disposeRealtime();
+    super.dispose();
   }
 
 
@@ -54,7 +62,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -86,7 +94,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'Notifikasi',
+              'Notifikasi'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -101,7 +109,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                   return TextButton(
                     onPressed: () => NotificationBackend.instance.markAllAsRead(),
                     child: Text(
-                      'Tandai Dibaca',
+                      'Tandai Dibaca'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 12,
                         fontWeight: FontWeight.w600,
@@ -162,7 +170,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
                                     Text(
-                                      'Sesi Berakhir Segera',
+                                      'Sesi Berakhir Segera'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 16,
                                         fontWeight: FontWeight.bold,
@@ -171,7 +179,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                                     ),
                                     const SizedBox(height: 4),
                                     Text(
-                                      'Ketuk untuk melihat detail',
+                                      'Ketuk untuk melihat detail'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         color: Colors.white.withValues(alpha: 0.7),
@@ -194,7 +202,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         ),
                       ),
 
-                    Text('Pemberitahuan Sistem (Supabase Live)', style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: textHeader)),
+                    Text('Pemberitahuan Sistem (Supabase Live)'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: textHeader)),
                     const SizedBox(height: 16),
 
                     if (notifications.isEmpty) ...[
@@ -217,7 +225,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             ),
                             const SizedBox(height: 16),
                             Text(
-                              'Belum Ada Notifikasi',
+                              'Belum Ada Notifikasi'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 16,
                                 fontWeight: FontWeight.bold,
@@ -226,7 +234,7 @@ class _NotificationScreenState extends State<NotificationScreen> {
                             ),
                             const SizedBox(height: 6),
                             Text(
-                              'Pemberitahuan resmi seputar reservasi, timer parkir, dan promo akun Anda akan masuk di sini.',
+                              'Pemberitahuan resmi seputar reservasi, timer parkir, dan promo akun Anda akan masuk di sini.'.tr,
                               textAlign: TextAlign.center,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
@@ -243,8 +251,8 @@ class _NotificationScreenState extends State<NotificationScreen> {
                         _buildNotification(
                           icon: _getIconForType(item['notification_type'] as String?),
                           color: _getColorForType(item['notification_type'] as String?),
-                          title: item['title'] as String? ?? 'Pemberitahuan',
-                          message: item['message'] as String? ?? '',
+                          title: (item['title'] as String? ?? 'Pemberitahuan').tr,
+                          message: (item['message'] as String? ?? '').tr,
                           isNew: item['is_read'] == false,
                           cardBg: cardBg,
                           cardBorder: cardBorder,

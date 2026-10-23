@@ -88,6 +88,10 @@ CREATE TABLE IF NOT EXISTS public.users (
     wallet_balance NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (wallet_balance >= 0),
     points INT NOT NULL DEFAULT 0 CHECK (points >= 0),
     member_tier member_tier_enum NOT NULL DEFAULT 'BRONZE',
+    total_spent NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (total_spent >= 0),
+    monthly_spent NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (monthly_spent >= 0),
+    last_spending_month VARCHAR(7) NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM'),
+    member_hash_code VARCHAR(32),
     total_parking_count INT NOT NULL DEFAULT 0,
     total_savings NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
     favorite_location_ids UUID[] NOT NULL DEFAULT '{}',
@@ -451,3 +455,153 @@ CREATE INDEX IF NOT EXISTS idx_system_notifications_recipient ON public.system_n
 CREATE INDEX IF NOT EXISTS idx_arcade_scores_user ON public.arcade_scores(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_favorites_user_id ON public.user_favorites(user_id);
 CREATE INDEX IF NOT EXISTS idx_user_favorites_location_id ON public.user_favorites(location_id);
+CREATE INDEX IF NOT EXISTS idx_users_member_tier ON public.users(member_tier);
+
+-- ============================================================================
+-- 21. FUNGSI LOGIKA TIER MEMBERSHIP & RETENSI BULANAN
+-- ============================================================================
+-- Evaluasi Tier Pengguna Berdasarkan Belanja:
+-- Bronze (< 100k), Silver (>= 100k), Gold (>= 200k), Platinum (>= 500k)
+-- Syarat Bertahan di Platinum: Belanja bulanan >= 700k. Jika tidak, turun bertahap ke Gold.
+CREATE OR REPLACE FUNCTION public.evaluate_user_membership_tier(
+    p_user_id UUID,
+    p_additional_spend NUMERIC DEFAULT 0.00
+)
+RETURNS TABLE (
+    user_id UUID,
+    member_tier member_tier_enum,
+    total_spent NUMERIC,
+    monthly_spent NUMERIC,
+    last_spending_month VARCHAR,
+    member_hash_code VARCHAR
+)
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_user RECORD;
+    v_current_month VARCHAR(7);
+    v_new_tier member_tier_enum;
+    v_total NUMERIC;
+    v_monthly NUMERIC;
+    v_last_month VARCHAR(7);
+    v_hash VARCHAR(32);
+BEGIN
+    SELECT * INTO v_user
+    FROM public.users
+    WHERE id = p_user_id
+    FOR UPDATE;
+
+    IF NOT FOUND THEN
+        RETURN;
+    END IF;
+
+    v_current_month := TO_CHAR(NOW(), 'YYYY-MM');
+    v_total := COALESCE(v_user.total_spent, 0);
+    v_monthly := COALESCE(v_user.monthly_spent, 0);
+    v_last_month := COALESCE(v_user.last_spending_month, v_current_month);
+    v_new_tier := v_user.member_tier;
+    v_hash := v_user.member_hash_code;
+
+    -- Evaluasi pergantian bulan & retensi Platinum
+    IF v_current_month <> v_last_month THEN
+        IF v_new_tier = 'PLATINUM' THEN
+            IF v_monthly < 700000 THEN
+                v_new_tier := 'GOLD';
+            END IF;
+        END IF;
+        v_monthly := 0.00;
+        v_last_month := v_current_month;
+    END IF;
+
+    -- Tambah belanja baru
+    IF p_additional_spend > 0 THEN
+        v_total := v_total + p_additional_spend;
+        v_monthly := v_monthly + p_additional_spend;
+    END IF;
+
+    -- Evaluasi Kenaikan Tier
+    IF v_total >= 500000 THEN
+        v_new_tier := 'PLATINUM';
+    ELSIF v_total >= 200000 THEN
+        IF v_new_tier IN ('BRONZE', 'SILVER') THEN
+            v_new_tier := 'GOLD';
+        END IF;
+    ELSIF v_total >= 100000 THEN
+        IF v_new_tier = 'BRONZE' THEN
+            v_new_tier := 'SILVER';
+        END IF;
+    ELSE
+        IF v_new_tier IS NULL THEN
+            v_new_tier := 'BRONZE';
+        END IF;
+    END IF;
+
+    -- Hash Code Member
+    IF v_hash IS NULL OR TRIM(v_hash) = '' THEN
+        v_hash := '#' || SUBSTRING(MD5(p_user_id::text || 'parksmart'), 1, 4) || '-' ||
+                         SUBSTRING(MD5(p_user_id::text || 'parksmart'), 5, 4) || '-' ||
+                         SUBSTRING(MD5(p_user_id::text || 'parksmart'), 9, 4);
+    END IF;
+
+    UPDATE public.users
+    SET member_tier = v_new_tier,
+        total_spent = v_total,
+        monthly_spent = v_monthly,
+        last_spending_month = v_last_month,
+        member_hash_code = v_hash,
+        updated_at = NOW()
+    WHERE id = p_user_id;
+
+    RETURN QUERY
+    SELECT p_user_id, v_new_tier, v_total, v_monthly, v_last_month, v_hash;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.evaluate_all_membership_tiers_monthly()
+RETURNS VOID
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_current_month VARCHAR(7);
+BEGIN
+    v_current_month := TO_CHAR(NOW(), 'YYYY-MM');
+
+    UPDATE public.users
+    SET member_tier = 'GOLD',
+        monthly_spent = 0.00,
+        last_spending_month = v_current_month,
+        updated_at = NOW()
+    WHERE last_spending_month <> v_current_month
+      AND member_tier = 'PLATINUM'
+      AND monthly_spent < 700000;
+
+    UPDATE public.users
+    SET monthly_spent = 0.00,
+        last_spending_month = v_current_month,
+        updated_at = NOW()
+    WHERE last_spending_month <> v_current_month;
+END;
+$$;
+
+CREATE OR REPLACE FUNCTION public.trg_process_payment_membership()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF NEW.status = 'success' AND NEW.transaction_type IN ('parking_payment') AND NEW.user_id IS NOT NULL THEN
+        PERFORM public.evaluate_user_membership_tier(NEW.user_id, COALESCE(NEW.amount, 0));
+    END IF;
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_payment_membership ON public.payments;
+CREATE TRIGGER trg_payment_membership
+AFTER INSERT OR UPDATE OF status
+ON public.payments
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_process_payment_membership();
+

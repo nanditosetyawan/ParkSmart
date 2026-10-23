@@ -4,6 +4,7 @@ import '../../widgets/bottom_dock_navigation.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import 'history_detail_screen.dart' as history_detail;
 import 'backend/history_backend.dart';
@@ -28,7 +29,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, HistoryBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, HistoryBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -82,7 +83,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                'Riwayat Parkir',
+                                'Riwayat Parkir'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 24,
                                   fontWeight: FontWeight.bold,
@@ -91,7 +92,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                               ),
                               Text(
-                                'Riwayat Transaksi Parkir',
+                                'Riwayat Transaksi Parkir'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
@@ -117,7 +118,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                             child: Row(
                               children: [
                                 _FilterChip(
-                                  label: 'Semua',
+                                  label: 'Semua'.tr,
                                   count: '${backend.items.length}',
                                   isSelected: backend.selectedFilter == 'all',
                                   isDark: isDark,
@@ -125,28 +126,28 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
-                                  label: 'Ready',
+                                  label: 'Ready'.tr,
                                   isSelected: backend.selectedFilter == 'ready',
                                   isDark: isDark,
                                   onTap: () => backend.setFilter('ready'),
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
-                                  label: 'Aktif',
+                                  label: 'Aktif'.tr,
                                   isSelected: backend.selectedFilter == 'active',
                                   isDark: isDark,
                                   onTap: () => backend.setFilter('active'),
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
-                                  label: 'Selesai',
+                                  label: 'Selesai'.tr,
                                   isSelected: backend.selectedFilter == 'completed',
                                   isDark: isDark,
                                   onTap: () => backend.setFilter('completed'),
                                 ),
                                 const SizedBox(width: 8),
                                 _FilterChip(
-                                  label: 'Belum Dibayar',
+                                  label: 'Belum Dibayar'.tr,
                                   isSelected: backend.selectedFilter == 'unpaid',
                                   isDark: isDark,
                                   onTap: () => backend.setFilter('unpaid'),
@@ -167,7 +168,7 @@ class _HistoryScreenState extends State<HistoryScreen> {
                               child: Padding(
                                 padding: const EdgeInsets.all(32),
                                 child: Text(
-                                  'Belum ada riwayat parkir.',
+                                  'Belum ada riwayat parkir.'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -465,7 +466,7 @@ class _HistoryCard extends StatelessWidget {
                       Container(width: 6, height: 6, decoration: BoxDecoration(color: TicketMark.getColor(status), shape: BoxShape.circle)),
                       const SizedBox(width: 6),
                       Text(
-                        status,
+                        status.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -492,7 +493,7 @@ class _HistoryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Durasi',
+                          'Durasi'.tr,
                           style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: textSub),
                         ),
                         const SizedBox(height: 2),
@@ -501,7 +502,7 @@ class _HistoryCard extends StatelessWidget {
                             Icon(Icons.timer, size: 16, color: textSub),
                             const SizedBox(width: 4),
                             Text(
-                              duration,
+                              duration.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 14,
                                 fontWeight: FontWeight.bold,
@@ -518,7 +519,7 @@ class _HistoryCard extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Slot & Area',
+                          'Slot & Area'.tr,
                           style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: textSub),
                         ),
                         const SizedBox(height: 2),
@@ -532,7 +533,7 @@ class _HistoryCard extends StatelessWidget {
                             const SizedBox(width: 4),
                             Expanded(
                               child: Text(
-                                slot,
+                                slot.tr,
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
                                 style: GoogleFonts.plusJakartaSans(
@@ -560,7 +561,7 @@ class _HistoryCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'Total Pembayaran',
+                      'Total Pembayaran'.tr,
                       style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w500, color: textSub),
                     ),
                     Text(

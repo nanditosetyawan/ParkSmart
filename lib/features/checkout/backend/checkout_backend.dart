@@ -470,7 +470,7 @@ class CheckoutBackend extends ChangeNotifier {
       if (b != null && (b['payment_status'] == 'unpaid' || b['payment_status'] == 'pending')) {
         await _client.from('bookings').update({
           'booking_status': 'cancelled',
-          'payment_status': 'expired',
+          'cancel_reason': 'Batas waktu pembayaran 2 menit 59 detik telah habis atau dibatalkan pengguna',
         }).eq('id', targetId);
 
         final sId = b['slot_id']?.toString() ?? _slotId;
@@ -487,6 +487,12 @@ class CheckoutBackend extends ChangeNotifier {
         _holdBookingId = null;
         _holdCreatedAt = null;
       }
+
+      // Sinkronisasi pembersihan otomatis di Supabase
+      try {
+        await _client.rpc('auto_process_expired_bookings_and_sessions');
+      } catch (_) {}
+
       notifyListeners();
     } catch (e) {
       debugPrint('[CheckoutBackend] cancelHoldBooking error: $e');
@@ -564,6 +570,11 @@ class CheckoutBackend extends ChangeNotifier {
     required DateTime endTime,
   }) async {
     try {
+      // Jalankan pembersihan otomatis sebelum pengecekan agar status slot di DB selalu akurat
+      try {
+        await _client.rpc('auto_process_expired_bookings_and_sessions');
+      } catch (_) {}
+
       String? targetSlotId = slotId ?? _slotId;
       if (targetSlotId == null || targetSlotId.isEmpty) {
         final locId = locationId ?? _locationId;
@@ -580,15 +591,36 @@ class CheckoutBackend extends ChangeNotifier {
       }
       if (targetSlotId == null) return false;
 
+      final now = DateTime.now();
       final bookings = await _client
           .from('bookings')
-          .select('id, start_time, end_time, booking_status')
+          .select('id, start_time, end_time, booking_status, payment_status, created_at')
           .eq('slot_id', targetSlotId)
-          .neq('booking_status', 'cancelled');
+          .not('booking_status', 'in', '(cancelled,completed,expired)');
 
       for (final b in bookings) {
+        final bId = b['id']?.toString();
+        // 1. Abaikan booking milik pengguna sendiri yang sedang dalam proses checkout ini
+        if (_holdBookingId != null && bId == _holdBookingId) {
+          continue;
+        }
+
+        // 2. Abaikan booking unpaid yang sudah melewati batas 2 menit 59 detik (179s)
+        final payStatus = (b['payment_status'] ?? '').toString().toLowerCase();
+        if (payStatus == 'unpaid') {
+          final cat = DateTime.tryParse(b['created_at']?.toString() ?? '')?.toLocal();
+          if (cat != null && now.difference(cat).inSeconds > 179) {
+            continue;
+          }
+        }
+
         final bStart = DateTime.parse(b['start_time'].toString()).toLocal();
         final bEnd = DateTime.parse(b['end_time'].toString()).toLocal();
+
+        // 3. Abaikan booking yang jadwalnya sudah selesai di masa lampau
+        if (bEnd.isBefore(now) || bEnd.isAtSameMomentAs(now)) {
+          continue;
+        }
 
         // Formula overlap: startA < endB && endA > startB
         if (startTime.isBefore(bEnd) && endTime.isAfter(bStart)) {
@@ -609,6 +641,10 @@ class CheckoutBackend extends ChangeNotifier {
     String? locationId,
   }) async {
     try {
+      try {
+        await _client.rpc('auto_process_expired_bookings_and_sessions');
+      } catch (_) {}
+
       String? targetSlotId = slotId ?? _slotId;
       if (targetSlotId == null || targetSlotId.isEmpty) {
         final locId = locationId ?? _locationId;
@@ -633,12 +669,27 @@ class CheckoutBackend extends ChangeNotifier {
 
       final bookings = await _client
           .from('bookings')
-          .select('start_time, end_time, booking_status')
+          .select('id, start_time, end_time, booking_status, payment_status, created_at')
           .eq('slot_id', targetSlotId)
-          .neq('booking_status', 'cancelled');
+          .not('booking_status', 'in', '(cancelled,completed,expired)');
 
       List<Map<String, DateTime>> bookedIntervals = [];
       for (final b in bookings) {
+        final bId = b['id']?.toString();
+        // Abaikan booking sendiri
+        if (_holdBookingId != null && bId == _holdBookingId) {
+          continue;
+        }
+
+        // Abaikan unpaid > 179s
+        final payStatus = (b['payment_status'] ?? '').toString().toLowerCase();
+        if (payStatus == 'unpaid') {
+          final cat = DateTime.tryParse(b['created_at']?.toString() ?? '')?.toLocal();
+          if (cat != null && now.difference(cat).inSeconds > 179) {
+            continue;
+          }
+        }
+
         final bStart = DateTime.parse(b['start_time'].toString()).toLocal();
         final bEnd = DateTime.parse(b['end_time'].toString()).toLocal();
 
@@ -742,35 +793,23 @@ class CheckoutBackend extends ChangeNotifier {
       final locName = bRes['parking_locations']?['name']?.toString() ?? _locationName;
       final sCode = bRes['parking_slots']?['slot_code']?.toString() ?? _slotCode;
 
-      // 1. Update booking status
-      await _client.from('bookings').update({
-        'payment_status': 'paid',
-        'booking_status': 'upcoming',
-      }).eq('id', bookingId);
-
-      // 2. Insert payments record
-      final trxCode = 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
-      await _client.from('payments').insert({
-        'transaction_code': trxCode,
-        'user_id': actualUserId,
-        'booking_id': bookingId,
-        'transaction_type': 'parking_payment',
-        'payment_method': 'wallet',
-        'amount': price,
-        'description': 'Reservasi Parkir $locName Slot $sCode ($bCode)',
-        'status': 'success',
-        'completed_at': DateTime.now().toIso8601String(),
-      });
-
-      // 3. Deduct wallet
+      // 1. CEK SALDO PENGGUNA TERLEBIH DAHULU (Wajib Cukup!)
       final userRes = await _client
           .from('users')
           .select('wallet_balance, total_parking_count')
           .eq('id', actualUserId)
           .maybeSingle();
       final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
+
+      if (currentBal < price) {
+        debugPrint('[CheckoutBackend] markBookingAsPaid ditolak: Saldo tidak mencukupi (Saldo: $currentBal, Dibutuhkan: $price)');
+        return false;
+      }
+
+      final newBalance = currentBal - price;
+
+      // 2. Potong saldo wallet pengguna
       final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
-      final newBalance = (currentBal - price).clamp(0.0, double.infinity);
       await _client.from('users').update({
         'wallet_balance': newBalance,
         'total_parking_count': currentCount + 1,
@@ -785,7 +824,27 @@ class CheckoutBackend extends ChangeNotifier {
         walletBalance: newBalance.toInt(),
       );
 
-      // 4. Ensure slot status is reserved
+      // 3. Update status booking menjadi paid & upcoming
+      await _client.from('bookings').update({
+        'payment_status': 'paid',
+        'booking_status': 'upcoming',
+      }).eq('id', bookingId);
+
+      // 4. Catat riwayat transaksi sukses di tabel payments
+      final trxCode = 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
+      await _client.from('payments').insert({
+        'transaction_code': trxCode,
+        'user_id': actualUserId,
+        'booking_id': bookingId,
+        'transaction_type': 'parking_payment',
+        'payment_method': 'wallet',
+        'amount': price,
+        'description': 'Reservasi Parkir $locName Slot $sCode ($bCode)',
+        'status': 'success',
+        'completed_at': DateTime.now().toIso8601String(),
+      });
+
+      // 5. Pastikan slot terkunci reserved
       if (bRes['slot_id'] != null) {
         await _client.from('parking_slots').update({
           'status': 'reserved',

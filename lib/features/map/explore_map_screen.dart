@@ -1,4 +1,5 @@
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import 'dart:async';
 import 'dart:math';
 import 'dart:ui' as ui;
@@ -819,7 +820,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ExploreMapBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ExploreMapBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -1283,7 +1284,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             ),
                             cursorColor: isDark ? Colors.white : const Color(0xFF1F1F1F),
                             decoration: InputDecoration(
-                              hintText: 'Cari kota di Indonesia, SPBU...',
+                              hintText: 'Cari kota di Indonesia, SPBU...'.tr,
                               hintStyle: GoogleFonts.inter(
                                 color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                 fontSize: 15,
@@ -1391,19 +1392,19 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     child: Row(
                       children: [
                         _buildCategoryPill(
-                          title: 'Terdekat',
+                          title: 'Terdekat'.tr,
                           icon: Icons.near_me_outlined,
                           isSelected: _selectedCategory == 'Terdekat',
                         ),
                         const SizedBox(width: 8),
                         _buildCategoryPill(
-                          title: 'Mall',
+                          title: 'Mall'.tr,
                           icon: Icons.storefront_outlined,
                           isSelected: _selectedCategory == 'Mall',
                         ),
                         const SizedBox(width: 8),
                         _buildCategoryPill(
-                          title: 'Parkir EV',
+                          title: 'Parkir EV'.tr,
                           icon: Icons.electric_car_outlined,
                           isSelected: _selectedCategory == 'Parkir EV',
                         ),
@@ -1693,7 +1694,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                                 ),
                                                 icon: const Icon(Icons.local_parking, size: 18),
                                                 label: Text(
-                                                  'Pesan Slot',
+                                                  'Pesan Slot'.tr,
                                                   style: GoogleFonts.inter(
                                                     fontSize: 13.5,
                                                     fontWeight: FontWeight.w600,
@@ -1820,7 +1821,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Suasana lokal',
+                                'Suasana lokal'.tr,
                                 style: GoogleFonts.inter(
                                   fontSize: 20,
                                   fontWeight: FontWeight.w700,
@@ -1866,7 +1867,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        _weatherCondition,
+                                        _weatherCondition.tr,
                                         style: GoogleFonts.inter(
                                           fontSize: 10,
                                           fontWeight: FontWeight.w500,
@@ -1889,7 +1890,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
                               Text(
-                                'Rekomendasi Parkir Terdekat',
+                                'Rekomendasi Parkir Terdekat'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -1935,7 +1936,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 }
                               }
                               final int slots = (loc['slots'] as int?) ?? 20;
-                              final String subtitleText = '$dist • $slots slot tersedia';
+                              final String subtitleText = '$dist • ${'$slots slot tersedia'.tr}';
                               final String price = _formatParkingPrice(loc);
                               final bool isEv = (loc['isEv'] as bool?) ?? false;
                               final String rating = (loc['rating'] ?? 4.7).toString();
@@ -2000,7 +2001,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Jelajahi',
+                            'Jelajahi'.tr,
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w700,
@@ -2048,7 +2049,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Favorite',
+                            'Favorite'.tr,
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -2080,7 +2081,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            'Home',
+                            'Home'.tr,
                             style: GoogleFonts.inter(
                               fontSize: 12,
                               fontWeight: FontWeight.w500,
@@ -2118,9 +2119,9 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       ),
       child: Row(
         children: [
-          _buildDetailTabItem(index: 0, title: 'Ringkasan'),
-          _buildDetailTabItem(index: 1, title: 'Ulasan'),
-          _buildDetailTabItem(index: 2, title: 'Tentang'),
+          _buildDetailTabItem(index: 0, title: 'Ringkasan'.tr),
+          _buildDetailTabItem(index: 1, title: 'Ulasan'.tr),
+          _buildDetailTabItem(index: 2, title: 'Tentang'.tr),
         ],
       ),
     );
@@ -2195,7 +2196,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Galeri Foto Area Parkir',
+                'Galeri Foto Area Parkir'.tr,
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -2255,10 +2256,10 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         const Icon(Icons.add_photo_alternate_outlined, color: Color(0xFF0F766E), size: 32),
                         const SizedBox(height: 6),
                         Text(
-                          '+ Tambah Foto',
+                          '+ Tambah Foto'.tr,
                           style: GoogleFonts.inter(fontSize: 12, fontWeight: FontWeight.w600, color: const Color(0xFF0F766E)),
                         ),
-                        Text('oleh Admin', style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF5F6368))),
+                        Text('oleh Admin'.tr, style: GoogleFonts.inter(fontSize: 10, color: const Color(0xFF5F6368))),
                       ],
                     ),
                   ),
@@ -2328,15 +2329,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Rincian Parkir', style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: ThemeService.instance.isDarkMode ? Colors.white : const Color(0xFF1F1F1F))),
+                Text('Rincian Parkir'.tr, style: GoogleFonts.inter(fontSize: 14, fontWeight: FontWeight.w700, color: ThemeService.instance.isDarkMode ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 12),
-                _buildInfoRow(Icons.payments_outlined, 'Tarif Resmi', _formatParkingPrice(loc)),
+                _buildInfoRow(Icons.payments_outlined, 'Tarif Resmi'.tr, _formatParkingPrice(loc)),
                 const Divider(height: 18),
-                _buildInfoRow(Icons.event_seat_outlined, 'Kapasitas', '${loc['slots']} Slot Tersedia'),
+                _buildInfoRow(Icons.event_seat_outlined, 'Kapasitas'.tr, '${loc['slots']} ${'Slot Tersedia'.tr}'),
                 const Divider(height: 18),
-                _buildInfoRow(Icons.access_time, 'Operasional', loc['hours'] as String? ?? 'Buka • Tutup 22.00 WIB'),
+                _buildInfoRow(Icons.access_time, 'Operasional'.tr, (loc['hours'] as String? ?? 'Buka • Tutup 22.00 WIB').tr),
                 const Divider(height: 18),
-                _buildInfoRow(Icons.qr_code, 'Metode Masuk', 'Tiket / Palang Otomatis & QRIS'),
+                _buildInfoRow(Icons.qr_code, 'Metode Masuk'.tr, 'Tiket / Palang Otomatis & QRIS'.tr),
               ],
             ),
           ),
@@ -2641,7 +2642,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       children: List.generate(5, (_) => const Icon(Icons.star, color: Color(0xFFF4B400), size: 16)),
                     ),
                     const SizedBox(height: 4),
-                    Text('${loc['reviews'] ?? '340'} ulasan', style: GoogleFonts.inter(fontSize: 12, color: isDark ? theme.textMuted : const Color(0xFF5F6368))),
+                    Text('${loc['reviews'] ?? '340'} ${'ulasan'.tr}', style: GoogleFonts.inter(fontSize: 12, color: isDark ? theme.textMuted : const Color(0xFF5F6368))),
                   ],
                 ),
                 const SizedBox(width: 20),
@@ -2667,7 +2668,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
-                'Ulasan Pengunjung',
+                'Ulasan Pengunjung'.tr,
                 style: GoogleFonts.inter(
                   fontSize: 15,
                   fontWeight: FontWeight.w700,
@@ -2689,7 +2690,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       Icon(Icons.rate_review_outlined, color: isDark ? const Color(0xFF0F172A) : Colors.white, size: 14),
                       const SizedBox(width: 5),
                       Text(
-                        '+ Tulis Ulasan',
+                        '+ Tulis Ulasan'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11.5,
                           fontWeight: FontWeight.w600,
@@ -2743,7 +2744,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         ],
                       ),
                       child: Text(
-                        topic,
+                        topic.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -2824,10 +2825,12 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Tentang Parkiran', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
+                Text('Tentang Parkiran'.tr, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 8),
                 Text(
-                  '${loc['name']} adalah fasilitas parkir pintar modern yang terintegrasi langsung dengan sistem navigasi mobile. Memiliki area luas dengan proteksi keamanan 24 jam, kemudahan akses keluar masuk otomatis, dan fasilitas penunjang ramah lingkungan untuk seluruh pengendara.',
+                  LanguageService.instance.currentLanguage == 'en'
+                      ? '${loc['name']} is a modern smart parking facility directly integrated with mobile navigation. Featuring spacious areas with 24-hour security protection, automated barrier access, and eco-friendly supporting facilities for all motorists.'
+                      : '${loc['name']} adalah fasilitas parkir pintar modern yang terintegrasi langsung dengan sistem navigasi mobile. Memiliki area luas dengan proteksi keamanan 24 jam, kemudahan akses keluar masuk otomatis, dan fasilitas penunjang ramah lingkungan untuk seluruh pengendara.',
                   style: GoogleFonts.inter(fontSize: 13.5, height: 1.5, color: isDark ? const Color(0xFFCBD5E1) : const Color(0xFF444746)),
                 ),
               ],
@@ -2850,19 +2853,19 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('Fasilitas & Layanan', style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
+                Text('Fasilitas & Layanan'.tr, style: GoogleFonts.inter(fontSize: 15, fontWeight: FontWeight.w700, color: isDark ? Colors.white : const Color(0xFF1F1F1F))),
                 const SizedBox(height: 12),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    _buildFacilityBadge(Icons.security, 'CCTV 24 Jam'),
-                    _buildFacilityBadge(Icons.electric_car, 'Stasiun EV'),
-                    _buildFacilityBadge(Icons.roofing, 'Atap Tertutup'),
-                    _buildFacilityBadge(Icons.sensor_door, 'Palang Otomatis'),
-                    _buildFacilityBadge(Icons.qr_code_2, 'Cashless / QRIS'),
-                    _buildFacilityBadge(Icons.shield, 'Security 24 Jam'),
-                    _buildFacilityBadge(Icons.lightbulb_outline, 'Penerangan LED'),
+                    _buildFacilityBadge(Icons.security, 'CCTV 24 Jam'.tr),
+                    _buildFacilityBadge(Icons.electric_car, 'Stasiun EV'.tr),
+                    _buildFacilityBadge(Icons.roofing, 'Atap Tertutup'.tr),
+                    _buildFacilityBadge(Icons.sensor_door, 'Palang Otomatis'.tr),
+                    _buildFacilityBadge(Icons.qr_code_2, 'Cashless / QRIS'.tr),
+                    _buildFacilityBadge(Icons.shield, 'Security 24 Jam'.tr),
+                    _buildFacilityBadge(Icons.lightbulb_outline, 'Penerangan LED'.tr),
                   ],
                 ),
               ],

@@ -8,6 +8,7 @@ import 'pin_settings_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import 'backend/profile_backend.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -30,6 +31,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
     ProfileBackend.instance.addListener(_onProfileChanged);
+    LanguageService.instance.addListener(_onLanguageChanged);
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) setState(() {});
   }
 
   void _onCurrencyChanged() {
@@ -56,6 +62,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     CurrencyService.instance.removeListener(_onCurrencyChanged);
     ThemeService.instance.removeListener(_onThemeChanged);
     ProfileBackend.instance.removeListener(_onProfileChanged);
+    LanguageService.instance.removeListener(_onLanguageChanged);
     super.dispose();
   }
 
@@ -1032,140 +1039,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   void _showLanguageSelection(BuildContext context) {
-    final theme = ThemeService.instance;
-    final isDark = theme.isDarkMode;
-
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(24),
-          decoration: BoxDecoration(
-            color: isDark ? theme.card : Colors.white,
-            borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-            border: isDark ? Border(top: BorderSide(color: theme.border)) : null,
-          ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Center(
-                child: Container(
-                  width: 40,
-                  height: 4,
-                  margin: const EdgeInsets.only(bottom: 20),
-                  decoration: BoxDecoration(
-                    color: isDark ? theme.border : const Color(0xFFE5E2DB),
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-              Text(
-                'Setel Bahasa',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                  color: isDark ? Colors.white : const Color(0xFF1A1A18),
-                ),
-              ),
-              const SizedBox(height: 24),
-              // Indonesia
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  height: 64, // "se jempol" height
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: isDark ? theme.surfaceField : const Color(0xFFF6F3EC),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? Colors.white : const Color(0xFF1A1A18),
-                      width: 1.5,
-                    ), // Active style
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.network(
-                          'https://flagcdn.com/w320/id.png',
-                          width: 32,
-                          height: 24,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'Bahasa Indonesia',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: isDark ? Colors.white : const Color(0xFF1A1A18),
-                          ),
-                        ),
-                      ),
-                      Icon(
-                        Icons.check_circle,
-                        color: isDark ? Colors.white : const Color(0xFF1A1A18),
-                        size: 20,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 12),
-              // English
-              GestureDetector(
-                onTap: () {
-                  Navigator.pop(context);
-                },
-                child: Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
-                  decoration: BoxDecoration(
-                    color: isDark ? theme.card : Colors.white,
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: isDark ? theme.border : const Color(0xFFE5E2DB),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: Image.network(
-                          'https://flagcdn.com/w320/gb.png',
-                          width: 32,
-                          height: 24,
-                          fit: BoxFit.cover,
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'English',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: isDark ? theme.textSecondary : const Color(0xFF1A1A18),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
-            ],
-          ),
-        );
-      },
-    );
+    LanguageService.showLanguageSelectionModal(context);
   }
 
   @override
@@ -1555,7 +1429,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     child: Column(
                       children: [
                         _SettingActionRow(
-                          icon: Icons.language, title: 'Bahasa', subtitle: 'Bahasa Indonesia', actionWidget: const Icon(Icons.chevron_right, color: Color(0xFF1C1C18)),
+                          icon: Icons.language,
+                          title: 'Bahasa'.tr,
+                          subtitle: LanguageService.instance.isEnglish ? 'English' : 'Bahasa Indonesia',
+                          actionWidget: Icon(Icons.chevron_right, color: ThemeService.instance.isDarkMode ? Colors.white70 : const Color(0xFF1C1C18)),
                           onTap: () => _showLanguageSelection(context),
                         ),
                         Padding(padding: const EdgeInsets.symmetric(vertical: 16), child: Divider(color: ThemeService.instance.divider, height: 1)),

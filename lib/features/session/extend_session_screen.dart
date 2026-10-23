@@ -1,8 +1,10 @@
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import 'package:flutter/material.dart';
 import '../pin/pin_screen.dart';
 import '../session/active_session_screen.dart';
+import '../profile/payment_methods_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/extend_session_backend.dart';
 
@@ -31,7 +33,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
     final selectedOption = _options[_selectedIndex];
 
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ExtendSessionBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ExtendSessionBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -58,7 +60,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                   ),
                 ),
                 Text(
-                  'Extend Parking Session',
+                  'Perpanjang Sesi Parkir'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
@@ -89,7 +91,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         ),
                         const SizedBox(height: 24),
                         Text(
-                          'Tidak Ada Sesi Parkir Aktif',
+                          'Tidak Ada Sesi Parkir Aktif'.tr,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 18,
@@ -99,7 +101,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          'Anda tidak memiliki sesi parkir aktif yang dapat diperpanjang saat ini.',
+                          'Anda tidak memiliki sesi parkir aktif yang dapat diperpanjang saat ini.'.tr,
                           textAlign: TextAlign.center,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
@@ -110,7 +112,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         ElevatedButton.icon(
                           onPressed: () => Navigator.pop(context),
                           icon: const Icon(Icons.arrow_back, size: 18),
-                          label: const Text('Kembali'),
+                          label: Text('Kembali'.tr),
                           style: ElevatedButton.styleFrom(
                             backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                             foregroundColor: isDark ? Colors.black : Colors.white,
@@ -154,7 +156,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                 const Icon(Icons.local_parking, size: 16, color: Color(0xFF9A442D)),
                                 const SizedBox(width: 4),
                                 Text(
-                                  'Lokasi & Penempatan',
+                                  'Lokasi & Penempatan'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -212,7 +214,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Sisa Waktu Sesi Ini',
+                                'Sisa Waktu Sesi Ini'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
@@ -238,7 +240,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                   borderRadius: BorderRadius.circular(12),
                                 ),
                                 child: Text(
-                                  'Batas Selesai',
+                                  'Batas Selesai'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.bold,
@@ -285,7 +287,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    'PILIH DURASI TAMBAHAN',
+                    'PILIH DURASI TAMBAHAN'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -293,7 +295,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                     ),
                   ),
                   Text(
-                    'Maks. +4 Jam',
+                    'Maks. +4 Jam'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11,
                       fontWeight: FontWeight.bold,
@@ -398,7 +400,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                     padding: const EdgeInsets.symmetric(vertical: 3),
                                     color: const Color(0xFFFC9174),
                                     child: Text(
-                                      'POPULER',
+                                      'POPULER'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 9,
                                         fontWeight: FontWeight.w900,
@@ -419,7 +421,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                     children: [
                                       Text(
-                                        option['title'],
+                                        option['title'].toString().tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 16,
                                           fontWeight: FontWeight.bold,
@@ -463,7 +465,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                         ),
                                       ),
                                       Text(
-                                        option['time'],
+                                        option['time'].toString().tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           color: timeColor,
@@ -509,7 +511,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'WAKTU SELESAI BARU',
+                              'WAKTU SELESAI BARU'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -520,7 +522,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                             Row(
                               children: [
                                 Text(
-                                  selectedOption['time'].toString().replaceAll('Hingga ', ''),
+                                  selectedOption['time'].toString().replaceAll('Hingga ', '').replaceAll('Until ', ''),
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
                                     fontWeight: FontWeight.bold,
@@ -535,7 +537,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                     borderRadius: BorderRadius.circular(8),
                                   ),
                                   child: Text(
-                                    '(${selectedOption['title']})',
+                                    '(${selectedOption['title'].toString().tr})',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -551,7 +553,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                           crossAxisAlignment: CrossAxisAlignment.end,
                           children: [
                             Text(
-                              'BIAYA TAMBAHAN',
+                              'BIAYA TAMBAHAN'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 fontWeight: FontWeight.bold,
@@ -598,9 +600,10 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                                 ),
                                 if (_selectedPaymentMethod == 'ParkSmart Wallet')
                                   Text(
-                                    'Saldo Aktif: ${CurrencyService.instance.format(45000)}',
+                                    '${'Saldo'.tr}: ${CurrencyService.instance.format(ExtendSessionBackend.instance.walletBalance)}',
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
+                                      fontWeight: FontWeight.w600,
                                       color: isDark ? const Color(0xFF34D399) : const Color(0xFF1F4F3C),
                                     ),
                                   ),
@@ -611,7 +614,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                         GestureDetector(
                           onTap: _showPaymentMethodDialog,
                           child: Text(
-                            'Ubah',
+                            'Ubah'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               fontWeight: FontWeight.bold,
@@ -628,14 +631,14 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
               Row(
                 children: [
                   Icon(
-                    Icons.info_outline,
+                     Icons.info_outline,
                     size: 20,
                     color: isDark ? const Color(0xFF94A3B8) : const Color.fromARGB(255, 45, 46, 47),
                   ),
                   const SizedBox(width: 12),
                   Expanded(
                     child: Text(
-                      'Perpanjangan otomatis dikonfirmasi tanpa perlu tiket baru.',
+                      'Perpanjangan otomatis dikonfirmasi tanpa perlu tiket baru.'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
@@ -650,21 +653,31 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                 height: 56,
                 child: ElevatedButton(
                   onPressed: () async {
-                    await ExtendSessionBackend.instance.extendSession(
-                      optionIndex: _selectedIndex,
-                      paymentMethod: _selectedPaymentMethod,
-                    );
-                    if (context.mounted) {
-                      Navigator.pushReplacement(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => const PinScreen(
-                            nextScreen: ActiveSessionScreen(),
-                            transactionType: 'perpanjangan parkir',
-                          ),
-                        ),
-                      );
+                    final isWallet = _selectedPaymentMethod.toLowerCase().contains('wallet');
+                    final cost = (selectedOption['amount'] as num?)?.toDouble() ?? 5000.0;
+                    final currentBal = ExtendSessionBackend.instance.walletBalance;
+
+                    if (isWallet && currentBal < cost) {
+                      _showInsufficientBalanceModal(currentBal, cost);
+                      return;
                     }
+
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => PinScreen(
+                          nextScreen: const ActiveSessionScreen(),
+                          transactionType: 'perpanjangan parkir',
+                          customTitle: 'Konfirmasi PIN Perpanjangan'.tr,
+                          onConfirmPin: () async {
+                            return await ExtendSessionBackend.instance.extendSession(
+                              optionIndex: _selectedIndex,
+                              paymentMethod: _selectedPaymentMethod,
+                            );
+                          },
+                        ),
+                      ),
+                    );
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
@@ -681,7 +694,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        'Konfirmasi & Bayar ${CurrencyService.instance.format((selectedOption['amount'] as num?)?.toDouble() ?? 5000.0)}',
+                        '${'Konfirmasi & Bayar'.tr} ${CurrencyService.instance.format((selectedOption['amount'] as num?)?.toDouble() ?? 5000.0)}',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -759,7 +772,7 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                       constraints: const BoxConstraints(),
                     ),
                     Text(
-                      'Pilih Metode Pembayaran',
+                      'Pilih Metode Pembayaran'.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 16,
                         fontWeight: FontWeight.bold,
@@ -840,6 +853,149 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
               )
             : Center(child: _buildPaymentLogo(method, 32)),
       ),
+    );
+  }
+
+  void _showInsufficientBalanceModal(double currentBalance, double cost) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final shortage = cost - currentBalance;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                        : const Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Color(0xFFDC2626),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Saldo Tidak Mencukupi'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Saldo ParkSmart Wallet Anda tidak mencukupi untuk perpanjangan waktu parkir ini.'.tr,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF262C36) : const Color(0xFFF7F5EE),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Saldo Saat Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(currentBalance), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Biaya Perpanjangan'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(cost), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFB923C))),
+                        ],
+                      ),
+                      const Divider(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Kekurangan Saldo'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFDC2626))),
+                          Text(CurrencyService.instance.format(shortage), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFFDC2626))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: BorderSide(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
+                        ),
+                        child: Text(
+                          'Batal'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogCtx);
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                          );
+                          await ExtendSessionBackend.instance.fetchActiveSessionForExtend(sessionId: widget.sessionId);
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFF17A18A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Top Up Saldo'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }

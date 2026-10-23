@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
 import '../notification/notification_screen.dart';
+import '../../core/services/language_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'session_checkout_screen.dart';
 import 'extend_session_screen.dart';
@@ -90,7 +91,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ActiveSessionBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ActiveSessionBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -162,7 +163,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'SESI AKTIF',
+                              'SESI AKTIF'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -229,7 +230,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'Tidak Ada Sesi Parkir Aktif',
+                                  'Tidak Ada Sesi Parkir Aktif'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 20,
                                     fontWeight: FontWeight.bold,
@@ -238,7 +239,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Saat kendaraan Anda check-in di gate parkir, timer dan detail spot akan muncul secara otomatis di sini.',
+                                  'Saat kendaraan Anda check-in di gate parkir, timer dan detail spot akan muncul secara otomatis di sini.'.tr,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
@@ -256,7 +257,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                       borderRadius: BorderRadius.circular(20),
                                     ),
                                     child: Text(
-                                      'Kembali ke Beranda',
+                                      'Kembali ke Beranda'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 14,
                                         fontWeight: FontWeight.bold,
@@ -303,7 +304,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           ),
                                           const SizedBox(height: 8),
                                           Text(
-                                            'SISA WAKTU PARKIR',
+                                            'SISA WAKTU PARKIR'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               fontWeight: FontWeight.w600,
@@ -349,7 +350,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                                 const Icon(Icons.schedule, size: 14, color: Color(0xFF17A18A)),
                                                 const SizedBox(width: 6),
                                                 Text(
-                                                  'Batas Selesai ${ActiveSessionBackend.instance.deadlineFormatted}',
+                                                  'Batas Selesai ${ActiveSessionBackend.instance.deadlineFormatted}'.tr,
                                                   style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 12,
                                                     fontWeight: FontWeight.w600,
@@ -443,7 +444,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           crossAxisAlignment: CrossAxisAlignment.start,
                                           children: [
                                             Text(
-                                              'LOKASI PARKIR',
+                                              'LOKASI PARKIR'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.w600,
@@ -490,7 +491,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.end,
                                         children: [
                                           Text(
-                                            'NOMOR SLOT',
+                                            'NOMOR SLOT'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -544,7 +545,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Biaya Terhitung',
+                                                'Biaya Terhitung'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,
@@ -569,7 +570,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                                   borderRadius: BorderRadius.circular(20),
                                                 ),
                                                 child: Text(
-                                                  'Lunas di Muka',
+                                                  'Lunas di Muka'.tr,
                                                   style: GoogleFonts.plusJakartaSans(
                                                     fontSize: 10,
                                                     fontWeight: FontWeight.w600,
@@ -596,7 +597,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                'Kendaraan Aktif',
+                                                'Kendaraan Aktif'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 11,
                                                   fontWeight: FontWeight.w500,
@@ -641,7 +642,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Masuk ${ActiveSessionBackend.instance.checkInFormatted}',
+                                            'Masuk ${ActiveSessionBackend.instance.checkInFormatted}'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
@@ -658,7 +659,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                           ),
                                           const SizedBox(width: 6),
                                           Text(
-                                            'Durasi Paket: ${ActiveSessionBackend.instance.durationHours} Jam',
+                                            'Durasi Paket: ${ActiveSessionBackend.instance.durationHours} Jam'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 12,
                                               color: isDark ? theme.textMuted : const Color(0xFF7D7A75),
@@ -714,7 +715,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Check Out Parkir',
+                                    'Check Out Parkir'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 15,
                                       fontWeight: FontWeight.bold,
@@ -779,7 +780,7 @@ class _ActionPill extends StatelessWidget {
             const SizedBox(width: 4),
             Flexible(
               child: Text(
-                label,
+                label.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 11,
                   fontWeight: FontWeight.w700,

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../../core/utils/image_compression_util.dart';
 import 'custom_camera_screen.dart';
 import 'backend/add_vehicle_backend.dart';
@@ -106,7 +107,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Unggah Foto Kendaraan',
+              'Unggah Foto Kendaraan'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
@@ -115,7 +116,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
             ),
             const SizedBox(height: 6),
             Text(
-              'Pilih sumber foto (otomatis dikompres 70% jernih):',
+              'Pilih sumber foto (otomatis dikompres 70% jernih):'.tr,
               style: GoogleFonts.plusJakartaSans(fontSize: 12, color: theme.textSecondary),
             ),
             const SizedBox(height: 16),
@@ -128,7 +129,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       _pickVehiclePhoto(ImageSource.camera);
                     },
                     icon: const Icon(Icons.camera_alt, size: 18),
-                    label: const Text('Kamera'),
+                    label: Text('Kamera'.tr),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: isDark ? theme.surfaceField : const Color(0xFF141518),
                       foregroundColor: Colors.white,
@@ -145,7 +146,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       _pickVehiclePhoto(ImageSource.gallery);
                     },
                     icon: Icon(Icons.photo_library, size: 18, color: theme.textPrimary),
-                    label: Text('Galeri', style: TextStyle(color: theme.textPrimary)),
+                    label: Text('Galeri'.tr, style: TextStyle(color: theme.textPrimary)),
                     style: OutlinedButton.styleFrom(
                       side: BorderSide(color: theme.border),
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -184,7 +185,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, AddVehicleBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, AddVehicleBackend.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -223,7 +224,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                 padding: const EdgeInsets.only(left: 16, right: 16, top: 20, bottom: 100),
                 children: [
                   Text(
-                    'Tambah Kendaraan',
+                    'Tambah Kendaraan'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 24,
                       fontWeight: FontWeight.w800,
@@ -270,7 +271,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Pindai Plat',
+                                'Pindai Plat'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.bold,
@@ -309,7 +310,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               const Icon(Icons.photo_camera, size: 16),
                               const SizedBox(width: 6),
                               Text(
-                                'Buka Kamera',
+                                'Buka Kamera'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -329,7 +330,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text(
-                        'Kategori Kendaraan',
+                        'Kategori Kendaraan'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
@@ -337,7 +338,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                         ),
                       ),
                       Text(
-                        'Penentu Tarif Gerbang',
+                        'Penentu Tarif Gerbang'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w500,
@@ -352,8 +353,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       Expanded(
                         child: _CategoryBtn(
                           icon: Icons.directions_car,
-                          title: 'Mobil / SUV',
-                          subtitle: 'Golongan I',
+                          title: 'Mobil / SUV'.tr,
+                          subtitle: 'Golongan I'.tr,
                           isSelected: _selectedCategory == 'suv',
                           isDark: isDark,
                           theme: theme,
@@ -364,8 +365,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       Expanded(
                         child: _CategoryBtn(
                           icon: Icons.directions_car_filled_outlined,
-                          title: 'Sedan / City',
-                          subtitle: 'Golongan I',
+                          title: 'Sedan / City'.tr,
+                          subtitle: 'Golongan I'.tr,
                           isSelected: _selectedCategory == 'sedan',
                           isDark: isDark,
                           theme: theme,
@@ -376,8 +377,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       Expanded(
                         child: _CategoryBtn(
                           icon: Icons.two_wheeler,
-                          title: 'Motor Roda 2',
-                          subtitle: 'Golongan II',
+                          title: 'Motor Roda 2'.tr,
+                          subtitle: 'Golongan II'.tr,
                           isSelected: _selectedCategory == 'motor',
                           isDark: isDark,
                           theme: theme,
@@ -411,7 +412,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Nomor Polisi (TNKB)',
+                              'Nomor Polisi (TNKB)'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -446,8 +447,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                   const SizedBox(width: 5),
                                   Text(
                                     _scannedPlate != null
-                                        ? 'Terverifikasi Foto'
-                                        : 'Wajib Foto (2x)',
+                                        ? 'Terverifikasi Foto'.tr
+                                        : 'Wajib Foto (2x)'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 11,
                                       fontWeight: FontWeight.bold,
@@ -564,8 +565,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             Expanded(
                               child: Text(
                                 _scannedPlate != null
-                                    ? 'Plat dan masa berlaku terisi dari foto (gunakan tombol "Buka Kamera" di atas jika ingin foto ulang).'
-                                    : 'Gunakan tombol "Buka Kamera" di atas untuk memindai plat & STNK. Plat hitam akan terisi otomatis.',
+                                    ? 'Plat dan masa berlaku terisi dari foto (gunakan tombol "Buka Kamera" di atas jika ingin foto ulang).'.tr
+                                    : 'Gunakan tombol "Buka Kamera" di atas untuk memindai plat & STNK. Plat hitam akan terisi otomatis.'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
                                   color: _scannedPlate != null
@@ -605,7 +606,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Detail Kendaraan',
+                              'Detail Kendaraan'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
@@ -613,7 +614,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               ),
                             ),
                             Text(
-                              'Merek & Warna',
+                              'Merek & Warna'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: theme.textSecondary,
@@ -656,7 +657,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'Pilihan Warna:',
+                              'Pilihan Warna:'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w500,
@@ -678,7 +679,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           children: [
                             _ColorBtn(
                               color: Colors.white,
-                              name: 'Putih Mutiara',
+                              name: 'Putih Mutiara'.tr,
                               selectedColor: _selectedColor,
                               onSelect: (c) => setState(() => _selectedColor = c),
                               theme: theme,
@@ -686,7 +687,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             const SizedBox(width: 12),
                             _ColorBtn(
                               color: const Color(0xFF171717),
-                              name: 'Hitam Solid',
+                              name: 'Hitam Solid'.tr,
                               selectedColor: _selectedColor,
                               onSelect: (c) => setState(() => _selectedColor = c),
                               isDarkItem: true,
@@ -695,7 +696,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             const SizedBox(width: 12),
                             _ColorBtn(
                               color: const Color(0xFF64748B),
-                              name: 'Abu-Abu Metalik',
+                              name: 'Abu-Abu Metalik'.tr,
                               selectedColor: _selectedColor,
                               onSelect: (c) => setState(() => _selectedColor = c),
                               isDarkItem: true,
@@ -704,7 +705,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             const SizedBox(width: 12),
                             _ColorBtn(
                               color: const Color(0xFFBE123C),
-                              name: 'Merah Maroon',
+                              name: 'Merah Maroon'.tr,
                               selectedColor: _selectedColor,
                               onSelect: (c) => setState(() => _selectedColor = c),
                               isDarkItem: true,
@@ -713,7 +714,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                             const SizedBox(width: 12),
                             _ColorBtn(
                               color: const Color(0xFFD6D3D1),
-                              name: 'Silver Quartz',
+                              name: 'Silver Quartz'.tr,
                               selectedColor: _selectedColor,
                               onSelect: (c) => setState(() => _selectedColor = c),
                               theme: theme,
@@ -746,7 +747,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                 Icon(Icons.add_a_photo_outlined, size: 18, color: theme.accent),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Foto Fisik Kendaraan',
+                                  'Foto Fisik Kendaraan'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 13,
                                     fontWeight: FontWeight.bold,
@@ -762,7 +763,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                 borderRadius: BorderRadius.circular(6),
                               ),
                               child: Text(
-                                'Opsional • Kompres 70%',
+                                'Opsional • Kompres 70%'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 10,
                                   fontWeight: FontWeight.w600,
@@ -832,7 +833,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                             const Icon(Icons.edit, size: 13, color: Colors.white),
                                             const SizedBox(width: 4),
                                             Text(
-                                              'Ganti',
+                                              'Ganti'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 11,
                                                 fontWeight: FontWeight.bold,
@@ -923,7 +924,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                   ),
                                   const SizedBox(height: 8),
                                   Text(
-                                    'Pilih Foto Kendaraan (Kamera / Galeri)',
+                                    'Pilih Foto Kendaraan (Kamera / Galeri)'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w600,
@@ -932,7 +933,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    'Foto jernih & dikompres 70% otomatis tanpa buram',
+                                    'Foto jernih & dikompres 70% otomatis tanpa buram'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10,
                                       color: theme.textSecondary,
@@ -969,10 +970,10 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           : () async {
                               if (_scannedPlate == null || _scannedExpiry == null) {
                                 ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('Wajib mengambil 2 foto: Plat Nomor & Masa Berlaku STNK terlebih dahulu!'),
-                                    backgroundColor: Color(0xFFDC2626),
-                                    duration: Duration(seconds: 3),
+                                  SnackBar(
+                                    content: Text('Wajib mengambil 2 foto: Plat Nomor & Masa Berlaku STNK terlebih dahulu!'.tr),
+                                    backgroundColor: const Color(0xFFDC2626),
+                                    duration: const Duration(seconds: 3),
                                   ),
                                 );
                                 _openCameraScanner();
@@ -990,9 +991,9 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                               if (context.mounted) {
                                 if (success) {
                                   ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Kendaraan berhasil disimpan!'),
-                                      backgroundColor: Color(0xFF10B981),
+                                    SnackBar(
+                                      content: Text('Kendaraan berhasil disimpan!'.tr),
+                                      backgroundColor: const Color(0xFF10B981),
                                     ),
                                   );
                                   Navigator.pop(context);
@@ -1023,7 +1024,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                                 const Icon(Icons.check_circle, size: 20),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Simpan Kendaraan',
+                                  'Simpan Kendaraan'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 15,
                                     fontWeight: FontWeight.bold,

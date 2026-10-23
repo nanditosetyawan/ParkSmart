@@ -3,6 +3,7 @@ import 'history_detail_screen.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import '../profile/backend/vehicle_backend.dart';
 import 'backend/verified_parking_sessions_backend.dart';
 
@@ -34,7 +35,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, VerifiedParkingSessionsBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, VerifiedParkingSessionsBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -57,7 +58,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
               onPressed: () => Navigator.pop(context),
             ),
             title: Text(
-              'Riwayat Parkir Kendaraan',
+              'Riwayat Parkir Kendaraan'.tr,
               style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: textMain),
             ),
             actions: [
@@ -109,7 +110,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                backend.isDefault ? 'Kendaraan Utama' : 'Kendaraan Cadangan',
+                                (backend.isDefault ? 'Kendaraan Utama' : 'Kendaraan Cadangan').tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.bold,
@@ -155,7 +156,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(backend.vehiclePlate, style: GoogleFonts.plusJakartaSans(fontSize: 22, fontWeight: FontWeight.bold, color: textMain)),
-                              Text(backend.vehicleInfo, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSub)),
+                              Text(backend.vehicleInfo.tr, style: GoogleFonts.plusJakartaSans(fontSize: 14, color: textSub)),
                               const SizedBox(height: 8),
                               const SizedBox(),
                             ],
@@ -176,19 +177,19 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                         children: [
                           Column(
                             children: [
-                              Text('Total Sesi', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
-                              Text('${backend.totalSessions} Kali', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
+                              Text('Total Sesi'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
+                              Text('${backend.totalSessions} Kali'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
                             ],
                           ),
                           Column(
                             children: [
-                              Text('Total Durasi', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
-                              Text('${backend.totalDurationHours} Jam', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
+                              Text('Total Durasi'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
+                              Text('${backend.totalDurationHours} Jam'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: textMain)),
                             ],
                           ),
                           Column(
                             children: [
-                              Text('Bulan Ini', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
+                              Text('Bulan Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
                               Text(
                                 CurrencyService.instance.format(backend.rawThisMonthSpending),
                                 style: GoogleFonts.plusJakartaSans(
@@ -218,14 +219,14 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                 children: [
                   Row(
                     children: [
-                      Text('Sesi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: textMain)),
+                      Text('Sesi Parkir'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 18, fontWeight: FontWeight.bold, color: textMain)),
                       const SizedBox(width: 8),
                     ],
                   ),
                   Row(
                     children: [
                       Text(
-                        'Urutkan',
+                        'Urutkan'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
@@ -266,7 +267,7 @@ class _VerifiedParkingSessionsScreenState extends State<VerifiedParkingSessionsS
                       ),
                       const SizedBox(height: 16),
                       Text(
-                        'Belum Ada Sesi Terverifikasi',
+                        'Belum Ada Sesi Terverifikasi'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 16,
                           fontWeight: FontWeight.bold,
@@ -409,7 +410,7 @@ class _HistoryItem extends StatelessWidget {
                       children: [
                         Icon(Icons.pin_drop, size: 14, color: textSub),
                         const SizedBox(width: 4),
-                        Text(slot, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
+                        Text(slot.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, color: textSub)),
                       ],
                     ),
                   ],
@@ -443,7 +444,7 @@ class _HistoryItem extends StatelessWidget {
                         Text(date, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: textMain)),
                       ],
                     ),
-                    Text(duration, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: textSub)),
+                    Text(duration.tr, style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: textSub)),
                   ],
                 ),
                 const SizedBox(height: 8),
@@ -451,18 +452,18 @@ class _HistoryItem extends StatelessWidget {
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(timeIn, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                      Text(timeIn.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
                       const SizedBox(height: 4),
-                      Text(timeOut, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                      Text(timeOut.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
                     ],
                   )
                 else
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Text(timeIn, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                      Text(timeIn.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
                       const Icon(Icons.arrow_forward, size: 14, color: Color(0xFFC6C6CA)),
-                      Text(timeOut, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
+                      Text(timeOut.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: textSub)),
                     ],
                   ),
               ],
@@ -483,7 +484,7 @@ class _HistoryItem extends StatelessWidget {
                     Icon(Icons.check_circle, size: 13, color: isDark ? const Color(0xFF6EE7B7) : const Color(0xFF002115)),
                     const SizedBox(width: 4),
                     Text(
-                      status,
+                      status.tr,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,

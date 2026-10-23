@@ -11,6 +11,7 @@ import 'theme/app_theme.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'core/services/language_service.dart';
 import 'features/auth/login_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
@@ -81,6 +82,12 @@ void main() async {
     debugPrint('SessionService init error: $e');
   }
 
+  try {
+    await LanguageService.instance.init();
+  } catch (e) {
+    debugPrint('LanguageService init error: $e');
+  }
+
   // Meminta izin akses utama (khusus perangkat fisik mobile)
   if (!kIsWeb) {
     try {
@@ -115,7 +122,10 @@ class ParkSmartApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([
+        ThemeService.instance,
+        LanguageService.instance,
+      ]),
       builder: (context, _) {
         return MaterialApp(
           navigatorKey: navigatorKey,

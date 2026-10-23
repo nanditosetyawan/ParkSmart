@@ -1,4 +1,5 @@
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import 'dart:math' as math;
 import 'dart:async';
 import 'dart:convert';
@@ -330,7 +331,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
   /// Memperbarui posisi GPS riil dan menghitung ulang rute jalan tercepat
   Future<void> _refreshGpsAndRoute() async {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
+      SnackBar(
         content: Row(
           children: [
             SizedBox(
@@ -339,7 +340,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
               child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
             ),
             SizedBox(width: 10),
-            Text('Memperbarui GPS & menghitung rute tercepat...'),
+            Text('Memperbarui GPS & menghitung rute tercepat...'.tr),
           ],
         ),
         duration: Duration(seconds: 2),
@@ -432,8 +433,8 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
     if (_steps.isEmpty) {
       return {
         'icon': Icons.turn_left,
-        'title': '50m Belok Kiri',
-        'subtitle': 'Pintu Masuk Barat Basement',
+        'title': '50m Belok Kiri'.tr,
+        'subtitle': 'Pintu Masuk Barat Basement'.tr,
       };
     }
 
@@ -444,23 +445,23 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
     final road = (cur['name'] ?? '').toString().trim();
 
     IconData icon = Icons.turn_left;
-    String turnText = 'Belok Kiri';
+    String turnText = 'Belok Kiri'.tr;
 
     if (type == 'arrive') {
       icon = Icons.flag_rounded;
-      turnText = 'Tiba di Lokasi Tujuan';
+      turnText = 'Tiba di Lokasi Tujuan'.tr;
     } else if (mod.contains('right')) {
       icon = Icons.turn_right;
-      turnText = 'Belok Kanan';
+      turnText = 'Belok Kanan'.tr;
     } else if (mod.contains('left')) {
       icon = Icons.turn_left;
-      turnText = 'Belok Kiri';
+      turnText = 'Belok Kiri'.tr;
     } else if (mod.contains('straight') || type == 'depart') {
       icon = Icons.straight;
-      turnText = 'Lurus Terus';
+      turnText = 'Lurus Terus'.tr;
     } else if (type.contains('roundabout')) {
       icon = Icons.rotate_right_rounded;
-      turnText = 'Masuk Bundaran';
+      turnText = 'Masuk Bundaran'.tr;
     }
 
     final distPrefix = dist > 0 ? '${dist.round()}m ' : '';
@@ -468,14 +469,14 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
     return {
       'icon': icon,
       'title': '$distPrefix$turnText',
-      'subtitle': road.isNotEmpty ? road : 'Menuju $_destName',
+      'subtitle': road.isNotEmpty ? road : '${'Menuju'.tr} $_destName',
     };
   }
 
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -491,7 +492,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
-                'Navigasi Panduan Rute',
+                'Navigasi Panduan Rute'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -519,7 +520,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Tujuan Parkir Belum Dipilih',
+                      'Tujuan Parkir Belum Dipilih'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
@@ -529,7 +530,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Silakan pilih tempat parkir tujuan dari peta atau beranda terlebih dahulu untuk memulai panduan rute turn-by-turn.',
+                      'Silakan pilih tempat parkir tujuan dari peta atau beranda terlebih dahulu untuk memulai panduan rute turn-by-turn.'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
@@ -540,7 +541,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                     ElevatedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.map_outlined, size: 18),
-                      label: const Text('Pilih Tempat Parkir'),
+                      label: Text('Pilih Tempat Parkir'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                         foregroundColor: isDark ? Colors.black : Colors.white,
@@ -734,7 +735,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                maneuver['title'] as String,
+                                (maneuver['title'] as String).tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,
@@ -745,7 +746,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                               ),
                               const SizedBox(height: 2),
                               Text(
-                                maneuver['subtitle'] as String,
+                                (maneuver['subtitle'] as String).tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   color: theme.textSecondary,
@@ -764,8 +765,8 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
                                 content: Text(_isMuted
-                                    ? 'Panduan suara dinonaktifkan'
-                                    : 'Panduan suara diaktifkan'),
+                                    ? 'Panduan suara dinonaktifkan'.tr
+                                    : 'Panduan suara diaktifkan'.tr),
                                 duration: const Duration(seconds: 1),
                               ),
                             );
@@ -846,7 +847,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  _isGpsLocked ? 'GPS Terkunci' : 'Mencari GPS...',
+                                  _isGpsLocked ? 'GPS Terkunci'.tr : 'Mencari GPS...'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -955,7 +956,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                 ],
                               ),
                               child: IconButton(
-                                tooltip: 'Hitung Ulang Rute Tercepat',
+                                tooltip: 'Hitung Ulang Rute Tercepat'.tr,
                                 icon: const Icon(
                                   Icons.refresh_rounded,
                                   color: Color(0xFF1A73E8),
@@ -1099,7 +1100,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                                 const SizedBox(width: 8),
                                                 Expanded(
                                                   child: Text(
-                                                      'Berhasil tiba di $_destName!'),
+                                                      'Berhasil tiba di $_destName!'.tr),
                                                 ),
                                               ],
                                             ),
@@ -1120,7 +1121,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                                             MainAxisAlignment.center,
                                         children: [
                                           Text(
-                                            'Tiba di Lokasi',
+                                            'Tiba di Lokasi'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14.5,
                                               fontWeight: FontWeight.bold,
@@ -1163,7 +1164,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
       isScrollControlled: true,
       builder: (ctx) {
         return ListenableBuilder(
-          listenable: ThemeService.instance,
+          listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
           builder: (ctx, _) {
             final theme = ThemeService.instance;
             final isDark = theme.isDarkMode;
@@ -1193,7 +1194,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         ),
                       ),
                       Text(
-                        'Opsi Navigasi',
+                        'Opsi Navigasi'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -1206,7 +1207,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         leading: const Icon(Icons.refresh_rounded,
                             color: Color(0xFF1A73E8)),
                         title: Text(
-                          'Hitung Ulang Rute Tercepat',
+                          'Hitung Ulang Rute Tercepat'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             color: theme.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -1224,7 +1225,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                           color: isDark ? const Color(0xFF34D399) : const Color(0xFF1C1D1F),
                         ),
                         title: Text(
-                          'Pusatkan ke Posisi GPS',
+                          'Pusatkan ke Posisi GPS'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             color: theme.textPrimary,
                             fontWeight: FontWeight.w600,
@@ -1240,7 +1241,7 @@ class _ArNavigationScreenState extends State<ArNavigationScreen> {
                         leading: const Icon(Icons.close_rounded,
                             color: Color(0xFFEA4335)),
                         title: Text(
-                          'Hentikan Navigasi',
+                          'Hentikan Navigasi'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             color: const Color(0xFFEA4335),
                             fontWeight: FontWeight.w600,

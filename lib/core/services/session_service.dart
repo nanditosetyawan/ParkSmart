@@ -10,6 +10,7 @@ import '../../features/checkout/backend/checkout_backend.dart';
 import '../../features/home/backend/home_backend.dart';
 import '../../features/history/backend/history_backend.dart';
 import '../../features/history/backend/verified_parking_sessions_backend.dart';
+import '../../features/notification/backend/notification_backend.dart';
 import '../../main.dart' show navigatorKey;
 
 /// Layanan Pengelola Sesi Terpadu (User & Admin) - ParkSmart ID
@@ -369,6 +370,9 @@ class SessionService with WidgetsBindingObserver {
     } catch (_) {}
     try {
       VehicleBackend.instance.clearVehicles();
+    } catch (_) {}
+    try {
+      NotificationBackend.instance.clear();
     } catch (_) {}
   }
 

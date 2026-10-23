@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import '../pin/pin_screen.dart';
 import '../pin/backend/pin_backend.dart';
@@ -11,6 +12,7 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_typography.dart';
 import '../booking/booking_confirmation_screen.dart';
 import '../profile/vehicle_screen.dart';
+import '../profile/payment_methods_screen.dart';
 import 'backend/checkout_backend.dart';
 import '../booking/backend/booking_confirmation_backend.dart';
 
@@ -51,7 +53,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
       if (!mounted) return;
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Data booking tidak ditemukan atau sudah dibatalkan.')),
+          SnackBar(content: Text('Data booking tidak ditemukan atau sudah dibatalkan.'.tr)),
         );
         Navigator.pop(context);
         return;
@@ -65,8 +67,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         await CheckoutBackend.instance.cancelHoldBooking();
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Batas waktu pembayaran (02:59) telah habis. Slot telah dilepas.'),
+            SnackBar(
+              content: Text('Batas waktu pembayaran (02:59) telah habis. Slot telah dilepas.'.tr),
               backgroundColor: Colors.redAccent,
             ),
           );
@@ -89,8 +91,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
       if (!ok) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Slot ini sudah dibooking orang lain atau terjadi kendala. Silakan pilih jadwal/slot lain.'),
+          SnackBar(
+            content: Text('Slot ini sudah dibooking orang lain atau terjadi kendala. Silakan pilih jadwal/slot lain.'.tr),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -130,8 +132,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
     await CheckoutBackend.instance.cancelHoldBooking();
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Waktu penahanan slot habis (02:59). Slot telah dilepas.'),
+        SnackBar(
+          content: Text('Waktu penahanan slot habis (02:59). Slot telah dilepas.'.tr),
           backgroundColor: Colors.redAccent,
         ),
       );
@@ -154,7 +156,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, CheckoutBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, CheckoutBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -189,7 +191,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                             const SizedBox(width: 4),
                             Text(
-                              'Slot Ditahan ($_timerDisplay)',
+                              '${'Slot Ditahan'.tr} ($_timerDisplay)',
                               style: AppTypography.overline(
                                 color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF742814),
                               ),
@@ -198,7 +200,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                         ),
                       ),
                       Text(
-                        'Langkah 3 dari 3',
+                        'Langkah 3 dari 3'.tr,
                         style: AppTypography.caption(
                           color: isDark ? theme.textMuted : _kOutline,
                         ),
@@ -207,7 +209,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Konfirmasi\nReservasi',
+                    'Konfirmasi\nReservasi'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 32,
                       fontWeight: FontWeight.w700,
@@ -218,7 +220,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Tinjau detail parkir pintar Anda sebelum pembayaran otomatis diproses.',
+                    'Tinjau detail parkir pintar Anda sebelum pembayaran otomatis diproses.'.tr,
                     style: AppTypography.bodySm(
                       color: isDark ? theme.textMuted : _kOnSurfaceVariant,
                     ),
@@ -266,13 +268,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'LOKASI TERPILIH',
+                                    'LOKASI TERPILIH'.tr,
                                     style: AppTypography.overline(
                                       color: isDark ? const Color(0xFF94A3B8) : _kOutline,
                                     ),
                                   ),
                                   Text(
-                                    CheckoutBackend.instance.locationName,
+                                    CheckoutBackend.instance.locationName.tr,
                                     style: AppTypography.headlineSm(
                                       color: isDark ? Colors.white : Colors.black,
                                     ),
@@ -296,7 +298,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                   ),
                                   const SizedBox(width: 4),
                                   Text(
-                                    '${CheckoutBackend.instance.durationHours} Jam',
+                                    '${CheckoutBackend.instance.durationHours} Jam'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       fontWeight: FontWeight.w700,
@@ -348,13 +350,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Zona Parkir',
+                                            'Zona Parkir'.tr,
                                             style: AppTypography.overline(
                                               color: Colors.white.withValues(alpha: 0.9),
                                             ),
                                           ),
                                           Text(
-                                            '${CheckoutBackend.instance.floorName} - Slot ${CheckoutBackend.instance.slotCode} • ${CheckoutBackend.instance.slotType}',
+                                            '${CheckoutBackend.instance.floorName.tr} - Slot ${CheckoutBackend.instance.slotCode} • ${CheckoutBackend.instance.slotType.tr}',
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w600,
@@ -419,7 +421,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'KENDARAAN TERDAFTAR',
+                                            'KENDARAAN TERDAFTAR'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 10,
                                               fontWeight: FontWeight.w700,
@@ -431,7 +433,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                           Text(
                                             CheckoutBackend.instance.selectedVehicle != null
                                                 ? '${CheckoutBackend.instance.selectedVehicle!['brand'] ?? ''} ${CheckoutBackend.instance.selectedVehicle!['model'] ?? ''}'.trim()
-                                                : 'Pilih Kendaraan Anda',
+                                                : 'Pilih Kendaraan Anda'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 14,
                                               fontWeight: FontWeight.w700,
@@ -476,6 +478,176 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 16),
 
+                  // Payment Method / Wallet Card
+                  Builder(
+                    builder: (context) {
+                      final balance = CheckoutBackend.instance.walletBalance;
+                      final totalPayment = CheckoutBackend.instance.totalPayment;
+                      final hasEnoughBalance = balance >= totalPayment;
+
+                      return Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: isDark ? theme.card : _kCard,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(
+                            color: hasEnoughBalance
+                                ? (isDark ? theme.border : const Color(0xFFE2DDD2))
+                                : const Color(0xFFEF4444).withValues(alpha: 0.6),
+                            width: hasEnoughBalance ? 1 : 1.5,
+                          ),
+                          boxShadow: const [AppShadows.soft],
+                        ),
+                        child: Column(
+                          children: [
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 40,
+                                      height: 40,
+                                      decoration: BoxDecoration(
+                                        color: hasEnoughBalance
+                                            ? (isDark ? const Color(0xFF134E4A) : const Color(0xFFCCFBF1))
+                                            : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2)),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: Icon(
+                                        Icons.account_balance_wallet_rounded,
+                                        size: 22,
+                                        color: hasEnoughBalance
+                                            ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E))
+                                            : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                    Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'METODE PEMBAYARAN'.tr,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 10,
+                                            fontWeight: FontWeight.w700,
+                                            letterSpacing: 0.5,
+                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          'ParkSmart Wallet',
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 14,
+                                            fontWeight: FontWeight.w700,
+                                            color: isDark ? Colors.white : Colors.black,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 2),
+                                        Row(
+                                          children: [
+                                            Text(
+                                              '${'Saldo'.tr}: ${CurrencyService.instance.format(balance)}',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 12,
+                                                fontWeight: FontWeight.w600,
+                                                color: hasEnoughBalance
+                                                    ? (isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A))
+                                                    : const Color(0xFFDC2626),
+                                              ),
+                                            ),
+                                            const SizedBox(width: 6),
+                                            Container(
+                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
+                                              decoration: BoxDecoration(
+                                                color: hasEnoughBalance
+                                                    ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
+                                                    : (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2)),
+                                                borderRadius: BorderRadius.circular(6),
+                                              ),
+                                              child: Text(
+                                                hasEnoughBalance ? 'Saldo Cukup'.tr : 'Kurang'.tr,
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 10,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: hasEnoughBalance
+                                                      ? (isDark ? const Color(0xFF34D399) : const Color(0xFF15803D))
+                                                      : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
+                                                ),
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                OutlinedButton(
+                                  onPressed: () async {
+                                    await Navigator.push(
+                                      context,
+                                      MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                                    );
+                                    await CheckoutBackend.instance.fetchCheckoutData();
+                                  },
+                                  style: OutlinedButton.styleFrom(
+                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                    minimumSize: const Size(0, 32),
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                                    side: BorderSide(color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F766E)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(Icons.add_circle_outline, size: 14, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F766E)),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        'Top Up'.tr,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.bold,
+                                          color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F766E),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                            if (!hasEnoughBalance) ...[
+                              const SizedBox(height: 10),
+                              Container(
+                                padding: const EdgeInsets.all(8),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF2D1B1B) : const Color(0xFFFFF1F2),
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Row(
+                                  children: [
+                                    const Icon(Icons.info_outline, size: 14, color: Color(0xFFDC2626)),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      child: Text(
+                                        'Saldo kurang ${CurrencyService.instance.format(totalPayment - balance)}. Silakan top up sebelum bayar.'.tr,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ],
+                          ],
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 16),
+
                   // Pricing Card
                   Container(
                     padding: const EdgeInsets.all(20),
@@ -487,7 +659,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                     ),
                     child: Column(
                       children: [
-                        _priceRow('Tarif Parkir (${CheckoutBackend.instance.durationHours} Jam • ${CheckoutBackend.instance.slotType})', CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
+                        _priceRow('Tarif Parkir (${CheckoutBackend.instance.durationHours} Jam • ${CheckoutBackend.instance.slotType})'.tr, CurrencyService.instance.format(CheckoutBackend.instance.subtotal), isDark: isDark),
                         Padding(
                           padding: const EdgeInsets.symmetric(vertical: 12),
                           child: Divider(
@@ -498,7 +670,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text(
-                              'TOTAL PEMBAYARAN',
+                              'TOTAL PEMBAYARAN'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w700,
@@ -555,7 +727,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Checkout',
+                            'Checkout'.tr,
                             style: AppTypography.headlineSm(
                               color: isDark ? Colors.white : Colors.black,
                             ),
@@ -585,6 +757,14 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () async {
+                          // 0. Validasi saldo wallet harus cukup sebelum lanjut
+                          final currentBal = CheckoutBackend.instance.walletBalance;
+                          final totalPay = CheckoutBackend.instance.totalPayment;
+                          if (currentBal < totalPay) {
+                            _showInsufficientBalanceModal(currentBal, totalPay);
+                            return;
+                          }
+
                           final now = DateTime.now();
                           final start = CheckoutBackend.instance.scheduledStartTime ?? now;
                           final end = CheckoutBackend.instance.scheduledEndTime ??
@@ -593,8 +773,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           // 1. Validasi jam masuk tidak di masa lalu
                           if (start.isBefore(now.subtract(const Duration(minutes: 2)))) {
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('Jam masuk tidak boleh di masa lalu. Silakan atur ulang jam masuk.'),
+                              SnackBar(
+                                content: Text('Jam masuk tidak boleh di masa lalu. Silakan atur ulang jam masuk.'.tr),
                                 backgroundColor: Colors.redAccent,
                               ),
                             );
@@ -629,7 +809,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                       );
                                       ScaffoldMessenger.of(context).showSnackBar(
                                         SnackBar(
-                                          content: Text('Jadwal dialihkan ke ${w.label}'),
+                                          content: Text('${'Jadwal dialihkan ke'.tr} ${w.label}'),
                                           backgroundColor: const Color(0xFF17A18A),
                                         ),
                                       );
@@ -649,8 +829,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           if (booking == null) {
                             if (context.mounted) {
                               ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Gagal membuat pesanan. Slot mungkin baru saja dibooking pengguna lain.'),
+                                SnackBar(
+                                  content: Text('Gagal membuat pesanan. Slot mungkin baru saja dibooking pengguna lain.'.tr),
                                   backgroundColor: Colors.redAccent,
                                 ),
                               );
@@ -668,7 +848,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                           BookingConfirmationBackend.instance.setConfirmedPass(
                             bookingCode: booking['booking_code'] ?? '#PS-88210-CP',
-                            locationName: CheckoutBackend.instance.locationName,
+                            locationName: CheckoutBackend.instance.locationName.tr,
                             locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
                             slotCode: CheckoutBackend.instance.slotCode,
                             vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota Land Cruiser',
@@ -687,7 +867,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                               bookingId: bId,
                               nextScreen: BookingConfirmationScreen(bookingId: bId),
                               transactionType: 'parkir',
-                              customTitle: 'Konfirmasi PIN Pembayaran',
+                              customTitle: 'Konfirmasi PIN Pembayaran'.tr,
                             );
 
                             if (!hasPin) {
@@ -696,7 +876,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                 MaterialPageRoute(
                                   builder: (_) => PinScreen(
                                     transactionType: 'buat pin',
-                                    customTitle: 'Buat PIN Transaksi',
+                                    customTitle: 'Buat PIN Transaksi'.tr,
                                     backToHome: false,
                                     nextScreen: paymentPinScreen,
                                   ),
@@ -729,7 +909,7 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             ),
                             const SizedBox(width: 8),
                             Text(
-                              'Konfirmasi Bayar Sekarang',
+                              'Konfirmasi Bayar Sekarang'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 15.5,
                                 fontWeight: FontWeight.w800,
@@ -774,6 +954,149 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ],
       ),
+    );
+  }
+
+  void _showInsufficientBalanceModal(double currentBalance, double totalPayment) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final shortage = totalPayment - currentBalance;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                        : const Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Color(0xFFDC2626),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Saldo Tidak Mencukupi'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Saldo ParkSmart Wallet Anda tidak mencukupi untuk menyelesaikan reservasi slot ini.'.tr,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF262C36) : const Color(0xFFF7F5EE),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Saldo Saat Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(currentBalance), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Biaya'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(totalPayment), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFB923C))),
+                        ],
+                      ),
+                      const Divider(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Kekurangan Saldo'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFDC2626))),
+                          Text(CurrencyService.instance.format(shortage), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFFDC2626))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: BorderSide(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
+                        ),
+                        child: Text(
+                          'Batal'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogCtx);
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                          );
+                          await CheckoutBackend.instance.fetchCheckoutData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFF17A18A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Top Up Saldo'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 }
@@ -833,7 +1156,7 @@ class _SlotConflictDialog extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Slot Penuh pada Jam Tersebut',
+                        'Slot Penuh pada Jam Tersebut'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15.5,
                           fontWeight: FontWeight.w700,
@@ -842,7 +1165,7 @@ class _SlotConflictDialog extends StatelessWidget {
                       ),
                       const SizedBox(height: 2),
                       Text(
-                        'Slot $slotCode sudah terisi untuk $startStr - $endStr',
+                        'Slot $slotCode sudah terisi untuk $startStr - $endStr'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
@@ -859,8 +1182,8 @@ class _SlotConflictDialog extends StatelessWidget {
 
             Text(
               availableSlots.isEmpty
-                  ? 'Status Ketersediaan Hari Ini:'
-                  : 'Pilih Jadwal Jam Tersedia Hari Ini:',
+                  ? 'Status Ketersediaan Hari Ini:'.tr
+                  : 'Pilih Jadwal Jam Tersedia Hari Ini:'.tr,
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 12.5,
                 fontWeight: FontWeight.w700,
@@ -884,7 +1207,7 @@ class _SlotConflictDialog extends StatelessWidget {
                     const Icon(Icons.do_not_disturb_on_rounded, size: 32, color: Colors.redAccent),
                     const SizedBox(height: 8),
                     Text(
-                      'Slot ini sudah penuh total untuk sisa hari ini.',
+                      'Slot ini sudah penuh total untuk sisa hari ini.'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 13,
@@ -894,7 +1217,7 @@ class _SlotConflictDialog extends StatelessWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Silakan kembali dan pilih slot parkir lain.',
+                      'Silakan kembali dan pilih slot parkir lain.'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
@@ -952,7 +1275,7 @@ class _SlotConflictDialog extends StatelessWidget {
                                 ),
                                 const SizedBox(height: 1),
                                 Text(
-                                  'Tersedia (${window.durationLabel})',
+                                  '${'Tersedia'.tr} (${window.durationLabel.tr})',
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 11,
                                     fontWeight: FontWeight.w600,
@@ -977,7 +1300,7 @@ class _SlotConflictDialog extends StatelessWidget {
                               elevation: 0,
                             ),
                             child: Text(
-                              'Pilih',
+                              'Pilih'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11.5,
                                 fontWeight: FontWeight.w700,
@@ -1005,7 +1328,7 @@ class _SlotConflictDialog extends StatelessWidget {
                       padding: const EdgeInsets.symmetric(vertical: 10),
                     ),
                     child: Text(
-                      'Pilih Slot Lain',
+                      'Pilih Slot Lain'.tr,
                       style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w600),
                     ),
                   ),
@@ -1020,7 +1343,7 @@ class _SlotConflictDialog extends StatelessWidget {
                         padding: const EdgeInsets.symmetric(vertical: 10),
                       ),
                       child: Text(
-                        'Atur Jam Manual',
+                        'Atur Jam Manual'.tr,
                         style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.w700),
                       ),
                     ),
@@ -1161,7 +1484,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
           });
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Jadwal dialihkan ke ${window.label}'),
+              content: Text('${'Jadwal dialihkan ke'.tr} ${window.label}'),
               backgroundColor: const Color(0xFF17A18A),
             ),
           );
@@ -1276,7 +1599,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
   }
 
   void _showArrivalTimePicker() async {
-    final selectedTime = await _pickTime(_arrivalTime, 'PILIH JAM KEDATANGAN (HARI INI)');
+    final selectedTime = await _pickTime(_arrivalTime, 'PILIH JAM KEDATANGAN (HARI INI)'.tr);
     if (selectedTime == null) return;
 
     final now = TimeOfDay.now();
@@ -1300,8 +1623,8 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
     if (selMinutes >= 23 * 60 + 55) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Maksimal jam kedatangan pukul 23:45 untuk pemesanan hari ini.'),
+          SnackBar(
+            content: Text('Maksimal jam kedatangan pukul 23:45 untuk pemesanan hari ini.'.tr),
             backgroundColor: Colors.redAccent,
           ),
         );
@@ -1324,7 +1647,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
   }
 
   void _showDepartureTimePicker() async {
-    final selectedTime = await _pickTime(_departureTime, 'PILIH JAM KELUAR (HARI INI)');
+    final selectedTime = await _pickTime(_departureTime, 'PILIH JAM KELUAR (HARI INI)'.tr);
     if (selectedTime == null) return;
 
     final arrMinutes = _arrivalTime.hour * 60 + _arrivalTime.minute;
@@ -1384,7 +1707,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
                   ),
                   const SizedBox(width: 6),
                   Text(
-                    'JADWAL RESERVASI',
+                    'JADWAL RESERVASI'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
@@ -1404,7 +1727,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
                   ),
                 ),
                 child: Text(
-                  '$durationHours Jam Durasi',
+                  '$durationHours Jam Durasi'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 11,
                     fontWeight: FontWeight.w700,
@@ -1439,7 +1762,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
                             Icon(Icons.login_rounded, size: 13, color: isDark ? const Color(0xFF38BDF8) : _kPrimaryContainer),
                             const SizedBox(width: 4),
                             Text(
-                              'JAM MASUK',
+                              'JAM MASUK'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,
@@ -1498,7 +1821,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
                             Icon(Icons.logout_rounded, size: 13, color: isDark ? const Color(0xFFFB923C) : _kSecondary),
                             const SizedBox(width: 4),
                             Text(
-                              'JAM KELUAR',
+                              'JAM KELUAR'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 9,
                                 fontWeight: FontWeight.w700,

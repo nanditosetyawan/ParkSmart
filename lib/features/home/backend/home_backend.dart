@@ -242,19 +242,48 @@ class HomeBackend extends ChangeNotifier {
     }
   }
 
-  /// 3. Hitung notifikasi belum dibaca
+  /// 3. Hitung notifikasi belum dibaca (hanya untuk akun aktif & bukan broadcast role lain)
   Future<void> _fetchUnreadNotifications() async {
     try {
-      final data = await _client
-          .from('system_notifications')
-          .select('id')
-          .eq('is_read', false);
+      final uid = _userId.isNotEmpty
+          ? _userId
+          : (ProfileBackend.instance.userId.isNotEmpty
+              ? ProfileBackend.instance.userId
+              : (SessionService.instance.userId ?? ''));
 
-      _unreadNotificationCount = data.length;
+      if (uid.isEmpty) {
+        _unreadNotificationCount = 0;
+        notifyListeners();
+        return;
+      }
+
+      var query = _client
+          .from('system_notifications')
+          .select('id, recipient_user_id, target_role')
+          .eq('is_read', false)
+          .inFilter('target_role', ['user', 'all']);
+
+      query = query.or('recipient_user_id.eq.$uid,recipient_user_id.is.null');
+
+      final data = await query;
+      final rawList = List<Map<String, dynamic>>.from(data);
+      final filtered = rawList.where((n) {
+        final role = (n['target_role'] ?? 'all').toString().toLowerCase().trim();
+        if (role != 'all' && role != 'user') return false;
+        final rId = n['recipient_user_id']?.toString().trim();
+        if (rId != null && rId.isNotEmpty && rId.toLowerCase() != uid.toLowerCase()) return false;
+        return true;
+      }).toList();
+
+      _unreadNotificationCount = filtered.length;
+      notifyListeners();
     } catch (e) {
       debugPrint('[HomeBackend] _fetchUnreadNotifications error: $e');
     }
   }
+
+  /// Sinkronisasi badge unread notifikasi dari luar
+  Future<void> refreshUnreadNotifications() => _fetchUnreadNotifications();
 
   /// 4. Ambil SEMUA sesi parkir aktif (sesi checkout / expired otomatis dihapus dari homescreen)
   Future<void> _fetchActiveSession() async {

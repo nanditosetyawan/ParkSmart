@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import 'active_session_screen.dart';
 import '../booking/backend/booking_confirmation_backend.dart';
 import 'backend/checkin_backend.dart';
@@ -93,7 +94,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
               ),
               const SizedBox(height: 18),
               Text(
-                'Palang Telah Terbuka',
+                'Palang Telah Terbuka'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 22,
                   fontWeight: FontWeight.bold,
@@ -102,7 +103,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
               ),
               const SizedBox(height: 8),
               Text(
-                'Silakan maju perlahan menuju ${CheckinBackend.instance.floorName}. Navigasi slot ${CheckinBackend.instance.slotCode} telah dipandu di layar.',
+                'Silakan maju perlahan menuju ${CheckinBackend.instance.floorName}. Navigasi slot ${CheckinBackend.instance.slotCode} telah dipandu di layar.'.tr,
                 textAlign: TextAlign.center,
                 style: GoogleFonts.plusJakartaSans(
                   fontSize: 14,
@@ -132,7 +133,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Lanjutkan Navigasi',
+                        'Lanjutkan Navigasi'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 15,
                           fontWeight: FontWeight.bold,
@@ -160,7 +161,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance]),
+      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -198,7 +199,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                               ),
                               const SizedBox(width: 6),
                               Text(
-                                'Kembali',
+                                'Kembali'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   fontWeight: FontWeight.w600,
@@ -235,7 +236,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                 ),
                                 const SizedBox(height: 24),
                                 Text(
-                                  'Belum Ada Tiket Masuk Parkir',
+                                  'Belum Ada Tiket Masuk Parkir'.tr,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 18,
@@ -245,7 +246,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                 ),
                                 const SizedBox(height: 8),
                                 Text(
-                                  'Anda tidak memiliki reservasi aktif untuk melakukan check-in di gerbang masuk.',
+                                  'Anda tidak memiliki reservasi aktif untuk melakukan check-in di gerbang masuk.'.tr,
                                   textAlign: TextAlign.center,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
@@ -256,7 +257,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                 ElevatedButton.icon(
                                   onPressed: () => Navigator.pop(context),
                                   icon: const Icon(Icons.arrow_back, size: 18),
-                                  label: const Text('Kembali'),
+                                  label: Text('Kembali'.tr),
                                   style: ElevatedButton.styleFrom(
                                     backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                                     foregroundColor: isDark ? Colors.black : Colors.white,
@@ -274,7 +275,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'Selamat Datang di\n${BookingConfirmationBackend.instance.locationName}.',
+                                'Selamat Datang di\n${BookingConfirmationBackend.instance.locationName}.'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 28,
                             fontWeight: FontWeight.bold,
@@ -285,7 +286,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                         ),
                         const SizedBox(height: 12),
                         Text(
-                          'Sistem ANPR mendeteksi plat nomor Anda pada radius 50 meter dari Gate 01 South Entrance.',
+                          'Sistem ANPR mendeteksi plat nomor Anda pada radius 50 meter dari Gate 01 South Entrance.'.tr,
                           style: GoogleFonts.plusJakartaSans(
                             fontSize: 14,
                             color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
@@ -393,7 +394,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                     const Icon(Icons.check_circle, size: 14, color: Color(0xFF047857)),
                                     const SizedBox(width: 6),
                                     Text(
-                                      'Terverifikasi Otomatis di Gerbang Masuk',
+                                      'Terverifikasi Otomatis di Gerbang Masuk'.tr,
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
                                         fontWeight: FontWeight.w600,
@@ -405,7 +406,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                               ),
                               const SizedBox(height: 6),
                               Text(
-                                'Jarak saat ini: ~15 meter ke portal palang',
+                                'Jarak saat ini: ~15 meter ke portal palang'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 12,
                                   color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -443,7 +444,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'KODE BOOKING',
+                                        'KODE BOOKING'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w700,
@@ -480,7 +481,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
-                                          'Valid',
+                                          'Valid'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.bold,
@@ -517,7 +518,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Plat Nomor Kendaraan',
+                                            'Plat Nomor Kendaraan'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -563,7 +564,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                         crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Slot Reservasi',
+                                            'Slot Reservasi'.tr,
                                             style: GoogleFonts.plusJakartaSans(
                                               fontSize: 11,
                                               fontWeight: FontWeight.w600,
@@ -604,7 +605,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                               ),
                                               const SizedBox(width: 2),
                                               Text(
-                                                'Dekat Lift Utama',
+                                                'Dekat Lift Utama'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 10,
                                                   fontWeight: FontWeight.w700,
@@ -642,7 +643,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                     const SizedBox(width: 12),
                                     Expanded(
                                       child: Text(
-                                        'Palang akan terangkat otomatis saat plat nomor terbaca. Anda juga dapat menekan tombol di bawah bila sistem palang belum terbuka.',
+                                        'Palang akan terangkat otomatis saat plat nomor terbaca. Anda juga dapat menekan tombol di bawah bila sistem palang belum terbuka.'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           fontWeight: FontWeight.w500,
@@ -680,7 +681,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                     mainAxisAlignment: MainAxisAlignment.center,
                                     children: [
                                       Text(
-                                        'Masuk Gerbang & Buka Palang',
+                                        'Masuk Gerbang & Buka Palang'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 14,
                                           fontWeight: FontWeight.bold,
@@ -724,7 +725,7 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                                 ),
                                 const SizedBox(width: 8),
                                 Text(
-                                  'Simpan Saja',
+                                  'Simpan Saja'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.w600,

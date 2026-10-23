@@ -35,13 +35,15 @@ ON CONFLICT (email) DO UPDATE SET
 -- 2. SEED DATA PENGGUNA (KHUSUS HANYA user@gmail.com SESUAI ATURAN)
 INSERT INTO public.users (
     id, email, phone, full_name, avatar_url, gender, address,
-    wallet_balance, points, member_tier, total_parking_count, total_savings,
+    wallet_balance, points, member_tier, total_spent, monthly_spent,
+    last_spending_month, member_hash_code, total_parking_count, total_savings,
     favorite_location_ids, pin_hash, is_biometric_enabled, status, password
 ) VALUES
 (
     '5d7d4224-c3f8-4add-a94f-7d87a62d9356', 'user@gmail.com', '0812769494', 'user 1',
     'https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/avatars/5d7d4224-c3f8-4add-a94f-7d87a62d9356/avatar_5d7d4224-c3f8-4add-a94f-7d87a62d9356_1792685516418.jpg',
-    'Laki-laki', '', 48000.00, 0, 'BRONZE', 6, 0.00,
+    'Laki-laki', '', 48000.00, 0, 'BRONZE', 0.00, 0.00,
+    TO_CHAR(NOW(), 'YYYY-MM'), '#7b9e-4a81-d02f', 6, 0.00,
     '{}', '4040', false, 'active', '123456'
 )
 ON CONFLICT (email) DO UPDATE SET
@@ -51,6 +53,10 @@ ON CONFLICT (email) DO UPDATE SET
     wallet_balance = EXCLUDED.wallet_balance,
     points = EXCLUDED.points,
     member_tier = EXCLUDED.member_tier,
+    total_spent = EXCLUDED.total_spent,
+    monthly_spent = EXCLUDED.monthly_spent,
+    last_spending_month = EXCLUDED.last_spending_month,
+    member_hash_code = EXCLUDED.member_hash_code,
     total_parking_count = EXCLUDED.total_parking_count,
     total_savings = EXCLUDED.total_savings,
     pin_hash = EXCLUDED.pin_hash,

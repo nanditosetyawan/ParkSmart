@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:geolocator/geolocator.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../favorite/backend/favorite_backend.dart';
 import '../../theme/app_colors.dart';
 import '../../theme/app_typography.dart';
@@ -88,7 +89,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ParkingDetailBackend.instance, FavoriteBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, ParkingDetailBackend.instance, FavoriteBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -105,7 +106,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
-                'Detail Tempat Parkir',
+                'Detail Tempat Parkir'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -133,7 +134,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Lokasi Parkir Tidak Ditemukan',
+                      'Lokasi Parkir Tidak Ditemukan'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
@@ -143,7 +144,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Data lokasi tempat parkir belum terdaftar atau tidak ditemukan di sistem.',
+                      'Data lokasi tempat parkir belum terdaftar atau tidak ditemukan di sistem.'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
@@ -154,7 +155,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                     ElevatedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back, size: 18),
-                      label: const Text('Kembali ke Peta'),
+                      label: Text('Kembali ke Peta'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                         foregroundColor: isDark ? Colors.black : Colors.white,
@@ -315,7 +316,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                                   children: [
                                                     Icon(Icons.schedule, size: 14, color: AppColors.white),
                                                     const SizedBox(width: 4),
-                                                    Text(isOpen24 ? '24 Jam' : 'Tutup Sementara', style: AppTypography.caption(color: AppColors.white)),
+                                                    Text(isOpen24 ? '24 Jam'.tr : 'Tutup Sementara'.tr, style: AppTypography.caption(color: AppColors.white)),
                                                   ],
                                                 ),
                                               ),
@@ -385,7 +386,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                             final loc = ParkingDetailBackend.instance.locationDetail;
                             final facilityType = (loc?['type']?.toString().trim().isNotEmpty == true)
                                 ? loc!['type'].toString().trim()
-                                : 'Fasilitas Parkir';
+                                : 'Fasilitas Parkir'.tr;
                             final distDuration = _getDistanceAndDuration(loc);
 
                             return Row(
@@ -397,7 +398,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                     borderRadius: AppRadii.pillRadius,
                                   ),
                                   child: Text(
-                                    facilityType,
+                                    facilityType.tr,
                                     style: AppTypography.caption(
                                       color: isDark ? Colors.white : Colors.black,
                                     ).copyWith(fontWeight: FontWeight.w600),
@@ -426,14 +427,14 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                           listenable: ParkingDetailBackend.instance,
                           builder: (context, _) {
                             final loc = ParkingDetailBackend.instance.locationDetail;
-                            final name = loc?['name'] as String? ?? 'Lokasi Parkir';
+                            final name = loc?['name'] as String? ?? 'Lokasi Parkir'.tr;
                             final address = loc?['address'] as String? ?? '-';
 
                             return Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  name,
+                                  name.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 34,
                                     fontWeight: FontWeight.w800,
@@ -487,7 +488,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'KAPASITAS TERSEDIA',
+                                        'KAPASITAS TERSEDIA'.tr,
                                         style: AppTypography.overline(
                                           color: isDark ? theme.textMuted : AppColors.textSecondary,
                                         ),
@@ -503,7 +504,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                             crossAxisAlignment: CrossAxisAlignment.start,
                                             children: [
                                               Text(
-                                                '$available Slot',
+                                                '$available Slot'.tr,
                                                 style: GoogleFonts.plusJakartaSans(
                                                   fontSize: 32,
                                                   fontWeight: FontWeight.w700,
@@ -512,7 +513,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                                 ),
                                               ),
                                               Text(
-                                                available > 0 ? 'Siap pakai di $primaryFloor' : 'Belum ada slot yang dialokasikan',
+                                                available > 0 ? 'Siap pakai di $primaryFloor'.tr : 'Belum ada slot yang dialokasikan'.tr,
                                                 style: AppTypography.bodySm(
                                                   color: isDark ? theme.textMuted : AppColors.textSecondary,
                                                 ),
@@ -540,7 +541,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                     const SizedBox(width: 10),
                                     Expanded(
                                       child: Text(
-                                        'Zona A lebih dekat ke Lobby Tribeca & Central Park Lift.',
+                                        'Zona A lebih dekat ke Lobby Tribeca & Central Park Lift.'.tr,
                                         style: AppTypography.bodySm(color: Colors.white),
                                       ),
                                     ),
@@ -568,7 +569,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                                 children: [
                                   Text(
-                                    'TARIF PARKIR BERDASARKAN TIPE',
+                                    'TARIF PARKIR BERDASARKAN TIPE'.tr,
                                     style: AppTypography.overline(
                                       color: isDark ? theme.textMuted : AppColors.textSecondary,
                                     ),
@@ -593,7 +594,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 children: [
                                   Expanded(
                                     child: _buildRateTypeChip(
-                                      label: 'Mobil',
+                                      label: 'Mobil'.tr,
                                       icon: Icons.directions_car,
                                       typeKey: 'mobil',
                                       isDark: isDark,
@@ -611,7 +612,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                   const SizedBox(width: 8),
                                   Expanded(
                                     child: _buildRateTypeChip(
-                                      label: 'Motor',
+                                      label: 'Motor'.tr,
                                       icon: Icons.two_wheeler,
                                       typeKey: 'motor',
                                       isDark: isDark,
@@ -649,7 +650,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                         ),
                                       ),
                                       Text(
-                                        ' / jam',
+                                        ' / jam'.tr,
                                         style: AppTypography.bodySm(
                                           color: isDark ? theme.textMuted : AppColors.textSecondary,
                                         ),
@@ -679,7 +680,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Text(
-                                'FASILITAS',
+                                'FASILITAS'.tr,
                                 style: AppTypography.overline(
                                   color: isDark ? theme.textMuted : AppColors.textSecondary,
                                 ),
@@ -688,7 +689,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _AmenityChip(icon: Icons.videocam_outlined, label: 'CCTV 24 Jam', isDark: isDark),
+                                    child: _AmenityChip(icon: Icons.videocam_outlined, label: 'CCTV 24 Jam'.tr, isDark: isDark),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
@@ -700,11 +701,11 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                               Row(
                                 children: [
                                   Expanded(
-                                    child: _AmenityChip(icon: Icons.accessible, label: 'Disabilitas', isDark: isDark),
+                                    child: _AmenityChip(icon: Icons.accessible, label: 'Disabilitas'.tr, isDark: isDark),
                                   ),
                                   const SizedBox(width: 10),
                                   Expanded(
-                                    child: _AmenityChip(icon: Icons.elevator_outlined, label: 'Akses Lift', isDark: isDark),
+                                    child: _AmenityChip(icon: Icons.elevator_outlined, label: 'Akses Lift'.tr, isDark: isDark),
                                   ),
                                 ],
                               ),
@@ -766,8 +767,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                                 const SizedBox(width: 8),
                                                 Text(
                                                   added
-                                                      ? 'Ditambahkan ke parkir favorit'
-                                                      : 'Dihapus dari parkir favorit',
+                                                      ? 'Ditambahkan ke parkir favorit'.tr
+                                                      : 'Dihapus dari parkir favorit'.tr,
                                                   style: GoogleFonts.plusJakartaSans(
                                                     color: Colors.white,
                                                     fontWeight: FontWeight.w600,
@@ -828,7 +829,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                'MULAI DARI',
+                                'MULAI DARI'.tr,
                                 style: AppTypography.overline(
                                   color: isDark ? theme.textMuted : AppColors.textSecondary,
                                 ),
@@ -846,7 +847,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                        : (_selectedVehicleRateType == 'motor' ? rateMotor : rateMobil);
                                    final rateStr = CurrencyService.instance.format(activeRate);
                                    return Text(
-                                     '$rateStr / jam',
+                                     '$rateStr ${'/ jam'.tr}',
                                      style: GoogleFonts.plusJakartaSans(
                                        fontSize: 18,
                                        fontWeight: FontWeight.w800,
@@ -868,9 +869,9 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 if (MaintenanceService.instance.isBookingMaintenance) {
                                   MaintenanceService.showModularMaintenanceDialog(
                                     context,
-                                    title: 'Gateway Booking Sedang Maintenance',
+                                    title: 'Gateway Booking Sedang Maintenance'.tr,
                                     message:
-                                        'Layanan pemesanan dan reservasi tiket parkir sementara dinonaktifkan untuk pemeliharaan sistem. Anda tetap dapat menjelajahi peta dan fitur lainnya.',
+                                        'Layanan pemesanan dan reservasi tiket parkir sementara dinonaktifkan untuk pemeliharaan sistem. Anda tetap dapat menjelajahi peta dan fitur lainnya.'.tr,
                                     icon: Icons.event_busy,
                                   );
                                   return;
@@ -879,9 +880,9 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 if (loc != null) {
                                   if (ParkingDetailBackend.instance.availableSlots <= 0) {
                                     ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                        backgroundColor: Color(0xFFDC2626),
-                                        content: Text('Belum ada slot parkir yang dialokasikan di lokasi ini.'),
+                                      SnackBar(
+                                        backgroundColor: const Color(0xFFDC2626),
+                                        content: Text('Belum ada slot parkir yang dialokasikan di lokasi ini.'.tr),
                                       ),
                                     );
                                     return;
@@ -925,7 +926,7 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Pilih Slot',
+                                    'Pilih Slot'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 16,
                                       fontWeight: FontWeight.bold,

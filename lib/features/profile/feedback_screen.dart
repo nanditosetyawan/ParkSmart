@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/services/language_service.dart';
 import '../home/home_screen.dart';
 import 'backend/feedback_backend.dart';
 
@@ -51,7 +52,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -99,7 +100,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           ),
                           const SizedBox(width: 12),
                           Text(
-                            'Ulasan',
+                            'Ulasan'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 18,
                               fontWeight: FontWeight.bold,
@@ -137,7 +138,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                 ),
                                 const SizedBox(width: 6),
                                 Text(
-                                  'PARKIR PRESISI',
+                                  'PARKIR PRESISI'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -151,7 +152,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        'Bagaimana Pengalaman\nParkir Anda?',
+                        'Bagaimana Pengalaman\nParkir Anda?'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 26,
                           fontWeight: FontWeight.bold,
@@ -162,7 +163,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                       ),
                       const SizedBox(height: 8),
                       Text(
-                        'Bantu kami meningkatkan akurasi sensor dan kenyamanan reservasi Anda.',
+                        'Bantu kami meningkatkan akurasi sensor dan kenyamanan reservasi Anda.'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
                           color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
@@ -191,7 +192,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
                                 Text(
-                                  'TINGKAT KEPUASAN',
+                                  'TINGKAT KEPUASAN'.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 12,
                                     fontWeight: FontWeight.bold,
@@ -199,7 +200,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                   ),
                                 ),
                                 Text(
-                                  _ratingLabel,
+                                  _ratingLabel.tr,
                                   style: GoogleFonts.plusJakartaSans(
                                     fontSize: 14,
                                     fontWeight: FontWeight.bold,
@@ -233,7 +234,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             ),
                             const SizedBox(height: 12),
                             Text(
-                              'Ketuk bintang untuk mengubah penilaian',
+                              'Ketuk bintang untuk mengubah penilaian'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 11,
                                 color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -249,7 +250,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                         mainAxisAlignment: MainAxisAlignment.spaceBetween,
                         children: [
                           Text(
-                            'Topik Masukan',
+                            'Topik Masukan'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
@@ -257,7 +258,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             ),
                           ),
                           Text(
-                            'Pilih satu atau lebih',
+                            'Pilih satu atau lebih'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 12,
                               color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -298,7 +299,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                 ],
                               ),
                               child: Text(
-                                topic,
+                                topic.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 14,
                                   fontWeight: FontWeight.w600,
@@ -352,7 +353,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                     ),
                                   ),
                                   Text(
-                                    'Sesi hari ini • Slot B2-41',
+                                    'Sesi hari ini • Slot B2-41'.tr,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),
@@ -390,7 +391,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                           ),
                           decoration: InputDecoration(
                             border: InputBorder.none,
-                            hintText: 'Tuliskan ulasan atau masukan detail Anda di sini...',
+                            hintText: 'Tuliskan ulasan atau masukan detail Anda di sini...'.tr,
                             hintStyle: GoogleFonts.plusJakartaSans(
                               fontSize: 13,
                               color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B),
@@ -453,7 +454,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                         ),
                                         const SizedBox(height: 18),
                                         Text(
-                                          'Terima Kasih Banyak!',
+                                          'Terima Kasih Banyak!'.tr,
                                           textAlign: TextAlign.center,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 20,
@@ -463,7 +464,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                         ),
                                         const SizedBox(height: 10),
                                         Text(
-                                          'Masukan berharga Anda telah tersimpan dan membantu pengguna lain menikmati parkir yang lebih mudah.',
+                                          'Masukan berharga Anda telah tersimpan dan membantu pengguna lain menikmati parkir yang lebih mudah.'.tr,
                                           textAlign: TextAlign.center,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 14,
@@ -490,7 +491,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                               elevation: dlgIsDark ? 0 : 4,
                                             ),
                                             child: Text(
-                                              'Selesai',
+                                              'Selesai'.tr,
                                               style: GoogleFonts.plusJakartaSans(
                                                 fontSize: 15,
                                                 fontWeight: FontWeight.bold,
@@ -517,7 +518,7 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                'Kirim Masukan',
+                                'Kirim Masukan'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.bold,

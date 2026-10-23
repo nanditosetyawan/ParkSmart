@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/language_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
 import '../../theme/app_colors.dart';
@@ -12,6 +13,8 @@ import '../home/home_screen.dart' as home;
 import '../pin/pin_screen.dart';
 import '../pin/backend/pin_backend.dart';
 import '../session/checkin_screen.dart';
+import '../checkout/backend/checkout_backend.dart';
+import '../profile/payment_methods_screen.dart';
 import 'backend/booking_confirmation_backend.dart';
 
 class BookingConfirmationScreen extends StatefulWidget {
@@ -55,7 +58,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance, CurrencyService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, BookingConfirmationBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -72,7 +75,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                 onPressed: () => Navigator.pop(context),
               ),
               title: Text(
-                'Konfirmasi Reservasi',
+                'Konfirmasi Reservasi'.tr,
                 style: GoogleFonts.plusJakartaSans(
                   fontWeight: FontWeight.bold,
                   fontSize: 18,
@@ -100,7 +103,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     ),
                     const SizedBox(height: 24),
                     Text(
-                      'Tidak Ada Reservasi Aktif',
+                      'Tidak Ada Reservasi Aktif'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 18,
@@ -110,7 +113,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Anda belum memiliki tiket reservasi parkir yang sedang diproses.',
+                      'Anda belum memiliki tiket reservasi parkir yang sedang diproses.'.tr,
                       textAlign: TextAlign.center,
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 14,
@@ -121,7 +124,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                     ElevatedButton.icon(
                       onPressed: () => Navigator.pop(context),
                       icon: const Icon(Icons.arrow_back, size: 18),
-                      label: const Text('Kembali ke Beranda'),
+                      label: Text('Kembali ke Beranda'.tr),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
                         foregroundColor: isDark ? Colors.black : Colors.white,
@@ -188,7 +191,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                     ),
                                     const SizedBox(width: 6),
                                     Text(
-                                      isUnpaid ? 'Belum Bayar • $timerStr' : 'Reservasi Berhasil',
+                                      isUnpaid ? '${'Belum Bayar'.tr} • $timerStr' : 'Reservasi Berhasil'.tr,
                                       style: AppTypography.caption(
                                         color: isUnpaid
                                             ? (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626))
@@ -231,7 +234,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          'Selesaikan Pembayaran ($timerStr)',
+                                          '${'Selesaikan Pembayaran'.tr} ($timerStr)',
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 13,
                                             fontWeight: FontWeight.w700,
@@ -240,7 +243,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                         ),
                                         const SizedBox(height: 2),
                                         Text(
-                                          'Slot parkir Anda ter-booking selama 2:59 menit. Segera selesaikan pembayaran.',
+                                          'Slot parkir Anda ter-booking selama 2:59 menit. Segera selesaikan pembayaran.'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             color: isDark ? const Color(0xFFFDE68A) : const Color(0xFFB45309),
@@ -261,7 +264,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
 
                   // Hero Text
                   Text(
-                    'KONFIRMASI KEDATANGAN',
+                    'KONFIRMASI KEDATANGAN'.tr,
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 12,
                       fontWeight: FontWeight.w700,
@@ -271,7 +274,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'Slot Siap\nUntuk Anda.',
+                    'Slot Siap\nUntuk Anda.'.tr,
                     style: AppTypography.displayHero().copyWith(
                       fontSize: 34,
                       letterSpacing: -0.5,
@@ -280,7 +283,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Akses parkir tanpa sentuh aktif otomatis di gerbang masuk.',
+                    'Akses parkir tanpa sentuh aktif otomatis di gerbang masuk.'.tr,
                     style: AppTypography.bodySm(
                       color: isDark ? theme.textMuted : AppColors.textSecondary,
                     ),
@@ -353,7 +356,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                     Icon(TicketMark.getIcon(BookingConfirmationBackend.instance.ticketStatus), size: 12, color: TicketMark.getColor(BookingConfirmationBackend.instance.ticketStatus)),
                                     const SizedBox(width: 4),
                                     Text(
-                                      BookingConfirmationBackend.instance.ticketStatus,
+                                      TicketMark.localized(BookingConfirmationBackend.instance.ticketStatus),
                                       style: GoogleFonts.plusJakartaSans(
                                         fontSize: 11,
                                         fontWeight: FontWeight.bold,
@@ -379,7 +382,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        'LOKASI PARKIR',
+                                        'LOKASI PARKIR'.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 11,
                                           fontWeight: FontWeight.w600,
@@ -389,7 +392,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        BookingConfirmationBackend.instance.locationName,
+                                        BookingConfirmationBackend.instance.locationName.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 16,
                                           fontWeight: FontWeight.w700,
@@ -398,7 +401,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                       ),
                                       const SizedBox(height: 2),
                                       Text(
-                                        BookingConfirmationBackend.instance.locationSub,
+                                        BookingConfirmationBackend.instance.locationSub.tr,
                                         style: GoogleFonts.plusJakartaSans(
                                           fontSize: 12,
                                           color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
@@ -420,7 +423,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                     child: Column(
                                       children: [
                                         Text(
-                                          'SLOT',
+                                          'SLOT'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,
@@ -465,7 +468,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                         ),
                                         const SizedBox(width: 8),
                                         Text(
-                                          'PLAT NOMOR',
+                                          'PLAT NOMOR'.tr,
                                           style: GoogleFonts.plusJakartaSans(
                                             fontSize: 11,
                                             fontWeight: FontWeight.w700,
@@ -504,9 +507,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                   Expanded(
                                     child: _InfoBox(
                                       icon: Icons.directions_car,
-                                      label: 'Kendaraan',
-                                      title: BookingConfirmationBackend.instance.vehicleName,
-                                      subtitle: 'Kode: ${BookingConfirmationBackend.instance.bookingCode}',
+                                      label: 'Kendaraan'.tr,
+                                      title: BookingConfirmationBackend.instance.vehicleName.tr,
+                                      subtitle: '${'Kode'.tr}: ${BookingConfirmationBackend.instance.bookingCode}',
                                       subtitleColor: isDark ? const Color(0xFFFB923C) : const Color(0xFFC05621),
                                     ),
                                   ),
@@ -514,9 +517,9 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                   Expanded(
                                     child: _InfoBox(
                                       icon: Icons.schedule,
-                                      label: 'Waktu Valid',
+                                      label: 'Waktu Valid'.tr,
                                       title: BookingConfirmationBackend.instance.validTime,
-                                      subtitle: 'Toleransi +15 mnt',
+                                      subtitle: 'Toleransi +15 mnt'.tr,
                                     ),
                                   ),
                                 ],
@@ -542,13 +545,23 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                         child: ElevatedButton(
                           onPressed: isUnpaid
                               ? () async {
+                                  await CheckoutBackend.instance.fetchCheckoutData();
+                                  final userBal = CheckoutBackend.instance.walletBalance;
+                                  final totalNeeded = backend.totalPrice;
+
+                                  if (userBal < totalNeeded) {
+                                    if (!context.mounted) return;
+                                    _showInsufficientBalanceModal(context, userBal, totalNeeded);
+                                    return;
+                                  }
+
                                   final hasPin = await PinBackend.instance.hasPin();
                                   if (!context.mounted) return;
 
                                   final paymentPinScreen = PinScreen(
                                     bookingId: backend.bookingId,
                                     transactionType: 'parkir',
-                                    customTitle: 'Konfirmasi PIN Pembayaran',
+                                    customTitle: 'Konfirmasi PIN Pembayaran'.tr,
                                     nextScreen: CheckinScreen(bookingId: backend.bookingId),
                                   );
 
@@ -558,7 +571,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                       MaterialPageRoute(
                                         builder: (_) => PinScreen(
                                           transactionType: 'buat pin',
-                                          customTitle: 'Buat PIN Transaksi',
+                                          customTitle: 'Buat PIN Transaksi'.tr,
                                           backToHome: false,
                                           nextScreen: paymentPinScreen,
                                         ),
@@ -591,7 +604,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
-                                isUnpaid ? 'Bayar Sekarang ($timerStr)' : 'Check-in',
+                                isUnpaid ? '${'Bayar Sekarang'.tr} ($timerStr)' : 'Check-in'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 16,
                                   fontWeight: FontWeight.w700,
@@ -643,7 +656,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                           ),
                           const SizedBox(width: 8),
                           Text(
-                            'Simpan Saja',
+                            'Simpan Saja'.tr,
                             style: GoogleFonts.plusJakartaSans(
                               fontSize: 15,
                               fontWeight: FontWeight.w600,
@@ -657,6 +670,149 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                   const SizedBox(height: 32),
                 ],
               ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  void _showInsufficientBalanceModal(BuildContext context, double currentBalance, double totalPayment) {
+    final theme = ThemeService.instance;
+    final isDark = theme.isDarkMode;
+    final shortage = totalPayment - currentBalance;
+
+    showDialog(
+      context: context,
+      builder: (dialogCtx) {
+        return Dialog(
+          backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+          child: Padding(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: isDark
+                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
+                        : const Color(0xFFFEE2E2),
+                    shape: BoxShape.circle,
+                  ),
+                  child: const Icon(
+                    Icons.account_balance_wallet_outlined,
+                    color: Color(0xFFDC2626),
+                    size: 32,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Text(
+                  'Saldo Tidak Mencukupi'.tr,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  'Saldo ParkSmart Wallet Anda tidak mencukupi untuk menyelesaikan pembayaran tiket booking ini.'.tr,
+                  textAlign: TextAlign.center,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 13,
+                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                    height: 1.4,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(14),
+                  decoration: BoxDecoration(
+                    color: isDark ? const Color(0xFF262C36) : const Color(0xFFF7F5EE),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Column(
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Saldo Saat Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(currentBalance), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
+                        ],
+                      ),
+                      const SizedBox(height: 6),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Total Biaya'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
+                          Text(CurrencyService.instance.format(totalPayment), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFB923C))),
+                        ],
+                      ),
+                      const Divider(height: 14),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text('Kekurangan Saldo'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFDC2626))),
+                          Text(CurrencyService.instance.format(shortage), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFFDC2626))),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Row(
+                  children: [
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: () => Navigator.pop(dialogCtx),
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          side: BorderSide(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
+                        ),
+                        child: Text(
+                          'Batal'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                            color: isDark ? Colors.white70 : Colors.black87,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: ElevatedButton(
+                        onPressed: () async {
+                          Navigator.pop(dialogCtx);
+                          await Navigator.push(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                          );
+                          await CheckoutBackend.instance.fetchCheckoutData();
+                        },
+                        style: ElevatedButton.styleFrom(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          backgroundColor: const Color(0xFF17A18A),
+                          foregroundColor: Colors.white,
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                          elevation: 0,
+                        ),
+                        child: Text(
+                          'Top Up Saldo'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
             ),
           ),
         );
@@ -768,3 +924,4 @@ class _InfoBox extends StatelessWidget {
     );
   }
 }
+

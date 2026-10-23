@@ -1239,10 +1239,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            Text(
-                              '${_items.length} Item • Rekor: ${_formatNumber(_highScore)}',
-                              style: GoogleFonts.inter(fontSize: 10.5, color: const Color(0xFF94A3B8)),
-                            ),
+                            
                           ],
                         ),
                       ],
@@ -1250,38 +1247,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                     Row(
                       children: [
                         // Tombol Kocok HP (Sensor Shake Simulator)
-                        GestureDetector(
-                          onTap: () => _shakeItems(),
-                          child: Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1E293B),
-                              borderRadius: BorderRadius.circular(8),
-                              border: Border.all(color: const Color(0xFFA855F7), width: 1.2),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: const Color(0xFFA855F7).withValues(alpha: 0.2),
-                                  blurRadius: 6,
-                                  offset: const Offset(0, 2),
-                                ),
-                              ],
-                            ),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.vibration_rounded, color: Color(0xFFA855F7), size: 15),
-                                const SizedBox(width: 4),
-                                Text(
-                                  'Kocok',
-                                  style: GoogleFonts.inter(
-                                    fontSize: 11,
-                                    fontWeight: FontWeight.bold,
-                                    color: const Color(0xFFA855F7),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                        
                         const SizedBox(width: 6),
 
                         // Poin dari Game Parking Challenge

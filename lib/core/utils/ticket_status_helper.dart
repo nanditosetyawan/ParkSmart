@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../services/language_service.dart';
 
 /// Standardisasi status / mark tiket parkir ParkSmart:
 /// 1. Belum Dibayar: tiket/booking dibuat tetapi pembayaran belum selesai
@@ -18,6 +19,11 @@ class TicketMark {
     aktif,
     selesai,
   ];
+
+  /// Nama status yang diterjemahkan di sisi antarmuka user
+  static String localized(String mark) {
+    return mark.tr;
+  }
 
   /// Menentukan status tiket secara terpusat dari status pembayaran, booking, sesi, dan waktu
   static String resolve({

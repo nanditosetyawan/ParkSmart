@@ -80,8 +80,12 @@
 │      wallet_balance   : NUMERIC   │    │      password         : TEXT      │
 │      points           : INT       │    │      last_login_at    : TIMESTAMPTZ│
 │      member_tier      : ENUM      │    │      created_at       : TIMESTAMPTZ│
-│      tot_parking_cnt  : INT       │    │      updated_at       : TIMESTAMPTZ│
-│      total_savings    : NUMERIC   │    └───────────────────────────────────┘
+│      total_spent      : NUMERIC   │    │      updated_at       : TIMESTAMPTZ│
+│      monthly_spent    : NUMERIC   │    └───────────────────────────────────┘
+│      last_spend_month : VARCHAR   │
+│      member_hash_code : VARCHAR   │
+│      tot_parking_cnt  : INT       │
+│      total_savings    : NUMERIC   │
 │      fav_location_ids : UUID[]    │
 │      pin_hash         : VARCHAR   │
 │      is_biometric_en  : BOOLEAN   │

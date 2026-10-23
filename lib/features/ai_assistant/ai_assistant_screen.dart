@@ -9,6 +9,7 @@ import '../home/home_screen.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../core/services/maintenance_service.dart';
 import '../../core/services/ai_config_service.dart';
+import '../../core/services/language_service.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
@@ -43,8 +44,11 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   }
   final String _modelName = 'qwen/qwen3.8-27b';
 
-  String get _initialGreeting =>
-      '''Halo! Saya Jarvis, AI ParkSmart yang ditenagai oleh Groq ($_modelName).
+  String get _initialGreeting => LanguageService.instance.isEnglish
+      ? '''Hello! I am Jarvis, ParkSmart AI powered by Groq ($_modelName).
+
+How can I help you today?'''
+      : '''Halo! Saya Jarvis, AI ParkSmart yang ditenagai oleh Groq ($_modelName).
 
 Ada yang bisa saya bantu hari ini?''';
 
@@ -284,7 +288,7 @@ GAYA BAHASA:
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: ThemeService.instance,
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         return Scaffold(
@@ -301,7 +305,7 @@ GAYA BAHASA:
               IconButton(
                 icon: Icon(Icons.delete_outline, color: theme.iconColor),
                 onPressed: _clearChatHistory,
-                tooltip: 'Hapus Riwayat',
+                tooltip: 'Hapus Riwayat'.tr,
               ),
             ],
             title: Row(
@@ -350,7 +354,7 @@ GAYA BAHASA:
                           controller: _textController,
                           style: GoogleFonts.inter(fontSize: 14, color: theme.textPrimary),
                           decoration: InputDecoration(
-                            hintText: 'Ketik pesan...',
+                            hintText: 'Ketik pesan...'.tr,
                             hintStyle: GoogleFonts.inter(fontSize: 14, color: theme.textMuted),
                             border: InputBorder.none,
                             enabledBorder: InputBorder.none,
