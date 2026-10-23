@@ -16,6 +16,7 @@ import '../../core/services/session_service.dart';
 import '../../core/services/language_service.dart';
 import 'edit_profile_screen.dart' as edit_profile;
 import 'backend/profile_backend.dart';
+import 'widgets/member_card_dialog.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -54,8 +55,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
     super.dispose();
   }
 
-  Widget _buildMemberBadge(String tier) {
-    return _ShimmerMemberBadge(tier: tier);
+  Widget _buildMemberBadge(String tier, {required String memberCode}) {
+    return GestureDetector(
+      onTap: () {
+        showFramelessMemberCardDialog(
+          context,
+          tier: tier,
+          memberCode: memberCode,
+        );
+      },
+      child: MouseRegion(
+        cursor: SystemMouseCursors.click,
+        child: _ShimmerMemberBadge(tier: tier),
+      ),
+    );
   }
 
   @override
@@ -147,7 +160,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           const SizedBox(height: 4),
                           Text('${profile.email}\n${profile.phone}', textAlign: TextAlign.center, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w500, color: ThemeService.instance.textSecondary, height: 1.5)),
                           const SizedBox(height: 16),
-                          _buildMemberBadge(profile.memberTier.tr),
+                          _buildMemberBadge(profile.memberTier, memberCode: profile.memberHashCode),
                         ],
                       ),
                     ),
@@ -896,7 +909,7 @@ class _ShimmerMemberBadgeState extends State<_ShimmerMemberBadge>
     final Color shadowColor;
     final String label;
 
-    if (normTier == 'BRONZE') {
+    if (normTier.contains('BRONZE')) {
       label = 'MEMBER BRONZE';
       gradientColors = const [
         Color(0xFF8C532B), // Bronze copper edge
@@ -904,7 +917,7 @@ class _ShimmerMemberBadgeState extends State<_ShimmerMemberBadge>
         Color(0xFF6E3E1C), // Deep bronze shadow
       ];
       shadowColor = const Color(0xFFBF7B46).withValues(alpha: 0.45);
-    } else if (normTier == 'SILVER') {
+    } else if (normTier.contains('SILVER')) {
       label = 'MEMBER SILVER';
       gradientColors = const [
         Color(0xFF7E8B9B), // Silver edge
@@ -912,7 +925,7 @@ class _ShimmerMemberBadgeState extends State<_ShimmerMemberBadge>
         Color(0xFF6C7887), // Rich shadow edge
       ];
       shadowColor = const Color(0xFFBDC7D0).withValues(alpha: 0.5);
-    } else if (normTier == 'GOLD') {
+    } else if (normTier.contains('GOLD')) {
       label = 'MEMBER GOLD';
       gradientColors = const [
         Color(0xFFC5942B), // Deep rich gold
