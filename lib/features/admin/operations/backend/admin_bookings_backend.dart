@@ -20,6 +20,75 @@ class AdminBookingsBackend extends ChangeNotifier {
 
   late List<Map<String, dynamic>> bookings = [];
 
+  /// Evaluasi otomatis: auto-cancel unpaid > 179s & auto-complete paid lewat endTime
+  Future<void> _evaluateBookingsCleanup() async {
+    try {
+      final nowUtc = DateTime.now().toUtc();
+
+      // 1. Unpaid booking yang sudah lebih dari 2 menit 59 detik (179s)
+      final unpaidBookings = await _client
+          .from('bookings')
+          .select('id, slot_id, created_at')
+          .eq('payment_status', 'unpaid')
+          .neq('booking_status', 'cancelled');
+
+      for (final b in unpaidBookings) {
+        final cat = DateTime.tryParse(b['created_at']?.toString() ?? '');
+        if (cat != null && nowUtc.difference(cat.toUtc()).inSeconds > 179) {
+          await _client.from('bookings').update({
+            'booking_status': 'cancelled',
+            'cancel_reason': 'Waktu pembayaran habis (Auto Cancel)',
+          }).eq('id', b['id']);
+
+          final slotId = b['slot_id']?.toString();
+          if (slotId != null && slotId.isNotEmpty) {
+            await _client.from('parking_slots').update({
+              'status': 'available',
+              'current_plate_number': null,
+              'occupied_since': null,
+            }).eq('id', slotId);
+          }
+        }
+      }
+
+      // 2. Paid booking yang belum check-in tapi waktu checkout sudah habis
+      final paidUpcomingBookings = await _client
+          .from('bookings')
+          .select('id, slot_id, end_time')
+          .eq('payment_status', 'paid')
+          .inFilter('booking_status', ['upcoming', 'confirmed']);
+
+      for (final b in paidUpcomingBookings) {
+        final end = DateTime.tryParse(b['end_time']?.toString() ?? '');
+        if (end != null && nowUtc.isAfter(end.toUtc())) {
+          await _client.from('bookings').update({
+            'booking_status': 'completed',
+          }).eq('id', b['id']);
+
+          final slotId = b['slot_id']?.toString();
+          if (slotId != null && slotId.isNotEmpty) {
+            final activeSessionOnSlot = await _client
+                .from('parking_sessions')
+                .select('id')
+                .eq('slot_id', slotId)
+                .inFilter('status', ['active', 'overstay'])
+                .maybeSingle();
+
+            if (activeSessionOnSlot == null) {
+              await _client.from('parking_slots').update({
+                'status': 'available',
+                'current_plate_number': null,
+                'occupied_since': null,
+              }).eq('id', slotId);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AdminBookingsBackend] _evaluateBookingsCleanup error: $e');
+    }
+  }
+
   /// Mengambil data pemesanan booking dari Supabase
   Future<void> fetchBookings() async {
     _isLoading = true;
@@ -27,6 +96,8 @@ class AdminBookingsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      await _evaluateBookingsCleanup();
+
       final res = await _client
           .from('bookings')
           .select('''
@@ -51,10 +122,14 @@ class AdminBookingsBackend extends ChangeNotifier {
         bookings = res.map<Map<String, dynamic>>((row) {
           final pStatus = row['payment_status']?.toString();
           final bStatus = row['booking_status']?.toString();
+          final startDt = DateTime.tryParse(row['start_time']?.toString() ?? '')?.toLocal();
+          final endDt = DateTime.tryParse(row['end_time']?.toString() ?? '')?.toLocal();
 
           final statusLabel = TicketMark.resolve(
             paymentStatus: pStatus,
             bookingStatus: bStatus,
+            startTime: startDt,
+            endTime: endDt,
           );
 
           final price = (row['total_price'] as num?)?.toDouble() ?? 0;
@@ -125,6 +200,48 @@ class AdminBookingsBackend extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('[AdminBookingsBackend] cancelBooking error: $e');
+      return false;
+    }
+  }
+
+  /// Force Check-In reservasi dari Manajemen Booking
+  Future<bool> forceCheckInBooking(String bookingCode) async {
+    final ok = await AdminOperationsDashboardBackend.instance.forceCheckInBooking(bookingCode);
+    await fetchBookings();
+    return ok;
+  }
+
+  /// Force Check-Out booking dari Manajemen Booking
+  Future<bool> forceCheckOutBooking(String bookingCode) async {
+    try {
+      final b = await _client.from('bookings').select('id, slot_id').eq('booking_code', bookingCode).maybeSingle();
+      if (b != null) {
+        final bId = b['id'];
+        final sess = await _client
+            .from('parking_sessions')
+            .select('id')
+            .eq('booking_id', bId)
+            .inFilter('status', ['active', 'overstay'])
+            .maybeSingle();
+
+        if (sess != null) {
+          await AdminOperationsDashboardBackend.instance.forceCheckOutSession(sess['id'].toString());
+        } else {
+          await _client.from('bookings').update({'booking_status': 'completed'}).eq('id', bId);
+          if (b['slot_id'] != null) {
+            await _client.from('parking_slots').update({
+              'status': 'available',
+              'current_plate_number': null,
+              'occupied_since': null,
+            }).eq('id', b['slot_id']);
+          }
+          await AdminOperationsDashboardBackend.instance.fetchDashboardData();
+        }
+      }
+      await fetchBookings();
+      return true;
+    } catch (e) {
+      debugPrint('[AdminBookingsBackend] forceCheckOutBooking error: $e');
       return false;
     }
   }

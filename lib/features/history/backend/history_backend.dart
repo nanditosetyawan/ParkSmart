@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../../core/services/currency_service.dart';
+import '../../../core/services/session_service.dart';
 import '../../../core/utils/ticket_status_helper.dart';
+import '../../profile/backend/profile_backend.dart';
 
 class HistoryItem {
   final String id;
@@ -232,7 +235,10 @@ class HistoryBackend extends ChangeNotifier {
     try {
       await _client
           .from('bookings')
-          .update({'booking_status': 'cancelled', 'payment_status': 'expired'})
+          .update({
+            'booking_status': 'cancelled',
+            'cancel_reason': 'Waktu pembayaran habis (Auto Cancel)',
+          })
           .eq('id', bookingId)
           .eq('payment_status', 'unpaid');
       if (slotId != null && slotId.isNotEmpty) {
@@ -247,18 +253,74 @@ class HistoryBackend extends ChangeNotifier {
     }
   }
 
+  void clear() {
+    _items = [];
+    notifyListeners();
+  }
+
+  Future<String> _resolveUserIdAsync() async {
+    final sessionUid = SessionService.instance.userId;
+    if (sessionUid != null && sessionUid.trim().isNotEmpty) {
+      return sessionUid.trim();
+    }
+
+    final profileUid = ProfileBackend.instance.userId;
+    if (profileUid.trim().isNotEmpty) {
+      return profileUid.trim();
+    }
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final savedId = prefs.getString('ps_session_user_id') ?? prefs.getString('user_profile_id');
+      if (savedId != null && savedId.trim().isNotEmpty) {
+        return savedId.trim();
+      }
+    } catch (_) {}
+
+    final authUser = _client.auth.currentUser;
+    if (authUser != null) {
+      try {
+        final row = await _client.from('users').select('id').eq('auth_user_id', authUser.id).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+    if (email.isNotEmpty) {
+      try {
+        final row = await _client.from('users').select('id').eq('email', email).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    return '';
+  }
+
   Future<void> fetchHistory() async {
     _isLoading = true;
     notifyListeners();
 
     try {
+      final currentUserId = await _resolveUserIdAsync();
+      if (currentUserId.isEmpty) {
+        _items = [];
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
       final List<HistoryItem> fetched = [];
       final Set<String> checkedInBookingIds = {};
 
-      // 1. Ambil dari tabel parking_sessions (sesi yang sudah check-in)
+      // 1. Ambil dari tabel parking_sessions (sesi yang sudah check-in) HANYA milik user yang login
       final sessions = await _client
           .from('parking_sessions')
           .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, plate_number, vehicle_desc)')
+          .eq('user_id', currentUserId)
           .order('check_in_time', ascending: false)
           .limit(30);
 
@@ -269,10 +331,11 @@ class HistoryBackend extends ChangeNotifier {
         fetched.add(HistoryItem.fromSessionMap(Map<String, dynamic>.from(s)));
       }
 
-      // 2. Ambil dari tabel bookings (reservasi yang belum check-in: Ready atau Belum Dibayar)
+      // 2. Ambil dari tabel bookings (reservasi yang belum check-in: Ready atau Belum Dibayar) HANYA milik user yang login
       final bookings = await _client
           .from('bookings')
           .select('id, booking_code, start_time, end_time, duration_hours, total_price, payment_status, booking_status, plate_number, vehicle_desc, created_at, slot_id, parking_locations(name, address), parking_slots(slot_code, floor_name), vehicles(brand, model, plate_number)')
+          .eq('user_id', currentUserId)
           .order('created_at', ascending: false)
           .limit(30);
 

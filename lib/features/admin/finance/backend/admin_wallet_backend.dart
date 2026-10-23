@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'admin_transactions_backend.dart';
 
 /// Backend khusus untuk AdminWalletScreen (admin_wallet_screen.dart)
 /// Mengelola injeksi saldo dompet, audit mutasi top-up manual, dan daftar saldo pengguna
@@ -263,7 +264,9 @@ class AdminWalletBackend extends ChangeNotifier {
         debugPrint('[AdminWalletBackend] insert notifications error: $e');
       }
 
-      notifyListeners();
+      // Sinkronkan data pengguna dan seluruh total saldo dari database secara real-time
+      await fetchUsers();
+      AdminTransactionsBackend.instance.fetchTransactions();
       return true;
     } catch (e) {
       debugPrint('[AdminWalletBackend] injectBalance error: $e');

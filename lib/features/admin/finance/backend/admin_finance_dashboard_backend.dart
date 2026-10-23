@@ -116,9 +116,10 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
         for (var row in paymentsRes) {
           final amt = (row['amount'] as num?)?.toDouble() ?? 0;
           final status = (row['status'] ?? '').toString().toLowerCase();
+          final trxType = (row['transaction_type'] ?? '').toString().toLowerCase();
           final isSuccess = status == 'success' || status == 'paid';
 
-          if (isSuccess) {
+          if (isSuccess && trxType != 'wallet_injection' && trxType != 'refund') {
             totalPaid += amt;
             countSuccess++;
 
@@ -192,7 +193,7 @@ class AdminFinanceDashboardBackend extends ChangeNotifier {
           final amt = (p['amount'] as num?)?.toInt() ?? 0;
           final method = (p['payment_method'] ?? 'WALLET').toString().toUpperCase();
           final trxType = (p['transaction_type'] ?? 'parking_payment').toString().toLowerCase();
-          final isIncome = trxType != 'refund';
+          final isIncome = trxType != 'refund' && trxType != 'wallet_injection';
 
           final userData = p['users'] as Map<String, dynamic>?;
           final userName = (userData?['full_name'] as String?)?.trim();

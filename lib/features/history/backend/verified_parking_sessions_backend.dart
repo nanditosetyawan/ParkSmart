@@ -120,6 +120,19 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
     }
   }
 
+  void clear() {
+    _vehiclePlate = '-';
+    _vehicleInfo = 'Belum Ada Kendaraan';
+    _photoUrl = null;
+    _isDefault = true;
+    _totalSessions = 0;
+    _totalDurationHours = 0;
+    _rawThisMonthSpending = 0;
+    _thisMonthSpending = 'Rp 0';
+    _allSessions = [];
+    notifyListeners();
+  }
+
   Future<String> _resolveUserIdAsync() async {
     final sessionUid = SessionService.instance.userId;
     if (sessionUid != null && sessionUid.trim().isNotEmpty) {
@@ -139,6 +152,26 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
       }
     } catch (_) {}
 
+    final authUser = _client.auth.currentUser;
+    if (authUser != null) {
+      try {
+        final row = await _client.from('users').select('id').eq('auth_user_id', authUser.id).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
+    final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+    if (email.isNotEmpty) {
+      try {
+        final row = await _client.from('users').select('id').eq('email', email).maybeSingle();
+        if (row != null && row['id'] != null) {
+          return row['id'].toString();
+        }
+      } catch (_) {}
+    }
+
     return '';
   }
 
@@ -147,10 +180,22 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final currentUserId = await _resolveUserIdAsync();
+      if (currentUserId.isEmpty) {
+        _allSessions = [];
+        _totalSessions = 0;
+        _totalDurationHours = 0;
+        _rawThisMonthSpending = 0;
+        _thisMonthSpending = CurrencyService.instance.format(0);
+        _isLoading = false;
+        notifyListeners();
+        return;
+      }
+
       String? targetVehicleId = vehicleId ?? vehicleItem?.id;
       String? targetPlate = vehicleItem?.plateNumber;
 
-      // 1. Tentukan profil kendaraan yang diinspeksi
+      // 1. Tentukan profil kendaraan yang diinspeksi (harus milik user yang sedang login)
       if (vehicleItem != null) {
         _vehiclePlate = vehicleItem.plateNumber;
         _vehicleInfo = '${vehicleItem.displayName} • ${vehicleItem.color}'.trim();
@@ -163,6 +208,7 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
             .from('vehicles')
             .select('id, brand, model, plate_number, color, is_default, photo_url')
             .eq('id', targetVehicleId)
+            .eq('user_id', currentUserId)
             .maybeSingle();
 
         if (vRes != null) {
@@ -172,18 +218,29 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
           _photoUrl = item.photoUrl;
           _isDefault = item.isDefault;
           targetPlate = item.plateNumber;
+        } else {
+          _vehiclePlate = 'Belum Terdaftar';
+          _vehicleInfo = 'Tidak ada kendaraan aktif';
+          _photoUrl = null;
+          _isDefault = true;
+          _allSessions = [];
+          _totalSessions = 0;
+          _totalDurationHours = 0;
+          _rawThisMonthSpending = 0;
+          _thisMonthSpending = CurrencyService.instance.format(0);
+          _isLoading = false;
+          notifyListeners();
+          return;
         }
       } else {
         // Fallback: Ambil kendaraan default milik user aktif
-        final currentUserId = await _resolveUserIdAsync();
-        dynamic vQuery = _client
+        final vRes = await _client
             .from('vehicles')
-            .select('id, brand, model, plate_number, color, is_default, photo_url');
-
-        if (currentUserId.isNotEmpty) {
-          vQuery = vQuery.eq('user_id', currentUserId);
-        }
-        final vRes = await vQuery.order('is_default', ascending: false).limit(1).maybeSingle();
+            .select('id, brand, model, plate_number, color, is_default, photo_url')
+            .eq('user_id', currentUserId)
+            .order('is_default', ascending: false)
+            .limit(1)
+            .maybeSingle();
 
         if (vRes != null) {
           final item = VehicleItem.fromMap(vRes);
@@ -209,7 +266,7 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
         }
       }
 
-      // 2. Ambil HANYA sesi parkir yang terkait dengan kendaraan ini (melalui vehicle_id atau nomor plat)
+      // 2. Ambil HANYA sesi parkir yang terkait dengan user dan kendaraan ini
       final List<VerifiedSessionItem> list = [];
       int totalHours = 0;
       int monthlySpending = 0;
@@ -233,10 +290,11 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
             booking_id,
             parking_locations(name),
             parking_slots(slot_code)
-          ''');
+          ''')
+          .eq('user_id', currentUserId);
 
       final hasVehicleId = targetVehicleId.isNotEmpty;
-      final hasPlate = targetPlate != null && targetPlate.isNotEmpty;
+      final hasPlate = targetPlate.isNotEmpty;
 
       if (hasVehicleId && hasPlate) {
         sQuery = sQuery.or('vehicle_id.eq.$targetVehicleId,plate_number.eq.$targetPlate');
@@ -317,9 +375,9 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
         }
       }
 
-      // 2b. Query reservasi parkir dari bookings yang belum check-in
-      if (hasVehicleId) {
-        final bookingRes = await _client
+      // 2b. Query reservasi parkir dari bookings yang belum check-in HANYA milik user aktif
+      if (hasVehicleId || hasPlate) {
+        dynamic bQuery = _client
             .from('bookings')
             .select('''
               id,
@@ -335,9 +393,18 @@ class VerifiedParkingSessionsBackend extends ChangeNotifier {
               parking_locations(name),
               parking_slots(slot_code)
             ''')
-            .eq('vehicle_id', targetVehicleId)
-            .neq('booking_status', 'cancelled')
-            .order('created_at', ascending: false);
+            .eq('user_id', currentUserId)
+            .neq('booking_status', 'cancelled');
+
+        if (hasVehicleId && hasPlate) {
+          bQuery = bQuery.or('vehicle_id.eq.$targetVehicleId,plate_number.eq.$targetPlate');
+        } else if (hasVehicleId) {
+          bQuery = bQuery.eq('vehicle_id', targetVehicleId);
+        } else if (hasPlate) {
+          bQuery = bQuery.eq('plate_number', targetPlate);
+        }
+
+        final bookingRes = await bQuery.order('created_at', ascending: false);
 
         if (bookingRes.isNotEmpty) {
           for (var bRow in bookingRes) {

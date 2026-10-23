@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -75,6 +76,78 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
     return '${months[dt.month - 1]} ${dt.year}';
   }
 
+  /// Evaluasi otomatis: Auto-cancel unpaid > 179s & Auto-complete paid lewat endTime
+  Future<void> _cleanupExpiredAndCompletedBookings() async {
+    try {
+      final nowUtc = DateTime.now().toUtc();
+
+      // 1. Unpaid booking yang sudah lebih dari 2 menit 59 detik (179s) -> Cancel & bebaskan slot
+      final unpaidBookings = await _client
+          .from('bookings')
+          .select('id, slot_id, created_at')
+          .eq('payment_status', 'unpaid')
+          .neq('booking_status', 'cancelled');
+
+      for (final b in unpaidBookings) {
+        final cat = DateTime.tryParse(b['created_at']?.toString() ?? '');
+        if (cat != null) {
+          final age = nowUtc.difference(cat.toUtc()).inSeconds;
+          if (age > 179) {
+            await _client.from('bookings').update({
+              'booking_status': 'cancelled',
+              'cancel_reason': 'Waktu pembayaran habis (Auto Cancel)',
+            }).eq('id', b['id']);
+
+            final slotId = b['slot_id']?.toString();
+            if (slotId != null && slotId.isNotEmpty) {
+              await _client.from('parking_slots').update({
+                'status': 'available',
+                'current_plate_number': null,
+                'occupied_since': null,
+              }).eq('id', slotId);
+            }
+          }
+        }
+      }
+
+      // 2. Paid booking yang belum check-in tapi sudah lewat batas checkout (end_time) -> Otomatis Selesai & bebaskan slot
+      final paidUpcomingBookings = await _client
+          .from('bookings')
+          .select('id, slot_id, end_time')
+          .eq('payment_status', 'paid')
+          .inFilter('booking_status', ['upcoming', 'confirmed']);
+
+      for (final b in paidUpcomingBookings) {
+        final end = DateTime.tryParse(b['end_time']?.toString() ?? '');
+        if (end != null && nowUtc.isAfter(end.toUtc())) {
+          await _client.from('bookings').update({
+            'booking_status': 'completed',
+          }).eq('id', b['id']);
+
+          final slotId = b['slot_id']?.toString();
+          if (slotId != null && slotId.isNotEmpty) {
+            final activeSessionOnSlot = await _client
+                .from('parking_sessions')
+                .select('id')
+                .eq('slot_id', slotId)
+                .inFilter('status', ['active', 'overstay'])
+                .maybeSingle();
+
+            if (activeSessionOnSlot == null) {
+              await _client.from('parking_slots').update({
+                'status': 'available',
+                'current_plate_number': null,
+                'occupied_since': null,
+              }).eq('id', slotId);
+            }
+          }
+        }
+      }
+    } catch (e) {
+      debugPrint('[AdminOperationsDashboardBackend] _cleanup error: $e');
+    }
+  }
+
   /// Memuat metrik operasional & chart kendaraan dari Supabase
   Future<void> fetchDashboardData() async {
     _isLoading = true;
@@ -82,6 +155,9 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 0. Jalankan evaluasi auto-cancel unpaid (>179s) & auto-selesai lewat checkout
+      await _cleanupExpiredAndCompletedBookings();
+
       // 1. Lokasi & Kapasitas Real dari Database
       final locs = await _client
           .from('parking_locations')
@@ -103,6 +179,28 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
           .from('parking_sessions')
           .select('id, location_id, slot_id, status')
           .inFilter('status', ['active', 'overstay']);
+
+      // 1c. Hitung Jumlah Kendaraan Riil dari Database (public.vehicles)
+      final vehiclesRes = await _client
+          .from('vehicles')
+          .select('id, vehicle_type, brand, model');
+
+      int realMobil = 0;
+      int realMotor = 0;
+      int realEv = 0;
+
+      for (final v in vehiclesRes) {
+        final vt = (v['vehicle_type'] ?? '').toString().toLowerCase();
+        final brand = (v['brand'] ?? '').toString().toLowerCase();
+        final model = (v['model'] ?? '').toString().toLowerCase();
+        if (vt.contains('ev') || vt.contains('electric') || brand.contains('ioniq') || model.contains('ev')) {
+          realEv++;
+        } else if (vt.contains('motor') || vt.contains('bike')) {
+          realMotor++;
+        } else {
+          realMobil++;
+        }
+      }
 
       _totalLocationsCount = locs.length;
       int totalCap = 0;
@@ -188,9 +286,9 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
             'available': available,
             'status': statusLabel,
             'statusColor': statusCol,
-            'mobil': (row['car_slots_capacity'] as num?)?.toInt() ?? (total * 0.7).round(),
-            'motor': (row['motor_slots_capacity'] as num?)?.toInt() ?? (total * 0.2).round(),
-            'ev': (row['ev_slots_capacity'] as num?)?.toInt() ?? (total * 0.1).round(),
+            'mobil': realMobil,
+            'motor': realMotor,
+            'ev': realEv,
             'occupiedMobil': occupiedMobil,
             'occupiedMotor': occupiedMotor,
             'occupiedEv': occupiedEv,
@@ -209,15 +307,9 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
           final locList = entry.value;
           int cityTotal = 0;
           int cityOccupied = 0;
-          int cityMobil = 0;
-          int cityMotor = 0;
-          int cityEv = 0;
           for (var l in locList) {
             cityTotal += (l['total'] as int? ?? 0);
             cityOccupied += (l['occupied'] as int? ?? 0);
-            cityMobil += (l['mobil'] as int? ?? 0);
-            cityMotor += (l['motor'] as int? ?? 0);
-            cityEv += (l['ev'] as int? ?? 0);
           }
           final ratio = cityTotal > 0 ? (cityOccupied / cityTotal) : 0.0;
           String status = 'Normal';
@@ -238,9 +330,9 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
             'occupied': cityOccupied,
             'status': status,
             'statusColor': statusColor,
-            'mobil': cityMobil,
-            'motor': cityMotor,
-            'ev': cityEv,
+            'mobil': realMobil,
+            'motor': realMotor,
+            'ev': realEv,
           };
         }).toList();
       } else {
@@ -249,10 +341,29 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
         _occupiedSlotsCount = 0;
       }
 
-      // 2. Sesi Aktif & Overstay Real dari Database
+      // 2. Sesi Aktif & Overstay Real dari Database (Termasuk relasi lengkap & timer)
       final activeSessions = await _client
           .from('parking_sessions')
-          .select('id, session_code, plate_number, vehicle_desc, vehicle_type, check_in_time, parking_fee, total_fee, is_overstay, overstay_minutes, status')
+          .select('''
+            id,
+            session_code,
+            plate_number,
+            vehicle_desc,
+            vehicle_type,
+            check_in_time,
+            expected_check_out_time,
+            parking_fee,
+            total_fee,
+            is_overstay,
+            overstay_minutes,
+            status,
+            slot_id,
+            location_id,
+            booking_id,
+            users(full_name, phone),
+            parking_locations(name, address),
+            parking_slots(slot_code, floor_name)
+          ''')
           .inFilter('status', ['active', 'overstay'])
           .order('check_in_time', ascending: false);
 
@@ -261,24 +372,75 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
 
       if (activeSessions.isNotEmpty) {
         _liveSessions = activeSessions.map<Map<String, dynamic>>((row) {
-          final isEv = row['vehicle_type'] == 'ev';
+          final isEv = (row['vehicle_type'] ?? '').toString().toLowerCase().contains('ev') ||
+                       (row['vehicle_desc'] ?? '').toString().toLowerCase().contains('ev');
           final fee = (row['total_fee'] as num?)?.toDouble() ?? 
                       (row['parking_fee'] as num?)?.toDouble() ?? 10000;
+
+          final userData = row['users'] as Map<String, dynamic>?;
+          final locData = row['parking_locations'] as Map<String, dynamic>?;
+          final slotData = row['parking_slots'] as Map<String, dynamic>?;
+
+          final userName = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
+          final userPhone = userData?['phone']?.toString() ?? '+62 812-xxxx-xxxx';
+          final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
+          final slotCode = slotData?['slot_code']?.toString() ?? 'Area Parkir';
+          final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
+
+          final checkInDt = DateTime.tryParse(row['check_in_time']?.toString() ?? '')?.toLocal();
+          final expOutDt = DateTime.tryParse(row['expected_check_out_time']?.toString() ?? '')?.toLocal();
+
+          String checkInStr = 'Baru saja';
+          if (checkInDt != null) {
+            checkInStr = '${checkInDt.hour.toString().padLeft(2, '0')}:${checkInDt.minute.toString().padLeft(2, '0')} WIB';
+          }
+
+          final now = DateTime.now();
+          String durationStr = '1j';
+          bool isOverstay = row['is_overstay'] == true;
+          int overstayMins = (row['overstay_minutes'] as num?)?.toInt() ?? 0;
+
+          if (expOutDt != null) {
+            final diffSecs = expOutDt.difference(now).inSeconds;
+            if (diffSecs > 0) {
+              final h = diffSecs ~/ 3600;
+              final m = (diffSecs % 3600) ~/ 60;
+              final s = diffSecs % 60;
+              if (h > 0) {
+                durationStr = 'Sisa ${h}j ${m}m ${s}d';
+              } else {
+                durationStr = 'Sisa ${m}m ${s}d';
+              }
+              isOverstay = false;
+            } else {
+              isOverstay = true;
+              overstayMins = (-diffSecs) ~/ 60;
+              durationStr = 'Overstay $overstayMins mnt';
+            }
+          }
+
+          final vType = (row['vehicle_type'] ?? '').toString().toLowerCase();
+
           return {
             'id': row['session_code']?.toString() ?? 'SES-000',
             'db_id': row['id']?.toString(),
+            'slot_id': row['slot_id']?.toString(),
+            'booking_id': row['booking_id']?.toString(),
             'plate': row['plate_number']?.toString() ?? 'B 1234 XYZ',
-            'user': 'Pengguna ParkSmart',
-            'phone': '+62 812-xxxx-xxxx',
-            'type': isEv ? 'EV Mobil' : 'Mobil',
+            'user': userName,
+            'phone': userPhone,
+            'type': isEv ? 'EV' : (vType.contains('motor') ? 'Motor' : 'Mobil'),
             'vehicle': row['vehicle_desc']?.toString() ?? 'Kendaraan',
-            'location': 'Lokasi Parkir',
-            'slot': 'Area Parkir',
-            'checkIn': 'Baru saja',
-            'duration': '1j',
+            'location': locName,
+            'slot': slotCode,
+            'floor': floorName,
+            'checkIn': checkInStr,
+            'duration': durationStr,
+            'raw_expected_check_out_time': expOutDt,
+            'raw_check_in_time': checkInDt,
             'fee': 'Rp ${fee.toStringAsFixed(0)}',
-            'isOverstay': row['is_overstay'] == true,
-            'overstayDuration': '${row['overstay_minutes'] ?? 0} mnt',
+            'isOverstay': isOverstay,
+            'overstayDuration': '$overstayMins mnt',
             'isEv': isEv,
           };
         }).toList();
@@ -286,69 +448,98 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
         _liveSessions = [];
       }
 
-      // 3. Reservasi Masuk Real dari Database
+      // 3. Reservasi Masuk Real dari Database (Hanya yang belum checkin & belum expired)
       final bookingsRes = await _client
           .from('bookings')
           .select('''
             id,
             booking_code,
+            booking_type,
             start_time,
+            end_time,
             duration_hours,
             total_price,
             payment_status,
             booking_status,
             created_at,
+            user_id,
+            location_id,
+            slot_id,
+            vehicle_id,
+            plate_number,
+            vehicle_desc,
             users(full_name, phone),
             parking_locations(name),
             parking_slots(slot_code, floor_name),
-            vehicles(plate_number, vehicle_type)
+            vehicles(plate_number, vehicle_type, brand, model)
           ''')
+          .inFilter('booking_status', ['upcoming', 'confirmed'])
           .order('created_at', ascending: false);
 
-      if (bookingsRes.isNotEmpty) {
-        _liveBookings = bookingsRes.map<Map<String, dynamic>>((row) {
-          final isConfirmed = row['booking_status'] == 'active' || row['booking_status'] == 'upcoming';
-          final price = (row['total_price'] as num?)?.toInt() ?? 0;
-          final userData = row['users'] as Map<String, dynamic>?;
-          final locData = row['parking_locations'] as Map<String, dynamic>?;
-          final slotData = row['parking_slots'] as Map<String, dynamic>?;
-          final vehData = row['vehicles'] as Map<String, dynamic>?;
+      final List<Map<String, dynamic>> validIncoming = [];
+      final nowUtc = DateTime.now().toUtc();
 
-          final userName = userData?['full_name']?.toString() ?? 'Pelanggan ParkSmart';
-          final userPhone = userData?['phone']?.toString() ?? '-';
-          final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
-          final slotCode = slotData?['slot_code']?.toString() ?? '-';
-          final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
-          final plate = vehData?['plate_number']?.toString() ?? '-';
-          final vType = vehData?['vehicle_type']?.toString().toLowerCase() == 'motor' ? 'Motor' : 'Mobil';
+      for (final row in bookingsRes) {
+        final payStatus = (row['payment_status'] ?? '').toString().toLowerCase();
+        final isPaid = payStatus == 'paid';
 
-          DateTime? parsedStart = DateTime.tryParse(row['start_time']?.toString() ?? '');
-          String timeFormatted = '08:00';
-          if (parsedStart != null) {
-            final wibDt = parsedStart.toUtc().add(const Duration(hours: 7));
-            timeFormatted = '${wibDt.hour.toString().padLeft(2, '0')}:${wibDt.minute.toString().padLeft(2, '0')}';
+        // Filter validasi: jika unpaid tapi sudah > 179s, lewati (sudah di-cancel)
+        if (!isPaid) {
+          final cat = DateTime.tryParse(row['created_at']?.toString() ?? '');
+          if (cat != null && nowUtc.difference(cat.toUtc()).inSeconds > 179) {
+            continue;
           }
+        }
 
-          return {
-            'id': row['booking_code']?.toString() ?? 'BKG-001',
-            'code': row['booking_code']?.toString() ?? 'PRK-001',
-            'name': userName,
-            'phone': userPhone,
-            'location': locName,
-            'slot': slotCode,
-            'floor': floorName,
-            'vehicleType': vType,
-            'plate': plate,
-            'time': '$timeFormatted WIB',
-            'duration': '${row['duration_hours'] ?? 2} jam',
-            'status': isConfirmed ? 'Dikonfirmasi' : 'Menunggu',
-            'totalPrice': 'Rp $price',
-            'paymentStatus': row['payment_status'] == 'paid' ? 'Dibayar' : 'Pending',
-          };
-        }).toList();
-      } else {
-        _liveBookings = [];
+        // Jika paid tapi sudah lewat end_time, lewati (sudah auto-selesai)
+        if (isPaid) {
+          final end = DateTime.tryParse(row['end_time']?.toString() ?? '');
+          if (end != null && nowUtc.isAfter(end.toUtc())) {
+            continue;
+          }
+        }
+
+        final price = (row['total_price'] as num?)?.toInt() ?? 0;
+        final userData = row['users'] as Map<String, dynamic>?;
+        final locData = row['parking_locations'] as Map<String, dynamic>?;
+        final slotData = row['parking_slots'] as Map<String, dynamic>?;
+        final vehData = row['vehicles'] as Map<String, dynamic>?;
+
+        final userName = userData?['full_name']?.toString() ?? 'Pelanggan ParkSmart';
+        final userPhone = userData?['phone']?.toString() ?? '-';
+        final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
+        final slotCode = slotData?['slot_code']?.toString() ?? '-';
+        final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
+        final plate = row['plate_number']?.toString() ?? vehData?['plate_number']?.toString() ?? '-';
+        final vType = vehData?['vehicle_type']?.toString().toLowerCase() == 'motor' ? 'Motor' : 'Mobil';
+
+        DateTime? parsedStart = DateTime.tryParse(row['start_time']?.toString() ?? '');
+        String timeFormatted = '08:00';
+        if (parsedStart != null) {
+          final wibDt = parsedStart.toUtc().add(const Duration(hours: 7));
+          timeFormatted = '${wibDt.hour.toString().padLeft(2, '0')}:${wibDt.minute.toString().padLeft(2, '0')}';
+        }
+
+        validIncoming.add({
+          'id': row['booking_code']?.toString() ?? 'BKG-001',
+          'db_id': row['id']?.toString(),
+          'code': row['booking_code']?.toString() ?? 'PRK-001',
+          'name': userName,
+          'phone': userPhone,
+          'location': locName,
+          'slot': slotCode,
+          'floor': floorName,
+          'vehicleType': vType,
+          'plate': plate,
+          'time': '$timeFormatted WIB',
+          'duration': '${row['duration_hours'] ?? 2} jam',
+          'status': isPaid ? 'Dikonfirmasi' : 'Menunggu',
+          'totalPrice': 'Rp $price',
+          'paymentStatus': isPaid ? 'Dibayar' : 'Belum Dibayar',
+        });
       }
+
+      _liveBookings = validIncoming;
 
       // 4. Seluruh Sesi Parkir untuk Kalkulasi Chart 4 Minggu per Bulan
       final allSessionsRes = await _client
@@ -477,6 +668,171 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  /// Admin Force Check-In untuk reservasi status Dikonfirmasi
+  Future<bool> forceCheckInBooking(String bookingIdentifier) async {
+    try {
+      final bRes = await _client
+          .from('bookings')
+          .select('''
+            id, booking_code, user_id, location_id, slot_id, vehicle_id,
+            plate_number, vehicle_desc, duration_hours, total_price,
+            vehicles(plate_number, vehicle_type, brand, model)
+          ''')
+          .or('id.eq.$bookingIdentifier,booking_code.eq.$bookingIdentifier')
+          .maybeSingle();
+
+      if (bRes == null) return false;
+
+      final bookingId = bRes['id'];
+      final slotId = bRes['slot_id'];
+      final vehData = bRes['vehicles'] as Map<String, dynamic>?;
+      final plate = bRes['plate_number']?.toString() ?? vehData?['plate_number']?.toString() ?? '-';
+      final vType = vehData?['vehicle_type']?.toString().toLowerCase() ?? 'mobil';
+      final vDesc = bRes['vehicle_desc']?.toString() ??
+          ((vehData != null) ? '${vehData['brand'] ?? ''} ${vehData['model'] ?? ''}'.trim() : 'Kendaraan');
+      final durationHours = (bRes['duration_hours'] as num?)?.toInt() ?? 1;
+      final fee = (bRes['total_price'] as num?)?.toDouble() ?? 5000.0;
+
+      final now = DateTime.now().toUtc();
+      final expEnd = now.add(Duration(hours: durationHours));
+
+      // 1. Update status booking menjadi active
+      await _client.from('bookings').update({
+        'booking_status': 'active',
+      }).eq('id', bookingId);
+
+      // 2. Set slot menjadi occupied
+      if (slotId != null) {
+        await _client.from('parking_slots').update({
+          'status': 'occupied',
+          'current_plate_number': plate,
+          'occupied_since': now.toIso8601String(),
+        }).eq('id', slotId);
+      }
+
+      // 3. Buat sesi di parking_sessions jika belum ada, atau aktifkan jika ada
+      final existingSession = await _client
+          .from('parking_sessions')
+          .select('id')
+          .eq('booking_id', bookingId)
+          .maybeSingle();
+
+      if (existingSession != null) {
+        await _client.from('parking_sessions').update({
+          'status': 'active',
+          'check_in_time': now.toIso8601String(),
+          'expected_check_out_time': expEnd.toIso8601String(),
+        }).eq('id', existingSession['id']);
+      } else {
+        final sessionCode = 'SES-${Random().nextInt(900000) + 100000}';
+        await _client.from('parking_sessions').insert({
+          'session_code': sessionCode,
+          'booking_id': bookingId,
+          'user_id': bRes['user_id'],
+          'location_id': bRes['location_id'],
+          'slot_id': slotId,
+          'vehicle_id': bRes['vehicle_id'],
+          'plate_number': plate,
+          'vehicle_type': vType,
+          'vehicle_desc': vDesc.isEmpty ? 'Kendaraan' : vDesc,
+          'check_in_time': now.toIso8601String(),
+          'expected_check_out_time': expEnd.toIso8601String(),
+          'parking_fee': fee,
+          'total_fee': fee,
+          'status': 'active',
+          'gate_in_id': 'Admin Force Check-in',
+        });
+      }
+
+      await fetchDashboardData();
+      return true;
+    } catch (e) {
+      debugPrint('[AdminOperationsDashboardBackend] forceCheckInBooking error: $e');
+      return false;
+    }
+  }
+
+  /// Admin Force Cancel untuk reservasi belum bayar (Menunggu)
+  Future<bool> forceCancelBooking(String bookingIdentifier, {String? reason}) async {
+    try {
+      final bRes = await _client
+          .from('bookings')
+          .select('id, slot_id')
+          .or('id.eq.$bookingIdentifier,booking_code.eq.$bookingIdentifier')
+          .maybeSingle();
+
+      if (bRes == null) return false;
+
+      final bookingId = bRes['id'];
+      final slotId = bRes['slot_id'];
+
+      await _client.from('bookings').update({
+        'booking_status': 'cancelled',
+        'cancel_reason': reason ?? 'Dibatalkan oleh Admin Operasional',
+      }).eq('id', bookingId);
+
+      if (slotId != null) {
+        await _client.from('parking_slots').update({
+          'status': 'available',
+          'current_plate_number': null,
+          'occupied_since': null,
+        }).eq('id', slotId);
+      }
+
+      await fetchDashboardData();
+      return true;
+    } catch (e) {
+      debugPrint('[AdminOperationsDashboardBackend] forceCancelBooking error: $e');
+      return false;
+    }
+  }
+
+  /// Admin Force Check-Out tepat pada sesi kendaraan aktif tertentu
+  Future<bool> forceCheckOutSession(String sessionIdentifier) async {
+    try {
+      final sess = await _client
+          .from('parking_sessions')
+          .select('id, slot_id, booking_id')
+          .or('id.eq.$sessionIdentifier,session_code.eq.$sessionIdentifier')
+          .maybeSingle();
+
+      if (sess == null) return false;
+
+      final sId = sess['id'];
+      final slotId = sess['slot_id'];
+      final bookingId = sess['booking_id'];
+      final now = DateTime.now().toUtc();
+
+      // 1. Selesaikan sesi parkir ini
+      await _client.from('parking_sessions').update({
+        'status': 'completed',
+        'check_out_time': now.toIso8601String(),
+      }).eq('id', sId);
+
+      // 2. Bebaskan slot parkir jika ada
+      if (slotId != null) {
+        await _client.from('parking_slots').update({
+          'status': 'available',
+          'current_plate_number': null,
+          'occupied_since': null,
+        }).eq('id', slotId);
+      }
+
+      // 3. Selesaikan status booking terkait
+      if (bookingId != null) {
+        await _client.from('bookings').update({
+          'booking_status': 'completed',
+        }).eq('id', bookingId);
+      }
+
+      await fetchDashboardData();
+      return true;
+    } catch (e) {
+      debugPrint('[AdminOperationsDashboardBackend] forceCheckOutSession error: $e');
+      return false;
     }
   }
 }

@@ -2,7 +2,9 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
+import '../../admin/operations/backend/admin_operations_dashboard_backend.dart';
 import '../../profile/backend/profile_backend.dart';
+import 'active_session_backend.dart';
 
 /// Backend khusus untuk ExpiringSessionScreen (lib/features/session/expiring_session_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk performa optimal
@@ -97,24 +99,48 @@ class ExpiringSessionBackend extends ChangeNotifier {
       final newEnd = (_expectedCheckOut ?? DateTime.now()).add(Duration(minutes: minutes));
 
       if (_sessionId != null) {
-        await _client.from('parking_sessions').update({
-          'expected_check_out_time': newEnd.toUtc().toIso8601String(),
-        }).eq('id', _sessionId!);
+        // 1. Update parking_sessions
+        try {
+          final res = await _client.from('parking_sessions').update({
+            'expected_check_out_time': newEnd.toUtc().toIso8601String(),
+          }).or('id.eq.$_sessionId,session_code.eq.$_sessionId').select('id, booking_id');
+
+          if (res.isNotEmpty && res[0]['booking_id'] != null) {
+            await _client.from('bookings').update({
+              'end_time': newEnd.toUtc().toIso8601String(),
+            }).eq('id', res[0]['booking_id']);
+          }
+        } catch (_) {}
+
+        // 2. Update bookings jika _sessionId adalah booking_id
+        try {
+          await _client.from('bookings').update({
+            'end_time': newEnd.toUtc().toIso8601String(),
+          }).or('id.eq.$_sessionId,booking_code.eq.$_sessionId');
+        } catch (_) {}
+
+        _expectedCheckOut = newEnd;
 
         final code = 'PAY-EXP-${Random().nextInt(900000) + 100000}';
         final uid = ProfileBackend.instance.userId.isNotEmpty
             ? ProfileBackend.instance.userId
             : (SessionService.instance.userId ?? '');
-        await _client.from('payments').insert({
-          'transaction_code': code,
-          'session_id': _sessionId,
-          'user_id': uid,
-          'transaction_type': 'parking_payment',
-          'payment_method': 'wallet',
-          'amount': cost,
-          'description': 'Quick Extend $minutes Menit',
-          'status': 'success',
-        });
+        try {
+          await _client.from('payments').insert({
+            'transaction_code': code,
+            'session_id': _sessionId,
+            'user_id': uid,
+            'transaction_type': 'parking_payment',
+            'payment_method': 'wallet',
+            'amount': cost,
+            'description': 'Quick Extend $minutes Menit',
+            'status': 'success',
+          });
+        } catch (_) {}
+
+        // 3. Sinkronisasi ke ActiveSessionBackend (sisi user) & Admin Dashboard (sisi admin)
+        await ActiveSessionBackend.instance.fetchActiveSession();
+        await AdminOperationsDashboardBackend.instance.fetchDashboardData();
       }
       return true;
     } catch (e) {

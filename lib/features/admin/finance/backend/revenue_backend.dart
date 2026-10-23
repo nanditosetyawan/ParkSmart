@@ -196,7 +196,7 @@ class RevenueBackend extends ChangeNotifier {
       try {
         final paymentsRes = await _client
             .from('payments')
-            .select('amount, status, created_at, completed_at');
+            .select('amount, status, transaction_type, created_at, completed_at');
 
         if (paymentsRes.isNotEmpty) {
           double q1 = 0;
@@ -211,9 +211,10 @@ class RevenueBackend extends ChangeNotifier {
           for (var row in paymentsRes) {
             final amt = (row['amount'] as num?)?.toDouble() ?? 0;
             final status = (row['status'] ?? '').toString().toLowerCase();
+            final trxType = (row['transaction_type'] ?? '').toString().toLowerCase();
             final isSuccess = status == 'success' || status == 'paid';
 
-            if (isSuccess) {
+            if (isSuccess && trxType != 'wallet_injection' && trxType != 'refund') {
               final rawTs = row['completed_at'] ?? row['created_at'];
               final wibDt = _parseToWib(rawTs);
 

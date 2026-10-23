@@ -5,8 +5,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/profile/backend/profile_backend.dart';
 import '../../features/profile/backend/payment_methods_backend.dart';
+import '../../features/profile/backend/vehicle_backend.dart';
 import '../../features/checkout/backend/checkout_backend.dart';
 import '../../features/home/backend/home_backend.dart';
+import '../../features/history/backend/history_backend.dart';
+import '../../features/history/backend/verified_parking_sessions_backend.dart';
 import '../../main.dart' show navigatorKey;
 
 /// Layanan Pengelola Sesi Terpadu (User & Admin) - ParkSmart ID
@@ -357,6 +360,15 @@ class SessionService with WidgetsBindingObserver {
     } catch (_) {}
     try {
       HomeBackend.instance.clear();
+    } catch (_) {}
+    try {
+      HistoryBackend.instance.clear();
+    } catch (_) {}
+    try {
+      VerifiedParkingSessionsBackend.instance.clear();
+    } catch (_) {}
+    try {
+      VehicleBackend.instance.clearVehicles();
     } catch (_) {}
   }
 

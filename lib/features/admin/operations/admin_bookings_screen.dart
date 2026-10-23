@@ -302,13 +302,14 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B), fontWeight: FontWeight.bold))),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                final idx = _bookings.indexWhere((b) => b['id'] == booking['id']);
-                if (idx != -1) _bookings[idx]['status'] = 'Aktif';
-              });
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Sesi dimulai', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF17A18A), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              final sm = ScaffoldMessenger.of(context);
+              nav.pop();
+              final ok = await AdminBookingsBackend.instance.forceCheckInBooking(booking['id'].toString());
+              if (ok) {
+                sm.showSnackBar(SnackBar(content: Text('Sesi dimulai', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF17A18A), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             child: Text('Ya, Mulai Sesi', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white)),
@@ -329,13 +330,14 @@ class _AdminBookingsScreenState extends State<AdminBookingsScreen> with SingleTi
         actions: [
           TextButton(onPressed: () => Navigator.pop(ctx), child: Text('Batal', style: GoogleFonts.plusJakartaSans(color: const Color(0xFF76777B), fontWeight: FontWeight.bold))),
           ElevatedButton(
-            onPressed: () {
-              setState(() {
-                final idx = _bookings.indexWhere((b) => b['id'] == booking['id']);
-                if (idx != -1) _bookings[idx]['status'] = 'Selesai';
-              });
-              Navigator.pop(ctx);
-              ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Force check-out berhasil', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF17A18A), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+            onPressed: () async {
+              final nav = Navigator.of(context);
+              final sm = ScaffoldMessenger.of(context);
+              nav.pop();
+              final ok = await AdminBookingsBackend.instance.forceCheckOutBooking(booking['id'].toString());
+              if (ok) {
+                sm.showSnackBar(SnackBar(content: Text('Force check-out berhasil', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600)), backgroundColor: const Color(0xFF17A18A), behavior: SnackBarBehavior.floating, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))));
+              }
             },
             style: ElevatedButton.styleFrom(backgroundColor: const Color(0xFF17A18A), elevation: 0, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10))),
             child: Text('Ya, Force Check-Out', style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white)),

@@ -48,8 +48,7 @@ class _AdminTransactionsScreenState extends State<AdminTransactionsScreen> {
       type == 'Parkir' ||
       type == 'Top-up Wallet' ||
       type == 'Penalty' ||
-      type == 'Penalti Overstay' ||
-      type == 'Injeksi Admin';
+      type == 'Penalti Overstay';
 
   List<Map<String, dynamic>> get _filteredTransactions {
     final q = _searchController.text.toLowerCase();

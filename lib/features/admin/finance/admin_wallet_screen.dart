@@ -434,7 +434,12 @@ class _AdminWalletScreenState extends State<AdminWalletScreen> {
               );
               if (!mounted) return;
               nav.pop();
+              final updatedUser = AdminWalletBackend.instance.users.firstWhere(
+                (u) => u['id'] == userId,
+                orElse: () => _selectedUser!,
+              );
               setState(() {
+                _selectedUser = updatedUser;
                 _noteController.clear();
               });
               sm.showSnackBar(

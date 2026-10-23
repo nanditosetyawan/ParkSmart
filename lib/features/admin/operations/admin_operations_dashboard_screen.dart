@@ -27,6 +27,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   String _adminName = 'BAHLIL ETANOL';
   String _adminEmail = 'bahlil@parksmart.id';
   Timer? _autoRefreshTimer;
+  Timer? _countdownTimer;
 
   @override
   void initState() {
@@ -37,6 +38,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 12), (_) {
       if (mounted) {
         AdminOperationsDashboardBackend.instance.fetchDashboardData();
+      }
+    });
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (mounted && _activitySubTab == 0 && _liveSessions.isNotEmpty) {
+        setState(() {});
       }
     });
   }
@@ -77,6 +83,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   @override
   void dispose() {
     _autoRefreshTimer?.cancel();
+    _countdownTimer?.cancel();
     AdminOperationsDashboardBackend.instance.removeListener(_onBackendChanged);
     super.dispose();
   }
@@ -673,7 +680,27 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
             )
           else
             ..._liveSessions.map((s) {
-            final isOverstay = s['isOverstay'] == true;
+            final rawExp = s['raw_expected_check_out_time'] as DateTime?;
+            String liveDuration = s['duration']?.toString() ?? '1j';
+            bool isOverstay = s['isOverstay'] == true;
+            String overstayText = s['overstayDuration']?.toString() ?? '0 mnt';
+
+            if (rawExp != null) {
+              final diff = rawExp.difference(DateTime.now()).inSeconds;
+              if (diff > 0) {
+                final h = diff ~/ 3600;
+                final m = (diff % 3600) ~/ 60;
+                final sec = diff % 60;
+                liveDuration = h > 0 ? 'Sisa ${h}j ${m}m ${sec}d' : 'Sisa ${m}m ${sec}d';
+                isOverstay = false;
+              } else {
+                isOverstay = true;
+                final overstayM = (-diff) ~/ 60;
+                overstayText = '$overstayM mnt';
+                liveDuration = 'Overstay $overstayM mnt';
+              }
+            }
+
             final isEv = s['isEv'] == true;
             return Container(
               margin: const EdgeInsets.only(bottom: 10),
@@ -726,7 +753,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                                     borderRadius: BorderRadius.circular(6),
                                   ),
                                   child: Text(
-                                    isOverstay ? 'Overstay ${s['overstayDuration']}' : (isEv ? 'EV Charging' : 'Normal'),
+                                    isOverstay ? 'Overstay $overstayText' : (isEv ? 'EV Charging' : 'Normal'),
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 10,
                                       fontWeight: FontWeight.bold,
@@ -749,7 +776,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                           mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: [
                             Text('📍 ${s['location']} (${s['slot']})', style: GoogleFonts.plusJakartaSans(fontSize: 10.5, color: const Color(0xFF76777B))),
-                            Text('⏱️ ${s['duration']} (${s['checkIn']})', style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF114177))),
+                            Text('⏱️ $liveDuration (${s['checkIn']})', style: GoogleFonts.plusJakartaSans(fontSize: 10.5, fontWeight: FontWeight.w600, color: const Color(0xFF114177))),
                           ],
                         ),
                       ],
@@ -969,18 +996,23 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: () {
-                      setState(() {
-                        _liveSessions.removeWhere((s) => s['id'] == session['id']);
-                      });
-                      Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          backgroundColor: const Color(0xFF17A18A),
-                          behavior: SnackBarBehavior.floating,
-                          content: Text('Kendaraan ${session['plate']} berhasil di-checkout manual!'),
-                        ),
-                      );
+                    onPressed: () async {
+                      final nav = Navigator.of(context);
+                      final sm = ScaffoldMessenger.of(context);
+                      final plate = session['plate'];
+                      final dbId = session['db_id'] ?? session['id'];
+
+                      nav.pop();
+                      final ok = await AdminOperationsDashboardBackend.instance.forceCheckOutSession(dbId.toString());
+                      if (ok) {
+                        sm.showSnackBar(
+                          SnackBar(
+                            backgroundColor: const Color(0xFF17A18A),
+                            behavior: SnackBarBehavior.floating,
+                            content: Text('Kendaraan $plate berhasil di-checkout manual!'),
+                          ),
+                        );
+                      }
                     },
                     icon: const Icon(Icons.exit_to_app, size: 16, color: Colors.white),
                     label: Text(
@@ -1107,15 +1139,22 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                   children: [
                     Expanded(
                       child: OutlinedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('Booking ${booking['code']} telah dibatalkan.'),
-                              backgroundColor: const Color(0xFFD94B4B),
-                              behavior: SnackBarBehavior.floating,
-                            ),
-                          );
+                        onPressed: () async {
+                          final nav = Navigator.of(context);
+                          final sm = ScaffoldMessenger.of(context);
+                          final code = booking['code'] ?? booking['id'];
+
+                          nav.pop();
+                          final ok = await AdminOperationsDashboardBackend.instance.forceCancelBooking(code.toString());
+                          if (ok) {
+                            sm.showSnackBar(
+                              SnackBar(
+                                content: Text('Booking $code telah dibatalkan.'),
+                                backgroundColor: const Color(0xFFD94B4B),
+                                behavior: SnackBarBehavior.floating,
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.cancel_outlined, size: 16, color: Color(0xFFD94B4B)),
                         label: Text('Batalkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFFD94B4B))),
@@ -1129,15 +1168,24 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     const SizedBox(width: 10),
                     Expanded(
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          Navigator.pop(ctx);
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              backgroundColor: const Color(0xFF17A18A),
-                              behavior: SnackBarBehavior.floating,
-                              content: Text('Sesi parkir untuk ${booking['name']} (${booking['plate']}) telah dimulai!'),
-                            ),
-                          );
+                        onPressed: () async {
+                          final nav = Navigator.of(context);
+                          final sm = ScaffoldMessenger.of(context);
+                          final code = booking['code'] ?? booking['id'];
+                          final name = booking['name'];
+                          final plate = booking['plate'];
+
+                          nav.pop();
+                          final ok = await AdminOperationsDashboardBackend.instance.forceCheckInBooking(code.toString());
+                          if (ok) {
+                            sm.showSnackBar(
+                              SnackBar(
+                                backgroundColor: const Color(0xFF17A18A),
+                                behavior: SnackBarBehavior.floating,
+                                content: Text('Sesi parkir untuk $name ($plate) telah dimulai!'),
+                              ),
+                            );
+                          }
                         },
                         icon: const Icon(Icons.play_arrow_rounded, size: 16, color: Colors.white),
                         label: Text('Mulai Sesi', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: Colors.white)),
