@@ -39,6 +39,9 @@ class ProfileBackend extends ChangeNotifier {
   String _pesanKuliah = '';
   String get pesanKuliah => _pesanKuliah;
 
+  List<Map<String, dynamic>> _userCards = [];
+  List<Map<String, dynamic>> get userCards => _userCards;
+
   String get name => _name;
   String get email => _email;
   String get phone => _phone;
@@ -60,6 +63,7 @@ class ProfileBackend extends ChangeNotifier {
     String? avatarUrl,
     String? memberTier,
     int? walletBalance,
+    String? memberHashCode,
   }) {
     _userId = id;
     _name = fullName;
@@ -68,6 +72,7 @@ class ProfileBackend extends ChangeNotifier {
     if (avatarUrl != null) _avatarUrl = avatarUrl;
     if (memberTier != null) _memberTier = memberTier;
     if (walletBalance != null) _walletBalance = walletBalance;
+    if (memberHashCode != null && memberHashCode.isNotEmpty) _memberHashCode = memberHashCode;
     notifyListeners();
 
     // Simpan ke SharedPreferences agar persist saat restart aplikasi
@@ -76,6 +81,7 @@ class ProfileBackend extends ChangeNotifier {
       prefs.setString('user_profile_name', fullName);
       prefs.setString('user_profile_email', email);
       prefs.setString('user_profile_phone', phone);
+      if (memberHashCode != null) prefs.setString('user_member_hash', memberHashCode);
     });
   }
 
@@ -93,6 +99,7 @@ class ProfileBackend extends ChangeNotifier {
     _kycStatus = 'none';
     _saranKuliah = '';
     _pesanKuliah = '';
+    _userCards = [];
     notifyListeners();
   }
 
@@ -204,6 +211,21 @@ class ProfileBackend extends ChangeNotifier {
           }
         } catch (err) {
           debugPrint('[ProfileBackend] Error query user_kyc: $err');
+        }
+
+        // Ambil semua koleksi kartu keanggotaan pengguna dari tabel user_member_cards
+        try {
+          if (_userId.isNotEmpty) {
+            final cardsRes = await _client
+                .from('user_member_cards')
+                .select('id, card_tier, member_hash_code, tx_hash, is_active, unlocked_at')
+                .eq('user_id', _userId)
+                .order('created_at', ascending: true);
+
+            _userCards = List<Map<String, dynamic>>.from(cardsRes);
+          }
+        } catch (err) {
+          debugPrint('[ProfileBackend] Error query user_member_cards: $err');
         }
       }
     } catch (e) {

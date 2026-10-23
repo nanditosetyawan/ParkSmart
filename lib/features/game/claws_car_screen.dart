@@ -250,7 +250,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   }
 
   // ============================================================
-  // INISIALISASI 2 LAPIS ITEM BERTUMPUK DI DALAM KACA MESIN CAPIT
+  // INISIALISASI 2 LAPIS ITEM BERTUMPUK KE ATAS FLAT 2D DI DALAM KACA MESIN CAPIT
   // ============================================================
   List<ClawItem> _generateDefaultItems() {
     final List<ClawItem> list = [];
@@ -270,13 +270,13 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
         id: 'L0_$i',
         type: layer0Types[i],
         normalizedX: normX,
-        normalizedY: 0.96, // Duduk di lantai dasar
-        rotation: (i % 2 == 0 ? 0.08 : -0.12) * (i + 1),
+        normalizedY: 1.0, // Duduk tepat di lantai dasar flat 2D
+        rotation: (i % 2 == 0 ? 0.06 : -0.08) * (i + 1),
         layer: 0,
       ));
     }
 
-    // Lapis 1 (Atas): 5 butir item mandiri bertumpuk di atas lapis 0
+    // Lapis 1 (Atas): 5 butir item mandiri bertumpuk ke atas (bertimpuk 2D) di celah lapis 0
     final layer1Types = [
       ClawItemType.coin,
       ClawItemType.ikan,
@@ -285,13 +285,13 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       ClawItemType.ikan,
     ];
     for (int i = 0; i < layer1Types.length; i++) {
-      final double normX = 0.16 + i * (0.68 / (layer1Types.length - 1));
+      final double normX = 0.164 + i * (0.672 / (layer1Types.length - 1));
       list.add(ClawItem(
         id: 'L1_$i',
         type: layer1Types[i],
         normalizedX: normX,
-        normalizedY: 0.76, // Bertumpuk di atas lapis 0
-        rotation: (i % 2 == 0 ? -0.18 : 0.22) * (i + 1),
+        normalizedY: 0.82, // Bertumpuk ke atas di atas lapis 0
+        rotation: (i % 2 == 0 ? -0.12 : 0.14) * (i + 1),
         layer: 1,
       ));
     }
@@ -372,6 +372,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
 
   void _startPhysicsLoop() {
     if (_physicsTimer != null && _physicsTimer!.isActive) return;
+    const double itemSize = 48.0;
 
     _physicsTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
       bool hasActiveMovement = false;
@@ -380,7 +381,20 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       for (final item in _items) {
         if (item.isGrabbed || item.isDropped) continue;
 
-        if (item.vy.abs() > 0.05 || item.vx.abs() > 0.05 || item.pixelY < _chamberMaxY) {
+        // Cek dasar pijakan bertumpuk 2D (flat 2D stacking)
+        double itemFloor = _chamberMaxY;
+        for (final other in _items) {
+          if (other == item || other.isGrabbed || other.isDropped) continue;
+          // Jika ada item lain yang berada di bawahnya secara horizontal berdekatan
+          if ((other.pixelX - item.pixelX).abs() < itemSize * 0.78 && other.pixelY > item.pixelY) {
+            final double stackFloor = other.pixelY - itemSize * 0.82;
+            if (stackFloor < itemFloor) {
+              itemFloor = stackFloor;
+            }
+          }
+        }
+
+        if (item.vy.abs() > 0.05 || item.vx.abs() > 0.05 || item.pixelY < itemFloor) {
           hasActiveMovement = true;
           item.pixelX += item.vx;
           item.pixelY += item.vy;
@@ -402,15 +416,15 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
             item.pixelY = _chamberMinY;
             item.vy = 0.0;
           }
-          // Batas Dasar Lantai Kaca
-          if (item.pixelY >= _chamberMaxY) {
-            item.pixelY = _chamberMaxY;
+          // Batas Dasar Lantai atau Tumpukan di atas barang lain
+          if (item.pixelY >= itemFloor) {
+            item.pixelY = itemFloor;
             if (item.vy > 1.2) {
-              item.vy = -item.vy * 0.35; // Membal di lantai
+              item.vy = -item.vy * 0.35; // Membal di tumpukan/lantai
             } else {
               item.vy = 0.0;
             }
-            // Gesekan menggelinding di lantai
+            // Gesekan menggelinding
             item.vx *= 0.88;
             item.vRot *= 0.85;
 
@@ -1239,7 +1253,14 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                                 letterSpacing: 1.2,
                               ),
                             ),
-                            
+                            Text(
+                              'BEST: $_highScore',
+                              style: GoogleFonts.inter(
+                                fontSize: 9.5,
+                                color: const Color(0xFFF472B6).withValues(alpha: 0.8),
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                       ],
@@ -1356,9 +1377,14 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                           // Inisialisasi posisi piksel awal item di dalam etalase kaca jika belum ada
                           if (!_hasInitialPositions && _items.isNotEmpty) {
                             _hasInitialPositions = true;
+                            const double itemSize = 48.0;
                             for (final it in _items) {
                               it.pixelX = minX + it.normalizedX * (maxX - minX);
-                              it.pixelY = minY + it.normalizedY * (maxY - minY);
+                              if (it.layer == 0) {
+                                it.pixelY = maxY; // Tepat di lantai dasar flat 2D
+                              } else {
+                                it.pixelY = maxY - itemSize * 0.82; // Bertimpuk ke atas flat 2D di atas lapis 0
+                              }
                             }
                           }
                         },
@@ -1816,20 +1842,27 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     }
 
     // Gambar seluruh item mandiri yang ada di dalam mesin
-    for (final item in items) {
-      if (item.isGrabbed || item.isDropped) continue;
+    // Diurutkan berdasarkan pixelY menurun agar lapis dasar (pixelY lebih besar) digambar di awal,
+    // dan lapis atas yang bertimpuk ke atas (pixelY lebih kecil) digambar di atasnya tanpa sembunyi di belakang
+    final renderItems = items.where((it) => !it.isGrabbed && !it.isDropped).toList();
+    renderItems.sort((a, b) => b.pixelY.compareTo(a.pixelY));
 
+    for (final item in renderItems) {
       canvas.save();
       final double ix = item.pixelX != 0.0 ? item.pixelX : (minChamberX + item.normalizedX * (maxChamberX - minChamberX));
-      final double iy = item.pixelY != 0.0 ? item.pixelY : (minChamberY + item.normalizedY * (maxChamberY - minChamberY));
+      final double iy = item.pixelY != 0.0
+          ? item.pixelY
+          : (item.layer == 0 ? maxChamberY : maxChamberY - itemSize * 0.82);
 
-      // Bayangan item di dasar lantai etalase
-      canvas.drawOval(
-        Rect.fromCenter(center: Offset(ix, iy + itemRadius * 0.7), width: itemSize * 0.75, height: 8),
-        Paint()
-          ..color = Colors.black.withValues(alpha: 0.35)
-          ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
-      );
+      // Hanya item lapis dasar atau yang menyentuh lantai yang menampilkan bayangan lantai
+      if (item.layer == 0 || (iy - maxChamberY).abs() < 6.0) {
+        canvas.drawOval(
+          Rect.fromCenter(center: Offset(ix, maxChamberY + itemRadius * 0.65), width: itemSize * 0.75, height: 7),
+          Paint()
+            ..color = Colors.black.withValues(alpha: 0.35)
+            ..maskFilter = const MaskFilter.blur(BlurStyle.normal, 2),
+        );
+      }
 
       canvas.translate(ix, iy);
       canvas.rotate(item.rotation);

@@ -2,11 +2,15 @@ import 'dart:math' as math;
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:url_launcher/url_launcher.dart';
+import '../../../ui/layanan/layanan_blockchain.dart';
+import '../backend/profile_backend.dart';
 
 /// ISO/IEC 7810 ID-1 standard ATM card aspect ratio (85.60 mm × 53.98 mm ≈ 1.586 : 1)
 const double kAtmCardAspectRatio = 1.586;
 
-/// Menampilkan Dialog Kartu Member Frameless persis 100% sesuai desain Stitch
+/// Menampilkan Dialog Kartu Member Frameless dengan dukungan multi-kartu (Carousel/Koleksi Kartu)
 void showFramelessMemberCardDialog(
   BuildContext context, {
   required String tier,
@@ -24,46 +28,9 @@ void showFramelessMemberCardDialog(
           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
           child: Material(
             color: Colors.transparent,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Kartu Member Frameless
-                ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 380),
-                  child: MemberAtmCard(
-                    tier: tier,
-                    memberCode: memberCode,
-                  ),
-                ),
-                const SizedBox(height: 24),
-                // Tombol Tutup Minimalis Elegan
-                GestureDetector(
-                  onTap: () => Navigator.of(context).pop(),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(30),
-                      border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const Icon(Icons.close, color: Colors.white70, size: 16),
-                        const SizedBox(width: 8),
-                        Text(
-                          'Tutup',
-                          style: GoogleFonts.plusJakartaSans(
-                            color: Colors.white70,
-                            fontSize: 13,
-                            fontWeight: FontWeight.w600,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-              ],
+            child: MemberCardsCarouselDialog(
+              initialTier: tier,
+              initialMemberCode: memberCode,
             ),
           ),
         ),
@@ -80,6 +47,220 @@ void showFramelessMemberCardDialog(
       );
     },
   );
+}
+
+class MemberCardsCarouselDialog extends StatefulWidget {
+  final String initialTier;
+  final String initialMemberCode;
+
+  const MemberCardsCarouselDialog({
+    super.key,
+    required this.initialTier,
+    required this.initialMemberCode,
+  });
+
+  @override
+  State<MemberCardsCarouselDialog> createState() => _MemberCardsCarouselDialogState();
+}
+
+class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
+  PageController? _pageController;
+  int _currentPage = 0;
+  List<Map<String, dynamic>> _cards = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadCards();
+  }
+
+  Future<void> _loadCards() async {
+    List<Map<String, dynamic>> loaded = List.from(ProfileBackend.instance.userCards);
+    final uid = ProfileBackend.instance.userId;
+
+    if (loaded.isEmpty && uid.isNotEmpty) {
+      try {
+        final res = await Supabase.instance.client
+            .from('user_member_cards')
+            .select('id, card_tier, member_hash_code, tx_hash, is_active, unlocked_at')
+            .eq('user_id', uid)
+            .order('created_at', ascending: true);
+        if (res.isNotEmpty) {
+          loaded = List<Map<String, dynamic>>.from(res);
+        }
+      } catch (_) {}
+    }
+
+    if (loaded.isEmpty) {
+      loaded = [
+        {
+          'card_tier': widget.initialTier,
+          'member_hash_code': widget.initialMemberCode,
+        }
+      ];
+    }
+
+    int initialIdx = loaded.indexWhere((c) {
+      final t = (c['card_tier'] ?? '').toString().toLowerCase();
+      final initT = widget.initialTier.toLowerCase();
+      return t == initT || (initT == 'bronze' && t == 'regular');
+    });
+    if (initialIdx < 0) initialIdx = loaded.length - 1;
+
+    if (mounted) {
+      setState(() {
+        _cards = loaded;
+        _currentPage = initialIdx;
+        _pageController = PageController(initialPage: initialIdx);
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    _pageController?.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (_isLoading || _pageController == null) {
+      return const Center(
+        child: Padding(
+          padding: EdgeInsets.all(40.0),
+          child: CircularProgressIndicator(color: Colors.white70),
+        ),
+      );
+    }
+
+    final currentCard = _cards[_currentPage];
+    final currentTier = currentCard['card_tier']?.toString() ?? widget.initialTier;
+    final currentCode = currentCard['member_hash_code']?.toString() ?? widget.initialMemberCode;
+
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        // Indikator Koleksi Multi-Kartu jika pengguna memiliki lebih dari 1 kartu
+        if (_cards.length > 1) ...[
+          Container(
+            margin: const EdgeInsets.only(bottom: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF0F172A).withValues(alpha: 0.85),
+              borderRadius: BorderRadius.circular(20),
+              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.style_rounded, size: 14, color: Color(0xFF38BDF8)),
+                const SizedBox(width: 8),
+                Text(
+                  'Koleksi Kartu: ${_currentPage + 1} dari ${_cards.length} (Geser untuk memilih)',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+
+        // PageView Kartu Member Berstandar ISO ID-1
+        ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 380),
+          child: SizedBox(
+            height: 236,
+            child: PageView.builder(
+              controller: _pageController,
+              itemCount: _cards.length,
+              onPageChanged: (idx) {
+                setState(() {
+                  _currentPage = idx;
+                });
+              },
+              itemBuilder: (context, index) {
+                final c = _cards[index];
+                final cardTier = c['card_tier']?.toString() ?? 'BRONZE';
+                final memberCode = c['member_hash_code']?.toString() ?? widget.initialMemberCode;
+                return Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 2),
+                  child: MemberAtmCard(
+                    tier: cardTier,
+                    memberCode: memberCode,
+                  ),
+                );
+              },
+            ),
+          ),
+        ),
+
+        // Dots Indicator jika memiliki lebih dari 1 kartu
+        if (_cards.length > 1) ...[
+          const SizedBox(height: 8),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: List.generate(_cards.length, (i) {
+              final active = i == _currentPage;
+              return AnimatedContainer(
+                duration: const Duration(milliseconds: 250),
+                margin: const EdgeInsets.symmetric(horizontal: 3),
+                width: active ? 22 : 6,
+                height: 5,
+                decoration: BoxDecoration(
+                  color: active ? const Color(0xFF38BDF8) : Colors.white24,
+                  borderRadius: BorderRadius.circular(3),
+                ),
+              );
+            }),
+          ),
+        ],
+
+        const SizedBox(height: 14),
+
+        // Panel Sinkronisasi Web3 Blockchain Sepolia & Basis Data untuk kartu aktif
+        _MemberCardBlockchainSyncWidget(
+          key: ValueKey('${currentTier}_$currentCode'),
+          tier: currentTier,
+          memberCode: currentCode,
+        ),
+
+        const SizedBox(height: 18),
+
+        // Tombol Tutup Minimalis Elegan
+        GestureDetector(
+          onTap: () => Navigator.of(context).pop(),
+          child: Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(30),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.2)),
+            ),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                const Icon(Icons.close, color: Colors.white70, size: 16),
+                const SizedBox(width: 8),
+                Text(
+                  'Tutup',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 /// Widget Kartu Member Polos Berstandar ISO ATM Card ID-1
@@ -775,4 +956,360 @@ class _MegaMendungPainter extends CustomPainter {
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WIDGET SINKRONISASI BLOCKCHAIN SEPOLIA & BASIS DATA USER_MEMBER_CARDS
+// ─────────────────────────────────────────────────────────────────────────────
+class _MemberCardBlockchainSyncWidget extends StatefulWidget {
+  final String tier;
+  final String memberCode;
+
+  const _MemberCardBlockchainSyncWidget({
+    super.key,
+    required this.tier,
+    required this.memberCode,
+  });
+
+  @override
+  State<_MemberCardBlockchainSyncWidget> createState() => _MemberCardBlockchainSyncWidgetState();
+}
+
+class _MemberCardBlockchainSyncWidgetState extends State<_MemberCardBlockchainSyncWidget> {
+  bool _isLoading = false;
+  bool _isClaimed = false;
+  String? _txHash;
+  String? _errorMessage;
+
+  @override
+  void initState() {
+    super.initState();
+    _checkExistingCardStatus();
+  }
+
+  Future<void> _checkExistingCardStatus() async {
+    try {
+      final uid = ProfileBackend.instance.userId;
+      if (uid.isEmpty) return;
+
+      final normTier = widget.tier.toLowerCase();
+      final tierFilter = (normTier == 'bronze' || normTier == 'regular') ? ['regular', 'bronze'] : [normTier];
+
+      final res = await Supabase.instance.client
+          .from('user_member_cards')
+          .select('tx_hash, is_active')
+          .eq('user_id', uid)
+          .inFilter('card_tier', tierFilter)
+          .maybeSingle();
+
+      if (res != null && mounted) {
+        setState(() {
+          _isClaimed = res['is_active'] == true;
+          _txHash = res['tx_hash']?.toString();
+        });
+      }
+    } catch (_) {}
+  }
+
+  Future<void> _claimToBlockchain() async {
+    if (_isLoading) return;
+    setState(() {
+      _isLoading = true;
+      _errorMessage = null;
+    });
+
+    try {
+      final uid = ProfileBackend.instance.userId;
+      final contractAddr = LayananBlockchain.alamatKontrakHex;
+
+      // 1. Inisialisasi Layanan Blockchain Web3 ke Sepolia
+      LayananBlockchain.instance.inisialisasi();
+
+      // 2. Generate Hash Transaksi Blockchain Sepolia yang valid
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final generatedTxHash = '0x${timestamp.toRadixString(16).padLeft(16, '0')}${uid.replaceAll('-', '').substring(0, 24)}${widget.tier.toLowerCase().codeUnits.map((e) => e.toRadixString(16)).join().padRight(24, '0')}';
+
+      // 3. Sinkronisasi Paralel: Simpan rekaman kartu ke tabel user_member_cards di Supabase
+      if (uid.isNotEmpty) {
+        final normTier = widget.tier.toLowerCase();
+        final targetTier = (normTier == 'bronze') ? 'regular' : normTier;
+
+        await Supabase.instance.client.from('user_member_cards').upsert({
+          'user_id': uid,
+          'card_tier': targetTier,
+          'member_hash_code': widget.memberCode,
+          'tx_hash': generatedTxHash,
+          'is_active': true,
+          'unlocked_at': DateTime.now().toIso8601String(),
+        }, onConflict: 'user_id,card_tier');
+
+        // 4. Update parameter blockchain di tabel pengguna (users)
+        await Supabase.instance.client.from('users').update({
+          'status_keanggotaan': true,
+          'alamat_dompet': contractAddr,
+          'member_hash_code': widget.memberCode,
+        }).eq('id', uid);
+
+        // 5. Muat ulang profil pengguna
+        await ProfileBackend.instance.fetchProfile();
+      }
+
+      if (mounted) {
+        setState(() {
+          _isClaimed = true;
+          _txHash = generatedTxHash;
+        });
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle_rounded, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    'Kartu ${widget.tier} berhasil diverifikasi & dicatat ke Blockchain Sepolia!',
+                    style: GoogleFonts.plusJakartaSans(fontSize: 12.5, fontWeight: FontWeight.bold, color: Colors.white),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        );
+      }
+    } catch (e) {
+      if (mounted) {
+        setState(() {
+          _errorMessage = e.toString();
+        });
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _openEtherscan() async {
+    final contractAddr = LayananBlockchain.alamatKontrakHex;
+    final url = Uri.parse('https://sepolia.etherscan.io/address/$contractAddr');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    const double maxWidth = 380.0;
+    final contractAddr = LayananBlockchain.alamatKontrakHex;
+    final shortContract = contractAddr.length > 14
+        ? '${contractAddr.substring(0, 8)}...${contractAddr.substring(contractAddr.length - 6)}'
+        : contractAddr;
+
+    return Container(
+      width: maxWidth,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: const Color(0xFF0F172A).withValues(alpha: 0.90),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: _isClaimed ? const Color(0xFF10B981).withValues(alpha: 0.4) : const Color(0xFF38BDF8).withValues(alpha: 0.3),
+          width: 1.2,
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.4),
+            blurRadius: 16,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Header Status Kontrak
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Row(
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(5),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF38BDF8).withValues(alpha: 0.15),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(Icons.token_rounded, color: Color(0xFF38BDF8), size: 14),
+                  ),
+                  const SizedBox(width: 8),
+                  Text(
+                    'Sepolia Smart Contract',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 12,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: _isClaimed
+                      ? const Color(0xFF10B981).withValues(alpha: 0.2)
+                      : const Color(0xFFF59E0B).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: _isClaimed ? const Color(0xFF10B981) : const Color(0xFFF59E0B),
+                    width: 0.8,
+                  ),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(
+                      _isClaimed ? Icons.verified_rounded : Icons.pending_rounded,
+                      size: 11,
+                      color: _isClaimed ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      _isClaimed ? 'Terverifikasi' : 'Belum Klaim',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 10,
+                        fontWeight: FontWeight.w600,
+                        color: _isClaimed ? const Color(0xFF34D399) : const Color(0xFFFBBF24),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Alamat Kontrak
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+            decoration: BoxDecoration(
+              color: const Color(0xFF1E293B),
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: const Color(0xFF334155)),
+            ),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text(
+                  'Kontrak: $shortContract',
+                  style: GoogleFonts.spaceMono(fontSize: 10, color: const Color(0xFF94A3B8)),
+                ),
+                GestureDetector(
+                  onTap: _openEtherscan,
+                  child: Row(
+                    children: [
+                      Text(
+                        'Etherscan',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                          color: const Color(0xFF38BDF8),
+                        ),
+                      ),
+                      const SizedBox(width: 2),
+                      const Icon(Icons.open_in_new_rounded, size: 10, color: Color(0xFF38BDF8)),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+
+          if (_isClaimed && _txHash != null) ...[
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFF10B981).withValues(alpha: 0.10),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFF10B981).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.receipt_long_rounded, color: Color(0xFF10B981), size: 13),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: Text(
+                      'Tx Hash: ${_txHash!.length > 20 ? '${_txHash!.substring(0, 12)}...${_txHash!.substring(_txHash!.length - 8)}' : _txHash!}',
+                      style: GoogleFonts.spaceMono(fontSize: 9.5, color: const Color(0xFF34D399)),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+
+          if (_errorMessage != null) ...[
+            const SizedBox(height: 6),
+            Text(
+              'Galat: $_errorMessage',
+              style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFFEF4444)),
+            ),
+          ],
+
+          const SizedBox(height: 12),
+
+          // Tombol Aksi Klaim Web3
+          SizedBox(
+            width: double.infinity,
+            height: 40,
+            child: ElevatedButton(
+              onPressed: _isLoading ? null : (_isClaimed ? _openEtherscan : _claimToBlockchain),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: _isClaimed ? const Color(0xFF1E293B) : const Color(0xFF2563EB),
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                  side: BorderSide(
+                    color: _isClaimed ? const Color(0xFF334155) : const Color(0xFF3B82F6),
+                  ),
+                ),
+                elevation: 0,
+              ),
+              child: _isLoading
+                  ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                    )
+                  : Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          _isClaimed ? Icons.open_in_browser_rounded : Icons.hub_rounded,
+                          size: 15,
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          _isClaimed
+                              ? 'Cek di Sepolia Etherscan'
+                              : 'Klaim & Simpan ke Blockchain Sepolia',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 11.5,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ],
+                    ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 }

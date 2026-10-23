@@ -520,7 +520,18 @@ BEGIN
         v_monthly := v_monthly + p_additional_spend;
     END IF;
 
-    -- Evaluasi Kenaikan Tier
+    -- Pastikan kartu BRONZE / REGULAR awal sudah ada
+    v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_bronze_parksmart'), 1, 4) || '-' ||
+                          SUBSTRING(MD5(p_user_id::text || '_bronze_parksmart'), 5, 4) || '-' ||
+                          SUBSTRING(MD5(p_user_id::text || '_bronze_parksmart'), 9, 4);
+    
+    INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+    VALUES (p_user_id, 'regular', v_tier_hash, true, NOW())
+    ON CONFLICT ON CONSTRAINT uq_user_tier DO NOTHING;
+    
+    v_active_hash := v_tier_hash;
+
+    -- Evaluasi Kenaikan Tier Berdasarkan Total Belanja
     IF v_total >= 500000 THEN
         v_new_tier := 'PLATINUM';
     ELSIF v_total >= 200000 THEN
@@ -537,24 +548,68 @@ BEGIN
         END IF;
     END IF;
 
-    -- Hash Code Member
-    IF v_hash IS NULL OR TRIM(v_hash) = '' THEN
-        v_hash := '#' || SUBSTRING(MD5(p_user_id::text || 'parksmart'), 1, 4) || '-' ||
-                         SUBSTRING(MD5(p_user_id::text || 'parksmart'), 5, 4) || '-' ||
-                         SUBSTRING(MD5(p_user_id::text || 'parksmart'), 9, 4);
+    -- Terbitkan kartu SILVER baru jika total belanja >= 100.000 (Kartu lama tetap ada!)
+    IF v_total >= 100000 THEN
+        v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_silver_parksmart'), 1, 4) || '-' ||
+                              SUBSTRING(MD5(p_user_id::text || '_silver_parksmart'), 5, 4) || '-' ||
+                              SUBSTRING(MD5(p_user_id::text || '_silver_parksmart'), 9, 4);
+        INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+        VALUES (p_user_id, 'silver', v_tier_hash, true, NOW())
+        ON CONFLICT ON CONSTRAINT uq_user_tier DO NOTHING;
+        IF v_new_tier = 'SILVER' THEN
+            v_active_hash := v_tier_hash;
+        END IF;
     END IF;
 
-    UPDATE public.users
+    -- Terbitkan kartu GOLD baru jika total belanja >= 200.000 (Kartu lama tetap ada!)
+    IF v_total >= 200000 THEN
+        v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_gold_parksmart'), 1, 4) || '-' ||
+                              SUBSTRING(MD5(p_user_id::text || '_gold_parksmart'), 5, 4) || '-' ||
+                              SUBSTRING(MD5(p_user_id::text || '_gold_parksmart'), 9, 4);
+        INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+        VALUES (p_user_id, 'gold', v_tier_hash, true, NOW())
+        ON CONFLICT ON CONSTRAINT uq_user_tier DO NOTHING;
+        IF v_new_tier = 'GOLD' THEN
+            v_active_hash := v_tier_hash;
+        END IF;
+    END IF;
+
+    -- Terbitkan kartu PLATINUM baru jika total belanja >= 500.000 (Kartu lama tetap ada!)
+    IF v_total >= 500000 THEN
+        v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_platinum_parksmart'), 1, 4) || '-' ||
+                              SUBSTRING(MD5(p_user_id::text || '_platinum_parksmart'), 5, 4) || '-' ||
+                              SUBSTRING(MD5(p_user_id::text || '_platinum_parksmart'), 9, 4);
+        INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+        VALUES (p_user_id, 'platinum', v_tier_hash, true, NOW())
+        ON CONFLICT ON CONSTRAINT uq_user_tier DO NOTHING;
+        IF v_new_tier = 'PLATINUM' THEN
+            v_active_hash := v_tier_hash;
+        END IF;
+    END IF;
+
+    -- Ambil hash kode kartu aktif yang sesuai tier saat ini
+    SELECT umc.member_hash_code INTO v_active_hash
+    FROM public.user_member_cards umc
+    WHERE umc.user_id = p_user_id 
+      AND (umc.card_tier = LOWER(v_new_tier::text) OR (v_new_tier = 'BRONZE' AND umc.card_tier IN ('regular', 'bronze')))
+    LIMIT 1;
+
+    IF v_active_hash IS NULL THEN
+        v_active_hash := v_tier_hash;
+    END IF;
+
+    -- Update status aktif tier tertinggi & hash code aktif pada tabel users
+    UPDATE public.users u
     SET member_tier = v_new_tier,
         total_spent = v_total,
         monthly_spent = v_monthly,
         last_spending_month = v_last_month,
-        member_hash_code = v_hash,
+        member_hash_code = v_active_hash,
         updated_at = NOW()
-    WHERE id = p_user_id;
+    WHERE u.id = p_user_id;
 
     RETURN QUERY
-    SELECT p_user_id, v_new_tier, v_total, v_monthly, v_last_month, v_hash;
+    SELECT p_user_id, v_new_tier, v_total, v_monthly, v_last_month, v_active_hash;
 END;
 $$;
 

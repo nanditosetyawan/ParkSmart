@@ -131,6 +131,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
           .single();
 
       final newUserId = inserted['id'].toString();
+      final memberHashCode = inserted['member_hash_code']?.toString();
 
       // 3. Simpan state user baru di ProfileBackend & HomeBackend
       ProfileBackend.instance.setLoggedInUser(
@@ -140,7 +141,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
         phone: phone,
         memberTier: 'BRONZE',
         walletBalance: 0,
+        memberHashCode: memberHashCode,
       );
+      // Sinkronisasi data kartu & profil secara asinkron
+      ProfileBackend.instance.fetchProfile();
 
       HomeBackend.instance.setLoggedInUser(
         id: newUserId,
