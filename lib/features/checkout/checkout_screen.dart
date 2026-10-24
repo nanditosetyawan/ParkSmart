@@ -13,6 +13,7 @@ import '../../theme/app_typography.dart';
 import '../booking/booking_confirmation_screen.dart';
 import '../profile/vehicle_screen.dart';
 import '../profile/payment_methods_screen.dart';
+import '../profile/backend/payment_methods_backend.dart';
 import 'backend/checkout_backend.dart';
 import '../booking/backend/booking_confirmation_backend.dart';
 
@@ -156,7 +157,13 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, CheckoutBackend.instance, CurrencyService.instance, LanguageService.instance]),
+      listenable: Listenable.merge([
+        ThemeService.instance,
+        CheckoutBackend.instance,
+        CurrencyService.instance,
+        LanguageService.instance,
+        PaymentMethodsBackend.instance,
+      ]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
@@ -478,170 +485,131 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   ),
                   const SizedBox(height: 16),
 
-                  // Payment Method / Wallet Card
+                  // Payment Method Card
                   Builder(
                     builder: (context) {
                       final balance = CheckoutBackend.instance.walletBalance;
-                      final totalPayment = CheckoutBackend.instance.totalPayment;
-                      final hasEnoughBalance = balance >= totalPayment;
+                      final selectedMethod = PaymentMethodsBackend.instance.selectedMethod;
+                      final isParkSmart = selectedMethod == 'parksmart_pay' || selectedMethod == 'wallet';
 
-                      return Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: BoxDecoration(
-                          color: isDark ? theme.card : _kCard,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(
-                            color: hasEnoughBalance
-                                ? (isDark ? theme.border : const Color(0xFFE2DDD2))
-                                : const Color(0xFFEF4444).withValues(alpha: 0.6),
-                            width: hasEnoughBalance ? 1 : 1.5,
-                          ),
-                          boxShadow: const [AppShadows.soft],
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 40,
-                                      height: 40,
-                                      decoration: BoxDecoration(
-                                        color: hasEnoughBalance
-                                            ? (isDark ? const Color(0xFF134E4A) : const Color(0xFFCCFBF1))
-                                            : (isDark ? const Color(0xFF7F1D1D) : const Color(0xFFFEE2E2)),
-                                        borderRadius: BorderRadius.circular(10),
-                                      ),
-                                      child: Icon(
-                                        Icons.account_balance_wallet_rounded,
-                                        size: 22,
-                                        color: hasEnoughBalance
-                                            ? (isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E))
-                                            : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                                      ),
-                                    ),
-                                    const SizedBox(width: 12),
-                                    Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          'METODE PEMBAYARAN'.tr,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 10,
-                                            fontWeight: FontWeight.w700,
-                                            letterSpacing: 0.5,
-                                            color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          'ParkSmart Wallet',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 14,
-                                            fontWeight: FontWeight.w700,
-                                            color: isDark ? Colors.white : Colors.black,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Row(
-                                          children: [
-                                            Text(
-                                              '${'Saldo'.tr}: ${CurrencyService.instance.format(balance)}',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 12,
-                                                fontWeight: FontWeight.w600,
-                                                color: hasEnoughBalance
-                                                    ? (isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A))
-                                                    : const Color(0xFFDC2626),
-                                              ),
-                                            ),
-                                            const SizedBox(width: 6),
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1.5),
-                                              decoration: BoxDecoration(
-                                                color: hasEnoughBalance
-                                                    ? (isDark ? const Color(0xFF064E3B) : const Color(0xFFDCFCE7))
-                                                    : (isDark ? const Color(0xFF450A0A) : const Color(0xFFFEE2E2)),
-                                                borderRadius: BorderRadius.circular(6),
-                                              ),
-                                              child: Text(
-                                                hasEnoughBalance ? 'Saldo Cukup'.tr : 'Kurang'.tr,
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 10,
-                                                  fontWeight: FontWeight.bold,
-                                                  color: hasEnoughBalance
-                                                      ? (isDark ? const Color(0xFF34D399) : const Color(0xFF15803D))
-                                                      : (isDark ? const Color(0xFFF87171) : const Color(0xFFDC2626)),
-                                                ),
-                                              ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                                OutlinedButton(
-                                  onPressed: () async {
-                                    await Navigator.push(
-                                      context,
-                                      MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
-                                    );
-                                    await CheckoutBackend.instance.fetchCheckoutData();
-                                  },
-                                  style: OutlinedButton.styleFrom(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    minimumSize: const Size(0, 32),
-                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                                    side: BorderSide(color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F766E)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(Icons.add_circle_outline, size: 14, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F766E)),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        'Top Up'.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.bold,
-                                          color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF0F766E),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
+                      String methodName = 'ParkSmart Wallet';
+                      String methodSubtitle = '${'Saldo'.tr}: ${CurrencyService.instance.format(balance)}';
+                      Widget methodIconWidget;
+
+                      if (selectedMethod == 'gopay') {
+                        methodName = 'GoPay';
+                        methodSubtitle = '0812-****-4321 · Terhubung';
+                        methodIconWidget = Image.asset('assets/images/gopay-seeklogo.png', fit: BoxFit.contain);
+                      } else if (selectedMethod == 'ovo') {
+                        methodName = 'OVO';
+                        methodSubtitle = '0812-****-4321 · Terhubung';
+                        methodIconWidget = Image.asset('assets/images/ovo-seeklogo.png', fit: BoxFit.contain);
+                      } else if (selectedMethod == 'shopeepay') {
+                        methodName = 'ShopeePay';
+                        methodSubtitle = '0812-****-4321 · Terhubung';
+                        methodIconWidget = Image.asset('assets/images/shopee-pay-seeklogo.png', fit: BoxFit.contain);
+                      } else {
+                        methodName = 'ParkSmart Wallet';
+                        methodSubtitle = '${'Saldo'.tr}: ${CurrencyService.instance.format(balance)}';
+                        methodIconWidget = Icon(
+                          Icons.account_balance_wallet_rounded,
+                          size: 22,
+                          color: isDark ? const Color(0xFF2DD4BF) : const Color(0xFF0F766E),
+                        );
+                      }
+
+                      return GestureDetector(
+                        onTap: () async {
+                          final chosen = await Navigator.push<String>(
+                            context,
+                            MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
+                          );
+                          if (chosen != null) {
+                            PaymentMethodsBackend.instance.setSelectedMethod(chosen);
+                          }
+                          await CheckoutBackend.instance.fetchCheckoutData();
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+                          decoration: BoxDecoration(
+                            color: isDark ? theme.card : _kCard,
+                            borderRadius: BorderRadius.circular(16),
+                            border: Border.all(
+                              color: isDark ? theme.border : const Color(0xFFE2DDD2),
+                              width: 1,
                             ),
-                            if (!hasEnoughBalance) ...[
-                              const SizedBox(height: 10),
+                            boxShadow: const [AppShadows.soft],
+                          ),
+                          child: Row(
+                            children: [
                               Container(
-                                padding: const EdgeInsets.all(8),
+                                width: 44,
+                                height: 44,
+                                padding: isParkSmart ? EdgeInsets.zero : const EdgeInsets.all(7),
                                 decoration: BoxDecoration(
-                                  color: isDark ? const Color(0xFF2D1B1B) : const Color(0xFFFFF1F2),
-                                  borderRadius: BorderRadius.circular(8),
+                                  color: isParkSmart
+                                      ? (isDark ? const Color(0xFF134E4A) : const Color(0xFFCCFBF1))
+                                      : (isDark ? const Color(0xFF262C36) : Colors.white),
+                                  borderRadius: BorderRadius.circular(12),
+                                  border: Border.all(
+                                    color: isDark ? theme.border : const Color(0xFFE2DDD2),
+                                  ),
                                 ),
-                                child: Row(
+                                child: Center(child: methodIconWidget),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Icon(Icons.info_outline, size: 14, color: Color(0xFFDC2626)),
-                                    const SizedBox(width: 6),
-                                    Expanded(
-                                      child: Text(
-                                        'Saldo kurang ${CurrencyService.instance.format(totalPayment - balance)}. Silakan top up sebelum bayar.'.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFB91C1C),
-                                        ),
+                                    Text(
+                                      'METODE PEMBAYARAN'.tr,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 10,
+                                        fontWeight: FontWeight.w700,
+                                        letterSpacing: 0.5,
+                                        color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      methodName,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 14,
+                                        fontWeight: FontWeight.w700,
+                                        color: isDark ? Colors.white : Colors.black,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 2),
+                                    Text(
+                                      methodSubtitle,
+                                      style: GoogleFonts.plusJakartaSans(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: isParkSmart
+                                            ? (isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A))
+                                            : (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7)),
                                       ),
                                     ),
                                   ],
                                 ),
                               ),
+                              const SizedBox(width: 8),
+                              Container(
+                                width: 34,
+                                height: 34,
+                                decoration: BoxDecoration(
+                                  color: isDark ? theme.surfaceField : const Color(0xFFF1EFE9),
+                                  shape: BoxShape.circle,
+                                ),
+                                child: Icon(
+                                  Icons.chevron_right_rounded,
+                                  size: 22,
+                                  color: isDark ? Colors.white70 : const Color(0xFF1C1D1F),
+                                ),
+                              ),
                             ],
-                          ],
+                          ),
                         ),
                       );
                     },
@@ -757,13 +725,32 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                       height: 52,
                       child: ElevatedButton(
                         onPressed: () async {
-                          // 0. Validasi saldo wallet harus cukup sebelum lanjut
-                          final currentBal = CheckoutBackend.instance.walletBalance;
-                          final totalPay = CheckoutBackend.instance.totalPayment;
-                          if (currentBal < totalPay) {
-                            _showInsufficientBalanceModal(currentBal, totalPay);
-                            return;
+                          // 0. Validasi saldo HANYA jika metode bayar adalah ParkSmart Pay / Wallet
+                          final selectedMethod = PaymentMethodsBackend.instance.selectedMethod;
+                          final isParkSmart = selectedMethod == 'parksmart_pay' || selectedMethod == 'wallet';
+
+                          if (isParkSmart) {
+                            final currentBal = CheckoutBackend.instance.walletBalance;
+                            final totalPay = CheckoutBackend.instance.totalPayment;
+                            if (currentBal < totalPay) {
+                              // Alihkan ke halaman metode bayar dengan posisi pop up halaman top up sambil ada tulisan tipis saldo tidak cukup
+                              final chosen = await Navigator.push<String>(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (_) => const PaymentMethodsScreen(
+                                    autoOpenTopUp: true,
+                                    topUpReason: 'Saldo tidak cukup untuk pembayaran ini',
+                                  ),
+                                ),
+                              );
+                              if (chosen != null) {
+                                PaymentMethodsBackend.instance.setSelectedMethod(chosen);
+                              }
+                              await CheckoutBackend.instance.fetchCheckoutData();
+                              return;
+                            }
                           }
+                          // Jika metode selain ParkSmart (GoPay, OVO, ShopeePay), tidak perlu validasi saldo user! Langsung lolos.
 
                           final now = DateTime.now();
                           final start = CheckoutBackend.instance.scheduledStartTime ?? now;
@@ -954,149 +941,6 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  void _showInsufficientBalanceModal(double currentBalance, double totalPayment) {
-    final theme = ThemeService.instance;
-    final isDark = theme.isDarkMode;
-    final shortage = totalPayment - currentBalance;
-
-    showDialog(
-      context: context,
-      builder: (dialogCtx) {
-        return Dialog(
-          backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: isDark
-                        ? const Color(0xFFEF4444).withValues(alpha: 0.2)
-                        : const Color(0xFFFEE2E2),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.account_balance_wallet_outlined,
-                    color: Color(0xFFDC2626),
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  'Saldo Tidak Mencukupi'.tr,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w800,
-                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Saldo ParkSmart Wallet Anda tidak mencukupi untuk menyelesaikan reservasi slot ini.'.tr,
-                  textAlign: TextAlign.center,
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 13,
-                    color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368),
-                    height: 1.4,
-                  ),
-                ),
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.all(14),
-                  decoration: BoxDecoration(
-                    color: isDark ? const Color(0xFF262C36) : const Color(0xFFF7F5EE),
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Column(
-                    children: [
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Saldo Saat Ini'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
-                          Text(CurrencyService.instance.format(currentBalance), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: isDark ? Colors.white : Colors.black)),
-                        ],
-                      ),
-                      const SizedBox(height: 6),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Total Biaya'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF5F6368))),
-                          Text(CurrencyService.instance.format(totalPayment), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFFFB923C))),
-                        ],
-                      ),
-                      const Divider(height: 14),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Text('Kekurangan Saldo'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w700, color: const Color(0xFFDC2626))),
-                          Text(CurrencyService.instance.format(shortage), style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w800, color: const Color(0xFFDC2626))),
-                        ],
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  children: [
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: () => Navigator.pop(dialogCtx),
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          side: BorderSide(color: isDark ? const Color(0xFF475569) : const Color(0xFFD5D0C6)),
-                        ),
-                        child: Text(
-                          'Batal'.tr,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                            color: isDark ? Colors.white70 : Colors.black87,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(width: 10),
-                    Expanded(
-                      child: ElevatedButton(
-                        onPressed: () async {
-                          Navigator.pop(dialogCtx);
-                          await Navigator.push(
-                            context,
-                            MaterialPageRoute(builder: (_) => const PaymentMethodsScreen()),
-                          );
-                          await CheckoutBackend.instance.fetchCheckoutData();
-                        },
-                        style: ElevatedButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(vertical: 12),
-                          backgroundColor: const Color(0xFF17A18A),
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Top Up Saldo'.tr,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 13,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        );
-      },
     );
   }
 }

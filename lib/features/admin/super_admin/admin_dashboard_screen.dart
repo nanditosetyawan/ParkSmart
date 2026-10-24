@@ -972,7 +972,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ),
           ListTile(
             leading: const Icon(Icons.access_time_filled, color: Color(0xFFD97706)),
-            title: Text('Waktu', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
+            title: Text('Konversi Waktu (WIB, WITA, WIT, London)', style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600)),
             onTap: () {
               Navigator.pop(context);
               _showTimeZonesDialog();
@@ -3014,12 +3014,32 @@ class _RealtimeTimeZonesDialogState extends State<_RealtimeTimeZonesDialog> {
     );
   }
 
+  bool _isLondonDst(DateTime utc) {
+    if (utc.month < 3 || utc.month > 10) return false;
+    if (utc.month > 3 && utc.month < 10) return true;
+
+    // Minggu terakhir Maret atau Oktober (jam 01:00 UTC)
+    const lastDay = 31;
+    final lastSunday = lastDay - (DateTime.utc(utc.year, utc.month, lastDay).weekday % 7);
+
+    if (utc.month == 3) {
+      return utc.day > lastSunday || (utc.day == lastSunday && utc.hour >= 1);
+    } else {
+      return utc.day < lastSunday || (utc.day == lastSunday && utc.hour < 1);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final nowUtc = DateTime.now().toUtc();
     final wib = nowUtc.add(const Duration(hours: 7));
     final wita = nowUtc.add(const Duration(hours: 8));
     final wit = nowUtc.add(const Duration(hours: 9));
+
+    // Waktu London: BST (UTC+1) saat musim panas, GMT (UTC+0) saat musim dingin
+    final isLondonDst = _isLondonDst(nowUtc);
+    final london = nowUtc.add(Duration(hours: isLondonDst ? 1 : 0));
+    final londonZoneLabel = isLondonDst ? 'BST • UTC+1' : 'GMT • UTC+0';
 
     return AlertDialog(
       backgroundColor: Colors.white,
@@ -3063,36 +3083,47 @@ class _RealtimeTimeZonesDialogState extends State<_RealtimeTimeZonesDialog> {
       ),
       content: SizedBox(
         width: double.maxFinite,
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            _buildTimeZoneCard(
-              zoneName: 'WIB',
-              fullName: 'Waktu Indonesia Barat (UTC+7)',
-              timeString: '${_formatTime(wib)} WIB',
-              regions: 'Sumatera, Jawa, Kalimantan Barat & Tengah',
-              color: const Color(0xFF10B981),
-              bgColor: const Color(0xFFECFDF5),
-            ),
-            const SizedBox(height: 10),
-            _buildTimeZoneCard(
-              zoneName: 'WITA',
-              fullName: 'Waktu Indonesia Tengah (UTC+8)',
-              timeString: '${_formatTime(wita)} WITA',
-              regions: 'Sulawesi, Bali, NTB, NTT, Kalsel, Kaltim, Kaltara',
-              color: const Color(0xFF3B82F6),
-              bgColor: const Color(0xFFEFF6FF),
-            ),
-            const SizedBox(height: 10),
-            _buildTimeZoneCard(
-              zoneName: 'WIT',
-              fullName: 'Waktu Indonesia Timur (UTC+9)',
-              timeString: '${_formatTime(wit)} WIT',
-              regions: 'Maluku, Maluku Utara, Papua',
-              color: const Color(0xFF8B5CF6),
-              bgColor: const Color(0xFFF5F3FF),
-            ),
-          ],
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _buildTimeZoneCard(
+                zoneName: 'WIB',
+                fullName: 'Waktu Indonesia Barat (UTC+7)',
+                timeString: '${_formatTime(wib)} WIB',
+                regions: 'Sumatera, Jawa, Kalimantan Barat & Tengah',
+                color: const Color(0xFF10B981),
+                bgColor: const Color(0xFFECFDF5),
+              ),
+              const SizedBox(height: 10),
+              _buildTimeZoneCard(
+                zoneName: 'WITA',
+                fullName: 'Waktu Indonesia Tengah (UTC+8)',
+                timeString: '${_formatTime(wita)} WITA',
+                regions: 'Sulawesi, Bali, NTB, NTT, Kalsel, Kaltim, Kaltara',
+                color: const Color(0xFF3B82F6),
+                bgColor: const Color(0xFFEFF6FF),
+              ),
+              const SizedBox(height: 10),
+              _buildTimeZoneCard(
+                zoneName: 'WIT',
+                fullName: 'Waktu Indonesia Timur (UTC+9)',
+                timeString: '${_formatTime(wit)} WIT',
+                regions: 'Maluku, Maluku Utara, Papua',
+                color: const Color(0xFF8B5CF6),
+                bgColor: const Color(0xFFF5F3FF),
+              ),
+              const SizedBox(height: 10),
+              _buildTimeZoneCard(
+                zoneName: 'LONDON',
+                fullName: 'London, Inggris ($londonZoneLabel)',
+                timeString: '${_formatTime(london)} ${isLondonDst ? 'BST' : 'GMT'}',
+                regions: 'Inggris, Britania Raya (Eropa Barat)',
+                color: const Color(0xFFE11D48),
+                bgColor: const Color(0xFFFFF1F2),
+              ),
+            ],
+          ),
         ),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(20, 10, 20, 16),

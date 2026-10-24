@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
 import '../../home/backend/home_backend.dart';
 import '../../profile/backend/profile_backend.dart';
+import '../../profile/backend/payment_methods_backend.dart';
 
 /// Backend khusus untuk CheckoutScreen (lib/features/checkout/checkout_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk keamanan & efisiensi
@@ -793,51 +794,69 @@ class CheckoutBackend extends ChangeNotifier {
       final locName = bRes['parking_locations']?['name']?.toString() ?? _locationName;
       final sCode = bRes['parking_slots']?['slot_code']?.toString() ?? _slotCode;
 
-      // 1. CEK SALDO PENGGUNA TERLEBIH DAHULU (Wajib Cukup!)
-      final userRes = await _client
-          .from('users')
-          .select('wallet_balance, total_parking_count')
-          .eq('id', actualUserId)
-          .maybeSingle();
-      final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
+      // 1. Cek metode pembayaran aktif
+      final selectedMethod = PaymentMethodsBackend.instance.selectedMethod;
+      final isParkSmart = selectedMethod == 'parksmart_pay' || selectedMethod == 'wallet';
 
-      if (currentBal < price) {
-        debugPrint('[CheckoutBackend] markBookingAsPaid ditolak: Saldo tidak mencukupi (Saldo: $currentBal, Dibutuhkan: $price)');
-        return false;
+      if (isParkSmart) {
+        // CEK SALDO PENGGUNA TERLEBIH DAHULU (Wajib Cukup untuk ParkSmart Pay!)
+        final userRes = await _client
+            .from('users')
+            .select('wallet_balance, total_parking_count')
+            .eq('id', actualUserId)
+            .maybeSingle();
+        final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
+
+        if (currentBal < price) {
+          debugPrint('[CheckoutBackend] markBookingAsPaid ditolak: Saldo tidak mencukupi (Saldo: $currentBal, Dibutuhkan: $price)');
+          return false;
+        }
+
+        final newBalance = currentBal - price;
+
+        // Potong saldo wallet pengguna
+        final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
+        await _client.from('users').update({
+          'wallet_balance': newBalance,
+          'total_parking_count': currentCount + 1,
+        }).eq('id', actualUserId);
+
+        _walletBalance = newBalance;
+        ProfileBackend.instance.setLoggedInUser(
+          id: actualUserId,
+          fullName: ProfileBackend.instance.name,
+          email: ProfileBackend.instance.email,
+          phone: ProfileBackend.instance.phone,
+          walletBalance: newBalance.toInt(),
+        );
+      } else {
+        // Metode selain ParkSmart (GoPay, OVO, ShopeePay dll)
+        // Tidak perlu validasi saldo & tidak memotong wallet internal ParkSmart Pay!
+        final userRes = await _client
+            .from('users')
+            .select('total_parking_count')
+            .eq('id', actualUserId)
+            .maybeSingle();
+        final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
+        await _client.from('users').update({
+          'total_parking_count': currentCount + 1,
+        }).eq('id', actualUserId);
       }
 
-      final newBalance = currentBal - price;
-
-      // 2. Potong saldo wallet pengguna
-      final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
-      await _client.from('users').update({
-        'wallet_balance': newBalance,
-        'total_parking_count': currentCount + 1,
-      }).eq('id', actualUserId);
-
-      _walletBalance = newBalance;
-      ProfileBackend.instance.setLoggedInUser(
-        id: actualUserId,
-        fullName: ProfileBackend.instance.name,
-        email: ProfileBackend.instance.email,
-        phone: ProfileBackend.instance.phone,
-        walletBalance: newBalance.toInt(),
-      );
-
-      // 3. Update status booking menjadi paid & upcoming
+      // 2. Update status booking menjadi paid & upcoming
       await _client.from('bookings').update({
         'payment_status': 'paid',
         'booking_status': 'upcoming',
       }).eq('id', bookingId);
 
-      // 4. Catat riwayat transaksi sukses di tabel payments
+      // 3. Catat riwayat transaksi sukses di tabel payments
       final trxCode = 'TRX-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}';
       await _client.from('payments').insert({
         'transaction_code': trxCode,
         'user_id': actualUserId,
         'booking_id': bookingId,
         'transaction_type': 'parking_payment',
-        'payment_method': 'wallet',
+        'payment_method': isParkSmart ? 'wallet' : selectedMethod,
         'amount': price,
         'description': 'Reservasi Parkir $locName Slot $sCode ($bCode)',
         'status': 'success',

@@ -8,8 +8,17 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'backend/profile_backend.dart';
 import 'backend/payment_methods_backend.dart';
 
+import '../checkout/backend/checkout_backend.dart';
+
 class PaymentMethodsScreen extends StatefulWidget {
-  const PaymentMethodsScreen({super.key});
+  final bool autoOpenTopUp;
+  final String? topUpReason;
+
+  const PaymentMethodsScreen({
+    super.key,
+    this.autoOpenTopUp = false,
+    this.topUpReason,
+  });
 
   @override
   State<PaymentMethodsScreen> createState() => _PaymentMethodsScreenState();
@@ -26,6 +35,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   @override
   void initState() {
     super.initState();
+    _selectedMethod = PaymentMethodsBackend.instance.selectedMethod;
+    _savedMethods.addAll(PaymentMethodsBackend.instance.savedMethods);
     _loadBalance();
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
@@ -33,6 +44,14 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     PaymentMethodsBackend.instance.addListener(_onBackendChanged);
     PaymentMethodsBackend.instance.fetchBalance();
     PaymentMethodsBackend.instance.fetchTransactions();
+
+    if (widget.autoOpenTopUp) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          _showTopUpSheet(reason: widget.topUpReason);
+        }
+      });
+    }
   }
 
   void _onBackendChanged() {
@@ -75,7 +94,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     super.dispose();
   }
 
-  void _showTopUpSheet() {
+  void _showTopUpSheet({String? reason}) {
     int selectedAmount = 50000;
 
     showModalBottomSheet(
@@ -132,6 +151,29 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       color: theme.textSecondary,
                     ),
                   ),
+                  if (reason != null && reason.isNotEmpty) ...[
+                    const SizedBox(height: 10),
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.info_outline_rounded,
+                          size: 15,
+                          color: Color(0xFFEF4444),
+                        ),
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            reason.tr,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 12,
+                              fontWeight: FontWeight.w400, // Tulisan tipis
+                              color: isDark ? const Color(0xFFFCA5A5) : const Color(0xFFDC2626),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   Wrap(
                     spacing: 12,
@@ -182,6 +224,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                           setState(() {
                             _balance = PaymentMethodsBackend.instance.balance;
                           });
+                          await CheckoutBackend.instance.fetchCheckoutData();
+                          if (!mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
                             SnackBar(
                               content: Text(
@@ -1020,8 +1064,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           // Klik kedua: UNSELECT / BATAL PILIH
           setState(() {
             _savedMethods.remove(id);
+            PaymentMethodsBackend.instance.removeSavedMethod(id);
             if (_selectedMethod == id) {
               _selectedMethod = 'parksmart_pay';
+              PaymentMethodsBackend.instance.setSelectedMethod('parksmart_pay');
             }
           });
           setSheetState(() {});
@@ -1030,7 +1076,9 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           // Klik pertama: SELECT / PILIH
           setState(() {
             _savedMethods.add(id);
+            PaymentMethodsBackend.instance.addSavedMethod(id);
             _selectedMethod = id;
+            PaymentMethodsBackend.instance.setSelectedMethod(id);
           });
           setSheetState(() {});
           _showSuccessToast('$title berhasil dipilih & ditambahkan');
@@ -1175,41 +1223,51 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
             .toString()
             .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
-        return Scaffold(
-          backgroundColor: theme.bg,
-          body: SafeArea(
-            child: Column(
-              children: [
-                // Top App Bar
-                Container(
-                  height: 64,
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  decoration: BoxDecoration(
-                    color: theme.bg.withValues(alpha: 0.95),
-                    border: Border(bottom: BorderSide(color: theme.border)),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
-                        blurRadius: 6,
-                        offset: const Offset(0, 1),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 44,
-                          height: 44,
-                          decoration: BoxDecoration(
-                            color: theme.chipBg,
-                            shape: BoxShape.circle,
-                          ),
-                          child: Icon(Icons.arrow_back, size: 20, color: theme.iconColor),
+        return PopScope(
+          canPop: false,
+          onPopInvokedWithResult: (didPop, result) {
+            if (didPop) return;
+            PaymentMethodsBackend.instance.setSelectedMethod(_selectedMethod);
+            Navigator.pop(context, _selectedMethod);
+          },
+          child: Scaffold(
+            backgroundColor: theme.bg,
+            body: SafeArea(
+              child: Column(
+                children: [
+                  // Top App Bar
+                  Container(
+                    height: 64,
+                    padding: const EdgeInsets.symmetric(horizontal: 20),
+                    decoration: BoxDecoration(
+                      color: theme.bg.withValues(alpha: 0.95),
+                      border: Border(bottom: BorderSide(color: theme.border)),
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: isDark ? 0.2 : 0.03),
+                          blurRadius: 6,
+                          offset: const Offset(0, 1),
                         ),
-                      ),
-                      const SizedBox(width: 14),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () {
+                            PaymentMethodsBackend.instance.setSelectedMethod(_selectedMethod);
+                            Navigator.pop(context, _selectedMethod);
+                          },
+                          child: Container(
+                            width: 44,
+                            height: 44,
+                            decoration: BoxDecoration(
+                              color: theme.chipBg,
+                              shape: BoxShape.circle,
+                            ),
+                            child: Icon(Icons.arrow_back, size: 20, color: theme.iconColor),
+                          ),
+                        ),
+                        const SizedBox(width: 14),
                       Row(
                         children: [
                           Container(
@@ -1607,7 +1665,8 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                     ),
                   ),
                 ),
-              ],
+                ],
+              ),
             ),
           ),
         );
@@ -1633,10 +1692,12 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
           if (isSelected && id != 'parksmart_pay') {
             // Klik lagi saat sudah terpilih: unselect kembali ke ParkSmart Pay
             _selectedMethod = 'parksmart_pay';
+            PaymentMethodsBackend.instance.setSelectedMethod('parksmart_pay');
             _showSuccessToast('$title di-unselect (Kembali ke ParkSmart Pay)');
           } else {
             // Klik pertama: pilih metode ini
             _selectedMethod = id;
+            PaymentMethodsBackend.instance.setSelectedMethod(id);
             _showSuccessToast('$title dipilih sebagai metode bayar');
           }
         });

@@ -173,6 +173,27 @@ class ProfileBackend extends ChangeNotifier {
         _saranKuliah = data['saran_kuliah']?.toString() ?? '';
         _pesanKuliah = data['pesan_kuliah']?.toString() ?? '';
 
+        // Auto-Sync Failsafe: Jika total_spent di-inject manual ke database, pastikan tier sesuai
+        String expectedTier = 'BRONZE';
+        if (_totalSpent >= 500000) {
+          expectedTier = 'PLATINUM';
+        } else if (_totalSpent >= 200000) {
+          expectedTier = 'GOLD';
+        } else if (_totalSpent >= 100000) {
+          expectedTier = 'SILVER';
+        }
+
+        if (_memberTier != expectedTier && _userId.isNotEmpty) {
+          _memberTier = expectedTier;
+          // Panggil update agar trigger database menerbitkan kartu & hash code blockchain baru
+          try {
+            await _client.from('users').update({
+              'total_spent': _totalSpent,
+              'member_tier': expectedTier,
+            }).eq('id', _userId);
+          } catch (_) {}
+        }
+
         // Ambil kendaraan utama dari tabel vehicles KHUSUS untuk user yang sedang login
         _primaryVehicle = 'Belum Ada Kendaraan';
         try {

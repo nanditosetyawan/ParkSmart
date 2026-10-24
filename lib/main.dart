@@ -12,7 +12,7 @@ import 'dart:ui';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/services/language_service.dart';
-import 'features/auth/login_screen.dart';
+import 'features/splash/splash_screen.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -169,7 +169,7 @@ class _ParkSmartAppState extends State<ParkSmartApp> {
               child: child ?? const SizedBox.shrink(),
             );
           },
-          home: const LoginScreen(),
+          home: const SplashScreen(),
         );
       },
     );

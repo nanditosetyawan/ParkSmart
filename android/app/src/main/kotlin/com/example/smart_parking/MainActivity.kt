@@ -1,6 +1,8 @@
 package com.example.smart_parking
 
 import android.media.MediaPlayer
+import android.os.Bundle
+import android.view.WindowManager
 import io.flutter.embedding.android.FlutterFragmentActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -10,6 +12,15 @@ class MainActivity : FlutterFragmentActivity() {
     private var sfxPlayer: MediaPlayer? = null
     private var inGamePlayer: MediaPlayer? = null
     private var clawsPlayer: MediaPlayer? = null
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        // Memaksa Hardware Acceleration (GPU Device) pada level Window Native Android
+        window.setFlags(
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED,
+            WindowManager.LayoutParams.FLAG_HARDWARE_ACCELERATED
+        )
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
