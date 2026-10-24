@@ -26,11 +26,11 @@ void main() async {
     debugPrint('Gagal load .env via file: $e');
   }
 
-  // 2. Pastikan dotenv selalu terinisialisasi agar dotenv.env aman diakses tanpa melempar NotInitializedError
   if (!dotenv.isInitialized) {
     dotenv.loadFromString(envString: '');
   }
 
+  // 2. Inisialisasi Supabase murni dari .env (tanpa hardcode di source code)
   final supabaseUrl = dotenv.env['SUPABASE_URL'] ?? '';
   final supabaseAnonKey = dotenv.env['SUPABASE_ANON_KEY'] ?? '';
 
@@ -46,10 +46,26 @@ void main() async {
       debugPrint('Error Supabase.initialize: $e');
     }
   } else {
-    debugPrint('PERINGATAN: SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di .env. Pastikan konfigurasi .env sudah sesuai.');
+    debugPrint('PERINGATAN: SUPABASE_URL atau SUPABASE_ANON_KEY tidak ditemukan di .env');
   }
 
-  // Layanan khusus non-web (notifikasi lokal & permission)
+  // 3. Konfigurasi Orientasi & Tampilan Sistem UI Android
+  if (!kIsWeb) {
+    try {
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.manual,
+        overlays: SystemUiOverlay.values,
+      );
+      SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        statusBarBrightness: Brightness.light,
+      ));
+      SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
+    } catch (_) {}
+  }
+
+  // 4. Inisialisasi Layanan Pendukung
   if (!kIsWeb) {
     try {
       await NotificationService().init();
@@ -88,36 +104,39 @@ void main() async {
     debugPrint('LanguageService init error: $e');
   }
 
-  // Meminta izin akses utama (khusus perangkat fisik mobile)
-  if (!kIsWeb) {
+  // 5. Jalankan Aplikasi Utama Secara Langsung (Mencegah Deadlock / Layar Hitam di Android)
+  runApp(const ParkSmartApp());
+}
+
+class ParkSmartApp extends StatefulWidget {
+  const ParkSmartApp({super.key});
+
+  @override
+  State<ParkSmartApp> createState() => _ParkSmartAppState();
+}
+
+class _ParkSmartAppState extends State<ParkSmartApp> {
+  @override
+  void initState() {
+    super.initState();
+    // Minta izin secara asinkron SETELAH UI terpasang (menghindari freezing pada native Android)
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _requestPermissionsSafely();
+    });
+  }
+
+  Future<void> _requestPermissionsSafely() async {
+    if (kIsWeb) return;
     try {
       await [
         Permission.locationWhenInUse,
         Permission.camera,
-        Permission.photos,
         Permission.notification,
       ].request();
     } catch (e) {
-      debugPrint('Gagal meminta izin: $e');
+      debugPrint('Gagal meminta izin di background: $e');
     }
-
-    SystemChrome.setEnabledSystemUIMode(
-      SystemUiMode.manual,
-      overlays: SystemUiOverlay.values,
-    );
-    SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      statusBarBrightness: Brightness.light,
-    ));
-    SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
   }
-
-  runApp(const ParkSmartApp());
-}
-
-class ParkSmartApp extends StatelessWidget {
-  const ParkSmartApp({super.key});
 
   @override
   Widget build(BuildContext context) {
