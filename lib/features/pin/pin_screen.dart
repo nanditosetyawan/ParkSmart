@@ -195,11 +195,42 @@ class _PinScreenState extends State<PinScreen> {
 
     if (!mounted) return;
 
-    // Show high-contrast success dialog
+    bool hasNavigated = false;
+    void doNavigate(BuildContext dialogCtx) {
+      if (hasNavigated) return;
+      hasNavigated = true;
+      if (Navigator.of(dialogCtx, rootNavigator: true).canPop()) {
+        Navigator.of(dialogCtx, rootNavigator: true).pop();
+      }
+      if (mounted) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => widget.nextScreen),
+        );
+      }
+    }
+
+    // Trigger Push Notification asynchronously in background (fail-safe)
+    NotificationService().showNotification(
+      id: 100,
+      title: 'Pembayaran Berhasil',
+      body: 'Pembayaran Anda berhasil.',
+    ).catchError((e) {
+      debugPrint('[PinScreen] Notification error: $e');
+    });
+
+    // Show high-contrast success dialog with auto-navigate & manual button
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) {
+      builder: (dialogCtx) {
+        // Auto-navigate timer
+        Future.delayed(const Duration(milliseconds: 1600), () {
+          if (dialogCtx.mounted && !hasNavigated) {
+            doNavigate(dialogCtx);
+          }
+        });
+
         return Dialog(
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(24),
@@ -207,7 +238,7 @@ class _PinScreenState extends State<PinScreen> {
           backgroundColor: isDark ? theme.surfaceField : Colors.white,
           elevation: 16,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+            padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 28),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
@@ -228,7 +259,7 @@ class _PinScreenState extends State<PinScreen> {
                 ),
                 const SizedBox(height: 20),
                 Text(
-                  'Pembayaran Berhasil',
+                  'Pembayaran Berhasil'.tr,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 20,
                     fontWeight: FontWeight.w800,
@@ -238,7 +269,7 @@ class _PinScreenState extends State<PinScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Transaksi parkir Anda berhasil diproses dan slot telah diamankan.',
+                  'Transaksi parkir Anda berhasil diproses dan slot telah diamankan.'.tr,
                   textAlign: TextAlign.center,
                   style: GoogleFonts.plusJakartaSans(
                     fontSize: 13,
@@ -264,7 +295,7 @@ class _PinScreenState extends State<PinScreen> {
                       ),
                       const SizedBox(width: 6),
                       Text(
-                        'Terverifikasi Sistem',
+                        'Terverifikasi Sistem'.tr,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
@@ -274,27 +305,33 @@ class _PinScreenState extends State<PinScreen> {
                     ],
                   ),
                 ),
+                const SizedBox(height: 24),
+                SizedBox(
+                  width: double.infinity,
+                  height: 48,
+                  child: ElevatedButton(
+                    onPressed: () => doNavigate(dialogCtx),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF17A18A),
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                    ),
+                    child: Text(
+                      'Lihat Detail Tiket'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
         );
       },
     );
-
-    // Trigger Push Notification
-    await NotificationService().showNotification(
-      id: 100,
-      title: 'Pembayaran Berhasil',
-      body: 'Pembayaran Anda berhasil.',
-    );
-
-    // Wait a moment then navigate
-    await Future.delayed(const Duration(seconds: 2));
-
-    if (mounted) {
-      Navigator.pop(context); // close dialog
-      Navigator.pushReplacement(context, MaterialPageRoute(builder: (_) => widget.nextScreen));
-    }
   }
 
   void _onPinChanged(String value) async {

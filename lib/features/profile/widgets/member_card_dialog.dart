@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
+import '../../../core/services/session_service.dart';
 import '../../../ui/layanan/layanan_blockchain.dart';
 import '../backend/profile_backend.dart';
 
@@ -77,10 +78,14 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
   }
 
   Future<void> _loadCards() async {
-    List<Map<String, dynamic>> loaded = List.from(ProfileBackend.instance.userCards);
-    final uid = ProfileBackend.instance.userId;
+    final uid = ProfileBackend.instance.userId.isNotEmpty
+        ? ProfileBackend.instance.userId
+        : (SessionService.instance.userId ?? '');
 
-    if (loaded.isEmpty && uid.isNotEmpty) {
+    List<Map<String, dynamic>> loaded = [];
+
+    // SELALU ambil data fresh dari Supabase untuk menjamin tx_hash terbaru yang terdaftar di blockchain
+    if (uid.isNotEmpty) {
       try {
         final res = await Supabase.instance.client
             .from('user_member_cards')
@@ -90,7 +95,13 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
         if (res.isNotEmpty) {
           loaded = List<Map<String, dynamic>>.from(res);
         }
-      } catch (_) {}
+      } catch (err) {
+        debugPrint('[MemberCardDialog] Error fetch user_member_cards: $err');
+      }
+    }
+
+    if (loaded.isEmpty && ProfileBackend.instance.userCards.isNotEmpty) {
+      loaded = List.from(ProfileBackend.instance.userCards);
     }
 
     // Filter hanya kartu yang sudah tercapai sesuai tier pengguna (Bronze tidak boleh memunculkan Silver/Gold/Platinum)
@@ -295,19 +306,25 @@ class MemberAtmCard extends StatelessWidget {
       theme = _CardTheme.bronze;
     }
 
-    // Ambil kode blockchain riil per member:
+    // Ambil kode blockchain riil yang BISA DICEK di Sepolia Etherscan:
+    // Prioritas 1: tx_hash (Hash Transaksi Blockchain riil di Sepolia, format 0x... 66 karakter)
+    // Prioritas 2: alamat smart contract resmi jika tx_hash belum terisi
     final String fullBlockchainCode;
-    if (blockchainCode != null && blockchainCode!.trim().isNotEmpty && blockchainCode!.trim().startsWith('0x')) {
+    if (blockchainCode != null &&
+        blockchainCode!.trim().isNotEmpty &&
+        blockchainCode!.trim().startsWith('0x') &&
+        blockchainCode!.trim() != '#----') {
       fullBlockchainCode = blockchainCode!.trim();
     } else if (memberCode.trim().isNotEmpty && memberCode.trim().startsWith('0x')) {
       fullBlockchainCode = memberCode.trim();
-    } else if (blockchainCode != null && blockchainCode!.trim().isNotEmpty) {
-      fullBlockchainCode = blockchainCode!.trim();
     } else {
       fullBlockchainCode = LayananBlockchain.alamatKontrakHex;
     }
 
-    // Format: 12 digit angka/karakter pertama + titik 3 kali saja
+    // Link web verifikasi utama (sesuai permintaan user: https://sepolia.etherscan.io/)
+    final String verifyUrl = 'https://sepolia.etherscan.io/';
+
+    // Format: 12 karakter pertama + "..." (sesuai permintaan user)
     final String displayBlockchainCode = fullBlockchainCode.length > 12
         ? '${fullBlockchainCode.substring(0, 12)}...'
         : fullBlockchainCode;
@@ -475,7 +492,7 @@ class MemberAtmCard extends StatelessWidget {
                               ),
                               const SizedBox(width: 6),
                               GestureDetector(
-                                onTap: () => _copyAndConfirmVerification(context, fullBlockchainCode),
+                                onTap: () => _copyAndConfirmVerification(context, fullBlockchainCode, verifyUrl),
                                 behavior: HitTestBehavior.opaque,
                                 child: Padding(
                                   padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 2),
@@ -501,7 +518,7 @@ class MemberAtmCard extends StatelessWidget {
     );
   }
 
-  Future<void> _copyAndConfirmVerification(BuildContext context, String code) async {
+  Future<void> _copyAndConfirmVerification(BuildContext context, String code, String verifyUrl) async {
     // Salin versi full kode blockchain ke papan klip
     await Clipboard.setData(ClipboardData(text: code));
     HapticFeedback.lightImpact();
@@ -617,10 +634,7 @@ class MemberAtmCard extends StatelessWidget {
                           child: ElevatedButton(
                             onPressed: () async {
                               Navigator.of(dialogContext).pop();
-                              final targetUrl = code.startsWith('0x') && code.length == 66
-                                  ? 'https://sepolia.etherscan.io/tx/$code'
-                                  : 'https://sepolia.etherscan.io/address/${LayananBlockchain.alamatKontrakHex}';
-                              final uri = Uri.parse(targetUrl);
+                              final uri = Uri.parse(verifyUrl);
                               if (await canLaunchUrl(uri)) {
                                 await launchUrl(uri, mode: LaunchMode.externalApplication);
                               }

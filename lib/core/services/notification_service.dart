@@ -22,22 +22,26 @@ class NotificationService {
   }
 
   Future<void> showNotification({required int id, required String title, required String body}) async {
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'payment_channel', 'Payment Notifications',
-      channelDescription: 'Notifications for successful payments',
-      importance: Importance.max,
-      priority: Priority.high,
-      ticker: 'ticker',
-    );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(
-      android: androidPlatformChannelSpecifics,
-    );
-    await _flutterLocalNotificationsPlugin.show(
-      id: id,
-      title: title,
-      body: body,
-      notificationDetails: platformChannelSpecifics,
-    );
+    try {
+      const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+        'payment_channel', 'Payment Notifications',
+        channelDescription: 'Notifications for successful payments',
+        importance: Importance.max,
+        priority: Priority.high,
+        ticker: 'ticker',
+      );
+      const NotificationDetails platformChannelSpecifics = NotificationDetails(
+        android: androidPlatformChannelSpecifics,
+      );
+      await _flutterLocalNotificationsPlugin.show(
+        id: id,
+        title: title,
+        body: body,
+        notificationDetails: platformChannelSpecifics,
+      );
+    } catch (e) {
+      // Prevent push notification failure from breaking transaction/navigation flow
+    }
   }
 
   Future<void> showMaintenanceNotification({required String title, required String body}) async {

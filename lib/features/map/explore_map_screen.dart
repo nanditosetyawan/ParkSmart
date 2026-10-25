@@ -72,36 +72,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   String _selectedReviewFilterTopic = 'Semua';
 
-  List<Map<String, dynamic>> _userReviews = [
-    {
-      'name': 'Budi Santoso',
-      'rating': 5,
-      'date': '2 hari yang lalu',
-      'review': 'Tempat parkir sangat luas, fasilitas charging EV cepat dan bekerja optimal. Petugas keamanan sangat ramah.',
-      'topics': ['Akurasi Sensor ANPR', 'Ketersediaan Slot'],
-    },
-    {
-      'name': 'Jessica Wijaya',
-      'rating': 5,
-      'date': '1 minggu yang lalu',
-      'review': 'Palang otomatis membaca nomor plat tanpa kendala. Lokasi beratap sehingga mobil teduh dan aman dari hujan.',
-      'topics': ['Kemudahan Gate', 'Akurasi Sensor ANPR'],
-    },
-    {
-      'name': 'Ahmad Faisal',
-      'rating': 4,
-      'date': '2 minggu yang lalu',
-      'review': 'Akses keluar masuk sangat mudah di pusat kota. Pembayaran cashless sangat praktis.',
-      'topics': ['Kemudahan Gate', 'Tarif & Pembayaran'],
-    },
-    {
-      'name': 'Dewi Lestari',
-      'rating': 5,
-      'date': '3 minggu yang lalu',
-      'review': 'CCTV dan penerangan malam hari sangat terang. Sangat direkomendasikan untuk parkir harian.',
-      'topics': ['Ketersediaan Slot', 'Lainnya'],
-    },
-  ];
+  List<Map<String, dynamic>> _userReviews = [];
 
   // Database Kota, Landmark, dan Lokasi Populer di Seluruh Indonesia
   static final List<Map<String, dynamic>> _indonesiaPlaces = [
@@ -234,6 +205,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       final loc = widget.initialSelectedParking!;
       _parkingLocations.add(loc);
       _selectedParking = loc;
+      _fetchLiveParkingDetails(loc['id']?.toString());
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _onParkingMarkerTapped(loc);
       });
@@ -262,74 +234,117 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
           }
         });
         _fetchLocationReviews(_selectedParking?['id']?.toString());
+        _fetchLiveParkingDetails(_selectedParking?['id']?.toString());
       }
     });
   }
 
   Future<void> _fetchLocationReviews(String? locationId) async {
     try {
-      final res = await Supabase.instance.client
+      var query = Supabase.instance.client
           .from('customer_feedbacks')
-          .select('id, rating, comment, admin_reply, is_resolved, created_at, location_id, users(full_name, avatar_url)')
-          .order('created_at', ascending: false);
+          .select('id, rating, comment, admin_reply, is_resolved, created_at, location_id, users(full_name, avatar_url)');
 
-      if (res.isNotEmpty && mounted) {
-        final List<Map<String, dynamic>> realReviews = [];
-        for (var row in res) {
-          if (locationId != null && row['location_id'] != null) {
-            if (row['location_id'].toString() != locationId) {
-              continue;
+      if (locationId != null && locationId.isNotEmpty) {
+        query = query.eq('location_id', locationId);
+      }
+
+      final res = await query.order('created_at', ascending: false);
+      final List<Map<String, dynamic>> realReviews = [];
+      for (var row in res) {
+        final comment = row['comment']?.toString() ?? '';
+        List<String> topics = [];
+        String cleanReview = comment;
+        if (comment.startsWith('[') && comment.contains(']')) {
+          final endIdx = comment.indexOf(']');
+          final topicsStr = comment.substring(1, endIdx);
+          topics = topicsStr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+          cleanReview = comment.substring(endIdx + 1).trim();
+        }
+
+        final userData = row['users'] as Map<String, dynamic>?;
+        final name = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
+
+        String dateStr = 'Hari ini';
+        if (row['created_at'] != null) {
+          try {
+            final dt = DateTime.parse(row['created_at'].toString()).toLocal();
+            final diff = DateTime.now().difference(dt);
+            if (diff.inMinutes < 60) {
+              dateStr = '${diff.inMinutes} menit yang lalu';
+            } else if (diff.inHours < 24) {
+              dateStr = '${diff.inHours} jam yang lalu';
+            } else if (diff.inDays < 7) {
+              dateStr = '${diff.inDays} hari yang lalu';
+            } else {
+              dateStr = '${(diff.inDays / 7).floor()} minggu yang lalu';
             }
-          }
-
-          final comment = row['comment']?.toString() ?? '';
-          List<String> topics = [];
-          String cleanReview = comment;
-          if (comment.startsWith('[') && comment.contains(']')) {
-            final endIdx = comment.indexOf(']');
-            final topicsStr = comment.substring(1, endIdx);
-            topics = topicsStr.split(',').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
-            cleanReview = comment.substring(endIdx + 1).trim();
-          }
-
-          final userData = row['users'] as Map<String, dynamic>?;
-          final name = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
-
-          String dateStr = 'Hari ini';
-          if (row['created_at'] != null) {
-            try {
-              final dt = DateTime.parse(row['created_at'].toString()).toLocal();
-              final diff = DateTime.now().difference(dt);
-              if (diff.inMinutes < 60) {
-                dateStr = '${diff.inMinutes} menit yang lalu';
-              } else if (diff.inHours < 24) {
-                dateStr = '${diff.inHours} jam yang lalu';
-              } else if (diff.inDays < 7) {
-                dateStr = '${diff.inDays} hari yang lalu';
-              } else {
-                dateStr = '${(diff.inDays / 7).floor()} minggu yang lalu';
-              }
-            } catch (_) {}
-          }
-
-          realReviews.add({
-            'name': name,
-            'rating': (row['rating'] as num?)?.toInt() ?? 5,
-            'date': dateStr,
-            'review': cleanReview.isNotEmpty ? cleanReview : 'Pelayanan parkir sangat baik.',
-            'topics': topics.isNotEmpty ? topics : ['Akurasi Sensor ANPR', 'Kemudahan Gate'],
-            'adminReply': row['admin_reply']?.toString(),
-          });
+          } catch (_) {}
         }
 
-        if (realReviews.isNotEmpty) {
-          setState(() {
-            _userReviews = realReviews;
-          });
-        }
+        realReviews.add({
+          'name': name,
+          'rating': (row['rating'] as num?)?.toInt() ?? 5,
+          'date': dateStr,
+          'review': cleanReview.isNotEmpty ? cleanReview : 'Pelayanan parkir sangat baik.',
+          'topics': topics.isNotEmpty ? topics : ['Akurasi Sensor ANPR', 'Kemudahan Gate'],
+          'adminReply': row['admin_reply']?.toString(),
+        });
+      }
+
+      if (mounted) {
+        setState(() {
+          _userReviews = realReviews;
+        });
       }
     } catch (e) {
       debugPrint('[ExploreMap] _fetchLocationReviews error: $e');
+    }
+  }
+
+  /// Memuat info detail tempat parkir (slot aktual, jam buka/tutup, rating) langsung by ID parkiran dari Supabase
+  Future<void> _fetchLiveParkingDetails(String? locationId) async {
+    if (locationId == null || locationId.isEmpty) return;
+    try {
+      final locRes = await Supabase.instance.client
+          .from('parking_locations')
+          .select('id, name, type, operating_hours, total_capacity, status, rating, review_count')
+          .eq('id', locationId)
+          .maybeSingle();
+
+      final List<dynamic> slotsRes = await Supabase.instance.client
+          .from('parking_slots')
+          .select('id, status')
+          .eq('location_id', locationId);
+
+      if (locRes != null && mounted) {
+        final availableCount = slotsRes.where((s) => s['status'] == 'available').length;
+        final totalCap = slotsRes.isNotEmpty ? slotsRes.length : ((locRes['total_capacity'] as num?)?.toInt() ?? 0);
+        final realSlots = slotsRes.isNotEmpty ? availableCount : totalCap;
+        final num reviewCount = (locRes['review_count'] as num?) ?? 0;
+        final double rawRating = (locRes['rating'] as num?)?.toDouble() ?? 0.0;
+        final double effectiveRating = reviewCount == 0 ? 0.0 : rawRating;
+        final String opHours = locRes['operating_hours']?.toString().trim() ?? 'Buka 24 Jam';
+
+        setState(() {
+          if (_selectedParking != null && _selectedParking!['id'] == locationId) {
+            _selectedParking = {
+              ..._selectedParking!,
+              'operating_hours': opHours,
+              'hours': opHours,
+              'slots': realSlots,
+              'available_slots': realSlots,
+              'total_capacity': totalCap,
+              'status': locRes['status'] ?? 'active',
+              'rating': effectiveRating,
+              'reviews': '$reviewCount',
+              'review_count': reviewCount,
+            };
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('[ExploreMap] _fetchLiveParkingDetails error: $e');
     }
   }
 
@@ -576,12 +591,101 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     return LatLng(point.latitude - latDelta, point.longitude);
   }
 
+  /// Widget deretan bintang dinamis: jika rating 0.0, semua bintang berwarna abu-abu (jangan full kuning)
+  Widget _buildStarRow(double rating, {double size = 15}) {
+    final isDark = ThemeService.instance.isDarkMode;
+    final emptyColor = isDark ? const Color(0xFF475569) : const Color(0xFFD1D5DB);
+    const activeColor = Color(0xFFF4B400);
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: List.generate(5, (index) {
+        final starIndex = index + 1;
+        IconData icon;
+        Color color;
+
+        if (rating >= starIndex) {
+          icon = Icons.star_rounded;
+          color = activeColor;
+        } else if (rating >= starIndex - 0.5) {
+          icon = Icons.star_half_rounded;
+          color = activeColor;
+        } else {
+          icon = Icons.star_rounded;
+          color = emptyColor;
+        }
+
+        return Icon(icon, color: color, size: size);
+      }),
+    );
+  }
+
+  /// Menghitung status buka/tutup dan teks jam operasional dinamis berdasarkan data parkiran dari database
+  ({bool isOpen, String statusText, String detailText}) _getOperatingHoursInfo(Map<String, dynamic> loc) {
+    final status = (loc['status'] ?? 'active').toString().toLowerCase();
+    final opHours = (loc['operating_hours'] ?? loc['hours'] ?? 'Buka 24 Jam').toString().trim();
+
+    // 1. Jika status lokasi bukan active (misal maintenance/tutup)
+    if (status == 'maintenance' || status == 'perbaikan') {
+      return (isOpen: false, statusText: 'Tutup', detailText: ' • Pemeliharaan Sementara');
+    }
+    if (status == 'tutup' || status == 'closed') {
+      return (isOpen: false, statusText: 'Tutup', detailText: ' • Tutup Sementara');
+    }
+
+    // 2. Jika operasional 24 Jam
+    if (opHours.toLowerCase().contains('24 jam') || opHours.toLowerCase().contains('24 hours')) {
+      return (isOpen: true, statusText: 'Buka', detailText: ' • Buka 24 Jam');
+    }
+
+    // 3. Parsing rentang jam (misal "06:00 - 23:00", "08.00 - 22.00", "08:00 - 22:00 WIB")
+    final match = RegExp(r'(\d{1,2})[:.](\d{2})\s*-\s*(\d{1,2})[:.](\d{2})').firstMatch(opHours);
+    if (match != null) {
+      final openH = int.tryParse(match.group(1)!) ?? 0;
+      final openM = int.tryParse(match.group(2)!) ?? 0;
+      final closeH = int.tryParse(match.group(3)!) ?? 0;
+      final closeM = int.tryParse(match.group(4)!) ?? 0;
+
+      final now = DateTime.now();
+      final nowMinutes = now.hour * 60 + now.minute;
+      final openMinutes = openH * 60 + openM;
+      final closeMinutes = closeH * 60 + closeM;
+
+      final formattedClose = '${closeH.toString().padLeft(2, '0')}.${closeM.toString().padLeft(2, '0')}';
+      final formattedOpen = '${openH.toString().padLeft(2, '0')}.${openM.toString().padLeft(2, '0')}';
+
+      if (closeMinutes > openMinutes) {
+        // Jam operasional normal pada hari yang sama (misal 06:00 - 23:00)
+        if (nowMinutes >= openMinutes && nowMinutes < closeMinutes) {
+          return (isOpen: true, statusText: 'Buka', detailText: ' • Tutup pukul $formattedClose WIB');
+        } else {
+          return (isOpen: false, statusText: 'Tutup', detailText: ' • Buka pukul $formattedOpen WIB');
+        }
+      } else {
+        // Jam operasional lintas tengah malam (misal 18:00 - 04:00)
+        if (nowMinutes >= openMinutes || nowMinutes < closeMinutes) {
+          return (isOpen: true, statusText: 'Buka', detailText: ' • Tutup pukul $formattedClose WIB');
+        } else {
+          return (isOpen: false, statusText: 'Tutup', detailText: ' • Buka pukul $formattedOpen WIB');
+        }
+      }
+    }
+
+    // 4. Fallback jika format kustom
+    return (
+      isOpen: status == 'active',
+      statusText: status == 'active' ? 'Buka' : 'Tutup',
+      detailText: ' • $opHours',
+    );
+  }
+
   void _onParkingMarkerTapped(Map<String, dynamic> loc) {
     setState(() {
       _selectedParking = loc;
       _selectedDetailTab = 0; // Otomatis tab Ringkasan
     });
     _fetchLocationReviews(loc['id']?.toString());
+    _fetchLiveParkingDetails(loc['id']?.toString());
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (_placeDetailsController.isAttached) {
         _placeDetailsController.animateTo(
@@ -1573,68 +1677,88 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
                                       // Rating Angka + Bintang + Jumlah Ulasan
-                                      Row(
-                                        children: [
-                                          Text(
-                                            '${loc['rating'] ?? 4.8} ',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 14,
-                                              fontWeight: FontWeight.w700,
-                                              color: isDark ? Colors.white : const Color(0xFF1F1F1F),
-                                            ),
-                                          ),
-                                          Row(
-                                            children: List.generate(5, (_) {
-                                              return const Icon(
-                                                Icons.star,
-                                                color: Color(0xFFF4B400),
-                                                size: 15,
-                                              );
-                                            }),
-                                          ),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            '(${loc['reviews'] ?? '340'})',
+                                      Builder(
+                                        builder: (context) {
+                                          final num reviewCount = num.tryParse(loc['reviews']?.toString() ?? '') ?? (loc['review_count'] as num?) ?? 0;
+                                          final double rawRating = (loc['rating'] is num)
+                                              ? (loc['rating'] as num).toDouble()
+                                              : (double.tryParse(loc['rating']?.toString() ?? '') ?? 0.0);
+                                          final double ratingVal = reviewCount == 0 ? 0.0 : rawRating;
+                                          final String ratingStr = ratingVal.toStringAsFixed(1);
+
+                                          return Row(
+                                            children: [
+                                              Text(
+                                                '$ratingStr ',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 14,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: isDark ? Colors.white : const Color(0xFF1F1F1F),
+                                                ),
+                                              ),
+                                              _buildStarRow(ratingVal, size: 15),
+                                              const SizedBox(width: 4),
+                                              Text(
+                                                '($reviewCount)',
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 13,
+                                                  color: isDark ? theme.textMuted : const Color(0xFF5F6368),
+                                                  fontWeight: FontWeight.w500,
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
+                                      ),
+                                      const SizedBox(height: 5),
+
+                                      // Kategori & Biaya & Slot Tersedia Riil (by parking ID)
+                                      Builder(
+                                        builder: (context) {
+                                          final int slots = (loc['slots'] is num)
+                                              ? (loc['slots'] as num).toInt()
+                                              : (int.tryParse(loc['slots']?.toString() ?? '') ?? 0);
+                                          final typeStr = (loc['type'] ?? 'Parkir Resmi').toString();
+                                          final priceStr = _formatParkingPrice(loc);
+
+                                          return Text(
+                                            '$typeStr • $priceStr • Tersedia $slots slot',
                                             style: GoogleFonts.inter(
                                               fontSize: 13,
                                               color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                               fontWeight: FontWeight.w500,
                                             ),
-                                          ),
-                                        ],
+                                          );
+                                        },
                                       ),
                                       const SizedBox(height: 5),
 
-                                      // Kategori & Biaya
-                                      Text(
-                                        '${loc['type']} • ${_formatParkingPrice(loc)} • Tersedia ${loc['slots']} slot',
-                                        style: GoogleFonts.inter(
-                                          fontSize: 13,
-                                          color: isDark ? theme.textMuted : const Color(0xFF5F6368),
-                                          fontWeight: FontWeight.w500,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 5),
-
-                                      // Jam Buka & Tutup
-                                      Row(
-                                        children: [
-                                          Text(
-                                            'Buka',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 13,
-                                              fontWeight: FontWeight.w700,
-                                              color: isDark ? const Color(0xFF4ADE80) : const Color(0xFF137333),
-                                            ),
-                                          ),
-                                          Text(
-                                            ' • Tutup pukul 22.00 WIB',
-                                            style: GoogleFonts.inter(
-                                              fontSize: 13,
-                                              color: isDark ? theme.textMuted : const Color(0xFF5F6368),
-                                            ),
-                                          ),
-                                        ],
+                                      // Jam Buka & Tutup Dinamis (by parking ID)
+                                      Builder(
+                                        builder: (context) {
+                                          final opInfo = _getOperatingHoursInfo(loc);
+                                          return Row(
+                                            children: [
+                                              Text(
+                                                opInfo.statusText,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 13,
+                                                  fontWeight: FontWeight.w700,
+                                                  color: opInfo.isOpen
+                                                      ? (isDark ? const Color(0xFF4ADE80) : const Color(0xFF137333))
+                                                      : (isDark ? const Color(0xFFF87171) : const Color(0xFFD93025)),
+                                                ),
+                                              ),
+                                              Text(
+                                                opInfo.detailText,
+                                                style: GoogleFonts.inter(
+                                                  fontSize: 13,
+                                                  color: isDark ? theme.textMuted : const Color(0xFF5F6368),
+                                                ),
+                                              ),
+                                            ],
+                                          );
+                                        },
                                       ),
                                       const SizedBox(height: 12),
 
@@ -2335,7 +2459,12 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                 const Divider(height: 18),
                 _buildInfoRow(Icons.event_seat_outlined, 'Kapasitas'.tr, '${loc['slots']} ${'Slot Tersedia'.tr}'),
                 const Divider(height: 18),
-                _buildInfoRow(Icons.access_time, 'Operasional'.tr, (loc['hours'] as String? ?? 'Buka • Tutup 22.00 WIB').tr),
+                Builder(
+                  builder: (_) {
+                    final opInfo = _getOperatingHoursInfo(loc);
+                    return _buildInfoRow(Icons.access_time, 'Operasional'.tr, '${opInfo.statusText}${opInfo.detailText}'.tr);
+                  },
+                ),
                 const Divider(height: 18),
                 _buildInfoRow(Icons.qr_code, 'Metode Masuk'.tr, 'Tiket / Palang Otomatis & QRIS'.tr),
               ],
@@ -2632,30 +2761,50 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             child: Row(
               children: [
                 // Skor Besar
-                Column(
-                  children: [
-                    Text(
-                      '${loc['rating'] ?? 4.8}',
-                      style: GoogleFonts.inter(fontSize: 42, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1F1F1F)),
-                    ),
-                    Row(
-                      children: List.generate(5, (_) => const Icon(Icons.star, color: Color(0xFFF4B400), size: 16)),
-                    ),
-                    const SizedBox(height: 4),
-                    Text('${loc['reviews'] ?? '340'} ${'ulasan'.tr}', style: GoogleFonts.inter(fontSize: 12, color: isDark ? theme.textMuted : const Color(0xFF5F6368))),
-                  ],
+                Builder(
+                  builder: (_) {
+                    final num reviewCount = num.tryParse(loc['reviews']?.toString() ?? '') ?? (loc['review_count'] as num?) ?? 0;
+                    final double rawRating = (loc['rating'] is num)
+                        ? (loc['rating'] as num).toDouble()
+                        : (double.tryParse(loc['rating']?.toString() ?? '') ?? 0.0);
+                    final double ratingVal = reviewCount == 0 ? 0.0 : rawRating;
+                    final String ratingStr = ratingVal.toStringAsFixed(1);
+
+                    return Column(
+                      children: [
+                        Text(
+                          ratingStr,
+                          style: GoogleFonts.inter(fontSize: 42, fontWeight: FontWeight.w800, color: isDark ? Colors.white : const Color(0xFF1F1F1F)),
+                        ),
+                        _buildStarRow(ratingVal, size: 16),
+                        const SizedBox(height: 4),
+                        Text('$reviewCount ${'ulasan'.tr}', style: GoogleFonts.inter(fontSize: 12, color: isDark ? theme.textMuted : const Color(0xFF5F6368))),
+                      ],
+                    );
+                  },
                 ),
                 const SizedBox(width: 20),
                 // Progress Bar Bintang 5 s/d 1
                 Expanded(
-                  child: Column(
-                    children: [
-                      _buildRatingBar('5', 0.82),
-                      _buildRatingBar('4', 0.12),
-                      _buildRatingBar('3', 0.04),
-                      _buildRatingBar('2', 0.01),
-                      _buildRatingBar('1', 0.01),
-                    ],
+                  child: Builder(
+                    builder: (_) {
+                      final totalRev = _userReviews.length;
+                      final count5 = _userReviews.where((r) => r['rating'] == 5).length;
+                      final count4 = _userReviews.where((r) => r['rating'] == 4).length;
+                      final count3 = _userReviews.where((r) => r['rating'] == 3).length;
+                      final count2 = _userReviews.where((r) => r['rating'] == 2).length;
+                      final count1 = _userReviews.where((r) => r['rating'] == 1).length;
+
+                      return Column(
+                        children: [
+                          _buildRatingBar('5', totalRev > 0 ? count5 / totalRev : 0.0),
+                          _buildRatingBar('4', totalRev > 0 ? count4 / totalRev : 0.0),
+                          _buildRatingBar('3', totalRev > 0 ? count3 / totalRev : 0.0),
+                          _buildRatingBar('2', totalRev > 0 ? count2 / totalRev : 0.0),
+                          _buildRatingBar('1', totalRev > 0 ? count1 / totalRev : 0.0),
+                        ],
+                      );
+                    },
                   ),
                 ),
               ],

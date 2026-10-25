@@ -469,14 +469,7 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                           color: theme.textPrimary,
                         ),
                       ),
-                      Text(
-                        'Penentu Tarif Gerbang'.tr,
-                        style: GoogleFonts.plusJakartaSans(
-                          fontSize: 11,
-                          fontWeight: FontWeight.w500,
-                          color: theme.textSecondary,
-                        ),
-                      ),
+                    
                     ],
                   ),
                   const SizedBox(height: 10),

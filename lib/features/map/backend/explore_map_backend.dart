@@ -23,10 +23,10 @@ class ExploreMapBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Targeted Column Query: Hanya mengambil kolom yang dibutuhkan oleh marker peta & pop-up
+      // Targeted Column Query: Mengambil detail lokasi lengkap termasuk operating_hours
       var query = _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities');
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, operating_hours');
 
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         query = query.ilike('name', '%${searchQuery.trim()}%');
@@ -34,7 +34,21 @@ class ExploreMapBackend extends ChangeNotifier {
 
       final response = await query.order('rating', ascending: false);
 
+      // Ambil ketersediaan slot aktual berdasarkan tabel public.parking_slots per location_id
+      final List<dynamic> slotsData = await _client
+          .from('parking_slots')
+          .select('id, location_id, status');
+
+      final Map<String, List<dynamic>> slotsByLocation = {};
+      for (final s in slotsData) {
+        final locId = s['location_id']?.toString();
+        if (locId != null) {
+          slotsByLocation.putIfAbsent(locId, () => []).add(s);
+        }
+      }
+
       _locations = response.map<Map<String, dynamic>>((row) {
+        final locId = row['id']?.toString() ?? '';
         final lat = (row['latitude'] as num?)?.toDouble() ?? -6.1754;
         final lng = (row['longitude'] as num?)?.toDouble() ?? 106.7933;
         final rateMobil = (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000;
@@ -43,6 +57,18 @@ class ExploreMapBackend extends ChangeNotifier {
         final capacity = (row['total_capacity'] as int?) ?? 50;
         final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
         final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
+
+        // Hitung slot tersedia riil berdasarkan denah slot (status == 'available')
+        final locationSlots = slotsByLocation[locId] ?? [];
+        final int availableCount = locationSlots.where((s) => s['status'] == 'available').length;
+        final int actualAvailableSlots = locationSlots.isNotEmpty ? availableCount : capacity;
+
+        // Rating: jika belum ada ulasan (review_count == 0), rating adalah 0.0
+        final num reviewCount = (row['review_count'] as num?) ?? 0;
+        final double rawRating = (row['rating'] as num?)?.toDouble() ?? 0.0;
+        final double effectiveRating = reviewCount == 0 ? 0.0 : rawRating;
+
+        final String opHours = row['operating_hours']?.toString().trim() ?? 'Buka 24 Jam';
 
         List<String> photos = [];
         if (row['images'] is List) {
@@ -63,13 +89,18 @@ class ExploreMapBackend extends ChangeNotifier {
           'name': row['name'] ?? 'Spot Parkir',
           'type': row['type'] ?? 'Parkir Resmi',
           'point': LatLng(lat, lng),
-          'slots': capacity,
+          'slots': actualAvailableSlots,
+          'available_slots': actualAvailableSlots,
+          'total_capacity': capacity,
           'isEv': isEv,
           'distance': '1.2 km',
           'price': '${CurrencyService.instance.format(rateMobil)} / jam',
-          'rating': (row['rating'] as num?)?.toDouble() ?? 4.5,
-          'reviews': '${row['review_count'] ?? 0}',
-          'hours': row['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
+          'rating': effectiveRating,
+          'reviews': '$reviewCount',
+          'review_count': reviewCount,
+          'operating_hours': opHours.isNotEmpty ? opHours : 'Buka 24 Jam',
+          'hours': opHours.isNotEmpty ? opHours : (row['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara'),
+          'status': row['status'] ?? 'active',
           'hourly_rate_mobil': rateMobil,
           'hourly_rate_motor': rateMotor,
           'hourly_rate_ev': rateEv,

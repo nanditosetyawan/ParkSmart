@@ -58,6 +58,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   Widget _buildMemberBadge(String tier, {required String memberCode}) {
     return GestureDetector(
       onTap: () {
+        ProfileBackend.instance.fetchProfile();
         showFramelessMemberCardDialog(
           context,
           tier: tier,

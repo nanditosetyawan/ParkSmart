@@ -91,7 +91,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     total_spent NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (total_spent >= 0),
     monthly_spent NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (monthly_spent >= 0),
     last_spending_month VARCHAR(7) NOT NULL DEFAULT TO_CHAR(NOW(), 'YYYY-MM'),
-    member_hash_code VARCHAR(32),
+    member_hash_code VARCHAR(66),
+    status_keanggotaan BOOLEAN NOT NULL DEFAULT false,
     total_parking_count INT NOT NULL DEFAULT 0,
     total_savings NUMERIC(12, 2) NOT NULL DEFAULT 0.00,
     favorite_location_ids UUID[] NOT NULL DEFAULT '{}',
@@ -123,6 +124,33 @@ CREATE TABLE IF NOT EXISTS public.vehicles (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     CONSTRAINT uq_user_plate UNIQUE (user_id, plate_number)
 );
+
+-- 4.1. TABEL KARTU KEANGGOTAAN BLOCKCHAIN MULTI-TIER
+CREATE TABLE IF NOT EXISTS public.user_member_cards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    card_tier VARCHAR(20) NOT NULL CHECK (card_tier IN ('regular', 'bronze', 'silver', 'gold', 'platinum')),
+    member_hash_code VARCHAR(66) NOT NULL UNIQUE,
+    nft_token_id NUMERIC,
+    tx_hash VARCHAR(66),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    unlocked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_user_tier UNIQUE (user_id, card_tier)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_member_cards_user_id ON public.user_member_cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_member_cards_hash ON public.user_member_cards(member_hash_code);
+
+ALTER TABLE public.user_member_cards ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow all for authenticated and anon" ON public.user_member_cards;
+CREATE POLICY "Allow all for authenticated and anon" 
+ON public.user_member_cards 
+FOR ALL 
+USING (true) 
+WITH CHECK (true);
 
 -- 5. TABEL STAF ADMIN TERPADU (Super Admin, Operasional, Finansial, CS)
 CREATE TABLE IF NOT EXISTS public.admins (
@@ -185,7 +213,7 @@ CREATE TABLE IF NOT EXISTS public.parking_locations (
     hourly_rate_ev NUMERIC(10, 2) NOT NULL DEFAULT 7500.00,
     operating_hours VARCHAR(100) NOT NULL DEFAULT 'Buka 24 Jam',
     facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam'::text, 'Covered Parking'::text],
-    rating NUMERIC(2, 1) NOT NULL DEFAULT 4.8,
+    rating NUMERIC(2, 1) NOT NULL DEFAULT 0.0,
     review_count INT NOT NULL DEFAULT 0,
     status location_status_enum NOT NULL DEFAULT 'active',
     image_url TEXT,
@@ -458,9 +486,168 @@ CREATE INDEX IF NOT EXISTS idx_user_favorites_location_id ON public.user_favorit
 CREATE INDEX IF NOT EXISTS idx_users_member_tier ON public.users(member_tier);
 
 -- ============================================================================
--- 21. FUNGSI LOGIKA TIER MEMBERSHIP & RETENSI BULANAN
+-- 21. FUNGSI & TRIGGER MEMBERSHIP TIER, REGISTRASI & AUTO-EVALUATE
 -- ============================================================================
--- Evaluasi Tier Pengguna Berdasarkan Belanja:
+
+-- 21.1. Trigger Saat Registrasi User Baru: Generate Member Hash Awal
+CREATE OR REPLACE FUNCTION public.trg_user_before_insert_membership()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    IF NEW.id IS NULL THEN
+        NEW.id := gen_random_uuid();
+    END IF;
+
+    IF NEW.member_hash_code IS NULL OR TRIM(NEW.member_hash_code) = '' THEN
+        NEW.member_hash_code := '#' || SUBSTRING(MD5(NEW.id::text || '_bronze_parksmart'), 1, 4) || '-' ||
+                                      SUBSTRING(MD5(NEW.id::text || '_bronze_parksmart'), 5, 4) || '-' ||
+                                      SUBSTRING(MD5(NEW.id::text || '_bronze_parksmart'), 9, 4);
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_user_before_insert ON public.users;
+CREATE TRIGGER trg_user_before_insert
+BEFORE INSERT ON public.users
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_user_before_insert_membership();
+
+-- 21.2. Trigger Setelah Registrasi User Baru: Terbitkan Kartu Bronze / Regular
+CREATE OR REPLACE FUNCTION public.trg_user_after_insert_membership()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+BEGIN
+    INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+    VALUES (NEW.id, 'regular', NEW.member_hash_code, true, NOW())
+    ON CONFLICT ON CONSTRAINT uq_user_tier DO NOTHING;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_user_create_membership ON public.users;
+CREATE TRIGGER trg_user_create_membership
+AFTER INSERT ON public.users
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_user_after_insert_membership();
+
+-- 21.3. Trigger Auto-Evaluate Saat Update total_spent (Penanganan Inject Database Manual)
+CREATE OR REPLACE FUNCTION public.trg_auto_evaluate_spent_membership()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_new_tier member_tier_enum;
+    v_tier_hash VARCHAR(66);
+    v_tx_hash VARCHAR(66);
+    v_active_hash VARCHAR(66);
+BEGIN
+    IF (OLD.total_spent IS DISTINCT FROM NEW.total_spent) OR (OLD.member_tier IS NULL) THEN
+        
+        -- Evaluasi Tier Berdasarkan Total Spent Pengguna:
+        -- Bronze: < Rp 100.000
+        -- Silver: >= Rp 100.000
+        -- Gold: >= Rp 200.000
+        -- Platinum: >= Rp 500.000
+        IF NEW.total_spent >= 500000 THEN
+            v_new_tier := 'PLATINUM';
+        ELSIF NEW.total_spent >= 200000 THEN
+            v_new_tier := 'GOLD';
+        ELSIF NEW.total_spent >= 100000 THEN
+            v_new_tier := 'SILVER';
+        ELSE
+            v_new_tier := 'BRONZE';
+        END IF;
+
+        NEW.member_tier := v_new_tier;
+
+        -- 1. Kartu BRONZE/REGULAR selalu aktif
+        v_tier_hash := '#' || SUBSTRING(MD5(NEW.id::text || '_bronze_parksmart'), 1, 4) || '-' ||
+                              SUBSTRING(MD5(NEW.id::text || '_bronze_parksmart'), 5, 4) || '-' ||
+                              SUBSTRING(MD5(NEW.id::text || '_bronze_parksmart'), 9, 4);
+
+        INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+        VALUES (NEW.id, 'regular', v_tier_hash, (v_new_tier = 'BRONZE'), NOW())
+        ON CONFLICT ON CONSTRAINT uq_user_tier 
+        DO UPDATE SET is_active = (v_new_tier = 'BRONZE');
+
+        v_active_hash := v_tier_hash;
+
+        -- 2. Kartu SILVER jika total_spent >= 100.000
+        IF NEW.total_spent >= 100000 THEN
+            v_tier_hash := '#' || SUBSTRING(MD5(NEW.id::text || '_silver_parksmart'), 1, 4) || '-' ||
+                                  SUBSTRING(MD5(NEW.id::text || '_silver_parksmart'), 5, 4) || '-' ||
+                                  SUBSTRING(MD5(NEW.id::text || '_silver_parksmart'), 9, 4);
+
+            INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+            VALUES (NEW.id, 'silver', v_tier_hash, (v_new_tier = 'SILVER'), NOW())
+            ON CONFLICT ON CONSTRAINT uq_user_tier 
+            DO UPDATE SET is_active = (v_new_tier = 'SILVER');
+
+            IF v_new_tier = 'SILVER' THEN
+                v_active_hash := v_tier_hash;
+            END IF;
+        ELSE
+            DELETE FROM public.user_member_cards umc WHERE umc.user_id = NEW.id AND umc.card_tier = 'silver';
+        END IF;
+
+        -- 3. Kartu GOLD jika total_spent >= 200.000
+        IF NEW.total_spent >= 200000 THEN
+            v_tier_hash := '#' || SUBSTRING(MD5(NEW.id::text || '_gold_parksmart'), 1, 4) || '-' ||
+                                  SUBSTRING(MD5(NEW.id::text || '_gold_parksmart'), 5, 4) || '-' ||
+                                  SUBSTRING(MD5(NEW.id::text || '_gold_parksmart'), 9, 4);
+
+            INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+            VALUES (NEW.id, 'gold', v_tier_hash, (v_new_tier = 'GOLD'), NOW())
+            ON CONFLICT ON CONSTRAINT uq_user_tier 
+            DO UPDATE SET is_active = (v_new_tier = 'GOLD');
+
+            IF v_new_tier = 'GOLD' THEN
+                v_active_hash := v_tier_hash;
+            END IF;
+        ELSE
+            DELETE FROM public.user_member_cards umc WHERE umc.user_id = NEW.id AND umc.card_tier = 'gold';
+        END IF;
+
+        -- 4. Kartu PLATINUM jika total_spent >= 500.000
+        IF NEW.total_spent >= 500000 THEN
+            v_tier_hash := '#' || SUBSTRING(MD5(NEW.id::text || '_platinum_parksmart'), 1, 4) || '-' ||
+                                  SUBSTRING(MD5(NEW.id::text || '_platinum_parksmart'), 5, 4) || '-' ||
+                                  SUBSTRING(MD5(NEW.id::text || '_platinum_parksmart'), 9, 4);
+
+            INSERT INTO public.user_member_cards (user_id, card_tier, member_hash_code, is_active, unlocked_at)
+            VALUES (NEW.id, 'platinum', v_tier_hash, (v_new_tier = 'PLATINUM'), NOW())
+            ON CONFLICT ON CONSTRAINT uq_user_tier 
+            DO UPDATE SET is_active = (v_new_tier = 'PLATINUM');
+
+            IF v_new_tier = 'PLATINUM' THEN
+                v_active_hash := v_tier_hash;
+            END IF;
+        ELSE
+            DELETE FROM public.user_member_cards umc WHERE umc.user_id = NEW.id AND umc.card_tier = 'platinum';
+        END IF;
+
+        NEW.member_hash_code := v_active_hash;
+    END IF;
+
+    RETURN NEW;
+END;
+$$;
+
+DROP TRIGGER IF EXISTS trg_user_spent_membership ON public.users;
+CREATE TRIGGER trg_user_spent_membership
+BEFORE UPDATE OF total_spent ON public.users
+FOR EACH ROW
+EXECUTE FUNCTION public.trg_auto_evaluate_spent_membership();
+
+-- 21.4. Fungsi Prosedural Evaluasi Tier Pengguna Berdasarkan Belanja Transaksi
 -- Bronze (< 100k), Silver (>= 100k), Gold (>= 200k), Platinum (>= 500k)
 -- Syarat Bertahan di Platinum: Belanja bulanan >= 700k. Jika tidak, turun bertahap ke Gold.
 CREATE OR REPLACE FUNCTION public.evaluate_user_membership_tier(
@@ -485,7 +672,8 @@ DECLARE
     v_total NUMERIC;
     v_monthly NUMERIC;
     v_last_month VARCHAR(7);
-    v_hash VARCHAR(32);
+    v_active_hash VARCHAR(32);
+    v_tier_hash VARCHAR(32);
 BEGIN
     SELECT * INTO v_user
     FROM public.users
@@ -501,7 +689,6 @@ BEGIN
     v_monthly := COALESCE(v_user.monthly_spent, 0);
     v_last_month := COALESCE(v_user.last_spending_month, v_current_month);
     v_new_tier := v_user.member_tier;
-    v_hash := v_user.member_hash_code;
 
     -- Evaluasi pergantian bulan & retensi Platinum
     IF v_current_month <> v_last_month THEN
@@ -520,7 +707,7 @@ BEGIN
         v_monthly := v_monthly + p_additional_spend;
     END IF;
 
-    -- Pastikan kartu BRONZE / REGULAR awal sudah ada
+    -- Pastikan kartu BRONZE / REGULAR awal selalu ada
     v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_bronze_parksmart'), 1, 4) || '-' ||
                           SUBSTRING(MD5(p_user_id::text || '_bronze_parksmart'), 5, 4) || '-' ||
                           SUBSTRING(MD5(p_user_id::text || '_bronze_parksmart'), 9, 4);
@@ -531,24 +718,18 @@ BEGIN
     
     v_active_hash := v_tier_hash;
 
-    -- Evaluasi Kenaikan Tier Berdasarkan Total Belanja
+    -- Evaluasi Tingkat Keanggotaan Berdasarkan Total Belanja
     IF v_total >= 500000 THEN
         v_new_tier := 'PLATINUM';
     ELSIF v_total >= 200000 THEN
-        IF v_new_tier IN ('BRONZE', 'SILVER') THEN
-            v_new_tier := 'GOLD';
-        END IF;
+        v_new_tier := 'GOLD';
     ELSIF v_total >= 100000 THEN
-        IF v_new_tier = 'BRONZE' THEN
-            v_new_tier := 'SILVER';
-        END IF;
+        v_new_tier := 'SILVER';
     ELSE
-        IF v_new_tier IS NULL THEN
-            v_new_tier := 'BRONZE';
-        END IF;
+        v_new_tier := 'BRONZE';
     END IF;
 
-    -- Terbitkan kartu SILVER baru jika total belanja >= 100.000 (Kartu lama tetap ada!)
+    -- Hanya terbitkan kartu SILVER jika belanja >= 100.000, jika tidak hapus
     IF v_total >= 100000 THEN
         v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_silver_parksmart'), 1, 4) || '-' ||
                               SUBSTRING(MD5(p_user_id::text || '_silver_parksmart'), 5, 4) || '-' ||
@@ -559,9 +740,11 @@ BEGIN
         IF v_new_tier = 'SILVER' THEN
             v_active_hash := v_tier_hash;
         END IF;
+    ELSE
+        DELETE FROM public.user_member_cards umc WHERE umc.user_id = p_user_id AND umc.card_tier = 'silver';
     END IF;
 
-    -- Terbitkan kartu GOLD baru jika total belanja >= 200.000 (Kartu lama tetap ada!)
+    -- Hanya terbitkan kartu GOLD jika belanja >= 200.000, jika tidak hapus
     IF v_total >= 200000 THEN
         v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_gold_parksmart'), 1, 4) || '-' ||
                               SUBSTRING(MD5(p_user_id::text || '_gold_parksmart'), 5, 4) || '-' ||
@@ -572,9 +755,11 @@ BEGIN
         IF v_new_tier = 'GOLD' THEN
             v_active_hash := v_tier_hash;
         END IF;
+    ELSE
+        DELETE FROM public.user_member_cards umc WHERE umc.user_id = p_user_id AND umc.card_tier = 'gold';
     END IF;
 
-    -- Terbitkan kartu PLATINUM baru jika total belanja >= 500.000 (Kartu lama tetap ada!)
+    -- Hanya terbitkan kartu PLATINUM jika belanja >= 500.000, jika tidak hapus
     IF v_total >= 500000 THEN
         v_tier_hash := '#' || SUBSTRING(MD5(p_user_id::text || '_platinum_parksmart'), 1, 4) || '-' ||
                               SUBSTRING(MD5(p_user_id::text || '_platinum_parksmart'), 5, 4) || '-' ||
@@ -585,6 +770,8 @@ BEGIN
         IF v_new_tier = 'PLATINUM' THEN
             v_active_hash := v_tier_hash;
         END IF;
+    ELSE
+        DELETE FROM public.user_member_cards umc WHERE umc.user_id = p_user_id AND umc.card_tier = 'platinum';
     END IF;
 
     -- Ambil hash kode kartu aktif yang sesuai tier saat ini
@@ -613,6 +800,7 @@ BEGIN
 END;
 $$;
 
+-- 21.5. Fungsi Reset & Evaluasi Retensi Bulanan Tier Platinum
 CREATE OR REPLACE FUNCTION public.evaluate_all_membership_tiers_monthly()
 RETURNS VOID
 LANGUAGE plpgsql
@@ -640,6 +828,7 @@ BEGIN
 END;
 $$;
 
+-- 21.6. Trigger Evaluasi Tier Otomatis Saat Pembayaran Parkir Berhasil
 CREATE OR REPLACE FUNCTION public.trg_process_payment_membership()
 RETURNS TRIGGER
 LANGUAGE plpgsql

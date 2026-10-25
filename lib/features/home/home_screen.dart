@@ -2062,10 +2062,7 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                 ],
               ),
             ),
-            const SizedBox(height: 2),
-            const SizedBox(height: 12),
-            const _CategoryList(),
-            const SizedBox(height: 6),
+            const SizedBox(height: 16),
 
             if (locations.isEmpty)
               Padding(
@@ -2123,8 +2120,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     final formattedPrice = '${CurrencyService.instance.format(displayRate)} $rateSuffix';
 
                     final capacity = (loc['total_capacity'] as num?)?.toInt() ?? 50;
-                    final ratingVal = (loc['rating'] as num?)?.toDouble() ?? 4.8;
-                    final reviewsVal = loc['review_count']?.toString() ?? '100';
+                    final num reviewCountNum = (loc['review_count'] as num?) ?? 0;
+                    final double rawRating = (loc['rating'] as num?)?.toDouble() ?? 0.0;
+                    final double ratingVal = reviewCountNum == 0 ? 0.0 : rawRating;
+                    final reviewsVal = '$reviewCountNum';
                     final facilities = (loc['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
                     final isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
                     List<String> photos = [];
@@ -2158,7 +2157,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       'price': formattedPrice,
                       'rating': ratingVal,
                       'reviews': reviewsVal,
-                      'hours': loc['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara',
+                      'review_count': reviewCountNum,
+                      'operating_hours': loc['operating_hours'] ?? 'Buka 24 Jam',
+                      'hours': loc['operating_hours'] ?? (loc['status'] == 'active' ? 'Buka 24 Jam' : 'Tutup Sementara'),
+                      'status': loc['status'] ?? 'active',
                       'photos': photos,
                       'facilities': facilities,
                       'hourly_rate_mobil': rateMobil,

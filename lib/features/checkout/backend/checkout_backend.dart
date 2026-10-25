@@ -170,11 +170,14 @@ class CheckoutBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final uid = await resolveUserId();
+      if (uid.isEmpty) return;
+
       // 1. Ambil info saldo wallet user (Targeted Column Query)
       final userRes = await _client
           .from('users')
           .select('id, full_name, wallet_balance, points')
-          .eq('id', userId)
+          .eq('id', uid)
           .maybeSingle();
 
       if (userRes != null) {
@@ -185,7 +188,7 @@ class CheckoutBackend extends ChangeNotifier {
       final vehiclesRes = await _client
           .from('vehicles')
           .select('id, brand, model, color, plate_number, vehicle_type, is_default')
-          .eq('user_id', userId)
+          .eq('user_id', uid)
           .order('is_default', ascending: false);
 
       _userVehicles = List<Map<String, dynamic>>.from(vehiclesRes);
@@ -799,13 +802,15 @@ class CheckoutBackend extends ChangeNotifier {
       final isParkSmart = selectedMethod == 'parksmart_pay' || selectedMethod == 'wallet';
 
       if (isParkSmart) {
-        // CEK SALDO PENGGUNA TERLEBIH DAHULU (Wajib Cukup untuk ParkSmart Pay!)
+        // Ambil saldo terbaru dari database (fresh query, bukan cache) untuk hindari bug saldo stale setelah top up
         final userRes = await _client
             .from('users')
-            .select('wallet_balance, total_parking_count')
+            .select('wallet_balance, total_parking_count, total_spent')
             .eq('id', actualUserId)
             .maybeSingle();
-        final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? _walletBalance;
+        final currentBal = (userRes?['wallet_balance'] as num?)?.toDouble() ?? 0.0;
+        // Sync cache dengan data DB terbaru
+        _walletBalance = currentBal;
 
         if (currentBal < price) {
           debugPrint('[CheckoutBackend] markBookingAsPaid ditolak: Saldo tidak mencukupi (Saldo: $currentBal, Dibutuhkan: $price)');
@@ -813,12 +818,14 @@ class CheckoutBackend extends ChangeNotifier {
         }
 
         final newBalance = currentBal - price;
-
-        // Potong saldo wallet pengguna
         final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
+        final currentTotalSpent = (userRes?['total_spent'] as num?)?.toDouble() ?? 0.0;
+
+        // Potong saldo wallet, naikkan parking count, dan update total_spent untuk membership tier
         await _client.from('users').update({
           'wallet_balance': newBalance,
           'total_parking_count': currentCount + 1,
+          'total_spent': currentTotalSpent + price,
         }).eq('id', actualUserId);
 
         _walletBalance = newBalance;
@@ -834,12 +841,15 @@ class CheckoutBackend extends ChangeNotifier {
         // Tidak perlu validasi saldo & tidak memotong wallet internal ParkSmart Pay!
         final userRes = await _client
             .from('users')
-            .select('total_parking_count')
+            .select('total_parking_count, total_spent')
             .eq('id', actualUserId)
             .maybeSingle();
         final currentCount = (userRes?['total_parking_count'] as num?)?.toInt() ?? 0;
+        final currentTotalSpent = (userRes?['total_spent'] as num?)?.toDouble() ?? 0.0;
+        // Update parking count dan total_spent untuk membership tier (tanpa potong wallet)
         await _client.from('users').update({
           'total_parking_count': currentCount + 1,
+          'total_spent': currentTotalSpent + price,
         }).eq('id', actualUserId);
       }
 

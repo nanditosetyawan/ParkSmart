@@ -519,8 +519,7 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                                       icon: Icons.schedule,
                                       label: 'Waktu Valid'.tr,
                                       title: BookingConfirmationBackend.instance.validTime,
-                                      subtitle: 'Toleransi +15 mnt'.tr,
-                                    ),
+                                      ),
                                   ),
                                 ],
                               ),
@@ -855,14 +854,14 @@ class _InfoBox extends StatelessWidget {
   final IconData icon;
   final String label;
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Color? subtitleColor;
 
   const _InfoBox({
     required this.icon,
     required this.label,
     required this.title,
-    required this.subtitle,
+    this.subtitle,
     this.subtitleColor,
   });
 
@@ -910,15 +909,17 @@ class _InfoBox extends StatelessWidget {
               color: theme.textPrimary,
             ),
           ),
-          const SizedBox(height: 2),
-          Text(
-            subtitle,
-            style: GoogleFonts.plusJakartaSans(
-              fontSize: 12,
-              fontWeight: FontWeight.w600,
-              color: subtitleColor ?? (isDark ? theme.textSecondary : const Color(0xFF7A7874)),
+          if (subtitle != null && subtitle!.trim().isNotEmpty) ...[
+            const SizedBox(height: 2),
+            Text(
+              subtitle!,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+                color: subtitleColor ?? (isDark ? theme.textSecondary : const Color(0xFF7A7874)),
+              ),
             ),
-          ),
+          ],
         ],
       ),
     );

@@ -170,7 +170,7 @@ class HomeBackend extends ChangeNotifier {
       // 1. Ambil semua lokasi aktif dari database Supabase
       final response = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities')
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, operating_hours')
           .order('rating', ascending: false);
 
       List<Map<String, dynamic>> rawList = List<Map<String, dynamic>>.from(response);
