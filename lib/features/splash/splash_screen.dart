@@ -2,6 +2,7 @@ import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/session_service.dart';
+import '../../core/services/sound_service.dart';
 import '../auth/login_screen.dart';
 import '../home/home_screen.dart';
 import '../admin/super_admin/admin_dashboard_screen.dart';
@@ -42,6 +43,9 @@ class _SplashScreenState extends State<SplashScreen>
   void initState() {
     super.initState();
 
+    // Putar audio splash 'saya-akan-lawan' 1x saat animasi pembuka mulai berjalan
+    _playLaunchSound();
+
     // Controller utama berdurasi ~3.2 detik untuk seluruh sekuens
     _controller = AnimationController(
       vsync: this,
@@ -57,8 +61,13 @@ class _SplashScreenState extends State<SplashScreen>
     _controller.forward();
   }
 
+  void _playLaunchSound() {
+    SoundService.playRawSound('saya_akan_lawan');
+  }
+
   @override
   void dispose() {
+    SoundService.stopRawSound();
     _controller.dispose();
     super.dispose();
   }
@@ -66,6 +75,9 @@ class _SplashScreenState extends State<SplashScreen>
   void _navigateToDestination() {
     if (_hasNavigated || !mounted) return;
     _hasNavigated = true;
+
+    // Pastikan suara selesai / dihentikan sebelum halaman login/dashboard muncul
+    SoundService.stopRawSound();
 
     final session = SessionService.instance;
     Widget destination;

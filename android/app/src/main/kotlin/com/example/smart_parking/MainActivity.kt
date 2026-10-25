@@ -108,16 +108,41 @@ class MainActivity : FlutterFragmentActivity() {
                     result.success(true)
                 }
                 "playRawSound" -> {
-                    val rawName = call.argument<String>("sound") ?: "start"
-                    val normalized = rawName.lowercase().replace("-", "").replace("_", "")
-                    val resId = resources.getIdentifier(normalized, "raw", packageName)
-                    if (resId != 0) {
-                        val mp = MediaPlayer.create(this, resId)
-                        mp?.setOnCompletionListener { it.release() }
-                        mp?.start()
+                    try {
+                        val rawName = call.argument<String>("sound") ?: "start"
+                        val normalized = rawName.lowercase().replace("-", "").replace("_", "")
+                        var resId = resources.getIdentifier(normalized, "raw", packageName)
+                        if (resId == 0) {
+                            resId = resources.getIdentifier(rawName.lowercase().replace("-", "_"), "raw", packageName)
+                        }
+                        if (resId == 0) {
+                            resId = resources.getIdentifier(rawName.lowercase(), "raw", packageName)
+                        }
+                        if (resId != 0) {
+                            sfxPlayer?.stop()
+                            sfxPlayer?.release()
+                            sfxPlayer = MediaPlayer.create(this, resId)
+                            sfxPlayer?.setOnCompletionListener { mp ->
+                                mp.release()
+                                sfxPlayer = null
+                            }
+                            sfxPlayer?.start()
+                            result.success(true)
+                        } else {
+                            result.error("NOT_FOUND", "Resource $rawName not found", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("ERROR", e.message, null)
+                    }
+                }
+                "stopRawSound" -> {
+                    try {
+                        sfxPlayer?.stop()
+                        sfxPlayer?.release()
+                        sfxPlayer = null
                         result.success(true)
-                    } else {
-                        result.error("NOT_FOUND", "Resource $rawName not found", null)
+                    } catch (e: Exception) {
+                        result.success(false)
                     }
                 }
                 else -> result.notImplemented()
