@@ -28,6 +28,7 @@ import '../../theme/app_radii.dart';
 import '../../theme/app_shadows.dart';
 import '../../theme/app_spacing.dart';
 import '../map/explore_map_screen.dart';
+import '../profile/backend/vehicle_backend.dart';
 import '../game/game_lobby_screen.dart' as game;
 import 'backend/home_backend.dart';
 import '../../core/services/session_service.dart';
@@ -42,6 +43,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final MapController _mapController = MapController();
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
   LatLng? _currentPosition;
   double _heading = 0.0; // Derajat arah hadap kompas & GPS (0 - 360)
   bool _isGpsActive = false;
@@ -173,6 +176,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
+    _searchController.dispose();
     LanguageService.instance.removeListener(_onLanguageChanged);
     _sessionPollTimer?.cancel();
     _positionSub?.cancel();
@@ -756,8 +760,14 @@ class _HomeScreenState extends State<HomeScreen> {
                         const SizedBox(width: 12),
                         Expanded(
                           child: TextField(
-                            textInputAction: TextInputAction.done,
+                            controller: _searchController,
+                            textInputAction: TextInputAction.search,
                             style: AppTypography.bodyMd(),
+                            onChanged: (val) {
+                              setState(() {
+                                _searchQuery = val;
+                              });
+                            },
                             decoration: InputDecoration(
                               hintText: 'Cari gedung atau area parkir...'.tr,
                               hintStyle: AppTypography.bodyMd(color: AppColors.textMuted),
@@ -774,6 +784,30 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                         ),
+                        if (_searchQuery.isNotEmpty)
+                          GestureDetector(
+                            onTap: () {
+                              _searchController.clear();
+                              setState(() {
+                                _searchQuery = '';
+                              });
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(6),
+                              margin: const EdgeInsets.only(right: 6),
+                              decoration: BoxDecoration(
+                                color: ThemeService.instance.isDarkMode
+                                    ? Colors.white12
+                                    : Colors.black.withValues(alpha: 0.06),
+                                shape: BoxShape.circle,
+                              ),
+                              child: Icon(
+                                Icons.close_rounded,
+                                size: 16,
+                                color: AppColors.textMuted,
+                              ),
+                            ),
+                          ),
                         GestureDetector(
                           onTap: () {
                             showModalBottomSheet(
@@ -799,324 +833,24 @@ class _HomeScreenState extends State<HomeScreen> {
                 const SizedBox(height: 16),
                 const _CategoryList(),
 
-                // ─── Hero Map Card ──────────────────────────────
-                const SizedBox(height: 16),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                  child: GestureDetector(
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreMapScreen())),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        color: AppColors.surfaceCard,
-                        borderRadius: AppRadii.xl2Radius,
-                        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
-                        boxShadow: const [AppShadows.soft],
-                      ),
-                      padding: const EdgeInsets.all(20),
-                      child: Column(children: [
-                        // SVG-style map using CustomPaint
-                        ClipRRect(
-                          borderRadius: AppRadii.lgRadius,
-                          child: SizedBox(
-                            width: double.infinity, height: 210,
-                            child: Stack(children: [
-                              FlutterMap(
-                                mapController: _mapController,
-                                options: MapOptions(
-                                  initialCenter: _currentPosition ?? const LatLng(-6.1774, 106.7907), // Relevan GPS atau default random
-                                  initialZoom: 16.0,
-                                ),
-                                children: [
-                                  TileLayer(
-                                    urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
-                                    userAgentPackageName: 'com.example.smart_parking',
-                                  ),
-                                  MarkerLayer(
-                                    markers: [
-                                      // Marker spot parkir terdekat / default
-                                      Marker(
-                                        point: const LatLng(-6.1774, 106.7907),
-                                        width: 200,
-                                        height: 60,
-                                        alignment: Alignment.topCenter,
-                                        child: Column(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                borderRadius: AppRadii.pillRadius,
-                                                boxShadow: const [AppShadows.float],
-                                              ),
-                                              child: Row(mainAxisSize: MainAxisSize.min, children: [
-                                                Icon(Icons.local_parking, size: 16, color: AppColors.secondary),
-                                                const SizedBox(width: 6),
-                                                Text('Central Park • 24 slot', style: AppTypography.buttonSm(color: AppColors.white)),
-                                              ]),
-                                            ),
-                                            Container(
-                                              width: 10, height: 10,
-                                              decoration: BoxDecoration(
-                                                color: AppColors.primary,
-                                                borderRadius: BorderRadius.circular(1),
-                                              ),
-                                              transform: Matrix4.rotationZ(0.785),
-                                              transformAlignment: Alignment.topCenter,
-                                            ),
-                                          ],
-                                        ),
-                                      ),
-                                      // JIKA GPS AKTIF: Marker Panah Navigator (assets/images/navigationarrow.png)
-                                      // Jika GPS dimatikan: tidak ada titik navigator posisi
-                                      if (_isGpsActive && _currentPosition != null)
-                                        Marker(
-                                          point: _currentPosition!,
-                                          width: 52,
-                                          height: 52,
-                                          alignment: Alignment.center,
-                                          child: Stack(
-                                            alignment: Alignment.center,
-                                            children: [
-                                              // Lingkaran aura biru akurasi
-                                              Container(
-                                                width: 44,
-                                                height: 44,
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFF1A73E8).withValues(alpha: 0.18),
-                                                  shape: BoxShape.circle,
-                                                ),
-                                              ),
-                                              // Item panah sebagai navigator yang menandakan posisi dan berotasi sesuai arah hp & GPS real
-                                              Transform.rotate(
-                                                angle: (_heading - 45.0) * (math.pi / 180.0),
-                                                child: Image.asset(
-                                                  'assets/images/navigationarrow.png',
-                                                  width: 38,
-                                                  height: 38,
-                                                  fit: BoxFit.contain,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                        ),
-                                    ],
-                                  ),
-                                ],
-                              ),
-                              // Traffic badge top-right (Titik kemacetan real-time)
-                              Positioned(
-                                top: 16, right: 16,
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceCard.withValues(alpha: 0.95),
-                                    borderRadius: AppRadii.pillRadius,
-                                    boxShadow: const [AppShadows.soft],
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: _trafficStatusColor,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 6),
-                                      Text(
-                                        _trafficBadgeText,
-                                        style: AppTypography.caption().copyWith(
-                                          fontWeight: FontWeight.w700,
-                                          color: _trafficStatusColor,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ]),
-                          ),
-                        ),
-                        // Metrics row (Hapus tarif, tampilkan Kepadatan Area & Live Traffic)
-                        const SizedBox(height: 16),
-                        Row(
-                          children: [
-                            Container(
-                              width: 48,
-                              height: 48,
-                              decoration: BoxDecoration(
-                                color: _trafficStatusColor.withValues(alpha: 0.12),
-                                shape: BoxShape.circle,
-                              ),
-                              child: Icon(
-                                _trafficDensity >= 80 ? Icons.traffic_rounded : Icons.explore_outlined,
-                                size: 24,
-                                color: _trafficStatusColor,
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('KEPADATAN AREA'.tr, style: AppTypography.overline(color: AppColors.textSecondary)),
-                                  Text(_trafficAreaText, style: AppTypography.metricMd()),
-                                ],
-                              ),
-                            ),
-                            Container(
-                              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                              decoration: BoxDecoration(
-                                color: _trafficStatusColor.withValues(alpha: 0.1),
-                                borderRadius: AppRadii.pillRadius,
-                                border: Border.all(color: _trafficStatusColor.withValues(alpha: 0.25)),
-                              ),
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Icon(Icons.speed_rounded, size: 14, color: _trafficStatusColor),
-                                  const SizedBox(width: 4),
-                                  Text(
-                                    'Live Traffic',
-                                    style: GoogleFonts.inter(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.w700,
-                                      color: _trafficStatusColor,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ]),
-                    ),
-                  ),
-                ),
-
-                // ─── Active Booking / Session Section (Dynamic from Database) ───
-                ListenableBuilder(
-                  listenable: HomeBackend.instance,
-                  builder: (context, _) {
-                    final sessions = HomeBackend.instance.activeSessions;
-                    if (sessions.isEmpty) {
-                      return const SizedBox.shrink(); // Sembunyikan jika tidak ada sesi parkir aktif
-                    }
-
-                    return Padding(
-                      padding: const EdgeInsets.only(top: 28.0),
-                      child: Padding(
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('${'Sesi Parkir Aktif'.tr} (${sessions.length})', style: AppTypography.headlineMd()),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                  decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
-                                  child: Text('Live', style: AppTypography.buttonSm(color: AppColors.secondary)),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 14),
-                            ...sessions.map((session) {
-                              final locName = session['location_name'] ?? 'Spot Parkir';
-                              final slotCode = session['slot_code'] ?? 'A-01';
-                              final floorName = session['floor_name'] ?? 'Lantai B1';
-                              final title = (session['title'] ?? 'SESI PARKIR AKTIF').toString();
-                              final imageUrl = session['image_url'] ??
-                                  'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr';
-
-                              return Padding(
-                                padding: const EdgeInsets.only(bottom: 14.0),
-                                child: Container(
-                                  decoration: BoxDecoration(
-                                    color: AppColors.surfaceCard,
-                                    borderRadius: AppRadii.xl2Radius,
-                                    border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
-                                    boxShadow: const [AppShadows.soft],
-                                  ),
-                                  padding: const EdgeInsets.all(20),
-                                  child: Column(children: [
-                                    Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                      // Parking spot image
-                                      ClipRRect(
-                                        borderRadius: AppRadii.imgRadius,
-                                        child: Image.network(
-                                          imageUrl,
-                                          width: 64, height: 64, fit: BoxFit.cover,
-                                          errorBuilder: (context, error, stackTrace) => Container(
-                                            width: 64, height: 64, color: AppColors.surfaceDim,
-                                            child: Icon(Icons.local_parking, color: AppColors.secondary),
-                                          ),
-                                        ),
-                                      ),
-                                      const SizedBox(width: 14),
-                                      Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                        Text(title.tr, style: AppTypography.overline(color: AppColors.secondary)),
-                                        const SizedBox(height: 2),
-                                        Text(locName, style: AppTypography.headlineSm()),
-                                        const SizedBox(height: 2),
-                                        Text('Spot $slotCode • $floorName'.tr, style: AppTypography.caption(color: AppColors.textSecondary)),
-                                      ])),
-                                      Container(
-                                        width: 40, height: 40,
-                                        decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
-                                        child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
-                                      ),
-                                    ]),
-                                    const SizedBox(height: 16),
-                                    Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                      decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
-                                      child: Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                                            Text('SISA WAKTU'.tr, style: AppTypography.overline(color: AppColors.textSecondary)),
-                                            const SizedBox(height: 2),
-                                            _HomeSessionCountdownTimer(endTime: session['end_time']),
-                                          ]),
-                                          GestureDetector(
-                                            onTap: () => Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) => active.ActiveSessionScreen(sessionId: session['id']),
-                                              ),
-                                            ),
-                                            child: Container(
-                                              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                                              decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
-                                                boxShadow: const [AppShadows.float]),
-                                              child: Row(children: [
-                                                Text('Buka Tiket'.tr, style: AppTypography.buttonSm(color: AppColors.white)),
-                                                const SizedBox(width: 6),
-                                                Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
-                                              ]),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ]),
-                                ),
-                              );
-                            }),
-                          ],
-                        ),
-                      ),
-                    );
-                  },
-                ),
-
-                // ─── Recommendations Section ────────────────────
-                const _RecommendationsList(),
+                // ─── Tampilan Dinamis Berdasarkan Pencarian ─────────
+                if (_searchQuery.trim().isNotEmpty) ...[
+                  // 1. Susunan Card Hasil Ketik NAIK menjadi pas di bawah tombol kategori
+                  //    TANPA ADA TULISAN REKOMENDASI DAN MUAT ULANG
+                  _RecommendationsList(searchQuery: _searchQuery),
+                  const SizedBox(height: 20),
+                  // 2. Card Kepadatan Area PINDAH PALING BAWAH di bawah hasil ketik paling bawah
+                  _buildHeroMapCard(),
+                  // 3. Card Sesi Aktif (jika ada yang aktif) JUGA PINDAH di bawah Card Kepadatan Area
+                  _buildActiveSessionsSection(),
+                  SizedBox(height: math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76),
+                ] else ...[
+                  // ─── Kondisi Normal Sebelum Mengetik ───
+                  const SizedBox(height: 16),
+                  _buildHeroMapCard(),
+                  _buildActiveSessionsSection(),
+                  const _RecommendationsList(searchQuery: ''),
+                ],
               ],
             ),
           ),
@@ -1172,6 +906,325 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _buildHeroMapCard() {
+    return Padding(
+      key: const ValueKey('hero_map_card'),
+      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+      child: GestureDetector(
+        onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ExploreMapScreen())),
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppColors.surfaceCard,
+            borderRadius: AppRadii.xl2Radius,
+            border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
+            boxShadow: const [AppShadows.soft],
+          ),
+          padding: const EdgeInsets.all(20),
+          child: Column(children: [
+            // SVG-style map using CustomPaint
+            ClipRRect(
+              borderRadius: AppRadii.lgRadius,
+              child: SizedBox(
+                width: double.infinity, height: 210,
+                child: Stack(children: [
+                  FlutterMap(
+                    mapController: _mapController,
+                    options: MapOptions(
+                      initialCenter: _currentPosition ?? const LatLng(-6.1774, 106.7907), // Relevan GPS atau default random
+                      initialZoom: 16.0,
+                    ),
+                    children: [
+                      TileLayer(
+                        urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                        userAgentPackageName: 'com.example.smart_parking',
+                      ),
+                      MarkerLayer(
+                        markers: [
+                          // Marker spot parkir terdekat / default
+                          Marker(
+                            point: const LatLng(-6.1774, 106.7907),
+                            width: 200,
+                            height: 60,
+                            alignment: Alignment.topCenter,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: AppRadii.pillRadius,
+                                    boxShadow: const [AppShadows.float],
+                                  ),
+                                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                                    Icon(Icons.local_parking, size: 16, color: AppColors.secondary),
+                                    const SizedBox(width: 6),
+                                    Text('Central Park • 24 slot', style: AppTypography.buttonSm(color: AppColors.white)),
+                                  ]),
+                                ),
+                                Container(
+                                  width: 10, height: 10,
+                                  decoration: BoxDecoration(
+                                    color: AppColors.primary,
+                                    borderRadius: BorderRadius.circular(1),
+                                  ),
+                                  transform: Matrix4.rotationZ(0.785),
+                                  transformAlignment: Alignment.topCenter,
+                                ),
+                              ],
+                            ),
+                          ),
+                          // JIKA GPS AKTIF: Marker Panah Navigator (assets/images/navigationarrow.png)
+                          // Jika GPS dimatikan: tidak ada titik navigator posisi
+                          if (_isGpsActive && _currentPosition != null)
+                            Marker(
+                              point: _currentPosition!,
+                              width: 52,
+                              height: 52,
+                              alignment: Alignment.center,
+                              child: Stack(
+                                alignment: Alignment.center,
+                                children: [
+                                  // Lingkaran aura biru akurasi
+                                  Container(
+                                    width: 44,
+                                    height: 44,
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A73E8).withValues(alpha: 0.18),
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  // Item panah sebagai navigator yang menandakan posisi dan berotasi sesuai arah hp & GPS real
+                                  Transform.rotate(
+                                    angle: (_heading - 45.0) * (math.pi / 180.0),
+                                    child: Image.asset(
+                                      'assets/images/navigationarrow.png',
+                                      width: 38,
+                                      height: 38,
+                                      fit: BoxFit.contain,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                        ],
+                      ),
+                    ],
+                  ),
+                  // Traffic badge top-right (Titik kemacetan real-time)
+                  Positioned(
+                    top: 16, right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard.withValues(alpha: 0.95),
+                        borderRadius: AppRadii.pillRadius,
+                        boxShadow: const [AppShadows.soft],
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color: _trafficStatusColor,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            _trafficBadgeText,
+                            style: AppTypography.caption().copyWith(
+                              fontWeight: FontWeight.w700,
+                              color: _trafficStatusColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ]),
+              ),
+            ),
+            // Metrics row (Hapus tarif, tampilkan Kepadatan Area & Live Traffic)
+            const SizedBox(height: 16),
+            Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: _trafficStatusColor.withValues(alpha: 0.12),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    _trafficDensity >= 80 ? Icons.traffic_rounded : Icons.explore_outlined,
+                    size: 24,
+                    color: _trafficStatusColor,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text('KEPADATAN AREA'.tr, style: AppTypography.overline(color: AppColors.textSecondary)),
+                      Text(_trafficAreaText, style: AppTypography.metricMd()),
+                    ],
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _trafficStatusColor.withValues(alpha: 0.1),
+                    borderRadius: AppRadii.pillRadius,
+                    border: Border.all(color: _trafficStatusColor.withValues(alpha: 0.25)),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(Icons.speed_rounded, size: 14, color: _trafficStatusColor),
+                      const SizedBox(width: 4),
+                      Text(
+                        'Live Traffic',
+                        style: GoogleFonts.inter(
+                          fontSize: 11,
+                          fontWeight: FontWeight.w700,
+                          color: _trafficStatusColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActiveSessionsSection() {
+    return ListenableBuilder(
+      key: const ValueKey('active_sessions_section'),
+      listenable: HomeBackend.instance,
+      builder: (context, _) {
+        final sessions = HomeBackend.instance.activeSessions;
+        if (sessions.isEmpty) {
+          return const SizedBox.shrink(); // Sembunyikan jika tidak ada sesi parkir aktif
+        }
+
+        return Padding(
+          padding: const EdgeInsets.only(top: 28.0),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('${'Sesi Parkir Aktif'.tr} (${sessions.length})', style: AppTypography.headlineMd()),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                      decoration: BoxDecoration(color: AppColors.secondarySoft, borderRadius: AppRadii.pillRadius),
+                      child: Text('Live', style: AppTypography.buttonSm(color: AppColors.secondary)),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                ...sessions.map((session) {
+                  final locName = session['location_name'] ?? 'Spot Parkir';
+                  final slotCode = session['slot_code'] ?? 'A-01';
+                  final floorName = session['floor_name'] ?? 'Lantai B1';
+                  final title = (session['title'] ?? 'SESI PARKIR AKTIF').toString();
+                  final imageUrl = session['image_url'] ??
+                      'https://lh3.googleusercontent.com/aida-public/AB6AXuBJsx7LXeBJaAUStN81EfJ9OnCVmlVfmXRVDoub2mCYF0PIZidBrj0P0BKnSQQ61XyOVPHfeRK_AjHvT4_n19Q4_qfAi5-0c_AtnvOqmHjdEejobI5hupnFTMA62ySz5EK1P6Po3FtWuoFmFfTR5VstawDWIS_2zh3UIgjbVetIvkLALvb2EBtQnUoqR0niPhqqhkXpxobDu16pJPgQJ-hb6JjoFhBlKgY4UIkQVJWw5DpBxelV88Kr';
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 14.0),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: AppColors.surfaceCard,
+                        borderRadius: AppRadii.xl2Radius,
+                        border: Border.all(color: Colors.black.withValues(alpha: 0.02)),
+                        boxShadow: const [AppShadows.soft],
+                      ),
+                      padding: const EdgeInsets.all(20),
+                      child: Column(children: [
+                        Row(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                          // Parking spot image
+                          ClipRRect(
+                            borderRadius: AppRadii.imgRadius,
+                            child: Image.network(
+                              imageUrl,
+                              width: 64, height: 64, fit: BoxFit.cover,
+                              errorBuilder: (context, error, stackTrace) => Container(
+                                width: 64, height: 64, color: AppColors.surfaceDim,
+                                child: Icon(Icons.local_parking, color: AppColors.secondary),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 14),
+                          Expanded(child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                            Text(title.tr, style: AppTypography.overline(color: AppColors.secondary)),
+                            const SizedBox(height: 2),
+                            Text(locName, style: AppTypography.headlineSm()),
+                            const SizedBox(height: 2),
+                            Text('Spot $slotCode • $floorName'.tr, style: AppTypography.caption(color: AppColors.textSecondary)),
+                          ])),
+                          Container(
+                            width: 40, height: 40,
+                            decoration: const BoxDecoration(color: Color(0xFF1A1C1E), shape: BoxShape.circle),
+                            child: const Icon(Icons.qr_code_2, size: 20, color: Colors.white),
+                          ),
+                        ]),
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                          decoration: BoxDecoration(color: AppColors.surfaceCard, borderRadius: AppRadii.lgRadius, border: Border.all(color: AppColors.warmBorder)),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                                Text('SISA WAKTU'.tr, style: AppTypography.overline(color: AppColors.textSecondary)),
+                                const SizedBox(height: 2),
+                                _HomeSessionCountdownTimer(endTime: session['end_time']),
+                              ]),
+                              GestureDetector(
+                                onTap: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => active.ActiveSessionScreen(sessionId: session['id']),
+                                  ),
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                                  decoration: BoxDecoration(color: AppColors.primary, borderRadius: AppRadii.pillRadius,
+                                    boxShadow: const [AppShadows.float]),
+                                  child: Row(children: [
+                                    Text('Buka Tiket'.tr, style: AppTypography.buttonSm(color: AppColors.white)),
+                                    const SizedBox(width: 6),
+                                    Icon(Icons.arrow_forward, size: 16, color: AppColors.white),
+                                  ]),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ]),
+                    ),
+                  );
+                }),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 
@@ -1785,7 +1838,8 @@ class _CategoryListState extends State<_CategoryList> {
 }
 
 class _RecommendationsList extends StatefulWidget {
-  const _RecommendationsList();
+  final String searchQuery;
+  const _RecommendationsList({this.searchQuery = ''});
   @override
   State<_RecommendationsList> createState() => _RecommendationsListState();
 }
@@ -2043,35 +2097,69 @@ class _RecommendationsListState extends State<_RecommendationsList> {
     return ListenableBuilder(
       listenable: Listenable.merge([ThemeService.instance, HomeBackend.instance, CurrencyService.instance, LanguageService.instance]),
       builder: (context, _) {
-        final locations = HomeBackend.instance.recommendedLocations;
+        final isSearching = widget.searchQuery.trim().isNotEmpty;
+        final q = widget.searchQuery.trim().toLowerCase();
+
+        final allLocs = HomeBackend.instance.allLocations.isNotEmpty
+            ? HomeBackend.instance.allLocations
+            : HomeBackend.instance.recommendedLocations;
+
+        final locations = isSearching
+            ? allLocs.where((loc) {
+                final name = (loc['name'] ?? '').toString().toLowerCase();
+                final address = (loc['address'] ?? '').toString().toLowerCase();
+                final city = (loc['city'] ?? '').toString().toLowerCase();
+                final type = (loc['type'] ?? '').toString().toLowerCase();
+                final code = (loc['code'] ?? '').toString().toLowerCase();
+                return name.contains(q) ||
+                    address.contains(q) ||
+                    city.contains(q) ||
+                    type.contains(q) ||
+                    code.contains(q);
+              }).toList()
+            : HomeBackend.instance.recommendedLocations;
+
+        if (isSearching) {
+          locations.sort((a, b) {
+            final distA = (a['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
+            final distB = (b['calculated_distance'] as num?)?.toDouble() ?? 99999999.0;
+            return distA.compareTo(distB);
+          });
+        }
 
         return Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 28),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text('Rekomendasi Lainnya'.tr, style: AppTypography.headlineMd()),
-                  GestureDetector(
-                    onTap: () async {
-                      if (_isLoading) return;
-                      setState(() => _isLoading = true);
-                      await HomeBackend.instance.refreshFilter();
-                      if (mounted) {
-                        setState(() => _isLoading = false);
-                      }
-                    },
-                    child: _isLoading 
-                      ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
-                      : Text('Muat Ulang'.tr, style: AppTypography.buttonSm(color: AppColors.secondary)),
-                  ),
-                ],
+            if (!isSearching) ...[
+              const SizedBox(height: 28),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Text('Rekomendasi Lainnya'.tr, style: AppTypography.headlineMd()),
+                    GestureDetector(
+                      onTap: () async {
+                        if (_isLoading) return;
+                        setState(() => _isLoading = true);
+                        await HomeBackend.instance.refreshFilter();
+                        if (mounted) {
+                          setState(() => _isLoading = false);
+                        }
+                      },
+                      child: _isLoading 
+                        ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(strokeWidth: 2))
+                        : Text('Muat Ulang'.tr, style: AppTypography.buttonSm(color: AppColors.secondary)),
+                    ),
+                  ],
+                ),
               ),
-            ),
-            const SizedBox(height: 16),
+              const SizedBox(height: 16),
+            ] else ...[
+              // Sesuai instruksi: tanpa ada tulisan rekomendasi dan muat ulang,
+              // card pas naik di bawah tombol terdekat, mall, parkir ev
+              const SizedBox(height: 6),
+            ],
 
             if (locations.isEmpty)
               Padding(
@@ -2080,15 +2168,17 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                   child: Column(
                     children: [
                       Icon(
-                        Icons.local_parking_outlined,
+                        isSearching ? Icons.search_off_rounded : Icons.local_parking_outlined,
                         size: 48,
                         color: ThemeService.instance.textSecondary.withValues(alpha: 0.35),
                       ),
                       const SizedBox(height: 12),
                       Text(
-                        HomeBackend.instance.selectedCategory == 'Terdekat'
-                            ? 'Belum ada rekomendasi parkir aktif'.tr
-                            : 'Belum ada tempat parkir untuk kategori "${HomeBackend.instance.selectedCategory.tr}"',
+                        isSearching
+                            ? 'Tidak ada tempat parkir yang sesuai dengan "${widget.searchQuery}"'.tr
+                            : (HomeBackend.instance.selectedCategory == 'Terdekat'
+                                ? 'Belum ada rekomendasi parkir aktif'.tr
+                                : 'Belum ada tempat parkir untuk kategori "${HomeBackend.instance.selectedCategory.tr}"'),
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 14,
@@ -2098,7 +2188,9 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                       ),
                       const SizedBox(height: 4),
                       Text(
-                        'Semua tempat parkir diinput langsung oleh Admin Operasional'.tr,
+                        isSearching
+                            ? 'Coba gunakan kata kunci pencarian lain'.tr
+                            : 'Semua tempat parkir diinput langsung oleh Admin Operasional'.tr,
                         textAlign: TextAlign.center,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 12,
@@ -2120,11 +2212,16 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     final rateMotor = (loc['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
                     final selectedCat = HomeBackend.instance.selectedCategory;
 
+                    final vType = VehicleBackend.instance.defaultVehicle?.vehicleType.toLowerCase() ?? 'mobil';
                     int displayRate = rateMobil;
                     String rateSuffix = '/ jam';
-                    if (selectedCat == 'Parkir EV') {
+                    if (selectedCat == 'Parkir EV' || vType.contains('ev') || vType.contains('electric')) {
                       displayRate = rateEv;
                       rateSuffix = '/ j (EV)';
+                    } else if (vType.contains('motor') || vType.contains('bike')) {
+                      displayRate = rateMotor;
+                    } else {
+                      displayRate = rateMobil;
                     }
                     final formattedPrice = '${CurrencyService.instance.format(displayRate)} $rateSuffix';
 
@@ -2192,7 +2289,10 @@ class _RecommendationsListState extends State<_RecommendationsList> {
                     );
                   },
                 ),
-            SizedBox(height: math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76),
+            if (!isSearching)
+              SizedBox(height: math.max(MediaQuery.of(context).padding.bottom + 12, 24) + 76)
+            else
+              const SizedBox(height: 8),
           ],
         );
       },

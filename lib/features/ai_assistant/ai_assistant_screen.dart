@@ -10,6 +10,8 @@ import 'package:flutter_dotenv/flutter_dotenv.dart';
 import '../../core/services/maintenance_service.dart';
 import '../../core/services/ai_config_service.dart';
 import '../../core/services/language_service.dart';
+import 'backend/ai_context_service.dart';
+import 'widgets/ai_chat_cards.dart';
 
 class AiAssistantScreen extends StatefulWidget {
   const AiAssistantScreen({super.key});
@@ -47,10 +49,10 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   String get _initialGreeting => LanguageService.instance.isEnglish
       ? '''Hello! I am Jarvis, ParkSmart AI powered by Groq ($_modelName).
 
-How can I help you today?'''
+I have real-time access to our parking database, live slot availability, reviews, and your active bookings. How can I help you today?'''
       : '''Halo! Saya Jarvis, AI ParkSmart yang ditenagai oleh Groq ($_modelName).
 
-Ada yang bisa saya bantu hari ini?''';
+Saya terhubung langsung ke database parkir real-time, ketersediaan slot, ulasan pengunjung, serta pesanan Anda. Ada yang bisa saya bantu hari ini?''';
 
   String get systemPrompt => """
 Nama Anda adalah Jarvis. Anda adalah asisten AI dari aplikasi Smart Parking (ParkSmart) yang ditenagai oleh Groq ($_modelName).
@@ -75,21 +77,42 @@ ATURAN MENJAWAB SEPUTAR IDENTITAS (FLEKSIBEL TERHADAP PADANAN KATA / SINONIM):
 
 2. PERTANYAAN KHUSUS / SPESIFIK (HANYA JAWAB YANG DITANYAKAN SECARA SINGKAT):
    Pahami padanan kata dan maksud pengguna secara fleksibel:
-   - Nama saja (misal: 'siapa namamu?', 'nama kamu siapa?', 'namamu?', dsb.) -> Jawab HANYA bahwa nama Anda adalah Jarvis.
-   - Umur/Usia saja (misal: 'berapa umurmu?', 'berapa usiamu?', 'umur kamu berapa?', dsb.) -> Jawab HANYA bahwa umur Anda 30 tahun.
-   - Tahun/Waktu Lahir saja (misal: 'kapan kamu lahir?', 'tahun berapa kamu lahir?', 'tanggal lahirmu?', dsb.) -> Jawab HANYA bahwa Anda lahir tahun 1986.
-   - Hobi/Kegemaran/Kesukaan/Kesenangan (misal: 'apa hobimu?', 'kamu suka apa?', 'apa kesukaanmu?', 'apa kesenanganmu?', 'kegemaranmu apa?', dsb.) -> Pahami bahwa hobi, kesukaan, dan kesenangan bermakna sama, dan jawab HANYA bahwa hobi/kesukaan Anda adalah vibe coding.
-   - Asal/Tempat Lahir saja (misal: 'di mana kamu lahir?', 'asalmu dari mana?', 'dari mana kamu?', 'tempat lahirmu?', 'kamu orang mana?', dsb.) -> Jawab HANYA bahwa asal Anda dari Nganjuk.
-   - Pembuat/Pencipta saja (misal: 'siapa pembuatmu?', 'siapa penciptamu?', 'siapa yang bikin kamu?', 'siapa developermu?', dsb.) -> Sebutkan nama pencipta Anda (Taufik Nur Hidayah - 124240070 dan Sultannang Nandito Setiayawan - 124240083).
+   - Nama saja -> Jawab HANYA bahwa nama Anda adalah Jarvis.
+   - Umur/Usia saja -> Jawab HANYA bahwa umur Anda 30 tahun.
+   - Tahun/Waktu Lahir saja -> Jawab HANYA bahwa Anda lahir tahun 1986.
+   - Hobi/Kegemaran/Kesukaan/Kesenangan -> Jawab HANYA bahwa hobi/kesukaan Anda adalah vibe coding.
+   - Asal/Tempat Lahir saja -> Jawab HANYA bahwa asal Anda dari Nganjuk.
+   - Pembuat/Pencipta saja -> Sebutkan nama pencipta Anda (Taufik Nur Hidayah - 124240070 dan Sultannang Nandito Setiayawan - 124240083).
 
-TUGAS UTAMA:
-Membantu pengguna mencari parkiran dan melayani tanya jawab seputar parkir.
-Saat ini, Anda tidak punya akses internet, tapi aplikasi telah memberikan data terbaru berikut (DUMMY):
-- Lokasi GPS User saat ini: SCBD, Jakarta (Aktif).
-- Database Parkiran Terdekat:
-  1. Parkir A  - Status: Tersedia 5 slot mobil.
-  2. Parkir B  - Status: PENUH.
-  3. Grand Indonesia - Status: Tersedia 12 slot EV, 5 slot reguler.
+TUGAS UTAMA & INTEGRASI DATABASE SUPABASE REAL-TIME:
+Anda membaca data database Supabase live yang tertera di bagian [DATA DATABASE SUPABASE] di bawah. Tugas Anda adalah menjawab pertanyaan, menyimpulkan kondisi, dan memberikan saran parkir terbaik:
+
+1. REKOMENDASI & INFORMASI LOKASI PARKIR:
+   - Jelaskan nama gedung, ketersediaan slot (tersedia/penuh), jam buka operasional, tarif per jam (mobil/motor/EV), dan fasilitas sesuai data database.
+   - Berikan rekomendasi cerdas (misal: tarif termurah, slot terbanyak, atau lokasi terdekat).
+   - Ketika merekomendasikan lokasi parkir, SERTAKAN tag berikut di akhir jawaban Anda:
+     [PARKING_CARD: <id_lokasi_dari_database>]
+     Contoh: [PARKING_CARD: 3f8b1c4e-1234-5678-9abc-def012345678]
+     Sistem aplikasi kami akan otomatis menampilkan kartu interaktif lengkap dengan foto, ulasan, serta tombol yang langsung mengarahkan user ke Explorer Peta!
+     (Maksimal sertakan 1 sampai 2 kartu lokasi per jawaban agar rapi).
+
+2. ULASAN & TESTIMONI PENGUNJUNG:
+   - Jika pengguna bertanya tentang ulasan (misal: 'gimana ulasan di mall X?', 'tempatnya aman nggak?', 'review pengunjung?'):
+     - Bacalah ulasan nyata dari pengunjung di bagian 'Ringkasan Ulasan Pengunjung'.
+     - Simpulkan dengan jujur apakah pengunjung merasa puas, fasilitasnya bagus, atau ada keluhan.
+
+3. CEK PESANAN / TAGIHAN USER (BOOKINGS):
+   - Jika pengguna bertanya tentang pesanannya (misal: 'cek pesanan saya', 'ada yang belum dibayar?', 'apakah ada booking aktif?'):
+     - Periksa data 'DATA PESANAN & TRANSAKSI PENGGUNA' di bawah.
+     - Jika ada tagihan yang belum dibayar ('unpaid'), informasikan rincian biaya dan sertakan tag:
+       [BOOKING_CARD: <id_pesanan_dari_database>]
+       Aplikasi akan otomatis menampilkan kartu pesanan beserta tombol 'Bayar Sekarang'.
+     - Jika ada pesanan aktif atau sudah selesai, simpulkan dengan ramah.
+     - Jika tidak ada pesanan, beritahu bahwa saat ini belum ada pesanan aktif.
+
+ATURAN TAG:
+- HANYA gunakan ID yang benar-benar tercantum pada data database di bawah. JANGAN mengarang ID sembarangan.
+- Tempatkan tag di baris tersendiri di akhir jawabanmu.
 
 GAYA BAHASA:
 - Wajib selalu awali jawabanmu dengan 'Oke Ganteng', kalau dia perempuan 'OK Sayang' setiap menjawab user.
@@ -101,6 +124,10 @@ GAYA BAHASA:
   void initState() {
     super.initState();
     _loadChatHistory();
+    // Pemanasan cache data Supabase (lokasi parkir, slot, ulasan, pesanan)
+    AiContextService.instance.buildRealTimeContextPrompt().then((_) {
+      if (mounted) setState(() {});
+    });
     if (MaintenanceService.instance.isAiMaintenance) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
@@ -204,9 +231,13 @@ GAYA BAHASA:
     }
 
     try {
+      // Ambil data database Supabase live secara real-time
+      final liveContext = await AiContextService.instance.buildRealTimeContextPrompt();
+      final fullSystemPrompt = "$systemPrompt\n\n$liveContext";
+
       // Siapkan histori chat untuk dikirim ke Groq
       List<Map<String, String>> chatHistory = [
-        {'role': 'system', 'content': systemPrompt},
+        {'role': 'system', 'content': fullSystemPrompt},
       ];
       
       // Masukkan semua pesan sebelumnya kecuali pesan sambutan awal jika ingin hemat token (opsional)
@@ -273,6 +304,12 @@ GAYA BAHASA:
     }
   }
 
+  void _sendQuickQuery(String text) {
+    if (_isLoading) return;
+    _textController.text = text;
+    _sendMessage();
+  }
+
   void _scrollToBottom() {
     Future.delayed(const Duration(milliseconds: 100), () {
       if (_scrollController.hasClients) {
@@ -334,6 +371,7 @@ GAYA BAHASA:
                   },
                 ),
               ),
+              _buildSuggestionChips(theme),
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -389,7 +427,106 @@ GAYA BAHASA:
     );
   }
 
+  Widget _buildSuggestionChips(ThemeService theme) {
+    final suggestions = [
+      {
+        'icon': Icons.local_parking_rounded,
+        'label': 'Rekomendasi parkir kosong',
+        'query': 'Cari rekomendasi parkir yang masih banyak slot kosong dan tarifnya bersahabat.'
+      },
+      {
+        'icon': Icons.receipt_long_rounded,
+        'label': 'Cek pesanan & tagihan',
+        'query': 'Cek apakah saya punya pesanan parkir yang belum dibayar atau sedang aktif?'
+      },
+      {
+        'icon': Icons.reviews_rounded,
+        'label': 'Ulasan pengunjung',
+        'query': 'Bagaimana ulasan pengunjung dan rating untuk lokasi parkir di sini?'
+      },
+      {
+        'icon': Icons.access_time_rounded,
+        'label': 'Jam buka & tarif termurah',
+        'query': 'Sebutkan jam operasional dan lokasi dengan tarif parkir mobil & motor termurah.'
+      },
+    ];
+
+    return Container(
+      height: 38,
+      margin: const EdgeInsets.only(bottom: 8),
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        scrollDirection: Axis.horizontal,
+        itemCount: suggestions.length,
+        separatorBuilder: (context, index) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final item = suggestions[index];
+          return InkWell(
+            borderRadius: BorderRadius.circular(20),
+            onTap: _isLoading ? null : () => _sendQuickQuery(item['query'] as String),
+            child: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              decoration: BoxDecoration(
+                color: theme.card,
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: theme.border.withValues(alpha: 0.8)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(item['icon'] as IconData, size: 14, color: const Color(0xFF10B981)),
+                  const SizedBox(width: 6),
+                  Text(
+                    item['label'] as String,
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: theme.textPrimary,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
   Widget _buildAiMessage(String text, ThemeService theme) {
+    // 1. Ekstrak tag kartu lokasi parkir & kartu pesanan
+    final parkingRegex = RegExp(r'\[PARKING_CARD:\s*"?([a-zA-Z0-9\-_]+)"?\]', caseSensitive: false);
+    final bookingRegex = RegExp(r'\[BOOKING_CARD:\s*"?([a-zA-Z0-9\-_]+)"?\]', caseSensitive: false);
+
+    final parkingMatches = parkingRegex.allMatches(text).toList();
+    final bookingMatches = bookingRegex.allMatches(text).toList();
+
+    final parkingIds = parkingMatches.map((m) => m.group(1)!).toSet().toList();
+    final bookingIds = bookingMatches.map((m) => m.group(1)!).toSet().toList();
+
+    // 2. Bersihkan teks dari tag agar rapi
+    String cleanText = text
+        .replaceAll(parkingRegex, '')
+        .replaceAll(bookingRegex, '')
+        .trim();
+
+    // 3. Cari objek data dari AiContextService
+    final parkingCards = <Widget>[];
+    for (final id in parkingIds) {
+      final loc = AiContextService.instance.getLocationById(id);
+      if (loc != null) {
+        parkingCards.add(AiParkingCard(location: loc));
+      }
+    }
+
+    final bookingCards = <Widget>[];
+    for (final id in bookingIds) {
+      final bkg = AiContextService.instance.getBookingById(id);
+      if (bkg != null) {
+        bookingCards.add(AiBookingCard(booking: bkg));
+      }
+    }
+
     return Padding(
       padding: const EdgeInsets.only(bottom: 16.0),
       child: Row(
@@ -403,18 +540,26 @@ GAYA BAHASA:
           ),
           const SizedBox(width: 12),
           Expanded(
-            child: Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: theme.card,
-                borderRadius: const BorderRadius.only(
-                  topRight: Radius.circular(20),
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-                border: Border.all(color: theme.border.withValues(alpha: 0.6)),
-              ),
-              child: Text(text, style: GoogleFonts.inter(fontSize: 14, color: theme.textPrimary, height: 1.5)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                if (cleanText.isNotEmpty)
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: theme.card,
+                      borderRadius: const BorderRadius.only(
+                        topRight: Radius.circular(20),
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                      border: Border.all(color: theme.border.withValues(alpha: 0.6)),
+                    ),
+                    child: Text(cleanText, style: GoogleFonts.inter(fontSize: 14, color: theme.textPrimary, height: 1.5)),
+                  ),
+                if (parkingCards.isNotEmpty) ...parkingCards,
+                if (bookingCards.isNotEmpty) ...bookingCards,
+              ],
             ),
           ),
         ],

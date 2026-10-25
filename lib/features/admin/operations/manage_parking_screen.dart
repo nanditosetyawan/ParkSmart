@@ -479,10 +479,12 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     Expanded(
                       child: _buildRateBadge('Mobil', 'Rp ${_formatNumber(loc['baseRate'])}/j', Icons.directions_car, const Color(0xFF114177)),
                     ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: _buildRateBadge('EV Ready', 'Rp ${_formatNumber(loc['evRate'])}/j', Icons.bolt, const Color(0xFF17A18A), isHighlight: isEvReady),
-                    ),
+                    if (isEvReady) ...[
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: _buildRateBadge('EV Ready', 'Rp ${_formatNumber(loc['evRate'])}/j', Icons.bolt, const Color(0xFF17A18A), isHighlight: true),
+                      ),
+                    ],
                     const SizedBox(width: 8),
                     Expanded(
                       child: _buildRateBadge('Motor', 'Rp ${_formatNumber(loc['motorRate'])}/j', Icons.two_wheeler, const Color(0xFF76777B)),
@@ -670,8 +672,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     // Ambil data kapasitas gedung dan slot aktual dari database Supabase
     final int totalCap = (loc['totalSlots'] as num?)?.toInt() ?? 0;
     final int totalCreated = ManageParkingBackend.instance.getTotalSlotsCount(loc['id']);
-    final int occupiedSlots = ManageParkingBackend.instance.getOccupiedSlotsCount(loc['id']);
-    final int availableSlots = (totalCap > occupiedSlots) ? (totalCap - occupiedSlots) : 0;
+    final int remainingSlotsToAllocate = (totalCap >= totalCreated) ? (totalCap - totalCreated) : 0;
 
     final zoneASlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneA');
     final zoneBSlots = ManageParkingBackend.instance.getSlotsFor(loc['id'], activeFloorName, 'zoneB');
@@ -684,7 +685,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         physics: const AlwaysScrollableScrollPhysics(parent: BouncingScrollPhysics()),
         padding: const EdgeInsets.all(16),
         children: [
-        // 1. Dropdown Pilih Lokasi Parkir
+        // 1. Dropdown Pilih Lokasi Parkir (Dengan batas teks overflow ellipsis)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
           decoration: BoxDecoration(
@@ -699,6 +700,28 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   : loc['id']?.toString(),
               isExpanded: true,
               icon: const Icon(Icons.arrow_drop_down_rounded, color: Color(0xFF114177), size: 24),
+              selectedItemBuilder: (context) {
+                return _locations.map<Widget>((l) {
+                  return Row(
+                    children: [
+                      const Icon(Icons.business, size: 18, color: Color(0xFF114177)),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '${l['name']} (${l['city']})',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                      ),
+                    ],
+                  );
+                }).toList();
+              },
               items: _locations.map<DropdownMenuItem<String>>((l) {
                 return DropdownMenuItem<String>(
                   value: l['id']?.toString(),
@@ -706,9 +729,17 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     children: [
                       const Icon(Icons.business, size: 18, color: Color(0xFF114177)),
                       const SizedBox(width: 8),
-                      Text(
-                        '${l['name']} (${l['city']})',
-                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                      Expanded(
+                        child: Text(
+                          '${l['name']} (${l['city']})',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: const Color(0xFF1A1A18),
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
                       ),
                     ],
                   ),
@@ -801,7 +832,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
         ),
         const SizedBox(height: 12),
 
-        // Indikator Kapasitas Slot (Terikat Total Kapasitas Lokasi)
+        // Indikator Alokasi Kapasitas Slot (Terikat Total Kapasitas Lokasi)
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
           decoration: BoxDecoration(
@@ -820,17 +851,19 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                       const Icon(Icons.pie_chart_outline_rounded, size: 16, color: Color(0xFF114177)),
                       const SizedBox(width: 6),
                       Text(
-                        'Kapasitas & Okupansi:',
+                        'Alokasi Kapasitas:',
                         style: GoogleFonts.plusJakartaSans(fontSize: 11.5, fontWeight: FontWeight.w600, color: const Color(0xFF475569)),
                       ),
                     ],
                   ),
                   Text(
-                    '$occupiedSlots / $totalCap Terisi (Sisa $availableSlots Slot)',
+                    remainingSlotsToAllocate == 0
+                        ? '$totalCreated / $totalCap Dialokasikan (Penuh)'
+                        : '$totalCreated / $totalCap Dialokasikan (Sisa $remainingSlotsToAllocate Slot)',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 11.5,
                       fontWeight: FontWeight.bold,
-                      color: availableSlots == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                      color: remainingSlotsToAllocate == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
                     ),
                   ),
                 ],
@@ -839,11 +872,11 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
               ClipRRect(
                 borderRadius: BorderRadius.circular(4),
                 child: LinearProgressIndicator(
-                  value: totalCap > 0 ? (occupiedSlots / totalCap).clamp(0.0, 1.0) : 0.0,
+                  value: totalCap > 0 ? (totalCreated / totalCap).clamp(0.0, 1.0) : 0.0,
                   minHeight: 6,
                   backgroundColor: const Color(0xFFE2E8F0),
                   valueColor: AlwaysStoppedAnimation<Color>(
-                    availableSlots == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
+                    remainingSlotsToAllocate == 0 ? const Color(0xFFDC2626) : const Color(0xFF114177),
                   ),
                 ),
               ),
@@ -1254,7 +1287,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     final motorRateCtrl = TextEditingController(text: '2000');
     final hoursCtrl = TextEditingController(text: '06:00 - 23:00');
     final descCtrl = TextEditingController(text: 'Fasilitas parkir terpadu dengan sistem sensor pintar.');
-    bool isEvReady = true;
+    bool isEvReady = false;
 
     final List<String> images = ['', '', '', ''];
     final List<String> newlyUploadedUrls = [];
@@ -1340,14 +1373,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   Text('KAPASITAS & STRUKTUR TARIF (RP/JAM)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
                   const SizedBox(height: 6),
                   _buildInputField('Total Kapasitas Slot', slotsCtrl, Icons.local_parking, keyboardType: TextInputType.number),
-                  Row(
-                    children: [
-                      Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildInputField('Tarif EV', evRateCtrl, Icons.bolt, keyboardType: TextInputType.number)),
-                    ],
-                  ),
-                  _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number),
+                  if (isEvReady) ...[
+                    Row(
+                      children: [
+                        Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildInputField('Tarif EV', evRateCtrl, Icons.bolt, keyboardType: TextInputType.number)),
+                      ],
+                    ),
+                    _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number)),
+                      ],
+                    ),
+                  ],
 
                   const SizedBox(height: 10),
                   Text('OPERASIONAL & KESIAPAN EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
@@ -1401,7 +1444,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     'totalSlots': int.tryParse(slotsCtrl.text) ?? 200,
                     'operatingHours': hoursCtrl.text.trim().isEmpty ? '06:00 - 23:00' : hoursCtrl.text.trim(),
                     'baseRate': int.tryParse(baseRateCtrl.text) ?? 5000,
-                    'evRate': int.tryParse(evRateCtrl.text) ?? 7500,
+                    'evRate': isEvReady ? (int.tryParse(evRateCtrl.text) ?? 7500) : 0,
                     'motorRate': int.tryParse(motorRateCtrl.text) ?? 2000,
                     'isEvReady': isEvReady,
                     'description': descCtrl.text.trim(),
@@ -1572,14 +1615,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                   Text('KAPASITAS & STRUKTUR TARIF (RP/JAM)', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
                   const SizedBox(height: 6),
                   _buildInputField('Total Kapasitas Slot', slotsCtrl, Icons.local_parking, keyboardType: TextInputType.number),
-                  Row(
-                    children: [
-                      Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
-                      const SizedBox(width: 8),
-                      Expanded(child: _buildInputField('Tarif EV', evRateCtrl, Icons.bolt, keyboardType: TextInputType.number)),
-                    ],
-                  ),
-                  _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number),
+                  if (isEvReady) ...[
+                    Row(
+                      children: [
+                        Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildInputField('Tarif EV', evRateCtrl, Icons.bolt, keyboardType: TextInputType.number)),
+                      ],
+                    ),
+                    _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number),
+                  ] else ...[
+                    Row(
+                      children: [
+                        Expanded(child: _buildInputField('Tarif Mobil', baseRateCtrl, Icons.directions_car, keyboardType: TextInputType.number)),
+                        const SizedBox(width: 8),
+                        Expanded(child: _buildInputField('Tarif Motor', motorRateCtrl, Icons.two_wheeler, keyboardType: TextInputType.number)),
+                      ],
+                    ),
+                  ],
 
                   const SizedBox(height: 10),
                   Text('OPERASIONAL & KESIAPAN EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF76777B))),
@@ -1711,7 +1764,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     'longitude': double.tryParse(longCtrl.text) ?? loc['longitude'],
                     'totalSlots': int.tryParse(slotsCtrl.text) ?? loc['totalSlots'],
                     'baseRate': int.tryParse(baseRateCtrl.text) ?? loc['baseRate'],
-                    'evRate': int.tryParse(evRateCtrl.text) ?? loc['evRate'],
+                    'evRate': isEvReady ? (int.tryParse(evRateCtrl.text) ?? loc['evRate']) : 0,
                     'motorRate': int.tryParse(motorRateCtrl.text) ?? loc['motorRate'],
                     'operatingHours': hoursCtrl.text.trim(),
                     'description': descCtrl.text.trim(),
@@ -1991,15 +2044,24 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                 ),
               ),
               _buildInputField('Nomor / Kode Slot', codeCtrl, Icons.pin),
-              DropdownButtonFormField<String>(
-                initialValue: type,
-                decoration: InputDecoration(
-                  labelText: 'Tipe Slot',
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                ),
-                items: ['Reguler', 'EV', 'VIP', 'Disabilitas', 'Motor'].map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
-                onChanged: (v) => setDState(() => type = v ?? 'Reguler'),
+              Builder(
+                builder: (context) {
+                  final locObj = ManageParkingBackend.instance.locations.firstWhere((l) => l['id'] == locId, orElse: () => {});
+                  final isLocEvReady = locObj['isEvReady'] == true;
+                  final slotTypes = ['Reguler', if (isLocEvReady) 'EV', 'VIP', 'Disabilitas', 'Motor'];
+                  if (!slotTypes.contains(type)) type = 'Reguler';
+
+                  return DropdownButtonFormField<String>(
+                    initialValue: type,
+                    decoration: InputDecoration(
+                      labelText: 'Tipe Slot',
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    ),
+                    items: slotTypes.map((t) => DropdownMenuItem(value: t, child: Text(t))).toList(),
+                    onChanged: (v) => setDState(() => type = v ?? 'Reguler'),
+                  );
+                },
               ),
             ],
           ),

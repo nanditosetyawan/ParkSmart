@@ -28,7 +28,7 @@ class ManageParkingBackend extends ChangeNotifier {
     try {
       final res = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, province, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images, image_url, floors')
+          .select('id, code, name, type, city, province, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, operating_hours, status, facilities, images, image_url, floors, is_ev_ready, ev_slots_capacity')
           .order('name', ascending: true);
 
       // Ambil seluruh slot, booking aktif, dan sesi aktif untuk kalkulasi okupansi real-time
@@ -128,7 +128,9 @@ class ManageParkingBackend extends ChangeNotifier {
             'baseRate': (row['hourly_rate_mobil'] as num?)?.toInt() ?? 5000,
             'evRate': (row['hourly_rate_ev'] as num?)?.toInt() ?? 7500,
             'motorRate': (row['hourly_rate_motor'] as num?)?.toInt() ?? 2000,
-            'isEvReady': true,
+            'isEvReady': (row['is_ev_ready'] == true) ||
+                (row['facilities'] is List &&
+                    (row['facilities'] as List).any((f) => f.toString().toLowerCase().contains('ev charging'))),
             'description': 'Fasilitas parkir terintegrasi sistem ParkSmart.',
             'checkinRadius': 150,
             'images': imagesList,
@@ -364,6 +366,12 @@ class ManageParkingBackend extends ChangeNotifier {
       final images = List<String>.from(locData['images'] ?? []);
       final primaryImage = images.isNotEmpty ? images.first : null;
       final code = 'PKR-${DateTime.now().millisecondsSinceEpoch.toString().substring(7)}';
+      final isEvReady = locData['isEvReady'] == true;
+
+      final facilities = ['CCTV 24 Jam', 'Covered Parking'];
+      if (isEvReady) {
+        facilities.add('EV Charging Station');
+      }
 
       final row = {
         'code': code,
@@ -375,18 +383,19 @@ class ManageParkingBackend extends ChangeNotifier {
         'latitude': locData['latitude'] ?? -6.1754,
         'longitude': locData['longitude'] ?? 106.7933,
         'total_capacity': totalSlots,
-        'car_slots_capacity': (totalSlots * 0.7).round(),
+        'car_slots_capacity': (totalSlots * (isEvReady ? 0.7 : 0.8)).round(),
         'motor_slots_capacity': (totalSlots * 0.2).round(),
-        'ev_slots_capacity': (totalSlots * 0.1).round(),
+        'ev_slots_capacity': isEvReady ? (totalSlots * 0.1).round() : 0,
         'hourly_rate_mobil': locData['baseRate'] ?? 5000,
         'hourly_rate_motor': locData['motorRate'] ?? 2000,
-        'hourly_rate_ev': locData['evRate'] ?? 7500,
+        'hourly_rate_ev': isEvReady ? (locData['evRate'] ?? 7500) : 0,
         'operating_hours': locData['operatingHours'] ?? 'Buka 24 Jam',
         'status': 'active',
         'image_url': primaryImage,
         'images': images,
         'floors': ['Lantai 1'],
-        'facilities': ['CCTV 24 Jam', 'Covered Parking', if (locData['isEvReady'] == true) 'EV Charging Station'],
+        'facilities': facilities,
+        'is_ev_ready': isEvReady,
       };
 
       final insertRes = await _client.from('parking_locations').insert(row).select('id').maybeSingle();
@@ -428,6 +437,30 @@ class ManageParkingBackend extends ChangeNotifier {
         dbStatus = 'maintenance';
       }
 
+      final isEvReady = locData['isEvReady'] == true;
+
+      // Sinkronisasi daftar fasilitas terkait EV
+      List<String> currentFacilities = [];
+      try {
+        final curRes = await _client.from('parking_locations').select('facilities').eq('id', id).maybeSingle();
+        if (curRes != null && curRes['facilities'] is List) {
+          currentFacilities = (curRes['facilities'] as List).map((f) => f?.toString() ?? '').toList();
+        }
+      } catch (e) {
+        debugPrint('[ManageParkingBackend] read facilities warning: $e');
+      }
+
+      if (isEvReady) {
+        if (!currentFacilities.any((f) => f.toLowerCase().contains('ev charging'))) {
+          currentFacilities.add('EV Charging Station');
+        }
+      } else {
+        currentFacilities.removeWhere((f) => f.toLowerCase().contains('ev charging'));
+      }
+      if (currentFacilities.isEmpty) {
+        currentFacilities = ['CCTV 24 Jam', 'Covered Parking'];
+      }
+
       final updateMap = {
         'name': locData['name'],
         'type': locData['typeLabel'],
@@ -436,21 +469,33 @@ class ManageParkingBackend extends ChangeNotifier {
         'latitude': locData['latitude'],
         'longitude': locData['longitude'],
         'total_capacity': totalSlots,
-        'car_slots_capacity': (totalSlots * 0.7).round(),
+        'car_slots_capacity': (totalSlots * (isEvReady ? 0.7 : 0.8)).round(),
         'motor_slots_capacity': (totalSlots * 0.2).round(),
-        'ev_slots_capacity': (totalSlots * 0.1).round(),
+        'ev_slots_capacity': isEvReady ? (totalSlots * 0.1).round() : 0,
         'hourly_rate_mobil': locData['baseRate'],
         'hourly_rate_motor': locData['motorRate'],
-        'hourly_rate_ev': locData['evRate'],
+        'hourly_rate_ev': isEvReady ? (locData['evRate'] ?? 7500) : 0,
         'operating_hours': locData['operatingHours'],
         'status': dbStatus,
         'image_url': primaryImage,
         'images': images,
+        'is_ev_ready': isEvReady,
+        'facilities': currentFacilities,
         'updated_at': DateTime.now().toUtc().toIso8601String(),
       };
 
+      // Jika EV dinonaktifkan, ubah slot EV yang ada menjadi slot reguler mobil
+      if (!isEvReady) {
+        try {
+          await _client.from('parking_slots').update({'slot_type': 'mobil'}).eq('location_id', id).eq('slot_type', 'ev');
+        } catch (e) {
+          debugPrint('[ManageParkingBackend] convert EV slots to mobil warning: $e');
+        }
+      }
+
       await _client.from('parking_locations').update(updateMap).eq('id', id);
       await fetchLocations();
+      await fetchSlotsForLocation(id);
       return true;
     } catch (e) {
       debugPrint('[ManageParkingBackend] updateParkingLocationFull error: $e');
@@ -536,12 +581,22 @@ class ManageParkingBackend extends ChangeNotifier {
     }
 
     try {
-      await _client.from('parking_locations').update({
+      final updateData = <String, dynamic>{
         'hourly_rate_mobil': data['baseRate'],
-        'hourly_rate_ev': data['evRate'],
         'hourly_rate_motor': data['motorRate'],
         'operating_hours': data['operatingHours'],
-      }).eq('id', id);
+      };
+      if (data.containsKey('evRate')) {
+        updateData['hourly_rate_ev'] = data['evRate'];
+      }
+      if (data.containsKey('isEvReady')) {
+        final isEv = data['isEvReady'] == true;
+        updateData['is_ev_ready'] = isEv;
+        if (!isEv) {
+          updateData['ev_slots_capacity'] = 0;
+        }
+      }
+      await _client.from('parking_locations').update(updateData).eq('id', id);
       return true;
     } catch (e) {
       debugPrint('[ManageParkingBackend] updateParkingLocation error: $e');

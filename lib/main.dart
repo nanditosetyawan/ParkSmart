@@ -13,6 +13,7 @@ import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'core/services/language_service.dart';
 import 'features/splash/splash_screen.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
@@ -65,7 +66,9 @@ void main() async {
     } catch (_) {}
   }
 
-  // 4. Inisialisasi Layanan Pendukung
+  // 4. Konfigurasi Google Fonts & Inisialisasi Layanan Pendukung Secara Paralel (Cepat & Anti-Freeze)
+  GoogleFonts.config.allowRuntimeFetching = true;
+
   if (!kIsWeb) {
     try {
       await NotificationService().init();
@@ -74,37 +77,16 @@ void main() async {
     }
   }
 
-  try {
-    await CurrencyService.instance.init();
-  } catch (e) {
-    debugPrint('CurrencyService init error: $e');
-  }
+  // Paralelkan pembacaan SharedPreferences seluruh layanan agar tidak saling menunggu secara serial
+  await Future.wait([
+    CurrencyService.instance.init().catchError((e) => debugPrint('CurrencyService init error: $e')),
+    ThemeService.instance.init().catchError((e) => debugPrint('ThemeService init error: $e')),
+    MaintenanceService.instance.init().catchError((e) => debugPrint('MaintenanceService init error: $e')),
+    SessionService.instance.init().catchError((e) => debugPrint('SessionService init error: $e')),
+    LanguageService.instance.init().catchError((e) => debugPrint('LanguageService init error: $e')),
+  ]);
 
-  try {
-    await ThemeService.instance.init();
-  } catch (e) {
-    debugPrint('ThemeService init error: $e');
-  }
-
-  try {
-    await MaintenanceService.instance.init();
-  } catch (e) {
-    debugPrint('MaintenanceService init error: $e');
-  }
-
-  try {
-    await SessionService.instance.init();
-  } catch (e) {
-    debugPrint('SessionService init error: $e');
-  }
-
-  try {
-    await LanguageService.instance.init();
-  } catch (e) {
-    debugPrint('LanguageService init error: $e');
-  }
-
-  // 5. Jalankan Aplikasi Utama Secara Langsung (Mencegah Deadlock / Layar Hitam di Android)
+  // 5. Jalankan Aplikasi Utama Secara Langsung (Mencegah Deadlock / Layar Hitam di Android & Web)
   runApp(const ParkSmartApp());
 }
 

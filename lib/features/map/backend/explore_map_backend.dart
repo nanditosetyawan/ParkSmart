@@ -23,10 +23,10 @@ class ExploreMapBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Targeted Column Query: Mengambil detail lokasi lengkap termasuk operating_hours
+      // Targeted Column Query: Mengambil detail lokasi lengkap termasuk operating_hours, is_ev_ready & ev_slots_capacity
       var query = _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, operating_hours');
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, is_ev_ready, ev_slots_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, operating_hours');
 
       if (searchQuery != null && searchQuery.trim().isNotEmpty) {
         query = query.ilike('name', '%${searchQuery.trim()}%');
@@ -37,7 +37,7 @@ class ExploreMapBackend extends ChangeNotifier {
       // Ambil ketersediaan slot aktual berdasarkan tabel public.parking_slots per location_id
       final List<dynamic> slotsData = await _client
           .from('parking_slots')
-          .select('id, location_id, status');
+          .select('id, location_id, status, slot_type');
 
       final Map<String, List<dynamic>> slotsByLocation = {};
       for (final s in slotsData) {
@@ -55,11 +55,18 @@ class ExploreMapBackend extends ChangeNotifier {
         final rateEv = (row['hourly_rate_ev'] as num?)?.toInt() ?? 7500;
         final rateMotor = (row['hourly_rate_motor'] as num?)?.toInt() ?? 2000;
         final capacity = (row['total_capacity'] as int?) ?? 50;
+        final bool hasEvFlag = row['is_ev_ready'] == true;
+        final int evCap = (row['ev_slots_capacity'] as num?)?.toInt() ?? 0;
         final facilities = (row['facilities'] as List<dynamic>?)?.map((e) => e.toString()).toList() ?? [];
-        final bool isEv = facilities.any((f) => f.toLowerCase().contains('ev'));
+        final bool hasEvFacility = facilities.any((f) {
+          final s = f.toLowerCase();
+          return s.contains('ev') || s.contains('electric') || s.contains('charging');
+        });
 
         // Hitung slot tersedia riil berdasarkan denah slot (status == 'available')
         final locationSlots = slotsByLocation[locId] ?? [];
+        final bool hasEvSlot = locationSlots.any((s) => (s['slot_type']?.toString().toLowerCase() ?? '') == 'ev');
+        final bool isEv = hasEvFlag || evCap > 0 || hasEvFacility || hasEvSlot;
         final int availableCount = locationSlots.where((s) => s['status'] == 'available').length;
         final int actualAvailableSlots = locationSlots.isNotEmpty ? availableCount : capacity;
 
@@ -88,11 +95,15 @@ class ExploreMapBackend extends ChangeNotifier {
           'id': row['id'],
           'name': row['name'] ?? 'Spot Parkir',
           'type': row['type'] ?? 'Parkir Resmi',
+          'city': row['city'] ?? '',
+          'address': row['address'] ?? '',
           'point': LatLng(lat, lng),
           'slots': actualAvailableSlots,
           'available_slots': actualAvailableSlots,
           'total_capacity': capacity,
           'isEv': isEv,
+          'is_ev_ready': hasEvFlag || isEv,
+          'ev_slots_capacity': evCap,
           'distance': '1.2 km',
           'price': '${CurrencyService.instance.format(rateMobil)} / jam',
           'rating': effectiveRating,

@@ -2095,24 +2095,45 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                 const SizedBox(height: 6),
 
                 // Bar Pembagian Armada Kota
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        flex: selectedCity['mobil'] as int,
-                        child: Container(height: 8, color: const Color(0xFF114177)),
+                Builder(
+                  builder: (context) {
+                    final cMobil = (selectedCity['mobil'] as num?)?.toInt() ?? 0;
+                    final cMotor = (selectedCity['motor'] as num?)?.toInt() ?? 0;
+                    final cEv = (selectedCity['ev'] as num?)?.toInt() ?? 0;
+                    final cTotal = cMobil + cMotor + cEv;
+
+                    if (cTotal > 0) {
+                      return ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: Row(
+                          children: [
+                            if (cMobil > 0)
+                              Expanded(
+                                flex: cMobil,
+                                child: Container(height: 8, color: const Color(0xFF114177)),
+                              ),
+                            if (cMotor > 0)
+                              Expanded(
+                                flex: cMotor,
+                                child: Container(height: 8, color: const Color(0xFF17A18A)),
+                              ),
+                            if (cEv > 0)
+                              Expanded(
+                                flex: cEv,
+                                child: Container(height: 8, color: const Color(0xFFE07A5F)),
+                              ),
+                          ],
+                        ),
+                      );
+                    }
+                    return Container(
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFE5E7EB),
+                        borderRadius: BorderRadius.circular(4),
                       ),
-                      Expanded(
-                        flex: selectedCity['motor'] as int,
-                        child: Container(height: 8, color: const Color(0xFF17A18A)),
-                      ),
-                      Expanded(
-                        flex: selectedCity['ev'] as int,
-                        child: Container(height: 8, color: const Color(0xFFE07A5F)),
-                      ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
                 const SizedBox(height: 8),
 

@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/session_service.dart';
@@ -46,10 +47,10 @@ class _SplashScreenState extends State<SplashScreen>
     // Putar audio splash 'saya-akan-lawan' 1x saat animasi pembuka mulai berjalan
     _playLaunchSound();
 
-    // Controller utama berdurasi ~3.2 detik untuk seluruh sekuens
+    // Controller berdurasi responsif (1.6s di Web, 2.0s di Mobile) agar tidak membuang waktu
     _controller = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 3200),
+      duration: Duration(milliseconds: kIsWeb ? 1600 : 2000),
     );
 
     _controller.addStatusListener((status) {

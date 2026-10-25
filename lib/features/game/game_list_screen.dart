@@ -18,7 +18,6 @@ class GameListScreen extends StatefulWidget {
 
 class _GameListScreenState extends State<GameListScreen> {
   int _parkingHighScore = 0;
-  int _clawsHighScore = 0;
   int _userPoints = 0;
   bool _isParkingActive = true;
   bool _isClawsActive = true;
@@ -34,7 +33,6 @@ class _GameListScreenState extends State<GameListScreen> {
     if (mounted) {
       setState(() {
         _parkingHighScore = prefs.getInt('parking_high_score') ?? 0;
-        _clawsHighScore = prefs.getInt('claws_car_high_score') ?? 0;
         _userPoints = prefs.getInt('user_arcade_points') ?? 25000;
         _isParkingActive = prefs.getBool('arcade_parking_active') ?? true;
         _isClawsActive = prefs.getBool('arcade_claws_active') ?? true;
@@ -53,9 +51,6 @@ class _GameListScreenState extends State<GameListScreen> {
         setState(() {
           if (CarGameBackend.instance.highestScore > 0) {
             _parkingHighScore = CarGameBackend.instance.highestScore;
-          }
-          if (ClawsCarBackend.instance.highestScore > 0) {
-            _clawsHighScore = ClawsCarBackend.instance.highestScore;
           }
           if (GameListBackend.instance.userPoints > 0) {
             _userPoints = GameListBackend.instance.userPoints;
@@ -214,7 +209,7 @@ class _GameListScreenState extends State<GameListScreen> {
                         context: context,
                         icon: Icons.precision_manufacturing_rounded,
                         name: 'Claws Car',
-                        lastScore: _isClawsActive ? _formatScore(_clawsHighScore) : 'Nonaktif',
+                        lastScore: null,
                         color1: const Color(0xFF7E22CE),
                         color2: const Color(0xFFEC4899),
                         onTap: _openClawsGame,
@@ -234,7 +229,7 @@ class _GameListScreenState extends State<GameListScreen> {
     required BuildContext context,
     required IconData icon,
     required String name,
-    required String lastScore,
+    String? lastScore,
     required Color color1,
     required Color color2,
     required VoidCallback onTap,
@@ -287,21 +282,23 @@ class _GameListScreenState extends State<GameListScreen> {
                           color: Colors.white,
                         ),
                       ),
-                      const SizedBox(height: 6),
-                      Row(
-                        children: [
-                          const Icon(Icons.history, color: Color(0xFF94A3B8), size: 14),
-                          const SizedBox(width: 4),
-                          Text(
-                            'Last Score: $lastScore',
-                            style: GoogleFonts.inter(
-                              fontSize: 13,
-                              fontWeight: FontWeight.w500,
-                              color: const Color(0xFF94A3B8),
+                      if (lastScore != null) ...[
+                        const SizedBox(height: 6),
+                        Row(
+                          children: [
+                            const Icon(Icons.history, color: Color(0xFF94A3B8), size: 14),
+                            const SizedBox(width: 4),
+                            Text(
+                              'Last Score: $lastScore',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                color: const Color(0xFF94A3B8),
+                              ),
                             ),
-                          ),
-                        ],
-                      ),
+                          ],
+                        ),
+                      ],
                     ],
                   ),
                   Container(

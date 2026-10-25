@@ -1,10 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
+import 'ai_context_service.dart';
 
 /// Backend khusus untuk AiAssistantScreen
 /// Menghubungkan asisten pintar dengan konfigurasi AI dari Super Admin di `public.system_settings`,
-/// serta data langsung dari `public.parking_locations` untuk rekomendasi parkir presisi.
+/// serta data langsung dari `public.parking_locations`, `public.customer_feedbacks`, dan `public.bookings`.
 class AiAssistantBackend extends ChangeNotifier {
   AiAssistantBackend._();
   static final AiAssistantBackend instance = AiAssistantBackend._();
@@ -29,47 +30,47 @@ class AiAssistantBackend extends ChangeNotifier {
         try {
           final res = await _client
               .from('system_settings')
-              .select('setting_value')
-              .eq('setting_key', 'ai_assistant_config')
+              .select('value')
+              .eq('key', 'ai_assistant_config')
               .maybeSingle();
 
-          if (res != null && res['setting_value'] is Map) {
-            return Map<String, dynamic>.from(res['setting_value']);
+          if (res != null && res['value'] is Map) {
+            return Map<String, dynamic>.from(res['value']);
           }
         } catch (_) {}
 
         return {
-          'model': 'gemini-1.5-flash',
+          'model': 'qwen/qwen3.8-27b',
           'temperature': 0.7,
-          'system_prompt': 'Kamu adalah asisten pintar ParkSmart ID yang ramah dan membantu pengguna menemukan tempat parkir terbaik.',
+          'system_prompt': 'Kamu adalah Jarvis, asisten AI resmi ParkSmart ID yang ramah dan siap membantu pengguna menemukan parkir terbaik.',
         };
       },
     );
   }
 
-  /// Memproses prompt pertanyaan pengguna dan memberikan rekomendasi tempat parkir
+  /// Memproses prompt pertanyaan pengguna dan memberikan rekomendasi tempat parkir berbasis database
   Future<Map<String, dynamic>> processQuery(String query) async {
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
 
     try {
-      // 1. Ambil data lokasi parkir terkini dari database
-      final locations = await _client
-          .from('parking_locations')
-          .select('id, name, address, hourly_rate, available_slots, total_slots, status')
-          .limit(10);
+      // 1. Ambil data konteks real-time dari AiContextService
+      await AiContextService.instance.buildRealTimeContextPrompt();
+      final locations = AiContextService.instance.cachedLocations;
 
       // 2. Analisis kebutuhan pengguna
       final qLower = query.toLowerCase();
       List<dynamic> matched = [];
 
       if (qLower.contains('murah')) {
-        // Urutkan dari tarif termurah
-        matched = List.from(locations)..sort((a, b) => (a['hourly_rate'] as num).compareTo(b['hourly_rate'] as num));
+        matched = List.from(locations)
+          ..sort((a, b) => ((a['hourly_rate_mobil'] ?? 5000) as num)
+              .compareTo((b['hourly_rate_mobil'] ?? 5000) as num));
       } else if (qLower.contains('banyak') || qLower.contains('kosong') || qLower.contains('tersedia')) {
-        // Urutkan dari slot terbanyak
-        matched = List.from(locations)..sort((a, b) => (b['available_slots'] as num).compareTo(a['available_slots'] as num));
+        matched = List.from(locations)
+          ..sort((a, b) => ((b['available_slots'] ?? 0) as num)
+              .compareTo((a['available_slots'] ?? 0) as num));
       } else {
         matched = locations;
       }

@@ -211,6 +211,7 @@ CREATE TABLE IF NOT EXISTS public.parking_locations (
     hourly_rate_mobil NUMERIC(10, 2) NOT NULL DEFAULT 5000.00,
     hourly_rate_motor NUMERIC(10, 2) NOT NULL DEFAULT 2000.00,
     hourly_rate_ev NUMERIC(10, 2) NOT NULL DEFAULT 7500.00,
+    is_ev_ready BOOLEAN NOT NULL DEFAULT false,
     operating_hours VARCHAR(100) NOT NULL DEFAULT 'Buka 24 Jam',
     facilities TEXT[] DEFAULT ARRAY['CCTV 24 Jam'::text, 'Covered Parking'::text],
     rating NUMERIC(2, 1) NOT NULL DEFAULT 0.0,

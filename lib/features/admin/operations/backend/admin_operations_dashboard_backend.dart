@@ -225,36 +225,14 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
 
       final activeBookingsRes = await _client
           .from('bookings')
-          .select('id, location_id, slot_id, booking_status, payment_status')
+          .select('id, location_id, slot_id, booking_status, payment_status, vehicle_type')
           .inFilter('booking_status', ['upcoming', 'active'])
           .eq('payment_status', 'paid');
 
       final activeSessionsRes = await _client
           .from('parking_sessions')
-          .select('id, location_id, slot_id, status')
+          .select('id, location_id, slot_id, status, vehicle_type')
           .inFilter('status', ['active', 'overstay']);
-
-      // 1c. Hitung Jumlah Kendaraan Riil dari Database (public.vehicles)
-      final vehiclesRes = await _client
-          .from('vehicles')
-          .select('id, vehicle_type, brand, model');
-
-      int realMobil = 0;
-      int realMotor = 0;
-      int realEv = 0;
-
-      for (final v in vehiclesRes) {
-        final vt = (v['vehicle_type'] ?? '').toString().toLowerCase();
-        final brand = (v['brand'] ?? '').toString().toLowerCase();
-        final model = (v['model'] ?? '').toString().toLowerCase();
-        if (vt.contains('ev') || vt.contains('electric') || brand.contains('ioniq') || model.contains('ev')) {
-          realEv++;
-        } else if (vt.contains('motor') || vt.contains('bike')) {
-          realMotor++;
-        } else {
-          realMobil++;
-        }
-      }
 
       _totalLocationsCount = locs.length;
       int totalCap = 0;
@@ -299,6 +277,14 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
               final sId = b['slot_id']?.toString();
               if (sId == null || !occupiedSlotIds.contains(sId)) {
                 extraOccupancy++;
+                final vt = (b['vehicle_type'] ?? '').toString().toLowerCase();
+                if (vt.contains('ev') || vt.contains('electric')) {
+                  occupiedEv++;
+                } else if (vt.contains('motor') || vt.contains('bike')) {
+                  occupiedMotor++;
+                } else {
+                  occupiedMobil++;
+                }
               }
             }
           }
@@ -307,6 +293,14 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
               final sId = s['slot_id']?.toString();
               if (sId == null || !occupiedSlotIds.contains(sId)) {
                 extraOccupancy++;
+                final vt = (s['vehicle_type'] ?? '').toString().toLowerCase();
+                if (vt.contains('ev') || vt.contains('electric')) {
+                  occupiedEv++;
+                } else if (vt.contains('motor') || vt.contains('bike')) {
+                  occupiedMotor++;
+                } else {
+                  occupiedMobil++;
+                }
               }
             }
           }
@@ -340,9 +334,9 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
             'available': available,
             'status': statusLabel,
             'statusColor': statusCol,
-            'mobil': realMobil,
-            'motor': realMotor,
-            'ev': realEv,
+            'mobil': occupiedMobil,
+            'motor': occupiedMotor,
+            'ev': occupiedEv,
             'occupiedMobil': occupiedMobil,
             'occupiedMotor': occupiedMotor,
             'occupiedEv': occupiedEv,
@@ -361,9 +355,15 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
           final locList = entry.value;
           int cityTotal = 0;
           int cityOccupied = 0;
+          int cityMobil = 0;
+          int cityMotor = 0;
+          int cityEv = 0;
           for (var l in locList) {
             cityTotal += (l['total'] as int? ?? 0);
             cityOccupied += (l['occupied'] as int? ?? 0);
+            cityMobil += (l['occupiedMobil'] as int? ?? 0);
+            cityMotor += (l['occupiedMotor'] as int? ?? 0);
+            cityEv += (l['occupiedEv'] as int? ?? 0);
           }
           final ratio = cityTotal > 0 ? (cityOccupied / cityTotal) : 0.0;
           String status = 'Normal';
@@ -378,15 +378,15 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
           return {
             'city': cityName,
             'province': locList.first['province'] ?? '',
-            'facilities': '${locList.length} Lokasi (${locList.map((e) => e['name']).join(', ')})',
+            'facilities': '${locList.length} Lokasi',
             'facilityCount': locList.length,
             'total': cityTotal,
             'occupied': cityOccupied,
             'status': status,
             'statusColor': statusColor,
-            'mobil': realMobil,
-            'motor': realMotor,
-            'ev': realEv,
+            'mobil': cityMobil,
+            'motor': cityMotor,
+            'ev': cityEv,
           };
         }).toList();
       } else {

@@ -116,8 +116,12 @@ class CurrencyService extends ChangeNotifier {
 
     notifyListeners();
 
-    // Fetch live rates asynchronously
-    fetchLatestRates();
+    // Fetch live rates di background hanya jika belum ada cache atau sudah lebih dari 12 jam
+    final shouldFetch = _lastUpdated == null ||
+        DateTime.now().difference(_lastUpdated!).inHours >= 12;
+    if (shouldFetch) {
+      Future.microtask(() => fetchLatestRates());
+    }
   }
 
   Future<bool> fetchLatestRates() async {
@@ -125,9 +129,11 @@ class CurrencyService extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // Timeout dipersingkat ke 2.5 detik agar tidak menyebabkan lag saat cold start / Web
+      const timeoutDuration = Duration(milliseconds: 2500);
       final response = await http
           .get(Uri.parse('https://open.er-api.com/v6/latest/IDR'))
-          .timeout(const Duration(seconds: 10));
+          .timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body) as Map<String, dynamic>;

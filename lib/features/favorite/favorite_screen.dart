@@ -5,6 +5,7 @@ import '../../core/services/currency_service.dart';
 import '../../core/services/language_service.dart';
 import '../parking/parking_detail_screen.dart';
 import 'backend/favorite_backend.dart';
+import '../profile/backend/vehicle_backend.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -263,7 +264,7 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                             ),
                                             const SizedBox(height: 4),
                                             Text(
-                                              '${loc['distance']} • ${CurrencyService.instance.format((loc['hourly_rate_active'] as num?) ?? (isEv ? (loc['hourly_rate_ev'] as num?) : (loc['hourly_rate_mobil'] as num?)) ?? 5000)} / jam',
+                                              '${loc['distance']} • ${CurrencyService.instance.format(((VehicleBackend.instance.defaultVehicle?.vehicleType.toLowerCase() ?? 'mobil').contains('motor') ? (loc['hourly_rate_motor'] as num?) : (VehicleBackend.instance.defaultVehicle?.vehicleType.toLowerCase() ?? 'mobil').contains('ev') ? ((loc['hourly_rate_ev'] as num?) ?? (loc['hourly_rate_mobil'] as num?)) : (loc['hourly_rate_mobil'] as num?)) ?? (loc['hourly_rate_active'] as num?) ?? 5000)} / jam',
                                               style: GoogleFonts.inter(
                                                 fontSize: 12,
                                                 color: textSub,

@@ -45,6 +45,9 @@ class HomeBackend extends ChangeNotifier {
   List<Map<String, dynamic>> _recommendedLocations = [];
   List<Map<String, dynamic>> get recommendedLocations => _recommendedLocations;
 
+  List<Map<String, dynamic>> _allLocations = [];
+  List<Map<String, dynamic>> get allLocations => _allLocations;
+
   String _selectedCategory = 'Terdekat';
   String get selectedCategory => _selectedCategory;
 
@@ -82,6 +85,7 @@ class HomeBackend extends ChangeNotifier {
     _memberTier = 'BRONZE';
     _unreadNotificationCount = 0;
     _recommendedLocations = [];
+    _allLocations = [];
     _activeSessions = [];
     _activeSession = null;
     notifyListeners();
@@ -213,6 +217,9 @@ class HomeBackend extends ChangeNotifier {
             ? '${distMeters.round()} m'
             : '${(distMeters / 1000).toStringAsFixed(1)} km';
       }
+
+      // Simpan seluruh lokasi lengkap sebelum difilter kategori
+      _allLocations = List<Map<String, dynamic>>.from(rawList);
 
       // 2. Filter Kategori berdasarkan kolom 'type' (%mall% dan %ev%) atau urutan 'Terdekat'
       if (_selectedCategory == 'Terdekat') {

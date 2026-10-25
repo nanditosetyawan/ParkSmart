@@ -724,6 +724,7 @@ class LanguageService extends ChangeNotifier {
 
     // ---------------- Explore Map & Rekomendasi Parkir ----------------
     'Cari kota di Indonesia, SPBU...': 'Search cities in Indonesia, gas stations...',
+    'Cari tempat parkir...': 'Search parking spots...',
     'Terdekat': 'Nearby',
     'Mall': 'Mall',
     'Parkir EV': 'EV Parking',

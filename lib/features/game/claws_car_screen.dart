@@ -84,7 +84,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
 
   // Animasi turun & naik capit
   late AnimationController _dropController;
-  late Animation<double> _dropAnimation;
+  double _dropProgress = 0.0;
 
   // Postur capit:
   // 0.0 = Menguncup normal (posisi awal santai)
@@ -138,6 +138,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
   double _chamberMaxX = 300.0;
   double _chamberMinY = 0.0;
   double _chamberMaxY = 300.0;
+  double _maxDropDistance = 150.0;
   bool _hasInitialPositions = false;
 
   // Sensor HP Shake (Kocok)
@@ -169,10 +170,6 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     _dropController = AnimationController(
       vsync: this,
       duration: const Duration(milliseconds: 1400),
-    );
-    _dropAnimation = CurvedAnimation(
-      parent: _dropController,
-      curve: Curves.easeInOutQuad,
     );
 
     // Controller transisi postur capit (0.0 = menguncup normal, 1.0 = terbuka lebar, 2.0 = menjepit)
@@ -1010,13 +1007,45 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     }
   }
 
+  // Helper untuk menganimasikan turun & naik capit secara halus dengan kedalaman dinamis
+  Future<void> _animateClawDrop(
+    double target, {
+    Duration? duration,
+    Curve curve = Curves.easeInOutQuad,
+  }) async {
+    final double start = _dropProgress;
+    final double distance = (target - start).abs();
+    final animDuration = duration ?? Duration(milliseconds: (1400 * distance).round().clamp(350, 1400));
+    _dropController.duration = animDuration;
+
+    final tween = Tween<double>(begin: start, end: target);
+    final curved = CurvedAnimation(parent: _dropController, curve: curve);
+    void listener() {
+      setState(() {
+        _dropProgress = tween.evaluate(curved);
+      });
+    }
+
+    _dropController.addListener(listener);
+    _dropController.reset();
+    await _dropController.forward();
+    _dropController.removeListener(listener);
+    curved.dispose();
+    if (mounted) {
+      setState(() {
+        _dropProgress = target;
+      });
+    }
+  }
+
   // ============================================================
   // LOGIKA AKSI CAPIT LENGKAP:
   // 1. Cek Koin (Jika habis, muncul pop-up konfirmasi tukar poin)
   // 2. Buka kuncup capit lebar
-  // 3. Meluncur turun ke arah barang di dalam kaca
-  // 4. Deteksi item kandidat di bawah capit: YANG PALING ATAS DIKENAI TERCAPIT
+  // 3. Deteksi item kandidat di bawah capit: YANG PALING ATAS DIKENAI TERCAPIT
   //    (Hanya 1 item individu mandiri yang terangkat)
+  // 4. Meluncur turun cukup sampai barang pertama (paling atas) yang didapat,
+  //    TIDAK meluncur sampai mentok bawah jika ada tumpukan barang!
   // 5. Menguncup erat menjepit item
   // 6. Naik mentok ke atas membawa item
   // 7. Geser ke lubang pembuangan di sebelah kiri
@@ -1046,11 +1075,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     await _animateClawPose(1.0, duration: const Duration(milliseconds: 280), curve: Curves.easeOutBack);
     HapticFeedback.lightImpact();
 
-    // 2. Meluncur TURUN ke barang dalam kondisi TERBUKA LEBAR
-    await _dropController.forward();
-    HapticFeedback.mediumImpact();
-
-    // 3. Deteksi item yang tepat berada di bawah capit horizontal crane:
+    // 2. Deteksi item yang tepat berada di bawah capit horizontal crane:
     final double cranePixelX = _chamberMinX + _craneX * (_chamberMaxX - _chamberMinX);
     final availableItems = _items.where((it) => !it.isGrabbed && !it.isDropped).toList();
 
@@ -1059,23 +1084,42 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       return (it.pixelX - cranePixelX).abs() < grabRadius;
     }).toList();
 
-    // "yang tercapit adalah yang paling atas dikenai, 1 biji individu mandiri"
+    // "saat ada 2 barang bertumpuk kan otomatis yang tercapit yang paling atas,
+    // capit tidak meluncur sampai mentok bawah cukup sampai barang pertama yang didapat"
     ClawItem? targetItem;
+    double targetDrop = 1.0;
+
     if (candidates.isNotEmpty) {
-      // Sort berdasarkan pixelY terkecil (tertinggi di layar)
+      // Sort berdasarkan pixelY terkecil (posisi vertikal paling atas / lapis teratas di layar)
       candidates.sort((a, b) => a.pixelY.compareTo(b.pixelY));
       targetItem = candidates.first;
+
+      // Hitung kedalaman capit: berhenti tepat di barang pertama (paling atas) yang didapat!
+      // Tidak meluncur sampai mentok bawah lantai jika ada barang di atasnya.
+      if (_maxDropDistance > 0 && _chamberMaxY > 0) {
+        final double heightAboveFloor = (_chamberMaxY - targetItem.pixelY).clamp(0.0, _maxDropDistance);
+        final double targetClawDist = _maxDropDistance - heightAboveFloor;
+        targetDrop = (targetClawDist / _maxDropDistance).clamp(0.20, 1.0);
+      }
+    }
+
+    // 3. Meluncur TURUN ke barang dalam kondisi TERBUKA LEBAR
+    // Berhenti tepat di barang pertama yang didapat (atau dasar lantai jika tidak ada barang)
+    await _animateClawDrop(targetDrop, curve: Curves.easeInOutQuad);
+    HapticFeedback.mediumImpact();
+
+    if (targetItem != null) {
       targetItem.isGrabbed = true;
       _heldItem = targetItem;
     }
 
-    // 4. Di dasar barang, capit MENGUNCUP LAGI (menjepit erat hadiah jika kena)
+    // 4. Di posisi barang tersebut, capit MENGUNCUP LAGI (menjepit erat hadiah jika kena)
     await _animateClawPose(2.0, duration: const Duration(milliseconds: 320), curve: Curves.easeInOut);
     HapticFeedback.heavyImpact();
     await Future.delayed(const Duration(milliseconds: 160));
 
-    // 5. Dalam kondisi MENJEPIT, capit NAIK MENTOK ke atas membawa item
-    await _dropController.reverse();
+    // 5. Dalam kondisi MENJEPIT, capit NAIK MENTOK ke atas (kembali ke 0.0) membawa item
+    await _animateClawDrop(0.0, curve: Curves.easeInOutQuad);
 
     // 6. Meluncur geser ke lubang pembuangan hadiah di sebelah kiri
     _chuteStartCraneX = _craneX;
@@ -1273,11 +1317,11 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                               ),
                             ),
                             Text(
-                              'BEST: $_highScore',
+                              'Best: $_highScore',
                               style: GoogleFonts.inter(
-                                fontSize: 9.5,
-                                color: const Color(0xFFF472B6).withValues(alpha: 0.8),
-                                fontWeight: FontWeight.bold,
+                                fontSize: 10,
+                                fontWeight: FontWeight.w600,
+                                color: const Color(0xFF94A3B8),
                               ),
                             ),
                           ],
@@ -1369,7 +1413,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
               Expanded(
                 child: AnimatedBuilder(
                   animation: Listenable.merge([
-                    _dropAnimation,
+                    _dropController,
                     _clawPoseController,
                     _flapAnimation,
                     _marqueeLightController,
@@ -1378,7 +1422,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                     return CustomPaint(
                       painter: _ClawMachine3DScenePainter(
                         craneX: _craneX,
-                        dropProgress: _dropAnimation.value,
+                        dropProgress: _dropProgress,
                         clawPose: _clawPose,
                         flapProgress: _flapAnimation.value,
                         marqueePhase: _marqueeLightController.value,
@@ -1387,11 +1431,12 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
                         coinImage: _coinImage,
                         fishImage: _fishImage,
                         rockImage: _rockImage,
-                        onBoundsCalculated: (minX, maxX, minY, maxY) {
+                        onBoundsCalculated: (minX, maxX, minY, maxY, maxDropDist) {
                           _chamberMinX = minX;
                           _chamberMaxX = maxX;
                           _chamberMinY = minY;
                           _chamberMaxY = maxY;
+                          _maxDropDistance = maxDropDist;
 
                           // Inisialisasi posisi piksel awal item di dalam etalase kaca jika belum ada
                           if (!_hasInitialPositions && _items.isNotEmpty) {
@@ -1643,7 +1688,7 @@ class _ClawMachine3DScenePainter extends CustomPainter {
   final ui.Image? coinImage;
   final ui.Image? fishImage;
   final ui.Image? rockImage;
-  final void Function(double minX, double maxX, double minY, double maxY)? onBoundsCalculated;
+  final void Function(double minX, double maxX, double minY, double maxY, double maxDropDistance)? onBoundsCalculated;
 
   _ClawMachine3DScenePainter({
     required this.craneX,
@@ -1855,9 +1900,11 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     final double maxChamberX = boxRight - 16.0 - itemRadius;
     final double minChamberY = glassTop + 28.0 + itemRadius;
     final double maxChamberY = bodyTop - 6.0 - itemRadius;
+    final double railY = glassTop + 14.0;
+    final double maxDropDistance = (bodyTop - railY) - 46.0;
 
     if (onBoundsCalculated != null) {
-      onBoundsCalculated!(minChamberX, maxChamberX, minChamberY, maxChamberY);
+      onBoundsCalculated!(minChamberX, maxChamberX, minChamberY, maxChamberY, maxDropDistance);
     }
 
     // Gambar seluruh item mandiri yang ada di dalam mesin
@@ -1909,7 +1956,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
     // ------------------------------------------------------------
     // H. MEKANISME PENGGERAK CAPIT & REL ATAS
     // ------------------------------------------------------------
-    final double railY = glassTop + 14.0;
     canvas.drawLine(
       Offset(boxLeft + 12, railY),
       Offset(boxRight - 12, railY),
@@ -1936,7 +1982,6 @@ class _ClawMachine3DScenePainter extends CustomPainter {
         ).createShader(trolleyRect),
     );
 
-    final double maxDropDistance = (bodyTop - railY) - 46.0;
     final double clawCurrentY = railY + 8.0 + dropProgress * maxDropDistance;
 
     // Kabel baja vertikal

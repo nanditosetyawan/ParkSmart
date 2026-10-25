@@ -22,6 +22,7 @@ import 'backend/explore_map_backend.dart';
 import '../../core/services/currency_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../profile/backend/feedback_backend.dart';
+import '../profile/backend/vehicle_backend.dart';
 
 class ExploreMapScreen extends StatefulWidget {
   final Map<String, dynamic>? initialSelectedParking;
@@ -47,11 +48,24 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   int _selectedDetailTab = 0; // 0: Ringkasan, 1: Ulasan, 2: Tentang
 
   String _formatParkingPrice(Map<String, dynamic> loc) {
-    final num? rate = (loc['hourly_rate_active'] as num?) ??
-        (loc['hourly_rate_mobil'] as num?) ??
-        (loc['hourly_rate_ev'] as num?);
+    final vType = VehicleBackend.instance.defaultVehicle?.vehicleType.toLowerCase() ?? 'mobil';
+    final isMotor = vType.contains('motor') || vType.contains('bike');
+    final isEv = vType.contains('ev') || vType.contains('electric');
+
+    final num? rate = isMotor
+        ? (loc['hourly_rate_motor'] as num?)
+        : (isEv
+            ? ((loc['hourly_rate_ev'] as num?) ?? (loc['hourly_rate_mobil'] as num?))
+            : (loc['hourly_rate_mobil'] as num?));
+
     if (rate != null && rate > 0) {
       return '${CurrencyService.instance.format(rate)} / jam';
+    }
+    final num? fallbackRate = (loc['hourly_rate_active'] as num?) ??
+        (loc['hourly_rate_mobil'] as num?) ??
+        (loc['hourly_rate_ev'] as num?);
+    if (fallbackRate != null && fallbackRate > 0) {
+      return '${CurrencyService.instance.format(fallbackRate)} / jam';
     }
     final p = loc['price']?.toString() ?? '';
     final digits = RegExp(r'\d+').allMatches(p).map((m) => m.group(0)).join();
@@ -74,100 +88,58 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   List<Map<String, dynamic>> _userReviews = [];
 
-  // Database Kota, Landmark, dan Lokasi Populer di Seluruh Indonesia
-  static final List<Map<String, dynamic>> _indonesiaPlaces = [
-    // --- JAWA TIMUR ---
-    {'name': 'Surabaya', 'desc': 'Jawa Timur, Indonesia', 'alias': 'sby', 'point': const LatLng(-7.2575, 112.7521), 'zoom': 14.0},
-    {'name': 'Tunjungan Plaza', 'desc': 'Surabaya, Jawa Timur', 'alias': 'tp tunjungan mall', 'point': const LatLng(-7.2625, 112.7397), 'zoom': 16.5},
-    {'name': 'Galaxy Mall Surabaya', 'desc': 'Mulyorejo, Surabaya, Jawa Timur', 'alias': 'gm surabaya', 'point': const LatLng(-7.2736, 112.7806), 'zoom': 16.5},
-    {'name': 'Pakuwon Mall Surabaya', 'desc': 'Surabaya Barat, Jawa Timur', 'alias': 'pakuwon ptc', 'point': const LatLng(-7.2892, 112.6756), 'zoom': 16.5},
-    {'name': 'Malang', 'desc': 'Jawa Timur, Indonesia', 'alias': 'mlg kota malang', 'point': const LatLng(-7.9839, 112.6214), 'zoom': 14.0},
-    {'name': 'Kota Batu', 'desc': 'Jawa Timur, Indonesia', 'alias': 'batu malang jatim park', 'point': const LatLng(-7.8712, 112.5270), 'zoom': 14.0},
-    {'name': 'Sidoarjo', 'desc': 'Jawa Timur, Indonesia', 'alias': 'sda', 'point': const LatLng(-7.4478, 112.7183), 'zoom': 14.0},
-    {'name': 'Kediri', 'desc': 'Jawa Timur, Indonesia', 'alias': 'kota kediri', 'point': const LatLng(-7.8480, 112.0178), 'zoom': 14.0},
-    {'name': 'Madiun', 'desc': 'Jawa Timur, Indonesia', 'alias': 'kota madiun', 'point': const LatLng(-7.6298, 111.5239), 'zoom': 14.0},
-    {'name': 'Jember', 'desc': 'Jawa Timur, Indonesia', 'alias': 'kota jember', 'point': const LatLng(-8.1724, 113.7007), 'zoom': 14.0},
-    {'name': 'Banyuwangi', 'desc': 'Jawa Timur, Indonesia', 'alias': 'ketapang bwx', 'point': const LatLng(-8.2192, 114.3691), 'zoom': 14.0},
-    {'name': 'Probolinggo', 'desc': 'Jawa Timur, Indonesia', 'alias': 'bromo probolinggo', 'point': const LatLng(-7.7543, 113.2159), 'zoom': 14.0},
-    {'name': 'Pasuruan', 'desc': 'Jawa Timur, Indonesia', 'alias': 'kota pasuruan', 'point': const LatLng(-7.6453, 112.9075), 'zoom': 14.0},
+  /// Menghasilkan keterangan wilayah ("Nama Kabupaten/Kota, Nama Provinsi") untuk rekomendasi pencarian
+  String _getLocationRegionDesc(Map<String, dynamic> loc) {
+    final address = (loc['address'] ?? '').toString();
+    final city = (loc['city'] ?? '').toString().trim();
 
-    // --- DKI JAKARTA ---
-    {'name': 'Jakarta', 'desc': 'DKI Jakarta, Indonesia', 'alias': 'jkt dki ibu kota', 'point': const LatLng(-6.2088, 106.8456), 'zoom': 13.5},
-    {'name': 'Central Park Mall', 'desc': 'Tanjung Duren, Jakarta Barat', 'alias': 'cp mall jakarta', 'point': const LatLng(-6.1774, 106.7907), 'zoom': 16.5},
-    {'name': 'Grand Indonesia', 'desc': 'Thamrin, Jakarta Pusat', 'alias': 'gi mall bundaran hi', 'point': const LatLng(-6.1965, 106.8228), 'zoom': 16.5},
-    {'name': 'Mall Taman Anggrek', 'desc': 'Grogol Petamburan, Jakarta Barat', 'alias': 'mta jakarta', 'point': const LatLng(-6.1790, 106.7925), 'zoom': 16.5},
-    {'name': 'Monas', 'desc': 'Gambir, Jakarta Pusat', 'alias': 'monumen nasional', 'point': const LatLng(-6.1754, 106.8272), 'zoom': 16.0},
-    {'name': 'Senayan City', 'desc': 'Gelora, Tanah Abang, Jakarta Pusat', 'alias': 'sency senayan', 'point': const LatLng(-6.2274, 106.7974), 'zoom': 16.5},
-    {'name': 'Pondok Indah Mall', 'desc': 'Kebayoran Lama, Jakarta Selatan', 'alias': 'pim jakarta', 'point': const LatLng(-6.2652, 106.7844), 'zoom': 16.5},
-    {'name': 'Kelapa Gading Mall', 'desc': 'Jakarta Utara', 'alias': 'mkg kelapa gading', 'point': const LatLng(-6.1578, 106.9085), 'zoom': 16.5},
+    String kabupatenKota = '';
+    String provinsi = '';
 
-    // --- JAWA BARAT & BANTEN ---
-    {'name': 'Bandung', 'desc': 'Jawa Barat, Indonesia', 'alias': 'bdg kota kembang', 'point': const LatLng(-6.9175, 107.6191), 'zoom': 14.0},
-    {'name': 'Paris Van Java', 'desc': 'Sukajadi, Bandung, Jawa Barat', 'alias': 'pvj mall bandung', 'point': const LatLng(-6.8897, 107.5959), 'zoom': 16.5},
-    {'name': 'Trans Studio Mall Bandung', 'desc': 'Batununggal, Bandung', 'alias': 'tsm bandung', 'point': const LatLng(-6.9261, 107.6366), 'zoom': 16.5},
-    {'name': 'Bogor', 'desc': 'Jawa Barat, Indonesia', 'alias': 'bgr kota hujan', 'point': const LatLng(-6.5971, 106.8060), 'zoom': 14.0},
-    {'name': 'Depok', 'desc': 'Jawa Barat, Indonesia', 'alias': 'ui depok margonda', 'point': const LatLng(-6.4025, 106.7942), 'zoom': 14.0},
-    {'name': 'Bekasi', 'desc': 'Jawa Barat, Indonesia', 'alias': 'summarecon bekasi', 'point': const LatLng(-6.2383, 106.9756), 'zoom': 14.0},
-    {'name': 'Tangerang', 'desc': 'Banten, Indonesia', 'alias': 'tng bandara soetta', 'point': const LatLng(-6.1783, 106.6319), 'zoom': 14.0},
-    {'name': 'Tangerang Selatan / BSD', 'desc': 'Banten, Indonesia', 'alias': 'bsd city serpong tangsel', 'point': const LatLng(-6.2952, 106.7083), 'zoom': 14.0},
-    {'name': 'Cirebon', 'desc': 'Jawa Barat, Indonesia', 'alias': 'kota udang', 'point': const LatLng(-6.7320, 108.5523), 'zoom': 14.0},
-    {'name': 'Sukabumi', 'desc': 'Jawa Barat, Indonesia', 'alias': 'kota sukabumi', 'point': const LatLng(-6.9277, 106.9299), 'zoom': 14.0},
-    {'name': 'Tasikmalaya', 'desc': 'Jawa Barat, Indonesia', 'alias': 'kota tasik', 'point': const LatLng(-7.3274, 108.2207), 'zoom': 14.0},
-    {'name': 'Serang', 'desc': 'Banten, Indonesia', 'alias': 'kota serang', 'point': const LatLng(-6.1200, 106.1503), 'zoom': 14.0},
+    final kabMatch = RegExp(r'(Kabupaten\s+[A-Za-z\s]+|Kota\s+[A-Za-z\s]+)', caseSensitive: false).firstMatch(address);
+    if (kabMatch != null) {
+      kabupatenKota = kabMatch.group(0)!.trim();
+      if (kabupatenKota.contains(',')) {
+        kabupatenKota = kabupatenKota.split(',').first.trim();
+      }
+    } else if (city.isNotEmpty) {
+      if (city.toLowerCase().startsWith('kota') || city.toLowerCase().startsWith('kab')) {
+        kabupatenKota = city;
+      } else if (city.toLowerCase() == 'yogyakarta') {
+        kabupatenKota = 'Kota Yogyakarta';
+      } else {
+        kabupatenKota = 'Kota $city';
+      }
+    }
 
-    // --- JAWA TENGAH & D.I. YOGYAKARTA ---
-    {'name': 'Semarang', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'smg simpang lima', 'point': const LatLng(-6.9932, 110.4203), 'zoom': 14.0},
-    {'name': 'Yogyakarta', 'desc': 'D.I. Yogyakarta, Indonesia', 'alias': 'jogja djogja malioboro', 'point': const LatLng(-7.7956, 110.3695), 'zoom': 14.0},
-    {'name': 'Malioboro', 'desc': 'Danurejan, Kota Yogyakarta', 'alias': 'jalan malioboro jogja', 'point': const LatLng(-7.7926, 110.3658), 'zoom': 16.5},
-    {'name': 'Solo (Surakarta)', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'surakarta kota solo', 'point': const LatLng(-7.5666, 110.8250), 'zoom': 14.0},
-    {'name': 'Magelang', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'borobudur magelang', 'point': const LatLng(-7.4706, 110.2178), 'zoom': 14.0},
-    {'name': 'Purwokerto', 'desc': 'Banyumas, Jawa Tengah', 'alias': 'baturraden banyumas', 'point': const LatLng(-7.4243, 109.2301), 'zoom': 14.0},
-    {'name': 'Tegal', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'kota tegal', 'point': const LatLng(-6.8694, 109.1402), 'zoom': 14.0},
-    {'name': 'Pekalongan', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'kota batik', 'point': const LatLng(-6.8886, 109.6753), 'zoom': 14.0},
-    {'name': 'Salatiga', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'kota salatiga', 'point': const LatLng(-7.3305, 110.5084), 'zoom': 14.0},
-    {'name': 'Kudus', 'desc': 'Jawa Tengah, Indonesia', 'alias': 'kota kretek', 'point': const LatLng(-6.8048, 110.8405), 'zoom': 14.0},
+    final addrLower = address.toLowerCase();
+    final cityLower = city.toLowerCase();
+    if (addrLower.contains('daerah istimewa yogyakarta') || addrLower.contains('d.i. yogyakarta') || addrLower.contains('diy') || cityLower.contains('yogyakarta')) {
+      provinsi = 'D.I. Yogyakarta';
+    } else if (addrLower.contains('jawa timur') || cityLower.contains('surabaya') || cityLower.contains('malang')) {
+      provinsi = 'Jawa Timur';
+    } else if (addrLower.contains('jawa tengah') || cityLower.contains('semarang') || cityLower.contains('solo')) {
+      provinsi = 'Jawa Tengah';
+    } else if (addrLower.contains('jawa barat') || cityLower.contains('bandung') || cityLower.contains('bogor')) {
+      provinsi = 'Jawa Barat';
+    } else if (addrLower.contains('dki jakarta') || addrLower.contains('jakarta') || cityLower.contains('jakarta')) {
+      provinsi = 'DKI Jakarta';
+    } else if (addrLower.contains('banten') || cityLower.contains('tangerang')) {
+      provinsi = 'Banten';
+    } else if (addrLower.contains('bali') || cityLower.contains('denpasar')) {
+      provinsi = 'Bali';
+    }
 
-    // --- BALI & NUSA TENGGARA ---
-    {'name': 'Denpasar', 'desc': 'Bali, Indonesia', 'alias': 'bali dps sanur', 'point': const LatLng(-8.6705, 115.2126), 'zoom': 13.5},
-    {'name': 'Kuta', 'desc': 'Badung, Bali, Indonesia', 'alias': 'pantai kuta beachwalk', 'point': const LatLng(-8.7233, 115.1723), 'zoom': 15.0},
-    {'name': 'Ubud', 'desc': 'Gianyar, Bali, Indonesia', 'alias': 'ubud bali monkey forest', 'point': const LatLng(-8.5069, 115.2625), 'zoom': 14.5},
-    {'name': 'Mataram (Lombok)', 'desc': 'Nusa Tenggara Barat, Indonesia', 'alias': 'lombok ntb gili', 'point': const LatLng(-8.5833, 116.1167), 'zoom': 13.5},
-    {'name': 'Labuan Bajo', 'desc': 'Manggarai Barat, NTT', 'alias': 'komodo labuan bajo ntt', 'point': const LatLng(-8.4964, 119.8877), 'zoom': 14.5},
-    {'name': 'Kupang', 'desc': 'Nusa Tenggara Timur, Indonesia', 'alias': 'kota kupang ntt', 'point': const LatLng(-10.1772, 123.6070), 'zoom': 13.5},
-
-    // --- SUMATERA ---
-    {'name': 'Medan', 'desc': 'Sumatera Utara, Indonesia', 'alias': 'mdn sumut deli', 'point': const LatLng(3.5952, 98.6722), 'zoom': 13.5},
-    {'name': 'Palembang', 'desc': 'Sumatera Selatan, Indonesia', 'alias': 'plb ampera sumsel', 'point': const LatLng(-2.9761, 104.7754), 'zoom': 13.5},
-    {'name': 'Batam', 'desc': 'Kepulauan Riau, Indonesia', 'alias': 'kepri nagoya barelang', 'point': const LatLng(1.1301, 104.0529), 'zoom': 13.5},
-    {'name': 'Pekanbaru', 'desc': 'Riau, Indonesia', 'alias': 'pku riau', 'point': const LatLng(0.5071, 101.4478), 'zoom': 13.5},
-    {'name': 'Padang', 'desc': 'Sumatera Barat, Indonesia', 'alias': 'pdg sumbar jam gadang', 'point': const LatLng(-0.9471, 100.4172), 'zoom': 13.5},
-    {'name': 'Bandar Lampung', 'desc': 'Lampung, Indonesia', 'alias': 'bdl lampung bakauheni', 'point': const LatLng(-5.4292, 105.2625), 'zoom': 13.5},
-    {'name': 'Banda Aceh', 'desc': 'Aceh, Indonesia', 'alias': 'serambi mekkah nad', 'point': const LatLng(5.5483, 95.3238), 'zoom': 13.5},
-    {'name': 'Jambi', 'desc': 'Jambi, Indonesia', 'alias': 'kota jambi', 'point': const LatLng(-1.6101, 103.6131), 'zoom': 13.5},
-    {'name': 'Bengkulu', 'desc': 'Bengkulu, Indonesia', 'alias': 'kota bengkulu', 'point': const LatLng(-3.7928, 102.2608), 'zoom': 13.5},
-    {'name': 'Pangkalpinang', 'desc': 'Bangka Belitung, Indonesia', 'alias': 'bangka belitung babel', 'point': const LatLng(-2.1290, 106.1139), 'zoom': 13.5},
-
-    // --- KALIMANTAN ---
-    {'name': 'Balikpapan', 'desc': 'Kalimantan Timur, Indonesia', 'alias': 'bpp kaltim sepinggan', 'point': const LatLng(-1.2379, 116.8529), 'zoom': 13.5},
-    {'name': 'Samarinda', 'desc': 'Kalimantan Timur, Indonesia', 'alias': 'smd mahakam kaltim', 'point': const LatLng(-0.5022, 117.1536), 'zoom': 13.5},
-    {'name': 'IKN Nusantara', 'desc': 'Sepaku, Penajam Paser Utara, Kaltim', 'alias': 'ibu kota nusantara ikn', 'point': const LatLng(-0.9739, 116.7090), 'zoom': 14.5},
-    {'name': 'Banjarmasin', 'desc': 'Kalimantan Selatan, Indonesia', 'alias': 'bjm kalsel pasar terapung', 'point': const LatLng(-3.3194, 114.5908), 'zoom': 13.5},
-    {'name': 'Pontianak', 'desc': 'Kalimantan Barat, Indonesia', 'alias': 'ptk kalbar khatulistiwa', 'point': const LatLng(-0.0263, 109.3425), 'zoom': 13.5},
-    {'name': 'Palangka Raya', 'desc': 'Kalimantan Tengah, Indonesia', 'alias': 'kalteng palangkaraya', 'point': const LatLng(-2.2161, 113.9140), 'zoom': 13.5},
-    {'name': 'Tarakan', 'desc': 'Kalimantan Utara, Indonesia', 'alias': 'kaltara tarakan', 'point': const LatLng(3.3273, 117.5786), 'zoom': 13.5},
-
-    // --- SULAWESI ---
-    {'name': 'Makassar', 'desc': 'Sulawesi Selatan, Indonesia', 'alias': 'mks sulsel pantai losari ujung pandang', 'point': const LatLng(-5.1477, 119.4327), 'zoom': 13.5},
-    {'name': 'Manado', 'desc': 'Sulawesi Utara, Indonesia', 'alias': 'mdo sulut bunaken', 'point': const LatLng(1.4748, 124.8421), 'zoom': 13.5},
-    {'name': 'Palu', 'desc': 'Sulawesi Tengah, Indonesia', 'alias': 'sulteng palu', 'point': const LatLng(-0.9003, 119.8779), 'zoom': 13.5},
-    {'name': 'Kendari', 'desc': 'Sulawesi Tenggara, Indonesia', 'alias': 'sultra kendari', 'point': const LatLng(-3.9985, 122.5126), 'zoom': 13.5},
-    {'name': 'Gorontalo', 'desc': 'Gorontalo, Indonesia', 'alias': 'kota gorontalo', 'point': const LatLng(0.5435, 123.0568), 'zoom': 13.5},
-
-    // --- MALUKU & PAPUA ---
-    {'name': 'Ambon', 'desc': 'Maluku, Indonesia', 'alias': 'ambon manise maluku', 'point': const LatLng(-3.6547, 128.1906), 'zoom': 13.5},
-    {'name': 'Jayapura', 'desc': 'Papua, Indonesia', 'alias': 'jayapura papua sentani', 'point': const LatLng(-2.5916, 140.6690), 'zoom': 13.5},
-    {'name': 'Sorong', 'desc': 'Papua Barat Daya, Indonesia', 'alias': 'raja ampat sorong', 'point': const LatLng(-0.8762, 131.2558), 'zoom': 13.5},
-  ];
+    if (kabupatenKota.isNotEmpty && provinsi.isNotEmpty) {
+      return '$kabupatenKota, $provinsi';
+    } else if (kabupatenKota.isNotEmpty) {
+      return kabupatenKota;
+    } else if (provinsi.isNotEmpty) {
+      return provinsi;
+    } else {
+      return city.isNotEmpty ? city : 'Indonesia';
+    }
+  }
 
   // Mode Tile Map (Standar OSM vs Satelit)
   bool _isSatellite = false;
@@ -730,12 +702,29 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
       return;
     }
 
-    final results = _indonesiaPlaces.where((place) {
-      final name = (place['name'] as String).toLowerCase();
-      final desc = (place['desc'] as String).toLowerCase();
-      final alias = (place['alias'] as String? ?? '').toLowerCase();
-      return name.contains(q) || desc.contains(q) || alias.contains(q);
-    }).take(5).toList();
+    // Ambil seluruh daftar tempat parkir aktif murni dari database Supabase
+    final Map<String, Map<String, dynamic>> uniqueParkings = {};
+    for (final loc in [..._parkingLocations, ...ExploreMapBackend.instance.locations]) {
+      final name = loc['name']?.toString() ?? '';
+      if (name.isNotEmpty && !uniqueParkings.containsKey(name)) {
+        uniqueParkings[name] = loc;
+      }
+    }
+
+    final results = uniqueParkings.values.where((loc) {
+      final name = (loc['name'] ?? '').toString().toLowerCase();
+      final address = (loc['address'] ?? '').toString().toLowerCase();
+      final city = (loc['city'] ?? '').toString().toLowerCase();
+      final type = (loc['type'] ?? '').toString().toLowerCase();
+      return name.contains(q) || address.contains(q) || city.contains(q) || type.contains(q);
+    }).map((loc) {
+      return {
+        'name': loc['name'] ?? 'Spot Parkir',
+        'desc': _getLocationRegionDesc(loc),
+        'locData': loc,
+        'point': loc['point'] as LatLng?,
+      };
+    }).toList();
 
     setState(() {
       _filteredSuggestions = results;
@@ -743,23 +732,27 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     });
   }
 
-  void _performAutoSearch(String query) {
+  void _performAutoSearch(String query, [Map<String, dynamic>? selectedLoc]) {
     final trimmed = query.trim();
-    if (trimmed.isEmpty) return;
+    if (trimmed.isEmpty && selectedLoc == null) return;
 
     final q = trimmed.toLowerCase();
-    _searchController.text = trimmed;
+    _searchController.text = selectedLoc != null ? (selectedLoc['name']?.toString() ?? trimmed) : trimmed;
     _searchFocusNode.unfocus();
 
-    // 0. Cek apakah cocok dengan lokasi parkir yang didaftarkan admin
-    Map<String, dynamic>? matchedParking;
-    final allParkings = [..._parkingLocations, ...ExploreMapBackend.instance.locations];
-    for (final loc in allParkings) {
-      final name = (loc['name'] as String? ?? '').toLowerCase();
-      final type = (loc['type'] as String? ?? '').toLowerCase();
-      if (name == q || name.contains(q) || q.contains(name) || type.contains(q)) {
-        matchedParking = loc;
-        break;
+    // 0. Cek apakah cocok dengan lokasi parkir dari database
+    Map<String, dynamic>? matchedParking = selectedLoc;
+    if (matchedParking == null) {
+      final allParkings = [..._parkingLocations, ...ExploreMapBackend.instance.locations];
+      for (final loc in allParkings) {
+        final name = (loc['name'] as String? ?? '').toLowerCase();
+        final type = (loc['type'] as String? ?? '').toLowerCase();
+        final city = (loc['city'] as String? ?? '').toLowerCase();
+        final address = (loc['address'] as String? ?? '').toLowerCase();
+        if (name == q || name.contains(q) || q.contains(name) || type.contains(q) || city.contains(q) || address.contains(q)) {
+          matchedParking = loc;
+          break;
+        }
       }
     }
 
@@ -783,141 +776,154 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         ),
       );
       return;
+    } else {
+      // Tidak ditemukan di database lokasi parkir
+      setState(() {
+        _filteredSuggestions = [];
+        _isSearching = false;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Lokasi parkir "$trimmed" tidak ditemukan di database.'),
+          backgroundColor: const Color(0xFFEA4335),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
+  }
 
-    Map<String, dynamic>? matchedPlace;
-
-    // 1. Cari exact / best match dari database kota & tempat Indonesia
-    for (final place in _indonesiaPlaces) {
-      final name = (place['name'] as String).toLowerCase();
-      final alias = (place['alias'] as String? ?? '').toLowerCase();
-      if (name == q || alias == q || name.startsWith(q)) {
-        matchedPlace = place;
-        break;
+  bool _isLocationEv(Map<String, dynamic> loc) {
+    if (loc['isEv'] == true) {
+      return true;
+    }
+    if (loc['is_ev_ready'] == true) {
+      return true;
+    }
+    if (((loc['ev_slots_capacity'] as num?) ?? 0) > 0) {
+      return true;
+    }
+    final facs = loc['facilities'];
+    if (facs is List) {
+      if (facs.any((f) {
+        final s = f.toString().toLowerCase();
+        return s.contains('ev') || s.contains('electric') || s.contains('charging');
+      })) {
+        return true;
       }
     }
-
-    // 2. Jika tidak ada yang persis, cari yang mengandung kata kunci
-    matchedPlace ??= _indonesiaPlaces.cast<Map<String, dynamic>?>().firstWhere(
-      (place) {
-        if (place == null) return false;
-        final name = (place['name'] as String).toLowerCase();
-        final desc = (place['desc'] as String).toLowerCase();
-        final alias = (place['alias'] as String? ?? '').toLowerCase();
-        return name.contains(q) || desc.contains(q) || alias.contains(q) || q.contains(name);
-      },
-      orElse: () => null,
-    );
-
-    LatLng targetPoint;
-    String displayName = trimmed;
-    double targetZoom = 14.0;
-
-    if (matchedPlace != null) {
-      targetPoint = matchedPlace['point'] as LatLng;
-      displayName = matchedPlace['name'] as String;
-      targetZoom = (matchedPlace['zoom'] as double?) ?? 14.0;
-    } else {
-      // Default jika tidak ada kota spesifik: Surabaya
-      targetPoint = const LatLng(-7.2575, 112.7521);
-      displayName = trimmed;
-      targetZoom = 14.0;
+    final t = (loc['type']?.toString() ?? '').toLowerCase();
+    if (t.contains('ev')) {
+      return true;
     }
+    return false;
+  }
 
-    // Tambahkan titik parkir regional jika mencari kota besar tertentu
-    if (q.contains('surabaya') && !_parkingLocations.any((loc) => (loc['name'] as String).contains('Tunjungan'))) {
-      _parkingLocations.addAll([
-        {
-          'name': 'Tunjungan Plaza Parking Hub',
-          'type': 'Mall',
-          'point': const LatLng(-7.2625, 112.7397),
-          'slots': 120,
-          'isEv': true,
-          'hourly_rate_mobil': 5000,
-          'hourly_rate_active': 5000,
-          'price': '${CurrencyService.instance.format(5000)}/j',
-        },
-        {
-          'name': 'Galaxy Mall Surabaya Parking',
-          'type': 'Mall',
-          'point': const LatLng(-7.2736, 112.7806),
-          'slots': 64,
-          'isEv': true,
-          'hourly_rate_mobil': 5000,
-          'hourly_rate_active': 5000,
-          'price': '${CurrencyService.instance.format(5000)}/j',
-        },
-      ]);
-    } else if (q.contains('bandung') && !_parkingLocations.any((loc) => (loc['name'] as String).contains('PVJ'))) {
-      _parkingLocations.addAll([
-        {
-          'name': 'PVJ Bandung Parking Lot',
-          'type': 'Mall',
-          'point': const LatLng(-6.8897, 107.5959),
-          'slots': 90,
-          'isEv': true,
-          'hourly_rate_mobil': 5000,
-          'hourly_rate_active': 5000,
-          'price': '${CurrencyService.instance.format(5000)}/j',
-        },
-        {
-          'name': 'TSM Bandung Parking Area',
-          'type': 'Mall',
-          'point': const LatLng(-6.9261, 107.6366),
-          'slots': 75,
-          'isEv': true,
-          'hourly_rate_mobil': 5000,
-          'hourly_rate_active': 5000,
-          'price': '${CurrencyService.instance.format(5000)}/j',
-        },
-      ]);
-    }
-
-    setState(() {
-      _searchQuery = displayName;
-      _searchResultPoint = targetPoint;
-      _searchResultName = displayName;
-      _filteredSuggestions = [];
-      _isSearching = false;
-    });
-
-    // Otomatis animasi terbang ke kota/lokasi yang dicari
-    _mapController.move(targetPoint, targetZoom);
-    _fetchWeather(targetPoint);
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        backgroundColor: const Color(0xFF1F1F1F),
-        content: Row(
-          children: [
-            const Icon(Icons.location_on, color: Color(0xFFEA4335), size: 20),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                'Menemukan kota "$displayName". Peta dialihkan ke lokasi.',
-                style: GoogleFonts.inter(color: Colors.white, fontSize: 13, fontWeight: FontWeight.w500),
-              ),
-            ),
-          ],
-        ),
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+  bool _isLocationMall(Map<String, dynamic> loc) {
+    final type = (loc['type']?.toString() ?? '').toLowerCase();
+    final name = (loc['name']?.toString() ?? '').toLowerCase();
+    return type.contains('mall') || name.contains('mall');
   }
 
   void _onCategoryTapped(String cat) {
+    final isUnselecting = _selectedCategory == cat;
     setState(() {
       _selectedParking = null;
-      _selectedCategory = _selectedCategory == cat ? '' : cat;
+      _selectedCategory = isUnselecting ? '' : cat;
     });
 
-    if (cat == 'Terdekat' && _currentPosition != null) {
-      _mapController.move(_currentPosition!, 16.5);
+    if (isUnselecting) {
+      // Kembali ke zoom normal (15.5) dan posisi semula
+      final normalCenter = _currentPosition ?? (_parkingLocations.isNotEmpty ? (_parkingLocations.first['point'] as LatLng) : const LatLng(-7.758611, 110.399));
+      _mapController.move(normalCenter, 15.5);
+      return;
+    }
+
+    // Layar peta mengecil 60% (zoom out ke 12.0) agar jangkauan lihat luas sehingga mengetahui lokasi parkir
+    const double wideZoom = 12.0;
+    LatLng targetCenter;
+
+    if (cat == 'Terdekat') {
+      if (_isGpsActive && _currentPosition != null) {
+        targetCenter = _currentPosition!;
+      } else if (_parkingLocations.isNotEmpty) {
+        targetCenter = _parkingLocations.first['point'] as LatLng;
+      } else {
+        targetCenter = _currentPosition ?? const LatLng(-7.758611, 110.399);
+      }
+      _mapController.move(targetCenter, wideZoom);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Menampilkan lokasi parkir terdekat di sekitar Anda (Jangkauan Luas)'),
+          backgroundColor: Color(0xFF1A73E8),
+          duration: Duration(seconds: 2),
+        ),
+      );
     } else if (cat == 'Mall') {
-      _mapController.move(const LatLng(-6.1774, 106.7907), 16.0);
+      final matchingMalls = _parkingLocations.where(_isLocationMall).toList();
+      if (matchingMalls.isNotEmpty) {
+        if (_currentPosition != null) {
+          matchingMalls.sort((a, b) {
+            final ptA = a['point'] as LatLng?;
+            final ptB = b['point'] as LatLng?;
+            if (ptA == null || ptB == null) return 0;
+            final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptA.latitude, ptA.longitude);
+            final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptB.latitude, ptB.longitude);
+            return distA.compareTo(distB);
+          });
+        }
+        targetCenter = matchingMalls.first['point'] as LatLng;
+      } else if (_currentPosition != null && _isGpsActive) {
+        targetCenter = _currentPosition!;
+      } else if (_parkingLocations.isNotEmpty) {
+        targetCenter = _parkingLocations.first['point'] as LatLng;
+      } else {
+        targetCenter = const LatLng(-7.758611, 110.399);
+      }
+      _mapController.move(targetCenter, wideZoom);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            matchingMalls.isNotEmpty
+                ? 'Menampilkan ${matchingMalls.length} lokasi parkir Mall (Tipe: Mall)'
+                : 'Tidak ada lokasi parkir Mall yang ditemukan di database',
+          ),
+          backgroundColor: const Color(0xFF1A73E8),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     } else if (cat == 'Parkir EV') {
-      _mapController.move(const LatLng(-6.1740, 106.7940), 16.5);
+      final matchingEvs = _parkingLocations.where(_isLocationEv).toList();
+      if (matchingEvs.isNotEmpty) {
+        if (_currentPosition != null) {
+          matchingEvs.sort((a, b) {
+            final ptA = a['point'] as LatLng?;
+            final ptB = b['point'] as LatLng?;
+            if (ptA == null || ptB == null) return 0;
+            final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptA.latitude, ptA.longitude);
+            final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptB.latitude, ptB.longitude);
+            return distA.compareTo(distB);
+          });
+        }
+        targetCenter = matchingEvs.first['point'] as LatLng;
+      } else if (_currentPosition != null && _isGpsActive) {
+        targetCenter = _currentPosition!;
+      } else if (_parkingLocations.isNotEmpty) {
+        targetCenter = _parkingLocations.first['point'] as LatLng;
+      } else {
+        targetCenter = const LatLng(-7.758611, 110.399);
+      }
+      _mapController.move(targetCenter, wideZoom);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            matchingEvs.isNotEmpty
+                ? 'Menampilkan ${matchingEvs.length} lokasi parkir dengan stasiun EV Charging'
+                : 'Tidak ada lokasi parkir EV yang ditemukan di database',
+          ),
+          backgroundColor: const Color(0xFF1A73E8),
+          duration: const Duration(seconds: 2),
+        ),
+      );
     }
   }
 
@@ -1053,12 +1059,11 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     ..._parkingLocations.map((loc) {
                       final LatLng pt = loc['point'] as LatLng;
                       final String name = loc['name'] as String;
-                      final bool isEv = (loc['isEv'] as bool?) ?? false;
-                      final String type = (loc['type'] as String?) ?? 'Mall';
+                      final bool isEv = _isLocationEv(loc);
                       final bool isSelected = _selectedParking != null && _selectedParking!['name'] == name;
 
-                      // Filter kategori jika aktif
-                      if (_selectedCategory == 'Mall' && !type.contains('Mall')) return null;
+                      // Filter kategori jika aktif (Mall dan Parkir EV)
+                      if (_selectedCategory == 'Mall' && !_isLocationMall(loc)) return null;
                       if (_selectedCategory == 'Parkir EV' && !isEv) return null;
 
                       // JIKA TITIK INI DIKLIK: Berubah jadi PIN MERAH khas Google Maps!
@@ -1388,7 +1393,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                             ),
                             cursorColor: isDark ? Colors.white : const Color(0xFF1F1F1F),
                             decoration: InputDecoration(
-                              hintText: 'Cari kota di Indonesia, SPBU...'.tr,
+                              hintText: 'Cari tempat parkir...'.tr,
                               hintStyle: GoogleFonts.inter(
                                 color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                 fontSize: 15,
@@ -1435,13 +1440,13 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                     ),
                   ),
 
-                  // Autocomplete Dropdown Hasil Pencarian Kota di Indonesia
+                  // Autocomplete Dropdown Hasil Pencarian Tempat Parkir dari Database
                   if (_isSearching && _filteredSuggestions.isNotEmpty)
                     Container(
                       margin: const EdgeInsets.symmetric(horizontal: 16),
                       constraints: const BoxConstraints(maxHeight: 260),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: isDark ? theme.card : Colors.white,
                         borderRadius: BorderRadius.circular(16),
                         boxShadow: [
                           BoxShadow(
@@ -1457,9 +1462,14 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                           shrinkWrap: true,
                           padding: const EdgeInsets.symmetric(vertical: 4),
                           itemCount: _filteredSuggestions.length,
-                          separatorBuilder: (context, index) => const Divider(height: 1, indent: 46),
+                          separatorBuilder: (context, index) => Divider(
+                            height: 1, 
+                            indent: 46,
+                            color: isDark ? theme.border : const Color(0xFFE5E7EB),
+                          ),
                           itemBuilder: (context, index) {
                             final place = _filteredSuggestions[index];
+                            final loc = place['locData'] as Map<String, dynamic>?;
                             return ListTile(
                               dense: true,
                               visualDensity: VisualDensity.compact,
@@ -1469,18 +1479,18 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 style: GoogleFonts.inter(
                                   fontWeight: FontWeight.w600,
                                   fontSize: 14,
-                                  color: const Color(0xFF1F1F1F),
+                                  color: isDark ? Colors.white : const Color(0xFF1F1F1F),
                                 ),
                               ),
                               subtitle: Text(
                                 place['desc'] as String,
                                 style: GoogleFonts.inter(
                                   fontSize: 12,
-                                  color: const Color(0xFF5F6368),
+                                  color: isDark ? theme.textMuted : const Color(0xFF5F6368),
                                 ),
                               ),
                               onTap: () {
-                                _performAutoSearch(place['name'] as String);
+                                _performAutoSearch(place['name'] as String, loc);
                               },
                             );
                           },
@@ -1497,18 +1507,21 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       children: [
                         _buildCategoryPill(
                           title: 'Terdekat'.tr,
+                          categoryKey: 'Terdekat',
                           icon: Icons.near_me_outlined,
                           isSelected: _selectedCategory == 'Terdekat',
                         ),
                         const SizedBox(width: 8),
                         _buildCategoryPill(
                           title: 'Mall'.tr,
+                          categoryKey: 'Mall',
                           icon: Icons.storefront_outlined,
                           isSelected: _selectedCategory == 'Mall',
                         ),
                         const SizedBox(width: 8),
                         _buildCategoryPill(
                           title: 'Parkir EV'.tr,
+                          categoryKey: 'Parkir EV',
                           icon: Icons.electric_car_outlined,
                           isSelected: _selectedCategory == 'Parkir EV',
                         ),
@@ -2037,46 +2050,67 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                         const SizedBox(height: 14),
                         Padding(
                           padding: const EdgeInsets.fromLTRB(16, 0, 16, 40),
-                          child: Column(
-                            children: _parkingLocations.map((loc) {
-                              final List<String> photos = (loc['photos'] as List<dynamic>?)?.cast<String>() ?? [
-                                'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
-                              ];
-                              final String img = photos.first;
-                              final String name = loc['name'] as String;
-                              final LatLng? pt = loc['point'] as LatLng?;
-                              String dist = (loc['distance'] as String?) ?? '1.2 km';
-                              if (_currentPosition != null && pt != null) {
-                                final dMeters = Geolocator.distanceBetween(
-                                  _currentPosition!.latitude,
-                                  _currentPosition!.longitude,
-                                  pt.latitude,
-                                  pt.longitude,
-                                );
-                                if (dMeters < 1000) {
-                                  dist = '${dMeters.round()}m';
-                                } else {
-                                  dist = '${(dMeters / 1000).toStringAsFixed(1)} km';
-                                }
-                              }
-                              final int slots = (loc['slots'] as int?) ?? 20;
-                              final String subtitleText = '$dist • ${'$slots slot tersedia'.tr}';
-                              final String price = _formatParkingPrice(loc);
-                              final bool isEv = (loc['isEv'] as bool?) ?? false;
-                              final String rating = (loc['rating'] ?? 4.7).toString();
+                          child: Builder(
+                            builder: (context) {
+                              var displayedLocs = _parkingLocations.where((loc) {
+                                if (_selectedCategory == 'Mall' && !_isLocationMall(loc)) return false;
+                                if (_selectedCategory == 'Parkir EV' && !_isLocationEv(loc)) return false;
+                                return true;
+                              }).toList();
 
-                              return _buildParkingRecommendationCard(
-                                title: name,
-                                subtitle: subtitleText,
-                                price: price,
-                                imageUrl: img,
-                                rating: rating,
-                                isEv: isEv,
-                                onExplore: () {
-                                  _onParkingMarkerTapped(loc);
-                                },
+                              if (_selectedCategory == 'Terdekat' && _currentPosition != null) {
+                                displayedLocs.sort((a, b) {
+                                  final ptA = a['point'] as LatLng?;
+                                  final ptB = b['point'] as LatLng?;
+                                  if (ptA == null || ptB == null) return 0;
+                                  final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptA.latitude, ptA.longitude);
+                                  final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptB.latitude, ptB.longitude);
+                                  return distA.compareTo(distB);
+                                });
+                              }
+
+                              return Column(
+                                children: displayedLocs.map((loc) {
+                                  final List<String> photos = (loc['photos'] as List<dynamic>?)?.cast<String>() ?? [
+                                    'https://images.unsplash.com/photo-1506521781263-d8422e82f27a?w=600&auto=format&fit=crop&q=80',
+                                  ];
+                                  final String img = photos.first;
+                                  final String name = loc['name'] as String;
+                                  final LatLng? pt = loc['point'] as LatLng?;
+                                  String dist = (loc['distance'] as String?) ?? '1.2 km';
+                                  if (_currentPosition != null && pt != null) {
+                                    final dMeters = Geolocator.distanceBetween(
+                                      _currentPosition!.latitude,
+                                      _currentPosition!.longitude,
+                                      pt.latitude,
+                                      pt.longitude,
+                                    );
+                                    if (dMeters < 1000) {
+                                      dist = '${dMeters.round()}m';
+                                    } else {
+                                      dist = '${(dMeters / 1000).toStringAsFixed(1)} km';
+                                    }
+                                  }
+                                  final int slots = (loc['slots'] as int?) ?? 20;
+                                  final String subtitleText = '$dist • ${'$slots slot tersedia'.tr}';
+                                  final String price = _formatParkingPrice(loc);
+                                  final bool isEv = _isLocationEv(loc);
+                                  final String rating = (loc['rating'] ?? 4.7).toString();
+
+                                  return _buildParkingRecommendationCard(
+                                    title: name,
+                                    subtitle: subtitleText,
+                                    price: price,
+                                    imageUrl: img,
+                                    rating: rating,
+                                    isEv: isEv,
+                                    onExplore: () {
+                                      _onParkingMarkerTapped(loc);
+                                    },
+                                  );
+                                }).toList(),
                               );
-                            }).toList(),
+                            },
                           ),
                         ),
                         const SizedBox(height: 800),
@@ -2466,7 +2500,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                   },
                 ),
                 const Divider(height: 18),
-                _buildInfoRow(Icons.qr_code, 'Metode Masuk'.tr, 'Tiket / Palang Otomatis & QRIS'.tr),
+                _buildInfoRow(Icons.qr_code, 'Metode Masuk'.tr, 'Tiket / Palang Otomatis'.tr),
               ],
             ),
           ),
@@ -3512,6 +3546,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   Widget _buildCategoryPill({
     required String title,
+    required String categoryKey,
     required IconData icon,
     required bool isSelected,
   }) {
@@ -3527,7 +3562,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         : (isDark ? Colors.white : const Color(0xFF1F2937));
 
     return GestureDetector(
-      onTap: () => _onCategoryTapped(title),
+      onTap: () => _onCategoryTapped(categoryKey),
       child: Container(
         height: 38,
         padding: const EdgeInsets.symmetric(horizontal: 14),
