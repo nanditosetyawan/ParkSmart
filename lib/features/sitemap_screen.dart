@@ -35,7 +35,6 @@ import 'admin/super_admin/admin_arcade_screen.dart';
 
 // AI Assistant
 import 'ai_assistant/ai_assistant_screen.dart';
-import 'ai_assistant/ai_results_screen.dart';
 
 // Auth
 import 'auth/login_screen.dart';
@@ -153,7 +152,6 @@ class SitemapScreen extends StatelessWidget {
               ], isDark, theme),
               _buildCategory('6. AI Assistant (ParkSmart AI)', [
                 _Item('Asisten Suara & Chat ParkSmart AI', 'ai_assistant_screen.dart', (c) => const AiAssistantScreen()),
-                _Item('Hasil Rekomendasi Pintar AI', 'ai_results_screen.dart', (c) => const AiResultsScreen()),
               ], isDark, theme),
               _buildCategory('7. Profil Pengguna & Keamanan', [
                 _Item('Profil Pengguna Utama', 'profile_screen.dart', (c) => const ProfileScreen()),

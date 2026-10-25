@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
+import 'game_user_helper.dart';
 
 /// Backend khusus untuk GameLobbyScreen
 /// Menampilkan statistik arcade dan status reward pengguna sebelum masuk ke game
@@ -28,7 +29,7 @@ class GameLobbyBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id;
+      final uid = await GameUserHelper.resolveUserId(userId);
       if (uid == null) return;
 
       final res = await DatabaseCacheBalancerService.instance.getBalanced<Map<String, dynamic>>(

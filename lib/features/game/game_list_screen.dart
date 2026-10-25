@@ -3,6 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'backend/car_game_backend.dart';
+import 'backend/claws_car_backend.dart';
+import 'backend/game_list_backend.dart';
 import 'car_game_screen.dart';
 import 'claws_car_screen.dart';
 
@@ -16,6 +19,7 @@ class GameListScreen extends StatefulWidget {
 class _GameListScreenState extends State<GameListScreen> {
   int _parkingHighScore = 0;
   int _clawsHighScore = 0;
+  int _userPoints = 0;
   bool _isParkingActive = true;
   bool _isClawsActive = true;
 
@@ -31,9 +35,37 @@ class _GameListScreenState extends State<GameListScreen> {
       setState(() {
         _parkingHighScore = prefs.getInt('parking_high_score') ?? 0;
         _clawsHighScore = prefs.getInt('claws_car_high_score') ?? 0;
+        _userPoints = prefs.getInt('user_arcade_points') ?? 25000;
         _isParkingActive = prefs.getBool('arcade_parking_active') ?? true;
         _isClawsActive = prefs.getBool('arcade_claws_active') ?? true;
       });
+    }
+
+    // Sinkronisasi data real-time dari Supabase
+    try {
+      await Future.wait([
+        CarGameBackend.instance.loadUserScores(),
+        ClawsCarBackend.instance.loadUserScores(),
+        GameListBackend.instance.fetchGameOverview(),
+      ]);
+
+      if (mounted) {
+        setState(() {
+          if (CarGameBackend.instance.highestScore > 0) {
+            _parkingHighScore = CarGameBackend.instance.highestScore;
+          }
+          if (ClawsCarBackend.instance.highestScore > 0) {
+            _clawsHighScore = ClawsCarBackend.instance.highestScore;
+          }
+          if (GameListBackend.instance.userPoints > 0) {
+            _userPoints = GameListBackend.instance.userPoints;
+          } else if (CarGameBackend.instance.userPoints > 0) {
+            _userPoints = CarGameBackend.instance.userPoints;
+          }
+        });
+      }
+    } catch (e) {
+      debugPrint('[GameListScreen] Error syncing scores from DB: $e');
     }
   }
 
@@ -127,13 +159,38 @@ class _GameListScreenState extends State<GameListScreen> {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Text(
-                        'PILIH PERMAINAN',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w900,
-                          color: const Color(0xFF34D399),
-                          letterSpacing: 1.5,
+                      Expanded(
+                        child: Text(
+                          'PILIH PERMAINAN',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w900,
+                            color: const Color(0xFF34D399),
+                            letterSpacing: 1.5,
+                          ),
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 16),
+                            const SizedBox(width: 4),
+                            Text(
+                              '${_formatScore(_userPoints)} Pts',
+                              style: GoogleFonts.inter(
+                                fontSize: 12,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFF59E0B),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
                     ],
@@ -161,27 +218,6 @@ class _GameListScreenState extends State<GameListScreen> {
                         color1: const Color(0xFF7E22CE),
                         color2: const Color(0xFFEC4899),
                         onTap: _openClawsGame,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildGameCard(
-                        context: context,
-                        icon: Icons.view_comfy_rounded,
-                        name: 'Puzzle Valet',
-                        lastScore: 'Segera Hadir',
-                        color1: const Color(0xFFC2410C),
-                        color2: const Color(0xFFEAB308),
-                        onTap: () {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                'Game Puzzle Valet segera hadir di ParkSmart Arcade!',
-                                style: GoogleFonts.inter(fontWeight: FontWeight.bold),
-                              ),
-                              backgroundColor: const Color(0xFF1E293B),
-                              duration: const Duration(seconds: 2),
-                            ),
-                          );
-                        },
                       ),
                     ],
                   ),

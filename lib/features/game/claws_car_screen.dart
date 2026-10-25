@@ -455,6 +455,19 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
         _credits = prefs.getInt('claws_car_coins') ?? 5;
       });
     }
+
+    // Sinkronisasi data skor & poin terbaru dari Supabase Database
+    await ClawsCarBackend.instance.loadUserScores();
+    if (mounted) {
+      setState(() {
+        if (ClawsCarBackend.instance.highestScore > 0) {
+          _highScore = ClawsCarBackend.instance.highestScore;
+        }
+        if (ClawsCarBackend.instance.userPoints > 0) {
+          _userPoints = ClawsCarBackend.instance.userPoints;
+        }
+      });
+    }
   }
 
   // ============================================================
@@ -959,6 +972,12 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
             _highScore = _score;
           });
         }
+      }
+      if (_score > 0) {
+        ClawsCarBackend.instance.saveGameResult(
+          score: _score,
+          pointsEarned: 0,
+        );
       }
     } catch (_) {}
   }

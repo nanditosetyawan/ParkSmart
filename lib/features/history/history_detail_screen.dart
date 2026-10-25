@@ -1,6 +1,9 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
+import '../../core/services/file_download_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/language_service.dart';
 import '../../core/utils/ticket_status_helper.dart';
@@ -15,10 +18,84 @@ class HistoryDetailScreen extends StatefulWidget {
 }
 
 class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
+  final GlobalKey _receiptKey = GlobalKey();
+  bool _isDownloading = false;
+
   @override
   void initState() {
     super.initState();
     HistoryDetailBackend.instance.fetchDetail(widget.id);
+  }
+
+  Future<void> _downloadReceiptPng() async {
+    final backend = HistoryDetailBackend.instance;
+    if (!backend.hasData || _isDownloading) return;
+
+    setState(() => _isDownloading = true);
+
+    try {
+      // Tunggu frame render selesai
+      await Future.delayed(const Duration(milliseconds: 150));
+
+      final boundary = _receiptKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        throw Exception('Render boundary tidak ditemukan');
+      }
+
+      // Render tampilan ke gambar PNG beresolusi tinggi (pixelRatio 3.0)
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw Exception('Gagal mengonversi gambar ke PNG');
+      }
+
+      final pngBytes = byteData.buffer.asUint8List();
+      final code = backend.transactionCode.isNotEmpty
+          ? backend.transactionCode
+          : (widget.id ?? 'bukti');
+      final fileName = 'ParkSmart_Bukti_$code.png';
+
+      final savedPath = await FileDownloadService.instance.downloadPng(pngBytes, fileName);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    savedPath != null
+                        ? 'Bukti transaksi berhasil diunduh ($fileName)'.tr
+                        : 'Bukti transaksi berhasil diekspor'.tr,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: const Color(0xFF10B981),
+            behavior: SnackBarBehavior.floating,
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          ),
+        );
+      }
+    } catch (e) {
+      debugPrint('[HistoryDetailScreen] Error download PNG: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Gagal mengunduh bukti: $e'),
+            backgroundColor: const Color(0xFFDC2626),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+      }
+    }
   }
 
   @override
@@ -66,18 +143,25 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                       ),
                       Row(
                         children: [
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
-                            child: Icon(Icons.share, size: 19, color: textMain),
-                          ),
-                          const SizedBox(width: 8),
-                          Container(
-                            width: 40,
-                            height: 40,
-                            decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
-                            child: Icon(Icons.download, size: 19, color: textMain),
+                          GestureDetector(
+                            onTap: _isDownloading ? null : _downloadReceiptPng,
+                            child: Container(
+                              width: 40,
+                              height: 40,
+                              decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
+                              child: _isDownloading
+                                  ? Center(
+                                      child: SizedBox(
+                                        width: 18,
+                                        height: 18,
+                                        child: CircularProgressIndicator(
+                                          strokeWidth: 2,
+                                          color: textMain,
+                                        ),
+                                      ),
+                                    )
+                                  : Icon(Icons.download, size: 19, color: textMain),
+                            ),
                           ),
                         ],
                       ),
@@ -146,422 +230,360 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                             ),
                           ),
                         )
-                      : ListView(
+                      : SingleChildScrollView(
                           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                          children: [
-                            const SizedBox(height: 10),
-                      RichText(
-                        text: TextSpan(
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 28,
-                            fontWeight: FontWeight.bold,
-                            color: textMain,
-                            height: 1.1,
-                            letterSpacing: -0.5,
-                          ),
-                          children: [
-                            TextSpan(text: '${'Detail Transaksi'.tr}\n'),
-                            TextSpan(
-                              text: '#${backend.transactionCode}',
-                              style: TextStyle(
-                                color: terracotta,
-                                fontWeight: FontWeight.w600,
-                                fontFamily: 'monospace',
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      const SizedBox(height: 16),
-
-                      // Receipt Card
-                      Container(
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(28),
-                          border: Border.all(color: cardBorder),
-                        ),
-                        child: Column(
-                          children: [
-                            Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  // 1. Status Selesai / Ready / Belum Bayar di paling atas dalam card
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                    decoration: BoxDecoration(
-                                      color: TicketMark.getBgColor(backend.status, isDark: isDark),
-                                      borderRadius: BorderRadius.circular(12),
-                                      border: Border.all(
-                                        color: TicketMark.getBorderColor(backend.status, isDark: isDark),
-                                      ),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          TicketMark.getIcon(backend.status),
-                                          size: 14,
-                                          color: TicketMark.getColor(backend.status),
-                                        ),
-                                        const SizedBox(width: 6),
-                                        Text(
-                                          backend.status.tr,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w700,
-                                            color: TicketMark.getColor(backend.status),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                  const SizedBox(height: 14),
-
-                                  // 2. Bawahnya: Nama Gedung
-                                  Text(
-                                    'NAMA GEDUNG'.tr,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 11,
-                                      fontWeight: FontWeight.bold,
-                                      color: textSub,
-                                      letterSpacing: 1.0,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    backend.locationName,
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                      color: textMain,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 8),
-
-                                  // 3. Bawahnya lagi: Parkirannya (Slot & Alamat tidak 1 line)
-                                  Row(
-                                    crossAxisAlignment: CrossAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.pin_drop, size: 16, color: terracotta),
-                                      const SizedBox(width: 6),
-                                      Expanded(
-                                        child: Text(
-                                          backend.slotInfo,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 13,
-                                            fontWeight: FontWeight.bold,
-                                            color: textMain,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Padding(
-                                    padding: const EdgeInsets.only(left: 22),
-                                    child: Text(
-                                      backend.locationDetail,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(height: 16),
-
-                                  // Total Biaya
-                                  Container(
-                                    width: double.infinity,
-                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                                    decoration: BoxDecoration(
-                                      color: isDark ? theme.surfaceField : Colors.white.withValues(alpha: 0.5),
-                                      borderRadius: BorderRadius.circular(16),
-                                      border: isDark ? Border.all(color: cardBorder) : null,
-                                    ),
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                      crossAxisAlignment: CrossAxisAlignment.center,
-                                      children: [
-                                        Text(
-                                          'TOTAL BIAYA'.tr,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.bold,
-                                            color: textSub,
-                                            letterSpacing: 1.0,
-                                          ),
-                                        ),
-                                        Text(
-                                          CurrencyService.instance.format(backend.totalAmount.toDouble()),
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 20,
-                                            fontWeight: FontWeight.w800,
-                                            color: textMain,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            Divider(color: divider, height: 1),
-                            Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                              child: Column(
-                                children: [
-                                  _ReceiptRow(
-                                    icon: Icons.schedule,
-                                    label: 'Waktu Parkir'.tr,
-                                    isDark: isDark,
-                                    valueWidget: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.end,
-                                      children: [
-                                        Text(
-                                          backend.date,
-                                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
-                                        ),
-                                        if (backend.checkOutTime.contains('Berlangsung')) ...[
-                                          Text(
-                                            backend.checkInTime,
-                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
-                                          ),
-                                          Text(
-                                            'Sedang Berlangsung'.tr,
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 12,
-                                              fontWeight: FontWeight.w600,
-                                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
-                                            ),
-                                          ),
-                                        ] else ...[
-                                          Text(
-                                            '${backend.checkInTime} - ${backend.checkOutTime}',
-                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
-                                  ),
-                                  Divider(color: divider, height: 1),
-                                  _ReceiptRow(
-                                    icon: Icons.directions_car,
-                                    label: 'Kendaraan'.tr,
-                                    isDark: isDark,
-                                    valueWidget: Text(
-                                      backend.vehicleInfo.tr,
-                                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: textMain),
-                                    ),
-                                  ),
-                                  Divider(color: divider, height: 1),
-                                  _ReceiptRow(
-                                    icon: Icons.account_balance_wallet,
-                                    label: 'Metode Bayar'.tr,
-                                    isDark: isDark,
-                                    valueWidget: Container(
-                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                                      decoration: BoxDecoration(
-                                        color: isDark ? theme.surfaceField : Colors.white,
-                                        borderRadius: BorderRadius.circular(16),
-                                        border: Border.all(color: isDark ? cardBorder : const Color(0xFFE5E2DB)),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Icon(Icons.payments, size: 15, color: terracotta),
-                                          const SizedBox(width: 6),
-                                          Text(
-                                            backend.paymentMethod.tr,
-                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 16),
-
-                      // Blockchain Card
-                      Container(
-                        padding: const EdgeInsets.all(20),
-                        decoration: BoxDecoration(
-                          color: cardBg,
-                          borderRadius: BorderRadius.circular(24),
-                          border: Border.all(color: cardBorder),
-                        ),
-                        child: Column(
-                          children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Container(
-                                  width: 36,
-                                  height: 36,
-                                  decoration: BoxDecoration(
-                                    color: isDark ? const Color(0xFF064E3B) : const Color(0xFF002216),
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: const Icon(Icons.verified_user, size: 20, color: Colors.white),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              RepaintBoundary(
+                                key: _receiptKey,
+                                child: Container(
+                                  color: bg,
+                                  padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
                                   child: Column(
                                     crossAxisAlignment: CrossAxisAlignment.start,
                                     children: [
-                                      Text(
-                                        'Verifikasi Blockchain'.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 15,
-                                          fontWeight: FontWeight.bold,
-                                          color: textMain,
-                                        ),
-                                      ),
                                       const SizedBox(height: 6),
-                                      Container(
-                                        width: double.infinity,
-                                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                                        decoration: BoxDecoration(
-                                          color: isDark ? const Color(0xFF064E3B) : const Color(0xFF002216),
-                                          borderRadius: BorderRadius.circular(16),
-                                        ),
-                                        child: Row(
-                                          mainAxisSize: MainAxisSize.min,
-                                          children: [
-                                            Container(width: 6, height: 6, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)),
-                                            const SizedBox(width: 6),
-                                            Flexible(
-                                              child: Text(
-                                                'Tervalidasi 100% On-Chain',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 11,
-                                                  fontWeight: FontWeight.w600,
-                                                  color: Colors.white,
+                                      // Watermark Branding ParkSmart di Gambar Bukti
+                                      Row(
+                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                        children: [
+                                          Row(
+                                            children: [
+                                              Container(
+                                                width: 32,
+                                                height: 32,
+                                                decoration: BoxDecoration(
+                                                  color: const Color(0xFF10B981),
+                                                  borderRadius: BorderRadius.circular(10),
                                                 ),
-                                                overflow: TextOverflow.ellipsis,
+                                                child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 20),
+                                              ),
+                                              const SizedBox(width: 8),
+                                              Text(
+                                                'ParkSmart',
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 17,
+                                                  fontWeight: FontWeight.w800,
+                                                  color: textMain,
+                                                  letterSpacing: -0.3,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                          Container(
+                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                                            decoration: BoxDecoration(
+                                              color: terracotta.withValues(alpha: 0.12),
+                                              borderRadius: BorderRadius.circular(8),
+                                              border: Border.all(color: terracotta.withValues(alpha: 0.3)),
+                                            ),
+                                            child: Text(
+                                              'BUKTI PEMBAYARAN RESMI',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 10,
+                                                fontWeight: FontWeight.w700,
+                                                color: terracotta,
+                                                letterSpacing: 0.8,
+                                              ),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(height: 16),
+                                      RichText(
+                                        text: TextSpan(
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 28,
+                                            fontWeight: FontWeight.bold,
+                                            color: textMain,
+                                            height: 1.1,
+                                            letterSpacing: -0.5,
+                                          ),
+                                          children: [
+                                            TextSpan(text: '${'Detail Transaksi'.tr}\n'),
+                                            TextSpan(
+                                              text: '#${backend.transactionCode}',
+                                              style: TextStyle(
+                                                color: terracotta,
+                                                fontWeight: FontWeight.w600,
+                                                fontFamily: 'monospace',
                                               ),
                                             ),
                                           ],
                                         ),
                                       ),
+
+                                      const SizedBox(height: 16),
+
+                                      // Receipt Card
+                                      Container(
+                                        decoration: BoxDecoration(
+                                          color: cardBg,
+                                          borderRadius: BorderRadius.circular(28),
+                                          border: Border.all(color: cardBorder),
+                                        ),
+                                        child: Column(
+                                          children: [
+                                            Padding(
+                                              padding: const EdgeInsets.all(24),
+                                              child: Column(
+                                                crossAxisAlignment: CrossAxisAlignment.start,
+                                                children: [
+                                                  // 1. Status Selesai / Ready / Belum Bayar di paling atas dalam card
+                                                  Container(
+                                                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                                                    decoration: BoxDecoration(
+                                                      color: TicketMark.getBgColor(backend.status, isDark: isDark),
+                                                      borderRadius: BorderRadius.circular(12),
+                                                      border: Border.all(
+                                                        color: TicketMark.getBorderColor(backend.status, isDark: isDark),
+                                                      ),
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisSize: MainAxisSize.min,
+                                                      children: [
+                                                        Icon(
+                                                          TicketMark.getIcon(backend.status),
+                                                          size: 14,
+                                                          color: TicketMark.getColor(backend.status),
+                                                        ),
+                                                        const SizedBox(width: 6),
+                                                        Text(
+                                                          backend.status.tr,
+                                                          style: GoogleFonts.plusJakartaSans(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.w700,
+                                                            color: TicketMark.getColor(backend.status),
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 14),
+
+                                                  // 2. Bawahnya: Nama Gedung
+                                                  Text(
+                                                    'NAMA GEDUNG'.tr,
+                                                    style: GoogleFonts.plusJakartaSans(
+                                                      fontSize: 11,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: textSub,
+                                                      letterSpacing: 1.0,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 2),
+                                                  Text(
+                                                    backend.locationName,
+                                                    style: GoogleFonts.plusJakartaSans(
+                                                      fontSize: 22,
+                                                      fontWeight: FontWeight.bold,
+                                                      color: textMain,
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 8),
+
+                                                  // 3. Bawahnya lagi: Parkirannya (Slot & Alamat tidak 1 line)
+                                                  Row(
+                                                    crossAxisAlignment: CrossAxisAlignment.center,
+                                                    children: [
+                                                      Icon(Icons.pin_drop, size: 16, color: terracotta),
+                                                      const SizedBox(width: 6),
+                                                      Expanded(
+                                                        child: Text(
+                                                          backend.slotInfo,
+                                                          style: GoogleFonts.plusJakartaSans(
+                                                            fontSize: 13,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: textMain,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                    ],
+                                                  ),
+                                                  const SizedBox(height: 4),
+                                                  Padding(
+                                                    padding: const EdgeInsets.only(left: 22),
+                                                    child: Text(
+                                                      backend.locationDetail,
+                                                      style: GoogleFonts.plusJakartaSans(
+                                                        fontSize: 12,
+                                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
+                                                      ),
+                                                    ),
+                                                  ),
+                                                  const SizedBox(height: 16),
+
+                                                  // Total Biaya
+                                                  Container(
+                                                    width: double.infinity,
+                                                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                                                    decoration: BoxDecoration(
+                                                      color: isDark ? theme.surfaceField : Colors.white.withValues(alpha: 0.5),
+                                                      borderRadius: BorderRadius.circular(16),
+                                                      border: isDark ? Border.all(color: cardBorder) : null,
+                                                    ),
+                                                    child: Row(
+                                                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                                      crossAxisAlignment: CrossAxisAlignment.center,
+                                                      children: [
+                                                        Text(
+                                                          'TOTAL BIAYA'.tr,
+                                                          style: GoogleFonts.plusJakartaSans(
+                                                            fontSize: 12,
+                                                            fontWeight: FontWeight.bold,
+                                                            color: textSub,
+                                                            letterSpacing: 1.0,
+                                                          ),
+                                                        ),
+                                                        Text(
+                                                          CurrencyService.instance.format(backend.totalAmount.toDouble()),
+                                                          style: GoogleFonts.plusJakartaSans(
+                                                            fontSize: 20,
+                                                            fontWeight: FontWeight.w800,
+                                                            color: textMain,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                            Divider(color: divider, height: 1),
+                                            Padding(
+                                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                              child: Column(
+                                                children: [
+                                                  _ReceiptRow(
+                                                    icon: Icons.schedule,
+                                                    label: 'Waktu Parkir'.tr,
+                                                    isDark: isDark,
+                                                    valueWidget: Column(
+                                                      crossAxisAlignment: CrossAxisAlignment.end,
+                                                      children: [
+                                                        Text(
+                                                          backend.date,
+                                                          style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
+                                                        ),
+                                                        if (backend.checkOutTime.contains('Berlangsung')) ...[
+                                                          Text(
+                                                            backend.checkInTime,
+                                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
+                                                          ),
+                                                          Text(
+                                                            'Sedang Berlangsung'.tr,
+                                                            style: GoogleFonts.plusJakartaSans(
+                                                              fontSize: 12,
+                                                              fontWeight: FontWeight.w600,
+                                                              color: isDark ? const Color(0xFF34D399) : const Color(0xFF059669),
+                                                            ),
+                                                          ),
+                                                        ] else ...[
+                                                          Text(
+                                                            '${backend.checkInTime} - ${backend.checkOutTime}',
+                                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
+                                                          ),
+                                                        ],
+                                                      ],
+                                                    ),
+                                                  ),
+                                                  Divider(color: divider, height: 1),
+                                                  _ReceiptRow(
+                                                    icon: Icons.directions_car,
+                                                    label: 'Kendaraan'.tr,
+                                                    isDark: isDark,
+                                                    valueWidget: Text(
+                                                      backend.vehicleInfo.tr,
+                                                      style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: textMain),
+                                                    ),
+                                                  ),
+                                                  Divider(color: divider, height: 1),
+                                                  _ReceiptRow(
+                                                    icon: Icons.account_balance_wallet,
+                                                    label: 'Metode Bayar'.tr,
+                                                    isDark: isDark,
+                                                    valueWidget: Container(
+                                                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                                                      decoration: BoxDecoration(
+                                                        color: isDark ? theme.surfaceField : Colors.white,
+                                                        borderRadius: BorderRadius.circular(16),
+                                                        border: Border.all(color: isDark ? cardBorder : const Color(0xFFE5E2DB)),
+                                                      ),
+                                                      child: Row(
+                                                        children: [
+                                                          Icon(Icons.payments, size: 15, color: terracotta),
+                                                          const SizedBox(width: 6),
+                                                          Text(
+                                                            backend.paymentMethod.tr,
+                                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      const SizedBox(height: 16),
+                                      Center(
+                                        child: Text(
+                                          'Dokumen ini adalah bukti transaksi sah yang diterbitkan oleh sistem ParkSmart • ${backend.date}',
+                                          textAlign: TextAlign.center,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            color: textSub,
+                                          ),
+                                        ),
+                                      ),
+                                      const SizedBox(height: 8),
                                     ],
                                   ),
                                 ),
-                              ],
-                            ),
-                            const SizedBox(height: 16),
-                            Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: isDark ? theme.surfaceField : Colors.white,
-                                borderRadius: BorderRadius.circular(18),
-                                border: Border.all(color: cardBorder.withValues(alpha: 0.8)),
                               ),
-                              child: Column(
-                                children: [
-                                  _BlockRow(
-                                    label: 'Kode Transaksi',
-                                    isDark: isDark,
-                                    valueWidget: Row(
-                                      children: [
-                                        Text(
-                                          backend.transactionCode,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w600,
-                                            color: terracotta,
-                                          ),
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Icon(Icons.content_copy, size: 14, color: terracotta),
-                                      ],
-                                    ),
-                                  ),
-                                  Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Divider(color: divider, height: 1)),
-                                  _BlockRow(
-                                    label: 'Hash Transaksi',
-                                    isDark: isDark,
-                                    valueWidget: Text(
-                                      backend.blockHash,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  ),
-                                  Padding(padding: const EdgeInsets.symmetric(vertical: 12), child: Divider(color: divider, height: 1)),
-                                  _BlockRow(
-                                    label: 'Timestamp',
-                                    isDark: isDark,
-                                    valueWidget: Text(
-                                      backend.timestamp,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                        fontFamily: 'monospace',
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                            const SizedBox(height: 16),
-                            Row(
-                              children: [
-                                const Icon(Icons.shield, size: 16, color: Color(0xFF17A18A)),
-                                const SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    'Integritas catatan waktu dan pembayaran terenkripsi secara permanen.',
-                                    style: GoogleFonts.plusJakartaSans(
-                                      fontSize: 12,
-                                      color: isDark ? theme.textMuted : const Color(0xFF45474A),
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 24),
+                              const SizedBox(height: 24),
 
-                      // Actions
-                      SizedBox(
-                        width: double.infinity,
-                        height: 56,
-                        child: ElevatedButton(
-                          onPressed: () {},
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F), // reversed!
-                            foregroundColor: isDark ? const Color(0xFF111418) : Colors.white, // reversed!
-                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                          ),
-                          child: Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              const Icon(Icons.download, size: 20),
-                              const SizedBox(width: 8),
-                              Text(
-                                'Unduh Bukti PDF',
-                                style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600),
+                              // Actions
+                              SizedBox(
+                                width: double.infinity,
+                                height: 56,
+                                child: ElevatedButton(
+                                  onPressed: _isDownloading ? null : _downloadReceiptPng,
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: isDark ? Colors.white : const Color(0xFF1C1D1F), // reversed!
+                                    foregroundColor: isDark ? const Color(0xFF111418) : Colors.white, // reversed!
+                                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                                  ),
+                                  child: _isDownloading
+                                      ? SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: isDark ? const Color(0xFF111418) : Colors.white,
+                                          ),
+                                        )
+                                      : Row(
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            const Icon(Icons.download, size: 20),
+                                            const SizedBox(width: 8),
+                                            Text(
+                                              'Unduh Bukti (PNG)',
+                                              style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.w600),
+                                            ),
+                                          ],
+                                        ),
+                                ),
                               ),
+
+                              const SizedBox(height: 32),
                             ],
                           ),
                         ),
-                      ),
-
-                      const SizedBox(height: 32),
-                    ],
-                  ),
                 ),
               ],
             ),
@@ -603,30 +625,6 @@ class _ReceiptRow extends StatelessWidget {
           valueWidget,
         ],
       ),
-    );
-  }
-}
-
-class _BlockRow extends StatelessWidget {
-  final String label;
-  final Widget valueWidget;
-  final bool isDark;
-
-  const _BlockRow({
-    required this.label,
-    required this.valueWidget,
-    required this.isDark,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    final subColor = isDark ? const Color(0xFF94A3B8) : const Color(0xFF76777B);
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      children: [
-        Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: subColor)),
-        valueWidget,
-      ],
     );
   }
 }

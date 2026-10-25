@@ -120,6 +120,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
   int _carsParkedInRound = 0;
   int _secondsRemaining = 40;
   int _score = 0; // Selalu reset mulai dari 0 sesuai instruksi
+  int _savedPoints = 0; // Melacak poin delta yang sudah tersinkron ke database Supabase
   bool _isGameOver = false;
   bool _isRoundComplete = false;
   bool _startSoundPlayed = false;
@@ -362,6 +363,7 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
   @override
   void initState() {
     super.initState();
+    CarGameBackend.instance.loadUserScores();
     SystemChrome.setPreferredOrientations([
       DeviceOrientation.landscapeRight,
       DeviceOrientation.landscapeLeft,
@@ -460,13 +462,21 @@ class _CarGameScreenState extends State<CarGameScreen> with TickerProviderStateM
       if (_score > currentBest) {
         await prefs.setInt('parking_high_score', _score);
       }
-      if (_score > 0) {
+
+      final deltaPoints = _score - _savedPoints;
+      if (deltaPoints > 0) {
+        _savedPoints = _score;
         final currentPoints = prefs.getInt('user_arcade_points') ?? 25000;
-        await prefs.setInt('user_arcade_points', currentPoints + _score);
-        // Sinkronisasi ke Supabase arcade_scores (aturan menimpa: 1 row highest, 1 row current)
+        await prefs.setInt('user_arcade_points', currentPoints + deltaPoints);
+        // Sinkronisasi ke Supabase arcade_scores (aturan menimpa: 1 row highest, 1 row current) & users.points
         CarGameBackend.instance.saveGameResult(
           score: _score,
-          pointsEarned: _score,
+          pointsEarned: deltaPoints,
+        );
+      } else if (_score > 0) {
+        CarGameBackend.instance.saveGameResult(
+          score: _score,
+          pointsEarned: 0,
         );
       }
     } catch (e) {

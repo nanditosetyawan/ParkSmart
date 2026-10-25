@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
+import 'game_user_helper.dart';
 
 /// Backend khusus untuk GameListScreen
 /// Menampilkan daftar game arcade yang aktif, status poin pengguna, dan papan peringkat.
@@ -25,7 +26,7 @@ class GameListBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final uid = userId ?? _client.auth.currentUser?.id;
+      final uid = await GameUserHelper.resolveUserId(userId);
 
       // 1. Ambil poin pengguna
       if (uid != null) {
