@@ -1,10 +1,11 @@
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/language_service.dart';
 import '../../core/utils/image_compression_util.dart';
+import '../../core/utils/stnk_expiry_formatter.dart';
 import 'custom_camera_screen.dart';
 import 'backend/add_vehicle_backend.dart';
 
@@ -264,21 +265,185 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
               const SizedBox(height: 12),
               TextField(
                 controller: tempExpiryCtrl,
+                keyboardType: TextInputType.number,
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9\s•\.\/\-]')),
+                  StnkExpiryInputFormatter(),
+                ],
                 style: GoogleFonts.plusJakartaSans(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w600,
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
                   color: isDark ? Colors.white : Colors.black,
                 ),
                 decoration: InputDecoration(
                   labelText: 'Masa Berlaku STNK (MM • YY)'.tr,
-                  hintText: 'Contoh: 10 • 28',
+                  hintText: 'MM • YY (Contoh: 10 • 28)',
                   prefixIcon: const Icon(Icons.date_range),
                   filled: true,
                   fillColor: isDark ? const Color(0xFF2E3848) : const Color(0xFFF1F5F9),
                   border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                  helperText: 'Template otomatis dengan dot pemisah: Bulan • Tahun'.tr,
+                  helperStyle: GoogleFonts.plusJakartaSans(
+                    fontSize: 11,
+                    color: const Color(0xFF10B981),
+                    fontWeight: FontWeight.w600,
+                  ),
+                  suffixIcon: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF10B981).withValues(alpha: 0.15),
+                      borderRadius: BorderRadius.circular(6),
+                    ),
+                    child: Text(
+                      'MM • YY',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF10B981),
+                      ),
+                    ),
+                  ),
                 ),
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 8),
+              Row(
+                children: [
+                  Text(
+                    'Template Cepat:'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                    ),
+                  ),
+                  const SizedBox(width: 6),
+                  Expanded(
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: Row(
+                        children: [
+                          '10 • 28',
+                          '12 • 28',
+                          '05 • 29',
+                          '10 • 30',
+                          'Aktif Selamanya',
+                        ].map((tpl) {
+                          return Padding(
+                            padding: const EdgeInsets.only(right: 6),
+                            child: InkWell(
+                              onTap: () {
+                                tempExpiryCtrl.text = tpl;
+                              },
+                              borderRadius: BorderRadius.circular(8),
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFF2E3848) : const Color(0xFFE2E8F0),
+                                  borderRadius: BorderRadius.circular(8),
+                                  border: Border.all(
+                                    color: isDark ? Colors.white12 : Colors.black12,
+                                  ),
+                                ),
+                                child: Text(
+                                  tpl,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 11,
+                                    fontWeight: FontWeight.w600,
+                                    color: isDark ? Colors.white70 : Colors.black87,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          );
+                        }).toList(),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // Live Plat Preview
+              AnimatedBuilder(
+                animation: Listenable.merge([tempPlateCtrl, tempExpiryCtrl]),
+                builder: (context, _) {
+                  final plate = tempPlateCtrl.text.trim().toUpperCase();
+                  final exp = tempExpiryCtrl.text.trim();
+                  return Container(
+                    width: double.infinity,
+                    margin: const EdgeInsets.only(top: 14, bottom: 4),
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF111215),
+                      borderRadius: BorderRadius.circular(12),
+                      border: Border.all(
+                        color: plate.isNotEmpty ? const Color(0xFF34D399) : const Color(0xFF2E3848),
+                        width: 1.5,
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                plate.isNotEmpty ? plate : 'B 1234 ABC',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w900,
+                                  color: Colors.white,
+                                  letterSpacing: 2.5,
+                                ),
+                              ),
+                              Text(
+                                'KORLANTAS POLRI',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 7.5,
+                                  color: const Color(0xFFA3A3A3),
+                                  letterSpacing: 1.2,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        Container(
+                          width: 1,
+                          height: 32,
+                          color: Colors.white24,
+                          margin: const EdgeInsets.symmetric(horizontal: 10),
+                        ),
+                        Column(
+                          crossAxisAlignment: CrossAxisAlignment.end,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              exp.isNotEmpty ? exp : '10 • 28',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF34D399),
+                                letterSpacing: 1.5,
+                              ),
+                            ),
+                            Text(
+                              'IDN',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 8,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFFA3A3A3),
+                                letterSpacing: 1,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+              const SizedBox(height: 16),
               SizedBox(
                 width: double.infinity,
                 height: 48,
@@ -286,11 +451,15 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                   onPressed: () {
                     final cleanPlate = tempPlateCtrl.text.trim().toUpperCase();
                     if (cleanPlate.isEmpty) return;
+                    final rawExpiry = tempExpiryCtrl.text.trim();
+                    final formattedExpiry = rawExpiry.isEmpty
+                        ? '10 • 28'
+                        : (rawExpiry.contains('•') || rawExpiry == 'Aktif Selamanya'
+                            ? rawExpiry
+                            : StnkExpiryInputFormatter.format(rawExpiry));
                     setState(() {
                       _plateController.text = cleanPlate;
-                      _expiryController.text = tempExpiryCtrl.text.trim().isNotEmpty
-                          ? tempExpiryCtrl.text.trim()
-                          : '10 • 28';
+                      _expiryController.text = formattedExpiry;
                       _scannedPlate = cleanPlate;
                       _scannedExpiry = _expiryController.text;
                     });

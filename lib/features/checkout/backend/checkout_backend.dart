@@ -242,18 +242,6 @@ class CheckoutBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // Jika sudah ada hold booking ID yang dibuat saat masuk checkout, gunakan langsung
-      if (_holdBookingId != null && _holdBookingId!.isNotEmpty) {
-        final existing = await _client
-            .from('bookings')
-            .select('id, booking_code, total_price, start_time, end_time, location_id, slot_id, created_at, plate_number, vehicle_desc')
-            .eq('id', _holdBookingId!)
-            .maybeSingle();
-        if (existing != null) {
-          return existing;
-        }
-      }
-
       final random = Random();
       final bookingCode = 'BK-${DateTime.now().millisecondsSinceEpoch.toString().substring(5)}-${random.nextInt(900) + 100}';
 
@@ -292,7 +280,7 @@ class CheckoutBackend extends ChangeNotifier {
         actualSlotId = slotRes?['id'] as String?;
       }
 
-      // Validasi ketat bentrok slot sebelum insert ke database
+      // Validasi ketat bentrok slot sebelum insert/update ke database
       if (actualSlotId != null) {
         final hasConflict = await checkSlotConflict(
           slotId: actualSlotId,
@@ -317,7 +305,31 @@ class CheckoutBackend extends ChangeNotifier {
           : 'Toyota Land Cruiser';
       final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
 
-      // 3. Insert ke tabel bookings (status awal 'unpaid' dengan hold time 2:59 menit)
+      // Jika sudah ada hold booking ID yang dibuat saat masuk checkout, perbarui durasi, harga, jam, dan kendaraan
+      if (_holdBookingId != null && _holdBookingId!.isNotEmpty) {
+        final updated = await _client
+            .from('bookings')
+            .update({
+              'duration_hours': _durationHours,
+              'total_price': totalPayment,
+              'start_time': startTime.toUtc().toIso8601String(),
+              'end_time': endTime.toUtc().toIso8601String(),
+              'vehicle_id': _selectedVehicle?['id'],
+              'plate_number': plateNumber,
+              'vehicle_desc': vehicleDesc,
+              if (actualLocId.isNotEmpty) 'location_id': actualLocId,
+              if (actualSlotId != null && actualSlotId.isNotEmpty) 'slot_id': actualSlotId,
+            })
+            .eq('id', _holdBookingId!)
+            .select('id, booking_code, total_price, duration_hours, start_time, end_time, location_id, slot_id, created_at, plate_number, vehicle_desc')
+            .maybeSingle();
+
+        if (updated != null) {
+          return updated;
+        }
+      }
+
+      // 3. Insert ke tabel bookings jika belum ada hold booking (status awal 'unpaid' dengan hold time 2:59 menit)
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
         'user_id': actualUid,
@@ -506,11 +518,27 @@ class CheckoutBackend extends ChangeNotifier {
   /// Memuat data booking dari ID yang belum dibayar di riwayat
   Future<bool> loadFromExistingBooking(String bookingId) async {
     try {
-      final b = await _client
+      var b = await _client
           .from('bookings')
           .select('id, created_at, booking_code, start_time, end_time, duration_hours, total_price, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, payment_status')
           .eq('id', bookingId)
           .maybeSingle();
+
+      if (b == null) {
+        // Fallback: jika ID yang diteruskan merupakan ID sesi dari parking_sessions
+        final s = await _client
+            .from('parking_sessions')
+            .select('booking_id')
+            .eq('id', bookingId)
+            .maybeSingle();
+        if (s != null && s['booking_id'] != null) {
+          b = await _client
+              .from('bookings')
+              .select('id, created_at, booking_code, start_time, end_time, duration_hours, total_price, location_id, slot_id, vehicle_id, plate_number, vehicle_desc, payment_status')
+              .eq('id', s['booking_id'].toString())
+              .maybeSingle();
+        }
+      }
 
       if (b == null) return false;
 
@@ -789,7 +817,10 @@ class CheckoutBackend extends ChangeNotifier {
           .maybeSingle();
       if (bRes == null) return false;
 
-      final price = (bRes['total_price'] as num?)?.toDouble() ?? totalPayment;
+      final now = DateTime.now();
+      final startTime = _scheduledStartTime ?? now;
+      final endTime = _scheduledEndTime ?? startTime.add(Duration(hours: _durationHours));
+      final price = totalPayment > 0 ? totalPayment : ((bRes['total_price'] as num?)?.toDouble() ?? 5000.0);
       final actualUserId = (bRes['user_id'] != null && bRes['user_id'].toString().isNotEmpty)
           ? bRes['user_id'].toString()
           : (await resolveUserId());
@@ -853,10 +884,14 @@ class CheckoutBackend extends ChangeNotifier {
         }).eq('id', actualUserId);
       }
 
-      // 2. Update status booking menjadi paid & upcoming
+      // 2. Update status booking menjadi paid & upcoming beserta durasi dan total harga terkonfirmasi
       await _client.from('bookings').update({
         'payment_status': 'paid',
         'booking_status': 'upcoming',
+        'duration_hours': _durationHours,
+        'total_price': price,
+        'start_time': startTime.toUtc().toIso8601String(),
+        'end_time': endTime.toUtc().toIso8601String(),
       }).eq('id', bookingId);
 
       // 3. Catat riwayat transaksi sukses di tabel payments

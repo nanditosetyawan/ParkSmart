@@ -216,10 +216,13 @@ class AdminBookingsBackend extends ChangeNotifier {
     return ok;
   }
 
-  /// Force Check-Out booking dari Manajemen Booking
   Future<bool> forceCheckOutBooking(String bookingCode) async {
     try {
-      final b = await _client.from('bookings').select('id, slot_id').eq('booking_code', bookingCode).maybeSingle();
+      final b = await _client
+          .from('bookings')
+          .select('id, slot_id')
+          .or('booking_code.eq.$bookingCode,id.eq.$bookingCode')
+          .maybeSingle();
       if (b != null) {
         final bId = b['id'];
         final sess = await _client

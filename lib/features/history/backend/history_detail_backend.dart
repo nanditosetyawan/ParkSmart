@@ -165,7 +165,8 @@ class HistoryDetailBackend extends ChangeNotifier {
         if (fee <= 0 && res['parking_fee'] != null) {
           fee = (double.tryParse(res['parking_fee'].toString()) ?? 0.0);
         }
-        if (fee <= 0) fee = 11000.0;
+        final dHours = (booking?['duration_hours'] as num?)?.toInt() ?? 1;
+        if (fee <= 0) fee = (dHours * 5000.0);
         _totalAmount = fee.toInt();
         _baseFee = _totalAmount;
 
@@ -197,7 +198,7 @@ class HistoryDetailBackend extends ChangeNotifier {
         } else if (booking?['duration_hours'] != null) {
           _duration = '${booking!['duration_hours']} Jam';
         } else {
-          _duration = '2 Jam';
+          _duration = '$dHours Jam';
         }
 
         final expectedCoDt = res['expected_check_out_time'] != null
@@ -253,7 +254,8 @@ class HistoryDetailBackend extends ChangeNotifier {
           final idSuffix = rawIdClean.length >= 4 ? rawIdClean.substring(0, 4) : rawIdClean.padRight(4, '0');
           _blockHash = '0x${safeClean.padRight(8, '0').substring(0, 8)}...$idSuffix';
 
-          final numPrice = (bRes['total_price'] as num?)?.toDouble() ?? 11000.0;
+          final dHours = (bRes['duration_hours'] as num?)?.toInt() ?? 1;
+          final numPrice = (bRes['total_price'] as num?)?.toDouble() ?? (dHours * 5000.0);
           _totalAmount = numPrice.toInt();
           _baseFee = _totalAmount;
 

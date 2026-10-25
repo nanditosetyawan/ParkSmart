@@ -120,7 +120,11 @@ class _CheckinScreenState extends State<CheckinScreen> with SingleTickerProvider
                     Navigator.pop(context); // Close modal
                     Navigator.pushReplacement(
                       context,
-                      MaterialPageRoute(builder: (_) => const ActiveSessionScreen()),
+                      MaterialPageRoute(
+                        builder: (_) => ActiveSessionScreen(
+                          sessionId: CheckinBackend.instance.activeSessionId,
+                        ),
+                      ),
                     );
                   },
                   style: ElevatedButton.styleFrom(

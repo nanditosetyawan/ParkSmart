@@ -21,13 +21,16 @@ class ActiveSessionScreen extends StatefulWidget {
 }
 
 class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
-  late Timer _timer;
-  int _remainingSeconds = 3600 + (42 * 60) + 15; // 1:42:15
+  Timer? _timer;
+  int _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds > 0
+      ? ActiveSessionBackend.instance.remainingSeconds
+      : 3600;
 
   @override
   void initState() {
     super.initState();
-    ActiveSessionBackend.instance.fetchActiveSession(sessionId: widget.sessionId).then((_) {
+    final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
+    ActiveSessionBackend.instance.fetchActiveSession(sessionId: sId).then((_) {
       if (mounted) {
         setState(() {
           _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;
@@ -38,6 +41,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   }
 
   void _startTimer() {
+    _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
@@ -47,7 +51,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
               _onSessionExpired();
             }
           } else {
-            _timer.cancel();
+            _timer?.cancel();
           }
         });
       }
@@ -55,7 +59,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   }
 
   void _onSessionExpired() async {
-    _timer.cancel();
+    _timer?.cancel();
     final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
     await SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: sId);
     await SessionCheckoutBackend.instance.completeSessionCheckout();
@@ -77,7 +81,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
 
   @override
   void dispose() {
-    _timer.cancel();
+    _timer?.cancel();
     super.dispose();
   }
 
@@ -394,14 +398,25 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                     icon: Icons.more_time,
                                     label: 'Perpanjang',
                                     color: const Color(0xFFE07A5F),
-                                    onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => ExtendSessionScreen(
-                                          sessionId: ActiveSessionBackend.instance.sessionId,
+                                    onTap: () async {
+                                      final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
+                                      await Navigator.push(
+                                        context,
+                                        MaterialPageRoute(
+                                          builder: (_) => ExtendSessionScreen(
+                                            sessionId: sId,
+                                          ),
                                         ),
-                                      ),
-                                    ),
+                                      );
+                                      if (context.mounted) {
+                                        await ActiveSessionBackend.instance.fetchActiveSession(sessionId: sId);
+                                        if (mounted) {
+                                          setState(() {
+                                            _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;
+                                          });
+                                        }
+                                      }
+                                    },
                                   ),
                                 ),
                                 const SizedBox(width: 8),

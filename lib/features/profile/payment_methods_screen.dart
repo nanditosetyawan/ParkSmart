@@ -1594,7 +1594,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             id: 'gopay',
                             assetPath: 'assets/images/gopay-seeklogo.png',
                             title: 'GoPay',
-                            subtitle: '0812-****-4321 · Terhubung',
                             badge: 'E-Wallet',
                           ),
                         ],
@@ -1606,7 +1605,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             id: 'ovo',
                             assetPath: 'assets/images/ovo-seeklogo.png',
                             title: 'OVO',
-                            subtitle: '0812-****-4321 · Terhubung',
                             badge: 'E-Wallet',
                           ),
                         ],
@@ -1618,7 +1616,6 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                             id: 'shopeepay',
                             assetPath: 'assets/images/shopee-pay-seeklogo.png',
                             title: 'ShopeePay',
-                            subtitle: '0812-****-4321 · Terhubung',
                             badge: 'E-Wallet',
                           ),
                         ],
@@ -1679,7 +1676,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
     String? assetPath,
     IconData? icon,
     required String title,
-    required String subtitle,
+    String? subtitle,
     required String badge,
   }) {
     final theme = ThemeService.instance;
@@ -1771,14 +1768,16 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 3),
-                  Text(
-                    subtitle,
-                    style: GoogleFonts.plusJakartaSans(
-                      fontSize: 12,
-                      color: theme.textSecondary,
+                  if (subtitle != null && subtitle.isNotEmpty) ...[
+                    const SizedBox(height: 3),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 12,
+                        color: theme.textSecondary,
+                      ),
                     ),
-                  ),
+                  ],
                 ],
               ),
             ),

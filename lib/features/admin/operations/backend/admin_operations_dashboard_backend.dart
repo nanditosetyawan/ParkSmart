@@ -76,6 +76,55 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
     return '${months[dt.month - 1]} ${dt.year}';
   }
 
+  // Realtime Supabase Channel untuk Sinkronisasi Instan Lapangan
+  RealtimeChannel? _realtimeChannel;
+
+  /// Inisialisasi listener realtime Supabase untuk perubahan instan pada sesi, booking, dan slot
+  void initRealtimeSubscription() {
+    if (_realtimeChannel != null) return;
+    try {
+      _realtimeChannel = _client.channel('admin_operations_dashboard_realtime')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'parking_sessions',
+          callback: (payload) {
+            debugPrint('[AdminOperationsDashboardBackend] Realtime parking_sessions change: ${payload.eventType}');
+            fetchDashboardData();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'bookings',
+          callback: (payload) {
+            debugPrint('[AdminOperationsDashboardBackend] Realtime bookings change: ${payload.eventType}');
+            fetchDashboardData();
+          },
+        )
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'parking_slots',
+          callback: (payload) {
+            fetchDashboardData();
+          },
+        )
+        ..subscribe();
+    } catch (e) {
+      debugPrint('[AdminOperationsDashboardBackend] Realtime subscription error: $e');
+    }
+  }
+
+  void disposeRealtime() {
+    if (_realtimeChannel != null) {
+      try {
+        _client.removeChannel(_realtimeChannel!);
+      } catch (_) {}
+      _realtimeChannel = null;
+    }
+  }
+
   /// Evaluasi otomatis: Auto-cancel unpaid > 179s & Auto-complete paid lewat endTime
   Future<void> _cleanupExpiredAndCompletedBookings() async {
     try {
@@ -347,204 +396,237 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
       }
 
       // 2. Sesi Aktif & Overstay Real dari Database (Termasuk relasi lengkap & timer)
-      final activeSessions = await _client
-          .from('parking_sessions')
-          .select('''
-            id,
-            session_code,
-            plate_number,
-            vehicle_desc,
-            vehicle_type,
-            check_in_time,
-            expected_check_out_time,
-            parking_fee,
-            total_fee,
-            is_overstay,
-            overstay_minutes,
-            status,
-            slot_id,
-            location_id,
-            booking_id,
-            users(full_name, phone),
-            parking_locations(name, address),
-            parking_slots(slot_code, floor_name)
-          ''')
-          .inFilter('status', ['active', 'overstay'])
-          .order('check_in_time', ascending: false);
+      final Set<String> activeSessionBookingIds = {};
+      try {
+        final activeSessions = await _client
+            .from('parking_sessions')
+            .select('''
+              id,
+              session_code,
+              plate_number,
+              vehicle_desc,
+              vehicle_type,
+              check_in_time,
+              expected_check_out_time,
+              parking_fee,
+              total_fee,
+              is_overstay,
+              overstay_minutes,
+              status,
+              slot_id,
+              location_id,
+              booking_id,
+              users(full_name, phone),
+              parking_locations(name, address),
+              parking_slots(slot_code, floor_name)
+            ''')
+            .inFilter('status', ['active', 'overstay'])
+            .order('check_in_time', ascending: false);
 
-      _activeSessionsCount = activeSessions.length;
-      _overstaySessionsCount = activeSessions.where((s) => s['is_overstay'] == true).length;
+        _activeSessionsCount = activeSessions.length;
+        _overstaySessionsCount = activeSessions.where((s) => s['is_overstay'] == true).length;
 
-      if (activeSessions.isNotEmpty) {
-        _liveSessions = activeSessions.map<Map<String, dynamic>>((row) {
-          final isEv = (row['vehicle_type'] ?? '').toString().toLowerCase().contains('ev') ||
-                       (row['vehicle_desc'] ?? '').toString().toLowerCase().contains('ev');
-          final fee = (row['total_fee'] as num?)?.toDouble() ?? 
-                      (row['parking_fee'] as num?)?.toDouble() ?? 10000;
+        for (final s in activeSessions) {
+          final bId = s['booking_id']?.toString();
+          if (bId != null && bId.isNotEmpty) {
+            activeSessionBookingIds.add(bId);
+          }
+        }
 
-          final userData = row['users'] as Map<String, dynamic>?;
-          final locData = row['parking_locations'] as Map<String, dynamic>?;
-          final slotData = row['parking_slots'] as Map<String, dynamic>?;
+        if (activeSessions.isNotEmpty) {
+          _liveSessions = activeSessions.map<Map<String, dynamic>>((row) {
+            final isEv = (row['vehicle_type'] ?? '').toString().toLowerCase().contains('ev') ||
+                         (row['vehicle_desc'] ?? '').toString().toLowerCase().contains('ev');
+            final fee = (row['total_fee'] as num?)?.toDouble() ?? 
+                        (row['parking_fee'] as num?)?.toDouble() ?? 10000;
 
-          final userName = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
-          final userPhone = userData?['phone']?.toString() ?? '+62 812-xxxx-xxxx';
-          final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
-          final slotCode = slotData?['slot_code']?.toString() ?? 'Area Parkir';
-          final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
+            final userData = row['users'] is Map<String, dynamic> ? row['users'] as Map<String, dynamic> : null;
+            final locData = row['parking_locations'] is Map<String, dynamic> ? row['parking_locations'] as Map<String, dynamic> : null;
+            final slotData = row['parking_slots'] is Map<String, dynamic> ? row['parking_slots'] as Map<String, dynamic> : null;
 
-          final checkInDt = DateTime.tryParse(row['check_in_time']?.toString() ?? '')?.toLocal();
-          final expOutDt = DateTime.tryParse(row['expected_check_out_time']?.toString() ?? '')?.toLocal();
+            final userName = userData?['full_name']?.toString() ?? 'Pengguna ParkSmart';
+            final userPhone = userData?['phone']?.toString() ?? '+62 812-xxxx-xxxx';
+            final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
+            final slotCode = slotData?['slot_code']?.toString() ?? 'Area Parkir';
+            final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
 
-          String checkInStr = 'Baru saja';
-          if (checkInDt != null) {
-            checkInStr = '${checkInDt.hour.toString().padLeft(2, '0')}:${checkInDt.minute.toString().padLeft(2, '0')} WIB';
+            final checkInDt = DateTime.tryParse(row['check_in_time']?.toString() ?? '')?.toLocal();
+            final expOutDt = DateTime.tryParse(row['expected_check_out_time']?.toString() ?? '')?.toLocal();
+
+            String checkInStr = 'Baru saja';
+            if (checkInDt != null) {
+              checkInStr = '${checkInDt.hour.toString().padLeft(2, '0')}:${checkInDt.minute.toString().padLeft(2, '0')} WIB';
+            }
+
+            final now = DateTime.now();
+            String durationStr = '1j';
+            bool isOverstay = row['is_overstay'] == true;
+            int overstayMins = (row['overstay_minutes'] as num?)?.toInt() ?? 0;
+
+            if (expOutDt != null) {
+              final diffSecs = expOutDt.difference(now).inSeconds;
+              if (diffSecs > 0) {
+                final h = diffSecs ~/ 3600;
+                final m = (diffSecs % 3600) ~/ 60;
+                final s = diffSecs % 60;
+                if (h > 0) {
+                  durationStr = 'Sisa ${h}j ${m}m ${s}d';
+                } else {
+                  durationStr = 'Sisa ${m}m ${s}d';
+                }
+                isOverstay = false;
+              } else {
+                isOverstay = true;
+                overstayMins = (-diffSecs) ~/ 60;
+                durationStr = 'Overstay $overstayMins mnt';
+              }
+            }
+
+            final vType = (row['vehicle_type'] ?? '').toString().toLowerCase();
+
+            return {
+              'id': row['session_code']?.toString() ?? 'SES-000',
+              'db_id': row['id']?.toString(),
+              'slot_id': row['slot_id']?.toString(),
+              'booking_id': row['booking_id']?.toString(),
+              'plate': row['plate_number']?.toString() ?? 'B 1234 XYZ',
+              'user': userName,
+              'phone': userPhone,
+              'type': isEv ? 'EV' : (vType.contains('motor') ? 'Motor' : 'Mobil'),
+              'vehicle': row['vehicle_desc']?.toString() ?? 'Kendaraan',
+              'location': locName,
+              'slot': slotCode,
+              'floor': floorName,
+              'checkIn': checkInStr,
+              'duration': durationStr,
+              'raw_expected_check_out_time': expOutDt,
+              'raw_check_in_time': checkInDt,
+              'fee': 'Rp ${fee.toStringAsFixed(0)}',
+              'isOverstay': isOverstay,
+              'overstayDuration': '$overstayMins mnt',
+              'isEv': isEv,
+            };
+          }).toList();
+        } else {
+          _liveSessions = [];
+        }
+      } catch (e) {
+        debugPrint('[AdminOperationsDashboardBackend] liveSessions error: $e');
+      }
+
+      // 3. Reservasi Masuk Real dari Database (Hanya yang belum checkin di sesi aktif & belum expired)
+      try {
+        final bookingsRes = await _client
+            .from('bookings')
+            .select('''
+              id,
+              booking_code,
+              booking_type,
+              start_time,
+              end_time,
+              duration_hours,
+              total_price,
+              payment_status,
+              booking_status,
+              created_at,
+              user_id,
+              location_id,
+              slot_id,
+              vehicle_id,
+              plate_number,
+              vehicle_desc,
+              users(full_name, phone),
+              parking_locations(name),
+              parking_slots(slot_code, floor_name),
+              vehicles(plate_number, vehicle_type, brand, model)
+            ''')
+            .not('booking_status', 'in', '(cancelled,completed,expired)')
+            .order('created_at', ascending: false);
+
+        final List<Map<String, dynamic>> validIncoming = [];
+        final nowUtc = DateTime.now().toUtc();
+
+        for (final row in bookingsRes) {
+          final bId = row['id']?.toString() ?? '';
+
+          // Jika booking ini sudah check-in dan aktif di sesi lapangan, tampilkan di Kendaraan Aktif saja
+          if (activeSessionBookingIds.contains(bId)) {
+            continue;
           }
 
-          final now = DateTime.now();
-          String durationStr = '1j';
-          bool isOverstay = row['is_overstay'] == true;
-          int overstayMins = (row['overstay_minutes'] as num?)?.toInt() ?? 0;
+          final payStatus = (row['payment_status'] ?? '').toString().toLowerCase().trim();
+          final isPaid = payStatus == 'paid' || payStatus == 'success' || payStatus == 'settlement';
+          final bStatus = (row['booking_status'] ?? '').toString().toLowerCase().trim();
 
-          if (expOutDt != null) {
-            final diffSecs = expOutDt.difference(now).inSeconds;
-            if (diffSecs > 0) {
-              final h = diffSecs ~/ 3600;
-              final m = (diffSecs % 3600) ~/ 60;
-              final s = diffSecs % 60;
-              if (h > 0) {
-                durationStr = 'Sisa ${h}j ${m}m ${s}d';
-              } else {
-                durationStr = 'Sisa ${m}m ${s}d';
-              }
-              isOverstay = false;
-            } else {
-              isOverstay = true;
-              overstayMins = (-diffSecs) ~/ 60;
-              durationStr = 'Overstay $overstayMins mnt';
+          // Filter validasi: jika unpaid tapi sudah > 179s, lewati (booking hold habis)
+          if (!isPaid) {
+            final cat = DateTime.tryParse(row['created_at']?.toString() ?? '');
+            if (cat != null && nowUtc.difference(cat.toUtc()).inSeconds > 179) {
+              continue;
             }
           }
 
-          final vType = (row['vehicle_type'] ?? '').toString().toLowerCase();
+          // Jika paid tapi sudah lewat end_time > 15 menit, lewati
+          if (isPaid) {
+            final end = DateTime.tryParse(row['end_time']?.toString() ?? '');
+            if (end != null && nowUtc.difference(end.toUtc()).inMinutes > 15) {
+              continue;
+            }
+          }
 
-          return {
-            'id': row['session_code']?.toString() ?? 'SES-000',
+          final price = (row['total_price'] as num?)?.toInt() ?? 0;
+          final userData = row['users'] is Map<String, dynamic> ? row['users'] as Map<String, dynamic> : null;
+          final locData = row['parking_locations'] is Map<String, dynamic> ? row['parking_locations'] as Map<String, dynamic> : null;
+          final slotData = row['parking_slots'] is Map<String, dynamic> ? row['parking_slots'] as Map<String, dynamic> : null;
+          final vehData = row['vehicles'] is Map<String, dynamic> ? row['vehicles'] as Map<String, dynamic> : null;
+
+          final userName = userData?['full_name']?.toString() ?? 'Pelanggan ParkSmart';
+          final userPhone = userData?['phone']?.toString() ?? '-';
+          final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
+          final slotCode = slotData?['slot_code']?.toString() ?? '-';
+          final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
+          final plate = row['plate_number']?.toString() ?? vehData?['plate_number']?.toString() ?? '-';
+          final vType = vehData?['vehicle_type']?.toString().toLowerCase() == 'motor' ? 'Motor' : 'Mobil';
+
+          DateTime? parsedStart = DateTime.tryParse(row['start_time']?.toString() ?? '');
+          String timeFormatted = '08:00';
+          if (parsedStart != null) {
+            final wibDt = parsedStart.toUtc().add(const Duration(hours: 7));
+            timeFormatted = '${wibDt.hour.toString().padLeft(2, '0')}:${wibDt.minute.toString().padLeft(2, '0')}';
+          }
+
+          String displayStatus = 'Menunggu';
+          if (isPaid) {
+            if (bStatus == 'active') {
+              displayStatus = 'Siap Check-In';
+            } else {
+              displayStatus = 'Dikonfirmasi';
+            }
+          }
+
+          validIncoming.add({
+            'id': row['booking_code']?.toString() ?? 'BKG-001',
             'db_id': row['id']?.toString(),
-            'slot_id': row['slot_id']?.toString(),
-            'booking_id': row['booking_id']?.toString(),
-            'plate': row['plate_number']?.toString() ?? 'B 1234 XYZ',
-            'user': userName,
+            'code': row['booking_code']?.toString() ?? 'PRK-001',
+            'name': userName,
             'phone': userPhone,
-            'type': isEv ? 'EV' : (vType.contains('motor') ? 'Motor' : 'Mobil'),
-            'vehicle': row['vehicle_desc']?.toString() ?? 'Kendaraan',
             'location': locName,
             'slot': slotCode,
             'floor': floorName,
-            'checkIn': checkInStr,
-            'duration': durationStr,
-            'raw_expected_check_out_time': expOutDt,
-            'raw_check_in_time': checkInDt,
-            'fee': 'Rp ${fee.toStringAsFixed(0)}',
-            'isOverstay': isOverstay,
-            'overstayDuration': '$overstayMins mnt',
-            'isEv': isEv,
-          };
-        }).toList();
-      } else {
-        _liveSessions = [];
+            'vehicleType': vType,
+            'plate': plate,
+            'time': '$timeFormatted WIB',
+            'duration': '${row['duration_hours'] ?? 1} jam',
+            'status': displayStatus,
+            'totalPrice': 'Rp $price',
+            'paymentStatus': isPaid ? 'Dibayar' : 'Belum Dibayar',
+          });
+        }
+
+        _liveBookings = validIncoming;
+      } catch (e) {
+        debugPrint('[AdminOperationsDashboardBackend] liveBookings error: $e');
       }
-
-      // 3. Reservasi Masuk Real dari Database (Hanya yang belum checkin & belum expired)
-      final bookingsRes = await _client
-          .from('bookings')
-          .select('''
-            id,
-            booking_code,
-            booking_type,
-            start_time,
-            end_time,
-            duration_hours,
-            total_price,
-            payment_status,
-            booking_status,
-            created_at,
-            user_id,
-            location_id,
-            slot_id,
-            vehicle_id,
-            plate_number,
-            vehicle_desc,
-            users(full_name, phone),
-            parking_locations(name),
-            parking_slots(slot_code, floor_name),
-            vehicles(plate_number, vehicle_type, brand, model)
-          ''')
-          .inFilter('booking_status', ['upcoming', 'confirmed'])
-          .order('created_at', ascending: false);
-
-      final List<Map<String, dynamic>> validIncoming = [];
-      final nowUtc = DateTime.now().toUtc();
-
-      for (final row in bookingsRes) {
-        final payStatus = (row['payment_status'] ?? '').toString().toLowerCase();
-        final isPaid = payStatus == 'paid';
-
-        // Filter validasi: jika unpaid tapi sudah > 179s, lewati (sudah di-cancel)
-        if (!isPaid) {
-          final cat = DateTime.tryParse(row['created_at']?.toString() ?? '');
-          if (cat != null && nowUtc.difference(cat.toUtc()).inSeconds > 179) {
-            continue;
-          }
-        }
-
-        // Jika paid tapi sudah lewat end_time, lewati (sudah auto-selesai)
-        if (isPaid) {
-          final end = DateTime.tryParse(row['end_time']?.toString() ?? '');
-          if (end != null && nowUtc.isAfter(end.toUtc())) {
-            continue;
-          }
-        }
-
-        final price = (row['total_price'] as num?)?.toInt() ?? 0;
-        final userData = row['users'] as Map<String, dynamic>?;
-        final locData = row['parking_locations'] as Map<String, dynamic>?;
-        final slotData = row['parking_slots'] as Map<String, dynamic>?;
-        final vehData = row['vehicles'] as Map<String, dynamic>?;
-
-        final userName = userData?['full_name']?.toString() ?? 'Pelanggan ParkSmart';
-        final userPhone = userData?['phone']?.toString() ?? '-';
-        final locName = locData?['name']?.toString() ?? 'Lokasi Parkir';
-        final slotCode = slotData?['slot_code']?.toString() ?? '-';
-        final floorName = slotData?['floor_name']?.toString() ?? 'Lantai 1';
-        final plate = row['plate_number']?.toString() ?? vehData?['plate_number']?.toString() ?? '-';
-        final vType = vehData?['vehicle_type']?.toString().toLowerCase() == 'motor' ? 'Motor' : 'Mobil';
-
-        DateTime? parsedStart = DateTime.tryParse(row['start_time']?.toString() ?? '');
-        String timeFormatted = '08:00';
-        if (parsedStart != null) {
-          final wibDt = parsedStart.toUtc().add(const Duration(hours: 7));
-          timeFormatted = '${wibDt.hour.toString().padLeft(2, '0')}:${wibDt.minute.toString().padLeft(2, '0')}';
-        }
-
-        validIncoming.add({
-          'id': row['booking_code']?.toString() ?? 'BKG-001',
-          'db_id': row['id']?.toString(),
-          'code': row['booking_code']?.toString() ?? 'PRK-001',
-          'name': userName,
-          'phone': userPhone,
-          'location': locName,
-          'slot': slotCode,
-          'floor': floorName,
-          'vehicleType': vType,
-          'plate': plate,
-          'time': '$timeFormatted WIB',
-          'duration': '${row['duration_hours'] ?? 2} jam',
-          'status': isPaid ? 'Dikonfirmasi' : 'Menunggu',
-          'totalPrice': 'Rp $price',
-          'paymentStatus': isPaid ? 'Dibayar' : 'Belum Dibayar',
-        });
-      }
-
-      _liveBookings = validIncoming;
 
       // 4. Seluruh Sesi Parkir untuk Kalkulasi Chart 4 Minggu per Bulan
       final allSessionsRes = await _client

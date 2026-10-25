@@ -1,10 +1,11 @@
 import 'dart:io';
-import 'dart:typed_data';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:google_mlkit_text_recognition/google_mlkit_text_recognition.dart';
+import '../../core/utils/stnk_expiry_formatter.dart';
 import 'backend/custom_camera_backend.dart';
 
 class CustomCameraScreen extends StatefulWidget {
@@ -250,12 +251,19 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
                     Expanded(
                       child: TextField(
                         controller: controller,
+                        keyboardType: stepNumber == 2 ? TextInputType.number : TextInputType.text,
+                        inputFormatters: stepNumber == 2
+                            ? [
+                                FilteringTextInputFormatter.allow(RegExp(r'[0-9\s•\.\/\-]')),
+                                StnkExpiryInputFormatter(),
+                              ]
+                            : null,
                         textCapitalization: TextCapitalization.characters,
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
                           color: Colors.white,
-                          letterSpacing: stepNumber == 1 ? 2.5 : 1,
+                          letterSpacing: stepNumber == 1 ? 2.5 : 2,
                         ),
                         decoration: const InputDecoration(
                           border: InputBorder.none,
@@ -279,7 +287,11 @@ class _CustomCameraScreenState extends State<CustomCameraScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     Navigator.pop(ctx);
-                    onConfirm(controller.text.trim());
+                    final raw = controller.text.trim();
+                    final confirmed = stepNumber == 2
+                        ? (raw.contains('•') ? raw : StnkExpiryInputFormatter.format(raw))
+                        : raw;
+                    onConfirm(confirmed);
                   },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.white,

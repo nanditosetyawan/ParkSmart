@@ -183,6 +183,8 @@ class _HistoryScreenState extends State<HistoryScreen> {
                                 padding: const EdgeInsets.only(bottom: 16),
                                 child: _HistoryCard(
                                   id: item.id,
+                                  bookingId: item.bookingId,
+                                  sessionId: item.sessionId,
                                   mallName: item.mallName,
                                   date: item.date,
                                   status: item.status,
@@ -299,6 +301,8 @@ class _FilterChip extends StatelessWidget {
 
 class _HistoryCard extends StatelessWidget {
   final String id;
+  final String? bookingId;
+  final String? sessionId;
   final String mallName;
   final String date;
   final String status;
@@ -313,6 +317,8 @@ class _HistoryCard extends StatelessWidget {
 
   const _HistoryCard({
     required this.id,
+    this.bookingId,
+    this.sessionId,
     required this.mallName,
     required this.date,
     required this.status,
@@ -340,11 +346,12 @@ class _HistoryCard extends StatelessWidget {
     return GestureDetector(
       onTap: () {
         if (status == TicketMark.belumDibayar) {
+          final targetBookingId = bookingId ?? id;
           // Buka langsung halaman CheckoutScreen dengan data booking belum bayar & timer 2:59 berjalan
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => CheckoutScreen(existingBookingId: id),
+              builder: (_) => CheckoutScreen(existingBookingId: targetBookingId),
             ),
           ).then((_) {
             HistoryBackend.instance.fetchHistory();
@@ -353,11 +360,12 @@ class _HistoryCard extends StatelessWidget {
         }
 
         if (status == TicketMark.ready) {
+          final targetBookingId = bookingId ?? id;
           // Buka halaman tiket parkir dengan info parkiran & opsi Check-in atau Simpan
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => BookingConfirmationScreen(bookingId: id),
+              builder: (_) => BookingConfirmationScreen(bookingId: targetBookingId),
             ),
           ).then((_) {
             HistoryBackend.instance.fetchHistory();
@@ -366,11 +374,12 @@ class _HistoryCard extends StatelessWidget {
         }
 
         if (status == TicketMark.aktif) {
+          final targetSessionId = sessionId ?? id;
           // Buka sesi parkir yang sedang berjalan
           Navigator.push(
             context,
             MaterialPageRoute(
-              builder: (_) => ActiveSessionScreen(sessionId: id),
+              builder: (_) => ActiveSessionScreen(sessionId: targetSessionId),
             ),
           ).then((_) {
             HistoryBackend.instance.fetchHistory();

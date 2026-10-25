@@ -38,8 +38,13 @@ class HistoryItem {
   final String? plateNumber;
   final String? vehicleName;
 
+  final String? bookingId;
+  final String? sessionId;
+
   const HistoryItem({
     required this.id,
+    this.bookingId,
+    this.sessionId,
     required this.mallName,
     required this.date,
     required this.rawDate,
@@ -98,37 +103,50 @@ class HistoryItem {
         map['floor_name']?.toString() ??
         'Lantai 1';
 
+    final booking = map['bookings'] as Map<String, dynamic>?;
+    final bookingPayStatus = (booking?['payment_status'] ?? 'paid').toString().toLowerCase();
+    final bookingStatus = (booking?['booking_status'] ?? '').toString().toLowerCase();
+
     num fee = (map['total_fee'] as num?)?.toDouble() ??
         (map['parking_fee'] as num?)?.toDouble() ??
         0.0;
-    if (fee <= 0 && map['bookings'] != null) {
-      fee = (map['bookings']['total_price'] as num?)?.toDouble() ?? 11000.0;
+    if (fee <= 0 && booking != null) {
+      fee = (booking['total_price'] as num?)?.toDouble() ?? 0.0;
     }
-    if (fee <= 0) fee = 11000.0;
+    if (fee <= 0) fee = 5000.0;
+
+    int dHours = (booking?['duration_hours'] as num?)?.toInt() ?? 0;
+    if (dHours <= 0 && expectedCheckOutTime != null && checkInTime != null) {
+      final diffMins = expectedCheckOutTime.difference(checkInTime).inMinutes;
+      dHours = (diffMins / 60.0).round();
+    }
+    if (dHours <= 0) dHours = 1;
 
     final createdAt = checkInTime ?? DateTime.now();
-    final bookingCode = map['bookings']?['booking_code']?.toString() ??
+    final bookingCode = booking?['booking_code']?.toString() ??
         map['session_code']?.toString() ??
         map['id']?.toString();
-    final plate = map['plate_number']?.toString() ?? map['bookings']?['plate_number']?.toString();
-    final vDesc = vehicleDesc.isNotEmpty ? vehicleDesc : map['bookings']?['vehicle_desc']?.toString();
+    final plate = map['plate_number']?.toString() ?? booking?['plate_number']?.toString();
+    final vDesc = vehicleDesc.isNotEmpty ? vehicleDesc : booking?['vehicle_desc']?.toString();
 
     return HistoryItem(
       id: map['id']?.toString() ?? '',
+      bookingId: map['booking_id']?.toString(),
+      sessionId: map['id']?.toString(),
       mallName: map['parking_locations']?['name']?.toString() ??
           map['location_name']?.toString() ??
           'ParkSmart Hub',
       date: '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year}',
       rawDate: createdAt,
-      rawPaymentStatus: '',
-      rawBookingStatus: '',
+      rawPaymentStatus: bookingPayStatus,
+      rawBookingStatus: bookingStatus,
       rawSessionStatus: statusStr,
       rawStartTime: checkInTime,
-      rawEndTime: null,
+      rawEndTime: expectedCheckOutTime,
       rawCheckOutTime: checkOutTime,
       rawExpectedCheckOutTime: expectedCheckOutTime,
       holdCreatedAt: null,
-      duration: map['duration'] ?? '2 Jam',
+      duration: '$dHours Jam',
       slot: 'Slot $slotCode • $floorName',
       rawPrice: fee,
       price: CurrencyService.instance.format(fee),
@@ -154,7 +172,8 @@ class HistoryItem {
 
     final slotCode = map['parking_slots']?['slot_code']?.toString() ?? 'A-01';
     final floorName = map['parking_slots']?['floor_name']?.toString() ?? 'Lantai 1';
-    final fee = (map['total_price'] as num?)?.toDouble() ?? 11000.0;
+    final dHours = (map['duration_hours'] as num?)?.toInt() ?? 1;
+    final fee = (map['total_price'] as num?)?.toDouble() ?? (dHours * 5000.0);
 
     final createdAt = map['created_at'] != null
         ? DateTime.tryParse(map['created_at'].toString())?.toLocal() ?? DateTime.now()
@@ -166,6 +185,8 @@ class HistoryItem {
 
     return HistoryItem(
       id: map['id']?.toString() ?? '',
+      bookingId: map['id']?.toString(),
+      sessionId: null,
       mallName: map['parking_locations']?['name']?.toString() ?? 'ParkSmart Hub',
       date: '${createdAt.day.toString().padLeft(2, '0')}/${createdAt.month.toString().padLeft(2, '0')}/${createdAt.year}',
       rawDate: createdAt,
@@ -177,7 +198,7 @@ class HistoryItem {
       rawCheckOutTime: null,
       rawExpectedCheckOutTime: null,
       holdCreatedAt: createdAt,
-      duration: '${map['duration_hours'] ?? 2} Jam',
+      duration: '$dHours Jam',
       slot: 'Slot $slotCode • $floorName',
       rawPrice: fee,
       price: CurrencyService.instance.format(fee),
@@ -324,7 +345,7 @@ class HistoryBackend extends ChangeNotifier {
       // 1. Ambil dari tabel parking_sessions (sesi yang sudah check-in) HANYA milik user yang login
       final sessions = await _client
           .from('parking_sessions')
-          .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, plate_number, vehicle_desc)')
+          .select('id, session_code, booking_id, plate_number, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address), parking_slots(slot_code, floor_name), bookings(booking_code, total_price, duration_hours, payment_status, booking_status, plate_number, vehicle_desc)')
           .eq('user_id', currentUserId)
           .order('check_in_time', ascending: false)
           .limit(30);

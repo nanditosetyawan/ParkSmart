@@ -135,6 +135,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   StreamSubscription<Position>? _positionSub;
   StreamSubscription<MagnetometerEvent>? _magSub;
+  Timer? _sessionPollTimer;
 
   void _onLanguageChanged() {
     if (mounted) setState(() {});
@@ -153,6 +154,13 @@ class _HomeScreenState extends State<HomeScreen> {
     // Ambil data backend Supabase
     HomeBackend.instance.loadHomeData();
 
+    // Polling aktif sesi setiap 6 detik agar jika di-force-out admin / checkout langsung sinkron
+    _sessionPollTimer = Timer.periodic(const Duration(seconds: 6), (_) {
+      if (mounted) {
+        HomeBackend.instance.refreshActiveSessions();
+      }
+    });
+
     // Periksa apakah sistem sedang dalam mode maintenance global
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&
@@ -166,6 +174,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     LanguageService.instance.removeListener(_onLanguageChanged);
+    _sessionPollTimer?.cancel();
     _positionSub?.cancel();
     _magSub?.cancel();
     super.dispose();

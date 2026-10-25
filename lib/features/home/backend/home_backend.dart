@@ -285,7 +285,10 @@ class HomeBackend extends ChangeNotifier {
   /// Sinkronisasi badge unread notifikasi dari luar
   Future<void> refreshUnreadNotifications() => _fetchUnreadNotifications();
 
-  /// 4. Ambil SEMUA sesi parkir aktif (sesi checkout / expired otomatis dihapus dari homescreen)
+  /// Sinkronisasi sesi parkir aktif secara manual / otomatis dari luar
+  Future<void> refreshActiveSessions() => _fetchActiveSession();
+
+  /// 4. Ambil SEMUA sesi parkir aktif (sesi checkout / expired / force-out otomatis dihapus dari homescreen)
   Future<void> _fetchActiveSession() async {
     try {
       final now = DateTime.now();
@@ -298,32 +301,51 @@ class HomeBackend extends ChangeNotifier {
       if (uid.isEmpty) {
         _activeSessions = [];
         _activeSession = null;
+        notifyListeners();
         return;
       }
 
-      // 1. Ambil sesi parkir aktif (parking_sessions) hanya milik user ini
-      var query = _client
+      // 1. Ambil riwayat sesi parkir terbaru milik user ini untuk membedakan yang aktif vs sudah selesai (termasuk force-out)
+      final sessions = await _client
           .from('parking_sessions')
           .select('id, session_code, user_id, slot_id, booking_id, plate_number, vehicle_type, vehicle_desc, check_in_time, expected_check_out_time, check_out_time, parking_fee, total_fee, status, parking_locations(name, address, image_url), parking_slots(slot_code, floor_name)')
-          .eq('status', 'active')
-          .eq('user_id', uid);
-
-      final sessions = await query.order('check_in_time', ascending: false);
+          .eq('user_id', uid)
+          .order('check_in_time', ascending: false)
+          .limit(30);
 
       final List<Map<String, dynamic>> list = [];
       final Set<String> activeBookingIds = {};
+      final Set<String> completedBookingIds = {};
 
       for (var session in sessions) {
+        final sStatus = (session['status'] ?? '').toString().toLowerCase().trim();
         final coTime = session['check_out_time'];
         final expTimeStr = session['expected_check_out_time'];
         final expTime = expTimeStr != null ? DateTime.tryParse(expTimeStr.toString())?.toLocal() : null;
+        final bId = session['booking_id']?.toString();
 
-        // Jika sudah checkout atau waktu habis, jangan tampilkan di home screen
-        if (coTime != null || (expTime != null && now.isAfter(expTime))) {
+        // Jika sesi sudah berstatus completed atau sudah terisi check_out_time (termasuk akibat Force Out admin):
+        if (sStatus == 'completed' || coTime != null) {
+          if (bId != null && bId.isNotEmpty) {
+            completedBookingIds.add(bId);
+            // Sinkronkan status booking terkait jika masih berstatus active / upcoming
+            try {
+              await _client
+                  .from('bookings')
+                  .update({'booking_status': 'completed'})
+                  .eq('id', bId)
+                  .neq('booking_status', 'completed');
+            } catch (_) {}
+          }
+          continue; // Pasti TIDAK dimasukkan ke list aktif homescreen
+        }
+
+        // Jika waktu habis otomatis selesai
+        if (expTime != null && now.isAfter(expTime)) {
           try {
             await _client.from('parking_sessions').update({
               'status': 'completed',
-              'check_out_time': expTime != null ? expTime.toUtc().toIso8601String() : now.toUtc().toIso8601String(),
+              'check_out_time': expTime.toUtc().toIso8601String(),
             }).eq('id', session['id']);
 
             if (session['slot_id'] != null) {
@@ -333,32 +355,43 @@ class HomeBackend extends ChangeNotifier {
                 'occupied_since': null,
               }).eq('id', session['slot_id']);
             }
+
+            if (bId != null && bId.isNotEmpty) {
+              completedBookingIds.add(bId);
+              await _client.from('bookings').update({
+                'booking_status': 'completed',
+              }).eq('id', bId);
+            }
           } catch (_) {}
           continue; // Tidak dimasukkan ke list homescreen
         }
 
-        if (session['booking_id'] != null) {
-          activeBookingIds.add(session['booking_id'].toString());
-        }
+        // Hanya masukkan jika sesi memang murni active / overstay
+        if (sStatus == 'active' || sStatus == 'overstay') {
+          if (bId != null && bId.isNotEmpty) {
+            activeBookingIds.add(bId);
+          }
 
-        list.add({
-          'type': 'session',
-          'id': session['id']?.toString(),
-          'title': 'SESI PARKIR AKTIF',
-          'tag': 'Sesi Parkir Aktif',
-          'location_name': session['parking_locations']?['name'] ?? 'Spot Parkir',
-          'location_address': session['parking_locations']?['address'] ?? '',
-          'image_url': session['parking_locations']?['image_url'],
-          'slot_code': session['parking_slots']?['slot_code'] ?? 'A-01',
-          'floor_name': session['parking_slots']?['floor_name'] ?? 'Lantai B1',
-          'plate_number': session['plate_number'] ?? '',
-          'vehicle_desc': session['vehicle_desc'] ?? '',
-          'start_time': session['check_in_time'],
-          'end_time': session['expected_check_out_time'] ?? session['check_in_time'],
-        });
+          list.add({
+            'type': 'session',
+            'id': session['id']?.toString(),
+            'title': 'SESI PARKIR AKTIF',
+            'tag': 'Sesi Parkir Aktif',
+            'location_name': session['parking_locations']?['name'] ?? 'Spot Parkir',
+            'location_address': session['parking_locations']?['address'] ?? '',
+            'image_url': session['parking_locations']?['image_url'],
+            'slot_code': session['parking_slots']?['slot_code'] ?? 'A-01',
+            'floor_name': session['parking_slots']?['floor_name'] ?? 'Lantai B1',
+            'plate_number': session['plate_number'] ?? '',
+            'vehicle_desc': session['vehicle_desc'] ?? '',
+            'start_time': session['check_in_time'],
+            'end_time': session['expected_check_out_time'] ?? session['check_in_time'],
+          });
+        }
       }
 
       // 2. Ambil booking yang sudah dibayar dan sesi mulainya sudah tiba secara otomatis (now >= start_time && now < end_time)
+      // HANYA untuk reservasi yang BELUM pernah check-in / belum pernah ada sesi selesai
       if (uid.isNotEmpty) {
         try {
           final bookings = await _client
@@ -370,10 +403,22 @@ class HomeBackend extends ChangeNotifier {
 
           for (var b in bookings) {
             final bId = b['id']?.toString() ?? '';
-            if (activeBookingIds.contains(bId)) continue;
+            // Jangan tampilkan jika sudah ada sesi aktif ATAU booking ini sudah pernah ada sesi selesai/checkout/force-out!
+            if (activeBookingIds.contains(bId) || completedBookingIds.contains(bId)) {
+              continue;
+            }
 
-            final bStatus = b['booking_status']?.toString().toLowerCase();
-            if (bStatus == 'completed' || bStatus == 'cancelled') continue;
+            final bStatus = (b['booking_status'] ?? '').toString().toLowerCase().trim();
+            // Jika sudah completed, cancelled, atau active (artinya sudah pernah check-in tapi sesinya sudah tidak ada di active sessions)
+            if (bStatus == 'completed' || bStatus == 'cancelled' || bStatus == 'active') {
+              if (bStatus == 'active') {
+                // Booking statusnya active tapi tidak ada di parking_sessions aktif -> sinkronkan ke completed
+                try {
+                  await _client.from('bookings').update({'booking_status': 'completed'}).eq('id', bId);
+                } catch (_) {}
+              }
+              continue;
+            }
 
             final start = b['start_time'] != null ? DateTime.tryParse(b['start_time'].toString())?.toLocal() : null;
             final end = b['end_time'] != null ? DateTime.tryParse(b['end_time'].toString())?.toLocal() : null;
@@ -389,7 +434,7 @@ class HomeBackend extends ChangeNotifier {
             }
 
             if (start != null && (now.isAfter(start) || now.isAtSameMomentAs(start))) {
-              // Sesi mulai otomatis timernya dengan sendirinya jika tidak ditekan checkin
+              // Sesi mulai otomatis timernya dengan sendirinya jika reservasi belum checkin
               final veh = b['vehicles'] as Map<String, dynamic>?;
               final vehDesc = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Kendaraan';
               final plate = veh?['plate_number']?.toString() ?? '';
@@ -418,10 +463,12 @@ class HomeBackend extends ChangeNotifier {
 
       _activeSessions = list;
       _activeSession = list.isNotEmpty ? list.first : null;
+      notifyListeners();
     } catch (e) {
       debugPrint('[HomeBackend] _fetchActiveSession error: $e');
       _activeSessions = [];
       _activeSession = null;
+      notifyListeners();
     }
   }
 }

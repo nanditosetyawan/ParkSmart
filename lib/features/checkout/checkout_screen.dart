@@ -517,15 +517,15 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
 
                       if (selectedMethod == 'gopay') {
                         methodName = 'GoPay';
-                        methodSubtitle = '0812-****-4321 · Terhubung';
+                        methodSubtitle = '';
                         methodIconWidget = Image.asset('assets/images/gopay-seeklogo.png', fit: BoxFit.contain);
                       } else if (selectedMethod == 'ovo') {
                         methodName = 'OVO';
-                        methodSubtitle = '0812-****-4321 · Terhubung';
+                        methodSubtitle = '';
                         methodIconWidget = Image.asset('assets/images/ovo-seeklogo.png', fit: BoxFit.contain);
                       } else if (selectedMethod == 'shopeepay') {
                         methodName = 'ShopeePay';
-                        methodSubtitle = '0812-****-4321 · Terhubung';
+                        methodSubtitle = '';
                         methodIconWidget = Image.asset('assets/images/shopee-pay-seeklogo.png', fit: BoxFit.contain);
                       } else {
                         methodName = 'ParkSmart Wallet';
@@ -599,17 +599,19 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                                         color: isDark ? Colors.white : Colors.black,
                                       ),
                                     ),
-                                    const SizedBox(height: 2),
-                                    Text(
-                                      methodSubtitle,
-                                      style: GoogleFonts.plusJakartaSans(
-                                        fontSize: 12,
-                                        fontWeight: FontWeight.w600,
-                                        color: isParkSmart
-                                            ? (isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A))
-                                            : (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7)),
+                                    if (methodSubtitle.isNotEmpty) ...[
+                                      const SizedBox(height: 2),
+                                      Text(
+                                        methodSubtitle,
+                                        style: GoogleFonts.plusJakartaSans(
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: isParkSmart
+                                              ? (isDark ? const Color(0xFF34D399) : const Color(0xFF16A34A))
+                                              : (isDark ? const Color(0xFF38BDF8) : const Color(0xFF0284C7)),
+                                        ),
                                       ),
-                                    ),
+                                    ],
                                   ],
                                 ),
                               ),

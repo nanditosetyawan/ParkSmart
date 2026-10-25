@@ -37,6 +37,9 @@ class CheckinBackend extends ChangeNotifier {
   String _vehicleDesc = '';
   String get vehicleDesc => _vehicleDesc;
 
+  String? _activeSessionId;
+  String? get activeSessionId => _activeSessionId;
+
   String? _bookingId;
   String? _locationId;
   String? _slotId;
@@ -75,7 +78,15 @@ class CheckinBackend extends ChangeNotifier {
         _locationId = booking['location_id']?.toString();
         _slotId = booking['slot_id']?.toString();
         _totalPrice = (booking['total_price'] as num?)?.toDouble() ?? _totalPrice;
-        _durationHours = (booking['duration_hours'] as num?)?.toInt() ?? 1;
+        
+        final st = booking['start_time'] != null ? DateTime.tryParse(booking['start_time'].toString()) : null;
+        final et = booking['end_time'] != null ? DateTime.tryParse(booking['end_time'].toString()) : null;
+        int dHours = (booking['duration_hours'] as num?)?.toInt() ?? 0;
+        if (dHours <= 0 && st != null && et != null) {
+          dHours = et.difference(st).inHours;
+        }
+        if (dHours <= 0) dHours = 1;
+        _durationHours = dHours;
 
         if (_locationId != null) {
           final loc = await _client
@@ -148,7 +159,7 @@ class CheckinBackend extends ChangeNotifier {
 
       // 2. Buat / update record sesi parkir aktif
       final sessionCode = 'SES-${Random().nextInt(900000) + 100000}';
-      await _client.from('parking_sessions').insert({
+      final insertedSession = await _client.from('parking_sessions').insert({
         'session_code': sessionCode,
         'booking_id': _bookingId,
         'location_id': _locationId ?? 'a0000000-0000-0000-0000-000000000001',
@@ -163,7 +174,11 @@ class CheckinBackend extends ChangeNotifier {
         'total_fee': _totalPrice,
         'status': 'active',
         'gate_in_id': _gateName,
-      });
+      }).select('id').maybeSingle();
+
+      if (insertedSession != null) {
+        _activeSessionId = insertedSession['id']?.toString();
+      }
 
       // 3. Update status slot menjadi 'occupied'
       if (_slotId != null) {

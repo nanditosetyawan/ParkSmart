@@ -22,7 +22,7 @@ class AdminOperationsDashboardScreen extends StatefulWidget {
   State<AdminOperationsDashboardScreen> createState() => _AdminOperationsDashboardScreenState();
 }
 
-class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboardScreen> {
+class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboardScreen> with WidgetsBindingObserver {
   final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
   String _adminName = 'BAHLIL ETANOL';
   String _adminEmail = 'bahlil@parksmart.id';
@@ -32,8 +32,10 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _loadAdminInfo();
     AdminOperationsDashboardBackend.instance.addListener(_onBackendChanged);
+    AdminOperationsDashboardBackend.instance.initRealtimeSubscription();
     AdminOperationsDashboardBackend.instance.fetchDashboardData();
     _autoRefreshTimer = Timer.periodic(const Duration(seconds: 12), (_) {
       if (mounted) {
@@ -45,6 +47,13 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         setState(() {});
       }
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      AdminOperationsDashboardBackend.instance.fetchDashboardData();
+    }
   }
 
   Future<void> _loadAdminInfo() async {
@@ -82,9 +91,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _autoRefreshTimer?.cancel();
     _countdownTimer?.cancel();
     AdminOperationsDashboardBackend.instance.removeListener(_onBackendChanged);
+    AdminOperationsDashboardBackend.instance.disposeRealtime();
     super.dispose();
   }
 
@@ -557,14 +568,30 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              'Aktivitas Lapangan Real-Time',
-              style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
-            ),
-            const SizedBox(height: 2),
-            Text(
-              'Monitoring sesi kendaraan aktif & reservasi hari ini',
-              style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Aktivitas Lapangan Real-Time',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18)),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      'Monitoring sesi kendaraan aktif & reservasi hari ini',
+                      style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B)),
+                    ),
+                  ],
+                ),
+                if (AdminOperationsDashboardBackend.instance.isLoading)
+                  const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF114177)),
+                  ),
+              ],
             ),
           ],
         ),
@@ -582,11 +609,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    if (_activitySubTab == 0) {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen()));
-                    } else {
-                      setState(() => _activitySubTab = 0);
-                    }
+                    setState(() => _activitySubTab = 0);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),
@@ -613,11 +636,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               Expanded(
                 child: GestureDetector(
                   onTap: () {
-                    if (_activitySubTab == 1) {
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const AdminBookingsScreen()));
-                    } else {
-                      setState(() => _activitySubTab = 1);
-                    }
+                    setState(() => _activitySubTab = 1);
                   },
                   child: Container(
                     padding: const EdgeInsets.symmetric(vertical: 8),

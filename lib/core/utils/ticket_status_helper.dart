@@ -45,7 +45,18 @@ class TicketMark {
       return selesai;
     }
 
-    // 2. Waktu habis (selesai otomatis karena waktu telah berakhir)
+    // 2. Dibatalkan: jika dibatalkan oleh pengguna / admin
+    if (bStatus == 'cancelled') {
+      return dibatalkan;
+    }
+
+    // 3. Sesi aktif di gerbang atau reservasi aktif yang sudah check-in
+    // Wajib diprioritaskan agar sesi yang sedang berjalan tidak salah dianggap unpaid/belum dibayar
+    if (sStatus == 'active' || sStatus == 'overstay' || bStatus == 'active') {
+      return aktif;
+    }
+
+    // 4. Waktu habis (selesai otomatis karena waktu telah berakhir untuk reservasi yang tidak aktif)
     if (expectedCheckOutTime != null && now.isAfter(expectedCheckOutTime)) {
       return selesai;
     }
@@ -53,25 +64,18 @@ class TicketMark {
       return selesai;
     }
 
-    // 3. Dibatalkan: jika dibatalkan oleh pengguna / admin
-    if (bStatus == 'cancelled') {
-      return dibatalkan;
-    }
-
-    // 4. Belum Dibayar: jika pembayaran belum selesai
-    if (pStatus == 'unpaid' || pStatus == 'pending' || pStatus == 'belum dibayar' || pStatus.isEmpty) {
+    // 5. Belum Dibayar: jika pembayaran belum selesai
+    if (pStatus == 'unpaid' || pStatus == 'pending' || pStatus == 'belum dibayar') {
       return belumDibayar;
     }
 
-    // 5. Sesi aktif di gerbang atau reservasi aktif yang sudah check-in
-    if (sStatus == 'active' || sStatus == 'overstay' || bStatus == 'active') {
-      return aktif;
-    }
-
     // 6. Sudah dibayar: tiket berstatus Ready untuk check-in.
-    // Jika tidak check-in sampai batas akhir waktu checkout (endTime), aturan nomor 2 di atas otomatis menyelesaikannya.
     if (pStatus == 'paid' || pStatus == 'dibayar' || pStatus == 'success' || pStatus == 'berhasil') {
       return ready;
+    }
+
+    if (pStatus.isEmpty) {
+      return belumDibayar;
     }
 
     return belumDibayar;
