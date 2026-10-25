@@ -1,33 +1,34 @@
 # 🗄️ SUPABASE DATABASE SCHEMA & SPECIFICATION (POSTGRESQL)
 ## Proyek: Smart Parking (ParkSmart ID)
-### Enterprise Database Architecture — Production Ready (Optimized & Essential)
+### Enterprise Database Architecture — Production Ready (Optimized, Clone & Backup Ready)
 
-> 📌 **STATUS DOKUMEN: SINKRONISASI AKTIF & ITERATIF DARI KODE SUMBER (15 TABEL UTAMA)**  
+> 📌 **STATUS DOKUMEN: SINKRONISASI AKTIF & ITERATIF DARI KODE SUMBER (16 TABEL LENGKAP)**  
 > **Prinsip Utama:** Skema ringkas, teroptimasi, bebas tabel redundan, dan 100% akurat sesuai database live Supabase & kode aplikasi `lib/features/`.  
 > **Tata Kelola Admin:** Seluruh role admin (Super Admin, Operasional, Finansial, CS) digabung ke dalam 1 tabel terpadu `admins` berbasis RBAC.  
 > 🔒 **Keamanan AI:** Tabel `ai_agent_configs` telah dihapus secara permanen dari Supabase. Kunci API Groq kini 100% aman tersimpan pada file konfigurasi lokal `.env` (`GROQ_API_KEY`).
 
 ---
 
-## 📑 DAFTAR TABEL DATABASE (15 TABEL UTAMA)
+## 📑 DAFTAR TABEL DATABASE (16 TABEL UTAMA)
 
 | No | Nama Tabel | Modul / Klaster | Deskripsi Entitas |
 |:---:|:---|:---|:---|
-| 1 | `users` | User & Profil | Identitas akun pengguna, profil, saldo dompet, poin, status & PIN keamanan |
+| 1 | `users` | User & Profil | Identitas akun pengguna, profil, saldo dompet, poin, status, status keanggotaan & PIN keamanan |
 | 2 | `vehicles` | User & Kendaraan | Garasi kendaraan terdaftar, nomor polisi (TNKB), tipe kendaraan & foto |
-| 3 | `admins` | Admin Terpadu | Akun staf portal (Super Admin, Operasional, Finansial, CS) dalam 1 tabel |
-| 4 | `user_kyc` | Super Admin & KYC | Verifikasi identitas KTP & biometrik wajah pengguna oleh Super Admin |
-| 5 | `parking_locations` | Operasional | Master lokasi mall/gedung, koordinat GPS, kapasitas, daftar lantai (`floors`) & tarif dasar |
-| 6 | `parking_slots` | Operasional | Denah slot fisik (lantai, nomor slot, tipe, status IoT sensor & zona) |
-| 7 | `parking_sessions` | Operasional | Sesi kendaraan masuk gerbang, durasi parkir, snapshot kendaraan, overstay penalty & tarif |
-| 8 | `bookings` | Booking & Reservasi | Pemesanan slot parkir (reservasi di muka / walk-in), snapshot plat, durasi & QR pass |
-| 9 | `payments` | Finansial & Billing | Buku besar transaksi digital (parkir, top-up, injeksi, denda, refund & hash blockchain) |
-| 10 | `customer_feedbacks` | Customer Service | Ulasan bintang 1-5, masukan fasilitas & tanggapan keluhan pengguna |
-| 11 | `system_notifications` | CS & Sistem | Siaran pesan broadcast, promo tarif & notifikasi peringatan operasional |
-| 12 | `arcade_scores` | Gamifikasi & Poin | Riwayat skor mini-game (Car & Claws) serta perolehan SmartPoints pengguna |
-| 13 | `system_settings` | Super Admin | Konfigurasi variabel global (`ai_config`, `feature_toggles`, `company_treasury`) |
-| 14 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf admin terpadu (IP publik, ISP, geolokasi, perangkat hardware, status) |
-| 15 | `user_favorites` | Profil & Bookmark | Bookmark lokasi gedung parkir favorit per pengguna (dengan Row Level Security) |
+| 3 | `user_member_cards` | Profil & Keanggotaan | Kartu member bertingkat berbasis hash unik & bukti transaksi blockchain |
+| 4 | `admins` | Admin Terpadu | Akun staf portal (Super Admin, Operasional, Finansial, CS) dalam 1 tabel |
+| 5 | `user_kyc` | Super Admin & KYC | Verifikasi identitas KTP & biometrik wajah pengguna oleh Super Admin |
+| 6 | `parking_locations` | Operasional | Master lokasi mall/gedung, koordinat GPS, kapasitas, daftar lantai (`floors`) & tarif dasar |
+| 7 | `parking_slots` | Operasional | Denah slot fisik (lantai, nomor slot, tipe, status IoT sensor & zona) |
+| 8 | `parking_sessions` | Operasional | Sesi kendaraan masuk gerbang, durasi parkir, snapshot kendaraan, perpanjangan, overstay penalty & tarif |
+| 9 | `bookings` | Booking & Reservasi | Pemesanan slot parkir (reservasi di muka / walk-in), snapshot plat, perpanjangan, durasi & QR pass |
+| 10 | `payments` | Finansial & Billing | Buku besar transaksi digital (parkir, top-up, injeksi, denda, refund & hash blockchain) |
+| 11 | `customer_feedbacks` | Customer Service | Ulasan bintang 1-5, masukan fasilitas & tanggapan keluhan pengguna |
+| 12 | `system_notifications` | CS & Sistem | Siaran pesan broadcast, promo tarif & notifikasi peringatan operasional |
+| 13 | `arcade_scores` | Gamifikasi & Poin | Riwayat skor mini-game (Car & Claws) serta perolehan SmartPoints pengguna |
+| 14 | `system_settings` | Super Admin | Konfigurasi variabel global (`ai_config`, `feature_toggles`, `company_treasury`) |
+| 15 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf admin terpadu (IP publik, ISP, geolokasi, perangkat hardware, status) |
+| 16 | `user_favorites` | Profil & Bookmark | Bookmark lokasi gedung parkir favorit per pengguna (dengan Row Level Security) |
 
 ---
 
@@ -156,7 +157,8 @@ CREATE TABLE IF NOT EXISTS public.users (
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     password TEXT DEFAULT 'user123',
     saran_kuliah TEXT,
-    pesan_kuliah TEXT
+    pesan_kuliah TEXT,
+    status_keanggotaan BOOLEAN DEFAULT true
 );
 
 CREATE INDEX IF NOT EXISTS idx_users_email ON public.users(email);
@@ -194,7 +196,42 @@ CREATE INDEX IF NOT EXISTS idx_vehicles_plate ON public.vehicles(plate_number);
 
 ---
 
-### Tabel 3: `admins`
+### Tabel 3: `user_member_cards`
+Menyimpan kartu keanggotaan bertingkat (Regular/Bronze, Silver, Gold, Platinum) berbasis kode hash unik dan bukti transaksi blockchain.
+* **File Rujukan Kode:** `lib/features/profile/widgets/member_card_dialog.dart`, `lib/features/profile/backend/profile_backend.dart`.
+
+```sql
+CREATE TABLE IF NOT EXISTS public.user_member_cards (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+    card_tier VARCHAR(20) NOT NULL CHECK (card_tier IN ('regular', 'bronze', 'silver', 'gold', 'platinum')),
+    member_hash_code VARCHAR(66) NOT NULL UNIQUE,
+    nft_token_id NUMERIC,
+    tx_hash VARCHAR(66),
+    is_active BOOLEAN NOT NULL DEFAULT true,
+    unlocked_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    CONSTRAINT uq_user_tier UNIQUE (user_id, card_tier)
+);
+
+CREATE INDEX IF NOT EXISTS idx_user_member_cards_user_id ON public.user_member_cards(user_id);
+CREATE INDEX IF NOT EXISTS idx_user_member_cards_hash ON public.user_member_cards(member_hash_code);
+
+ALTER TABLE public.user_member_cards ENABLE ROW LEVEL SECURITY;
+
+DO $$ BEGIN
+    CREATE POLICY "Allow all for authenticated and anon" 
+    ON public.user_member_cards 
+    FOR ALL 
+    USING (true) 
+    WITH CHECK (true);
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+```
+
+---
+
+### Tabel 4: `admins`
 Tabel terpadu untuk seluruh staf portal admin internal dengan pembedaan wewenang berbasis Role-Based Access Control (RBAC): `super_admin`, `operational`, `finance`, dan `cs`.
 * **File Rujukan Kode:** `lib/features/auth/login_screen.dart`, `lib/features/admin/`.
 
@@ -350,6 +387,8 @@ CREATE TABLE IF NOT EXISTS public.parking_sessions (
     status session_status_enum NOT NULL DEFAULT 'active',
     gate_in_id VARCHAR(50),
     gate_out_id VARCHAR(50),
+    extended_count INT NOT NULL DEFAULT 0,
+    extended_minutes INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -385,6 +424,8 @@ CREATE TABLE IF NOT EXISTS public.bookings (
     cancel_reason TEXT,
     plate_number VARCHAR(20),
     vehicle_desc VARCHAR(100),
+    extended_count INT NOT NULL DEFAULT 0,
+    extended_minutes INT NOT NULL DEFAULT 0,
     created_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now()),
     updated_at TIMESTAMPTZ NOT NULL DEFAULT timezone('utc'::text, now())
 );
@@ -617,49 +658,310 @@ EXECUTE FUNCTION public.snapshot_vehicle_before_delete();
 
 ---
 
-## 9. SUPABASE STORAGE BUCKET
+## 9. STORED PROCEDURES & RPC FUNCTIONS (CLEANUP OTOMATIS & EXTEND PARKIR)
+
+### A. Pembersihan Otomatis Booking Kedaluwarsa & Pembebasan Slot (`auto_process_expired_bookings_and_sessions`)
+Fungsi RPC asinkron yang dieksekusi client maupun cron berkala untuk meng-cancel booking unpaid yang melewati hold time 2 menit 59 detik, meng-complete booking yang waktunya habis, dan membebaskan slot parkir menjadi `available`:
 
 ```sql
-INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
-VALUES (
-    'kyc-documents',
-    'kyc-documents',
-    true,
-    5242880,
-    ARRAY['image/jpeg', 'image/png', 'image/webp']
+CREATE OR REPLACE FUNCTION public.auto_process_expired_bookings_and_sessions()
+RETURNS json
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+    v_cancelled_bookings INT := 0;
+    v_completed_bookings INT := 0;
+    v_completed_sessions INT := 0;
+    v_released_slots INT := 0;
+BEGIN
+    BEGIN
+        PERFORM public.evaluate_all_membership_tiers_monthly();
+    EXCEPTION WHEN OTHERS THEN
+        NULL;
+    END;
+
+    -- 1. Auto-cancel booking unpaid yang dibuat lebih dari 179 detik lalu
+    WITH cancelled_rows AS (
+        UPDATE public.bookings
+        SET booking_status = 'cancelled',
+            cancel_reason = 'Auto-cancel: Batas waktu pembayaran 2 menit 59 detik telah habis',
+            updated_at = NOW()
+        WHERE payment_status = 'unpaid'
+          AND booking_status NOT IN ('cancelled', 'completed', 'expired')
+          AND created_at < (NOW() - INTERVAL '179 seconds')
+        RETURNING id
+    )
+    SELECT COUNT(*) INTO v_cancelled_bookings FROM cancelled_rows;
+
+    -- 2. Auto-complete booking berbayar yang waktu end_time telah lewat
+    WITH completed_b_rows AS (
+        UPDATE public.bookings
+        SET booking_status = 'completed',
+            updated_at = NOW()
+        WHERE payment_status = 'paid'
+          AND booking_status IN ('upcoming', 'active')
+          AND end_time <= NOW()
+        RETURNING id
+    )
+    SELECT COUNT(*) INTO v_completed_bookings FROM completed_b_rows;
+
+    -- 3. Auto-complete sesi parkir aktif yang waktu expected_check_out_time telah lewat
+    WITH completed_s_rows AS (
+        UPDATE public.parking_sessions
+        SET status = 'completed',
+            check_out_time = COALESCE(check_out_time, NOW()),
+            updated_at = NOW()
+        WHERE status = 'active'
+          AND expected_check_out_time <= NOW()
+        RETURNING id
+    )
+    SELECT COUNT(*) INTO v_completed_sessions FROM completed_s_rows;
+
+    -- 4. Kembalikan status slot ke 'available' jika tidak ada lagi sesi aktif atau booking berbayar aktif
+    WITH freed_slots AS (
+        UPDATE public.parking_slots ps
+        SET status = 'available',
+            occupied_since = NULL,
+            current_plate_number = NULL,
+            updated_at = NOW()
+        WHERE ps.status IN ('occupied', 'reserved')
+          AND NOT EXISTS (
+              SELECT 1 FROM public.parking_sessions sess
+              WHERE sess.slot_id = ps.id
+                AND sess.status = 'active'
+          )
+          AND NOT EXISTS (
+              SELECT 1 FROM public.bookings bk
+              WHERE bk.slot_id = ps.id
+                AND bk.booking_status IN ('upcoming', 'active')
+                AND bk.payment_status = 'paid'
+                AND bk.end_time > NOW()
+          )
+        RETURNING ps.id
+    )
+    SELECT COUNT(*) INTO v_released_slots FROM freed_slots;
+
+    RETURN json_build_object(
+        'success', true,
+        'cancelled_bookings', v_cancelled_bookings,
+        'completed_bookings', v_completed_bookings,
+        'completed_sessions', v_completed_sessions,
+        'released_slots', v_released_slots,
+        'executed_at', NOW()
+    );
+END;
+$$;
+```
+
+### B. Perpanjangan Sesi / Booking Parkir Dinamis (`extend_parking_session`)
+Mendukung penambahan durasi parkir oleh user secara real-time pada sesi aktif maupun reservasi booking aktif:
+
+```sql
+CREATE OR REPLACE FUNCTION public.extend_parking_session(
+    p_session_id text,
+    p_additional_minutes int,
+    p_cost numeric
 )
-ON CONFLICT (id) DO UPDATE SET
-    public = true,
-    file_size_limit = 5242880,
-    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+AS $$
+DECLARE
+  v_session RECORD;
+  v_booking RECORD;
+  v_current_end timestamptz;
+  v_new_end timestamptz;
+  v_new_duration_hours int;
+  v_booking_id uuid;
+  v_actual_session_id uuid;
+  v_additional_hours int := CEIL(p_additional_minutes::numeric / 60.0);
+BEGIN
+  -- 1. Cari di parking_sessions dulu
+  SELECT * INTO v_session
+  FROM parking_sessions
+  WHERE id::text = p_session_id OR session_code = p_session_id
+  LIMIT 1;
+
+  IF FOUND THEN
+    v_actual_session_id := v_session.id;
+    v_booking_id := v_session.booking_id;
+    
+    IF v_session.expected_check_out_time IS NOT NULL AND v_session.expected_check_out_time > NOW() THEN
+      v_current_end := v_session.expected_check_out_time;
+    ELSE
+      v_current_end := NOW();
+    END IF;
+    
+    v_new_end := v_current_end + (p_additional_minutes || ' minutes')::interval;
+
+    UPDATE parking_sessions
+    SET expected_check_out_time = v_new_end,
+        total_fee = COALESCE(total_fee, 0) + p_cost,
+        extended_count = COALESCE(extended_count, 0) + 1,
+        extended_minutes = COALESCE(extended_minutes, 0) + p_additional_minutes,
+        updated_at = NOW()
+    WHERE id = v_actual_session_id;
+
+    IF v_booking_id IS NOT NULL THEN
+      UPDATE bookings
+      SET end_time = v_new_end,
+          duration_hours = COALESCE(duration_hours, 1) + v_additional_hours,
+          total_price = COALESCE(total_price, 0) + p_cost,
+          extended_count = COALESCE(extended_count, 0) + 1,
+          extended_minutes = COALESCE(extended_minutes, 0) + p_additional_minutes,
+          updated_at = NOW()
+      WHERE id = v_booking_id;
+    END IF;
+
+    RETURN jsonb_build_object(
+      'success', true,
+      'type', 'session',
+      'session_id', v_actual_session_id,
+      'booking_id', v_booking_id,
+      'new_end_time', v_new_end,
+      'additional_minutes', p_additional_minutes,
+      'cost', p_cost
+    );
+  END IF;
+
+  -- 2. Jika tidak ditemukan di parking_sessions, cari di bookings
+  SELECT * INTO v_booking
+  FROM bookings
+  WHERE id::text = p_session_id OR booking_code = p_session_id
+  LIMIT 1;
+
+  IF FOUND THEN
+    IF v_booking.end_time IS NOT NULL AND v_booking.end_time > NOW() THEN
+      v_current_end := v_booking.end_time;
+    ELSE
+      v_current_end := NOW();
+    END IF;
+    
+    v_new_end := v_current_end + (p_additional_minutes || ' minutes')::interval;
+    v_new_duration_hours := COALESCE(v_booking.duration_hours, 1) + v_additional_hours;
+
+    UPDATE bookings
+    SET end_time = v_new_end,
+        duration_hours = v_new_duration_hours,
+        total_price = COALESCE(total_price, 0) + p_cost,
+        extended_count = COALESCE(extended_count, 0) + 1,
+        extended_minutes = COALESCE(extended_minutes, 0) + p_additional_minutes,
+        updated_at = NOW()
+    WHERE id = v_booking.id;
+
+    RETURN jsonb_build_object(
+      'success', true,
+      'type', 'booking',
+      'booking_id', v_booking.id,
+      'new_end_time', v_new_end,
+      'additional_minutes', p_additional_minutes,
+      'duration_hours', v_new_duration_hours,
+      'cost', p_cost
+    );
+  END IF;
+
+  RETURN jsonb_build_object(
+    'success', false,
+    'message', 'Sesi parkir atau booking tidak ditemukan.'
+  );
+END;
+$$;
 ```
 
 ---
 
-## 10. SEED DATA NYATA SUPABASE (KONDISI AKTIF SAAT INI)
+## 10. SUPABASE STORAGE BUCKET (DOKUMEN KYC, KENDARAAN, LOKASI & AVATAR)
+
+```sql
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+    ('kyc-documents', 'kyc-documents', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+    ('vehicles', 'vehicles', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+    ('parking-locations', 'parking-locations', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp']),
+    ('avatars', 'avatars', true, 5242880, ARRAY['image/jpeg', 'image/png', 'image/webp'])
+ON CONFLICT (id) DO UPDATE SET
+    public = true,
+    file_size_limit = 5242880,
+    allowed_mime_types = ARRAY['image/jpeg', 'image/png', 'image/webp'];
+
+-- Storage Policies
+DO $$ BEGIN
+    CREATE POLICY "Public Access KYC Documents" ON storage.objects FOR SELECT USING (bucket_id = 'kyc-documents');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Public Insert KYC Documents" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'kyc-documents');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Public Access Vehicles" ON storage.objects FOR SELECT USING (bucket_id = 'vehicles');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Public Insert Vehicles" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'vehicles');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Public Access Parking Locations" ON storage.objects FOR SELECT USING (bucket_id = 'parking-locations');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Public Insert Parking Locations" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'parking-locations');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+DO $$ BEGIN
+    CREATE POLICY "Public Access Avatars" ON storage.objects FOR ALL USING (bucket_id = 'avatars') WITH CHECK (bucket_id = 'avatars');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+```
+
+---
+
+## 11. SUPABASE REALTIME REPLICATION PUBLICATION
+
+Publikasi postgres replication untuk sinkronisasi instan dua arah antara database Supabase dan Flutter client:
+
+```sql
+DO $$ BEGIN
+    ALTER PUBLICATION supabase_realtime ADD TABLE 
+        public.bookings, 
+        public.parking_sessions, 
+        public.parking_slots, 
+        public.system_notifications, 
+        public.customer_feedbacks;
+EXCEPTION WHEN OTHERS THEN NULL; END $$;
+```
+
+---
+
+## 12. SEED DATA NYATA SUPABASE (KONDISI AKTIF SAAT INI)
 
 Berikut adalah seed data terverifikasi yang selaras 100% dengan database live Supabase:
 
 ```sql
--- 1. SEED 4 AKUN ADMIN LENGKAP
+-- 1. SEED 4 AKUN ADMIN TERPADU
 INSERT INTO public.admins (
-    id, email, full_name, phone, role, division, status, password
+    id, email, full_name, phone, role, division, status, password, created_at, updated_at
 ) VALUES
 (
     'a78f3e2b-4c59-4d81-9b16-83f1245890ab', 'superadmin@parksmart.id', 'Gibran Widodo', '+62 812-0000-0001',
-    'super_admin', 'Sistem & Super Admin', 'active', 'superadmin123'
+    'super_admin', 'Sistem & Super Admin', 'active', 'superadmin123',
+    '2026-10-19 16:32:26.143421+00', '2026-10-19 16:32:26.143421+00'
 ),
 (
     '12d32c66-7b63-4c0c-9146-eff24e9361f1', 'ops@parksmart.id', 'Erick Thohir', '+62 812-7777-8888',
-    'operational', 'Admin Operasional', 'active', 'ops123'
+    'operational', 'Admin Operasional', 'active', 'ops123',
+    '2026-10-22 16:25:12.417242+00', '2026-10-22 16:25:12.417242+00'
 ),
 (
     '587b0671-4730-4936-b792-7dbda1b92376', 'finance@parksmart.id', 'Sri Mulyani', '+62 812-3333-4444',
-    'finance', 'Admin Finansial', 'active', 'finance123'
+    'finance', 'Admin Finansial', 'active', 'finance123',
+    '2026-10-22 16:25:11.75688+00', '2026-10-22 16:25:11.75688+00'
 ),
 (
     '69246a1c-021a-4f9f-8534-15fc9643484f', 'cs@parksmart.id', 'Prabowo Subianto', '+62 812-5555-6666',
-    'cs', 'Admin CS & KYC', 'active', 'cs123'
+    'cs', 'Admin CS & KYC', 'active', 'cs123',
+    '2026-10-22 16:25:12.132588+00', '2026-10-22 16:25:12.132588+00'
 )
 ON CONFLICT (email) DO UPDATE SET
     full_name = EXCLUDED.full_name,
@@ -669,19 +971,29 @@ ON CONFLICT (email) DO UPDATE SET
     status = EXCLUDED.status,
     password = EXCLUDED.password;
 
--- 2. SEED PENGGUNA (HANYA user@gmail.com)
+-- 2. SEED PENGGUNA (2 PENGGUNA AKTIF DARI DATABASE LIVE)
 INSERT INTO public.users (
-    id, email, phone, full_name, avatar_url, gender, address,
+    id, email, phone, full_name, avatar_url, gender, birth_date, address,
     wallet_balance, points, member_tier, total_spent, monthly_spent,
-    last_spending_month, member_hash_code, total_parking_count, total_savings,
-    favorite_location_ids, pin_hash, is_biometric_enabled, status, password
+    last_spending_month, member_hash_code, status_keanggotaan, total_parking_count, total_savings,
+    favorite_location_ids, pin_hash, is_biometric_enabled, status, ban_reason, password,
+    created_at, updated_at
 ) VALUES
 (
-    '5d7d4224-c3f8-4add-a94f-7d87a62d9356', 'user@gmail.com', '0812769494', 'user 1',
-    'https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/avatars/5d7d4224-c3f8-4add-a94f-7d87a62d9356/avatar_5d7d4224-c3f8-4add-a94f-7d87a62d9356_1792685516418.jpg',
-    'Laki-laki', '', 48000.00, 0, 'BRONZE', 0.00, 0.00,
-    TO_CHAR(NOW(), 'YYYY-MM'), '#7b9e-4a81-d02f', 6, 0.00,
-    '{}', '4040', false, 'active', '123456'
+    'df714843-c4cf-4d45-b385-0390404d4429', 'user@gmail.com', '0813277156100', 'Andi Prawono',
+    NULL, 'Laki-laki', NULL, NULL,
+    38500.00, 0, 'BRONZE', 0.00, 0.00,
+    '2026-10', '#fb9c-c92a-c4a1', false, 0, 0.00,
+    '{}', '4040', false, 'active', NULL, '123456',
+    '2026-10-25 06:37:52.659729+00', '2026-10-25 14:51:00.031672+00'
+),
+(
+    '225428bf-e24d-4869-98c6-fed811518497', 'aji@gmail.com', '085242636121', 'ajikaja',
+    NULL, 'Laki-laki', NULL, NULL,
+    182000.00, 0, 'BRONZE', 0.00, 0.00,
+    '2026-10', '#46f5-14df-e3a2', false, 0, 0.00,
+    '{}', '1111', false, 'active', NULL, 'aji123',
+    '2026-10-25 06:32:33.554151+00', '2026-10-25 14:51:00.031672+00'
 )
 ON CONFLICT (email) DO UPDATE SET
     phone = EXCLUDED.phone,
@@ -694,14 +1006,59 @@ ON CONFLICT (email) DO UPDATE SET
     monthly_spent = EXCLUDED.monthly_spent,
     last_spending_month = EXCLUDED.last_spending_month,
     member_hash_code = EXCLUDED.member_hash_code,
+    status_keanggotaan = EXCLUDED.status_keanggotaan,
     total_parking_count = EXCLUDED.total_parking_count,
     total_savings = EXCLUDED.total_savings,
     pin_hash = EXCLUDED.pin_hash,
     status = EXCLUDED.status,
     password = EXCLUDED.password;
 
--- 3. SEED SYSTEM SETTINGS (3 RECORD AKTIF)
-INSERT INTO public.system_settings (key, value, description)
+-- 3. SEED GARASI KENDARAAN AKTIF
+INSERT INTO public.vehicles (
+    id, user_id, plate_number, vehicle_type, vehicle_category, brand, model,
+    color, plate_expiry, photo_url, is_default, created_at, updated_at
+) VALUES (
+    'cd02e022-f451-4082-8812-c44690acdfa1', 'df714843-c4cf-4d45-b385-0390404d4429',
+    'AB5894LI', 'mobil', 'suv', 'HRV', 'HRV',
+    'Merah Maroon', '11•26',
+    'https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/vehicles/df714843-c4cf-4d45-b385-0390404d4429/car_df714843-c4cf-4d45-b385-0390404d4429_1792928515651.jpg',
+    true, '2026-10-25 11:41:56.16632+00', '2026-10-25 11:41:56.166459+00'
+)
+ON CONFLICT (id) DO UPDATE SET
+    plate_number = EXCLUDED.plate_number,
+    vehicle_type = EXCLUDED.vehicle_type,
+    brand = EXCLUDED.brand,
+    model = EXCLUDED.model,
+    color = EXCLUDED.color,
+    plate_expiry = EXCLUDED.plate_expiry,
+    photo_url = EXCLUDED.photo_url,
+    is_default = EXCLUDED.is_default;
+
+-- 4. SEED KARTU MEMBER BLOCKCHAIN AKTIF
+INSERT INTO public.user_member_cards (
+    id, user_id, card_tier, member_hash_code, nft_token_id, tx_hash, is_active,
+    unlocked_at, created_at, updated_at
+) VALUES
+(
+    'ecad6d6d-9aea-4a1b-9e5d-07651c757c75', 'df714843-c4cf-4d45-b385-0390404d4429',
+    'regular', '#fb9c-c92a-c4a1', NULL,
+    '0x7eac80c8de57394420e4cff2544e1c74b016c6bfaa6244e7a4aa9ee22d9a8da6',
+    true, '2026-10-25 06:37:52.659729+00', '2026-10-25 06:37:52.659729+00', '2026-10-25 06:37:52.659729+00'
+),
+(
+    '96e0f5a8-3068-4f58-bbce-a6eb843859d5', '225428bf-e24d-4869-98c6-fed811518497',
+    'regular', '#46f5-14df-e3a2', NULL,
+    '0x25dbe8ba509bfd6aeb07df07906428974aa5c5e10e510c9dc5b8cbda52e6048f',
+    true, '2026-10-25 06:32:33.554151+00', '2026-10-25 06:32:33.554151+00', '2026-10-25 06:32:33.554151+00'
+)
+ON CONFLICT (id) DO UPDATE SET
+    card_tier = EXCLUDED.card_tier,
+    member_hash_code = EXCLUDED.member_hash_code,
+    tx_hash = EXCLUDED.tx_hash,
+    is_active = EXCLUDED.is_active;
+
+-- 5. SEED SYSTEM SETTINGS (3 RECORD AKTIF)
+INSERT INTO public.system_settings (key, value, description, updated_at)
 VALUES
 (
     'feature_toggles',
@@ -711,17 +1068,8 @@ VALUES
         "is_ev_charging_booking_enabled": true,
         "is_crypto_blockchain_audit_live": true
     }'::jsonb,
-    'Toggle fitur aplikasi'
-),
-(
-    'company_treasury',
-    '{
-        "balance": 48904000,
-        "currency": "IDR",
-        "last_user_id": "0c97c583-cffc-41be-a45c-e234e572e500",
-        "last_injection": 546000
-    }'::jsonb,
-    'Saldo kas utama cadangan operasional ParkSmart ID'
+    'Toggle fitur aplikasi',
+    '2026-10-22 11:44:58.10404+00'
 ),
 (
     'ai_config',
@@ -731,10 +1079,43 @@ VALUES
         "temperature": 0.7,
         "is_autonomous_pricing_enabled": true
     }'::jsonb,
-    'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing'
+    'Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing',
+    '2026-10-22 15:50:37.349929+00'
+),
+(
+    'company_treasury',
+    '{
+        "balance": 46904001,
+        "currency": "IDR",
+        "last_user_id": "96e876fc-20df-4648-a3de-5ac86026710b",
+        "last_injection": 500000
+    }'::jsonb,
+    'Saldo kas utama cadangan operasional ParkSmart ID',
+    '2026-10-25 11:51:11.850122+00'
 )
 ON CONFLICT (key) DO UPDATE SET
     value = EXCLUDED.value,
     description = EXCLUDED.description,
-    updated_at = timezone('utc'::text, now());
+    updated_at = EXCLUDED.updated_at;
+
+-- 6. SEED DATA AUDIT LOG ADMIN AKTIF (ADMIN_AUDIT_LOGS)
+INSERT INTO public.admin_audit_logs (
+    id, admin_id, admin_name, admin_email, role, action, device_model,
+    ip_address, location, isp, status, is_current_session, created_at
+) VALUES
+(
+    'a0ab05a6-f9fd-4ecb-a4c2-53790f4e53b6', NULL,
+    'Gibran Widodo', 'superadmin@parksmart.id', 'Super Admin',
+    'Login berhasil (Sesi Aktif)', 'Vivo V2602',
+    '182.2.85.224', 'Surakarta, Indonesia', 'PT Telekomunikasi Selular Indonesia',
+    'Berhasil (Real-Time)', false, '2026-10-23 07:39:05.527212+00'
+),
+(
+    '65f08184-16c5-4fad-a150-7291ba4f5708', NULL,
+    'Admin Finansial', NULL, 'Admin Finansial',
+    'Injeksi Saldo Dompet 500000 ke User wowok', 'Portal Finansial Admin',
+    NULL, NULL, NULL,
+    'Berhasil', false, '2026-10-25 11:51:12.056375+00'
+)
+ON CONFLICT (id) DO NOTHING;
 ```

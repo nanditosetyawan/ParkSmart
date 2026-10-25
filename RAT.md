@@ -2,33 +2,34 @@
 ## Proyek: Smart Parking (ParkSmart ID)
 ### Enterprise Relational Architecture & Visual Database Schema (Box-Drawing & ERD)
 
-> 📌 **STATUS DOKUMEN: RELASI ANTAR TABEL (RAT) MURNI & TEROPTIMASI (15 TABEL)**  
+> 📌 **STATUS DOKUMEN: RELASI ANTAR TABEL (RAT) MURNI & TEROPTIMASI (16 TABEL LENGKAP)**  
 > **Pendekatan Desain:** Struktur database esensial, tanpa tabel redundant.  
 > **Konsolidasi Staf:** Super Admin, Operasional, Finansial, dan CS disatukan dalam satu entitas `admins`.  
 > 🔒 **Keamanan AI:** Tabel `ai_agent_configs` telah dihapus sepenuhnya dari database. Kunci API Groq dikelola murni via `.env` (`GROQ_API_KEY`).
 
 ---
 
-## 1. DAFTAR 15 TABEL UTAMA & NOTASI KARDINALITAS
+## 1. DAFTAR 16 TABEL UTAMA & NOTASI KARDINALITAS
 
-### 📑 Ringkasan 15 Entitas Inti Sistem:
+### 📑 Ringkasan 16 Entitas Inti Sistem:
 | No | Entitas (Tabel) | Klaster Bisnis | Peran & Deskripsi Fungsional |
 |:---:|:---|:---|:---|
 | 1 | `users` | Akun & Profil | Profil pengemudi, saldo dompet ParkSmart Pay, poin, tier & bookmark favorit |
-| 2 | `vehicles` | Garasi Kendaraan | Garasi kendaraan pengguna, plat nomor (TNKB) & masa berlaku STNK (foto diolah in-memory, file tidak disimpan) |
-| 3 | `admins` | Staf Terpadu | 1 Tabel konsolidasi staf (Super Admin, Operasional, Finansial, CS) via RBAC |
-| 4 | `user_kyc` | Super Admin KYC | Verifikasi KTP 16 digit, biometrik selfie & tinjauan berkas identitas resmi |
-| 5 | `parking_locations` | Operasional | Gedung/Mall mitra, koordinat GPS, radius geofence, fasilitas, daftar lantai (`floors`) & tarif dasar |
-| 6 | `parking_slots` | Denah & IoT | Denah spot parkir per lantai fisik, zona (`zone`), kode slot & ID perangkat sensor IoT |
-| 7 | `parking_sessions` | Sesi Lapangan | Kendaraan aktif masuk gerbang (tap-in s.d. tap-out), timer countdown, plat snapshot & overstay |
-| 8 | `bookings` | Reservasi | Tiket digital pemesanan slot di muka (*advance*) / langsung (*walk-in*), plat snapshot & QR pass |
-| 9 | `payments` | Billing & Audit | Buku besar arus kas (parkir, top-up, injeksi admin, refund) & hash SHA-256 on-chain |
-| 10 | `customer_feedbacks` | CS & Review | Ulasan bintang (1-5), saran marka/kendala & respons resmi Customer Service |
-| 11 | `system_notifications` | CS & Broadcast | Notifikasi broadcast promo, peringatan overstay & info keamanan sistem |
-| 12 | `arcade_scores` | Gamifikasi | Rekor skor game balap & mesin capit serta perolehan SmartPoints pengemudi |
-| 13 | `system_settings` | Super Admin | Konfigurasi global JSONB: saklar fitur (`feature_toggles`), saldo treasury (`company_treasury`), & parameter AI Jarvis (`ai_config`) |
-| 14 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf portal admin (IP publik, ISP, geolokasi, perangkat hardware, status) |
-| 15 | `user_favorites` | Profil & Bookmark | Relasi bookmark lokasi parkir favorit per-user dengan proteksi Row Level Security (RLS) |
+| 2 | `vehicles` | Garasi Kendaraan | Garasi kendaraan pengguna, plat nomor (TNKB), tipe & foto kendaraan |
+| 3 | `user_member_cards` | Profil & Keanggotaan | Kartu member bertingkat berbasis hash unik & bukti transaksi blockchain |
+| 4 | `admins` | Staf Terpadu | 1 Tabel konsolidasi staf (Super Admin, Operasional, Finansial, CS) via RBAC |
+| 5 | `user_kyc` | Super Admin KYC | Verifikasi KTP 16 digit, biometrik selfie & tinjauan berkas identitas resmi |
+| 6 | `parking_locations` | Operasional | Gedung/Mall mitra, koordinat GPS, radius geofence, fasilitas, daftar lantai (`floors`) & tarif dasar |
+| 7 | `parking_slots` | Denah & IoT | Denah spot parkir per lantai fisik, zona (`zone`), kode slot & ID perangkat sensor IoT |
+| 8 | `parking_sessions` | Sesi Lapangan | Kendaraan aktif masuk gerbang (tap-in s.d. tap-out), timer countdown, plat snapshot & overstay |
+| 9 | `bookings` | Reservasi | Tiket digital pemesanan slot di muka (*advance*) / langsung (*walk-in*), plat snapshot & QR pass |
+| 10 | `payments` | Billing & Audit | Buku besar arus kas (parkir, top-up, injeksi admin, refund) & hash SHA-256 on-chain |
+| 11 | `customer_feedbacks` | CS & Review | Ulasan bintang (1-5), saran marka/kendala & respons resmi Customer Service |
+| 12 | `system_notifications` | CS & Broadcast | Notifikasi broadcast promo, peringatan overstay & info keamanan sistem |
+| 13 | `arcade_scores` | Gamifikasi | Rekor skor game balap & mesin capit serta perolehan SmartPoints pengemudi |
+| 14 | `system_settings` | Super Admin | Konfigurasi global JSONB: saklar fitur (`feature_toggles`), saldo treasury (`company_treasury`), & parameter AI Jarvis (`ai_config`) |
+| 15 | `admin_audit_logs` | Super Admin & Audit | Audit trail aktivitas login staf portal admin (IP publik, ISP, geolokasi, perangkat hardware, status) |
+| 16 | `user_favorites` | Profil & Bookmark | Relasi bookmark lokasi parkir favorit per-user dengan proteksi Row Level Security (RLS) |
 
 ---
 
@@ -96,33 +97,27 @@
 │      pesan_kuliah     : TEXT      │
 │      created_at       : TIMESTAMPTZ│
 │      updated_at       : TIMESTAMPTZ│
-└────────┬────────┬─────────────────┘
-         │        │
-   (1:N) │        │ (1:1)
-         ▼        ▼
-┌───────────────────────────────────┐    ┌───────────────────────────────────┐
-│             VEHICLES              │    │             USER_KYC              │
-├───────────────────────────────────┤    ├───────────────────────────────────┤
-│ [PK] id               : UUID      │    │ [PK] id               : UUID      │
-│ [FK] user_id          : UUID      │    │ [FK] user_id          : UUID      │
-│      plate_number     : VARCHAR   │    │      nik              : VARCHAR(16│
-│      vehicle_type     : ENUM      │    │      full_name        : VARCHAR   │
-│      vehicle_category : VARCHAR   │    │      birth_place_city : VARCHAR   │
-│      brand            : VARCHAR   │    │      birth_date       : DATE      │
-│      model            : VARCHAR   │    │      address          : TEXT      │
-│      color            : VARCHAR   │    │      gender           : VARCHAR   │
-│      plate_expiry     : VARCHAR   │    │      religion         : VARCHAR   │
-│      photo_url        : TEXT      │    │      occupation       : VARCHAR   │
-│      is_default       : BOOLEAN   │    │      ktp_image_url    : TEXT      │
-│      created_at       : TIMESTAMPTZ│    │      selfie_image_url : TEXT      │
-│      updated_at       : TIMESTAMPTZ│    │      status           : ENUM      │
-└───────────────────────────────────┘    │      reject_reason    : TEXT      │
-                                         │ [FK] reviewed_by      : UUID (ADM)│
-                                         │      submitted_at     : TIMESTAMPTZ│
-                                         │      reviewed_at      : TIMESTAMPTZ│
-                                         │      created_at       : TIMESTAMPTZ│
-                                         │      updated_at       : TIMESTAMPTZ│
-                                         └───────────────────────────────────┘
+└────────┬────────┬─────────────────┬───┘
+         │        │                 │
+   (1:N) │  (1:N) │           (1:1) │
+         ▼        ▼                 ▼
+┌───────────────────┐ ┌───────────────────┐ ┌───────────────────┐
+│     VEHICLES      │ │ USER_MEMBER_CARDS │ │     USER_KYC      │
+├───────────────────┤ ├───────────────────┤ ├───────────────────┤
+│ [PK] id     : UUID│ │ [PK] id     : UUID│ │ [PK] id     : UUID│
+│ [FK] user_id: UUID│ │ [FK] user_id: UUID│ │ [FK] user_id: UUID│
+│      plate_number │ │      card_tier    │ │      nik (16 digit│
+│      vehicle_type │ │      member_hash  │ │      full_name    │
+│      veh_category │ │      nft_token_id │ │      birth_place  │
+│      brand        │ │      tx_hash      │ │      birth_date   │
+│      model        │ │      is_active    │ │      address      │
+│      color        │ │      unlocked_at  │ │      ktp_image_url│
+│      plate_expiry │ │      created_at   │ │      selfie_img_url│
+│      photo_url    │ │      updated_at   │ │      status : ENUM│
+│      is_default   │ └───────────────────┘ │ [FK] reviewed_by  │
+│      created_at   │                       │      submitted_at │
+│      updated_at   │                       │      reviewed_at  │
+└───────────────────┘                       └───────────────────┘
 ```
 
 ---
@@ -327,11 +322,12 @@
 
 ---
 
-## 6. MASTER ERD MERMAID (15 TABEL UTAMA)
+## 6. MASTER ERD MERMAID (16 TABEL LENGKAP)
 
 ```mermaid
 erDiagram
     USERS ||--o{ VEHICLES : "owns"
+    USERS ||--o{ USER_MEMBER_CARDS : "owns"
     USERS ||--o| USER_KYC : "submits"
     USERS ||--o{ BOOKINGS : "makes"
     USERS ||--o{ PARKING_SESSIONS : "enters"
@@ -373,6 +369,7 @@ erDiagram
 | `auth.users` | `users` | `users.auth_user_id` | `1 : 1` | `CASCADE` | Akun autentikasi Supabase ke profil pengguna |
 | `auth.users` | `admins` | `admins.auth_user_id` | `1 : 1` | `CASCADE` | Akun autentikasi Supabase ke staf portal admin |
 | `users` | `vehicles` | `vehicles.user_id` | `1 : N` | `CASCADE` | 1 Pengguna memiliki banyak kendaraan di garasi |
+| `users` | `user_member_cards` | `user_member_cards.user_id` | `1 : N` | `CASCADE` | Kartu keanggotaan blockchain multi-tier milik user |
 | `users` | `user_kyc` | `user_kyc.user_id` | `1 : 1` | `CASCADE` | 1 Pengguna hanya mengajukan 1 berkas verifikasi e-KTP |
 | `users` | `user_favorites` | `user_favorites.user_id` | `1 : N` | `CASCADE` | Bookmark gedung parkir favorit pengguna |
 | `users` | `bookings` | `bookings.user_id` | `1 : N` | `RESTRICT` | Pengguna memesan slot reservasi parkir |
@@ -417,11 +414,20 @@ Untuk menjamin riwayat audit pemesanan (`bookings`) dan sesi parkir (`parking_se
    - **Admin Operasional:** Erick Thohir (`ops@parksmart.id` / `ops123`)
    - **Admin Finansial:** Sri Mulyani (`finance@parksmart.id` / `finance123`)
    - **Admin CS & KYC:** Prabowo Subianto (`cs@parksmart.id` / `cs123`)
-2. **Akun Pengguna (Hanya 1 Baris Resmi):**
-   - **User Aktif:** `user@gmail.com` (Nama: `user 1`, Saldo: Rp 48.000, PIN: `4040`, Pass: `123456`, ID: `5d7d4224-c3f8-4add-a94f-7d87a62d9356`). Seluruh akun pengguna percobaan lainnya dikecualikan dari seeding.
-3. **Kendaraan (`vehicles`):**
-   - Dikosongkan (0 baris) agar pengguna dapat mendaftarkan kendaraan baru secara mandiri.
-4. **Pengaturan Global (`system_settings` - 3 Baris):**
-   - `feature_toggles`: Fitur arcade, booking EV, audit blockchain aktif.
-   - `company_treasury`: Saldo cadangan kas utama operasional ParkSmart ID.
-   - `ai_config`: Model Qwen, max tokens 1024, temperature 0.7, autonomous dynamic pricing aktif.
+2. **Akun Pengguna (2 Baris Aktif Database Live):**
+   - **User 1:** Andi Prawono (`user@gmail.com` / Saldo: Rp 38.500 / PIN: `4040` / Hash: `#fb9c-c92a-c4a1` / Pass: `123456` / ID: `df714843-c4cf-4d45-b385-0390404d4429`).
+   - **User 2:** ajikaja (`aji@gmail.com` / Saldo: Rp 182.000 / PIN: `1111` / Hash: `#46f5-14df-e3a2` / Pass: `aji123` / ID: `225428bf-e24d-4869-98c6-fed811518497`).
+3. **Kendaraan Terdaftar (`vehicles` - 1 Baris Aktif):**
+   - Plat `AB5894LI` (Honda HRV SUV Merah Maroon, Masa Berlaku STNK `11•26`, default kendaraan Andi Prawono).
+4. **Kartu Member Blockchain (`user_member_cards` - 2 Baris Aktif):**
+   - Regular Member Card Andi Prawono (Hash: `#fb9c-c92a-c4a1`, Tx: `0x7eac80c8de57394420e4cff2544e1c74b016c6bfaa6244e7a4aa9ee22d9a8da6`).
+   - Regular Member Card ajikaja (Hash: `#46f5-14df-e3a2`, Tx: `0x25dbe8ba509bfd6aeb07df07906428974aa5c5e10e510c9dc5b8cbda52e6048f`).
+5. **Pengaturan Global (`system_settings` - 3 Baris Aktif):**
+   - `feature_toggles`: Arcade aktif, EV charging aktif, blockchain audit live, biometric login enforced false.
+   - `company_treasury`: Saldo kas cadangan operasional Rp 46.904.001 IDR.
+   - `ai_config`: Model Qwen 3.8-27b, max tokens 1024, temperature 0.7, autonomous dynamic pricing aktif.
+6. **Log Audit Admin (`admin_audit_logs` - 2 Baris Aktif):**
+   - Login Super Admin (Gibran Widodo via Vivo V2602, IP 182.2.85.224 Surakarta).
+   - Injeksi Saldo Dompet 500000 oleh Admin Finansial.
+7. **Tabel Operasional Dinamis (0 Baris Saat Ini di Live DB):**
+   - `parking_locations`, `parking_slots`, `bookings`, `parking_sessions`, `payments`, `customer_feedbacks`, `system_notifications`, `arcade_scores`, `user_kyc`, `user_favorites`.
