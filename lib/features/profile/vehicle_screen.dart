@@ -9,7 +9,8 @@ import '../history/verified_parking_sessions_screen.dart';
 import 'backend/vehicle_backend.dart';
 
 class VehicleScreen extends StatefulWidget {
-  const VehicleScreen({super.key});
+  final bool isSelectionMode;
+  const VehicleScreen({super.key, this.isSelectionMode = false});
 
   @override
   State<VehicleScreen> createState() => _VehicleScreenState();
@@ -325,7 +326,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               Icon(Icons.local_parking, size: 24, color: isDark ? const Color(0xFF38BDF8) : const Color(0xFF114177)),
                               const SizedBox(width: 8),
                               Text(
-                                'Live Spot Details',
+                                widget.isSelectionMode ? 'Pilih Kendaraan'.tr : 'Live Spot Details',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 18,
                                   fontWeight: FontWeight.bold,
@@ -356,7 +357,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text(
-                              'GARASI DIGITAL'.tr,
+                              widget.isSelectionMode ? 'PILIH KENDARAAN PARKIR'.tr : 'GARASI DIGITAL'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 12,
                                 fontWeight: FontWeight.w600,
@@ -365,7 +366,7 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               ),
                             ),
                             Text(
-                              'Kendaraan Terdaftar'.tr,
+                              widget.isSelectionMode ? 'Pilih Kendaraan Anda'.tr : 'Kendaraan Terdaftar'.tr,
                               style: GoogleFonts.plusJakartaSans(
                                 fontSize: 22,
                                 fontWeight: FontWeight.bold,
@@ -657,6 +658,35 @@ class _VehicleScreenState extends State<VehicleScreen> {
                               ],
                             ),
                           ),
+                          if (widget.isSelectionMode) ...[
+                            const SizedBox(height: 12),
+                            SizedBox(
+                              width: double.infinity,
+                              height: 48,
+                              child: ElevatedButton.icon(
+                                onPressed: () {
+                                  final prim = VehicleBackend.instance.defaultVehicle;
+                                  if (prim != null) {
+                                    Navigator.pop(context, prim);
+                                  }
+                                },
+                                icon: const Icon(Icons.check_circle_rounded, size: 20),
+                                label: Text(
+                                  'Gunakan Kendaraan Ini'.tr,
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: const Color(0xFF10B981),
+                                  foregroundColor: Colors.white,
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                                  elevation: 2,
+                                ),
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 16),
                           Row(
                             children: [
@@ -737,8 +767,9 @@ class _VehicleScreenState extends State<VehicleScreen> {
                     width: double.infinity,
                     height: 64,
                     child: ElevatedButton(
-                      onPressed: () {
-                        Navigator.push(context, MaterialPageRoute(builder: (context) => const AddVehicleScreen()));
+                      onPressed: () async {
+                        await Navigator.push(context, MaterialPageRoute(builder: (context) => const AddVehicleScreen()));
+                        await VehicleBackend.instance.fetchVehicles();
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: isDark ? Colors.white : const Color(0xFF020304),
@@ -1123,6 +1154,32 @@ class _VehicleScreenState extends State<VehicleScreen> {
                 ],
               ),
             ),
+            if (widget.isSelectionMode) ...[
+              const SizedBox(height: 12),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.pop(context, vehicle);
+                  },
+                  icon: const Icon(Icons.check_circle_rounded, size: 20),
+                  label: Text(
+                    'Gunakan Kendaraan Ini'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                    elevation: 2,
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 16),
             Row(
               children: [

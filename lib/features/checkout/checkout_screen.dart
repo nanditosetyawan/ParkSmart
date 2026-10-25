@@ -12,6 +12,7 @@ import '../../theme/app_shadows.dart';
 import '../../theme/app_typography.dart';
 import '../booking/booking_confirmation_screen.dart';
 import '../profile/vehicle_screen.dart';
+import '../profile/backend/vehicle_backend.dart';
 import '../profile/payment_methods_screen.dart';
 import '../profile/backend/payment_methods_backend.dart';
 import 'backend/checkout_backend.dart';
@@ -400,10 +401,28 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             color: Colors.transparent,
                             child: InkWell(
                               borderRadius: BorderRadius.circular(12),
-                              onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(builder: (_) => const VehicleScreen()),
-                              ),
+                              onTap: () async {
+                                final selected = await Navigator.push<dynamic>(
+                                  context,
+                                  MaterialPageRoute(builder: (_) => const VehicleScreen(isSelectionMode: true)),
+                                );
+                                if (selected != null) {
+                                  if (selected is VehicleItem) {
+                                    CheckoutBackend.instance.selectVehicle({
+                                      'id': selected.id,
+                                      'brand': selected.brand,
+                                      'model': selected.model,
+                                      'plate_number': selected.plateNumber,
+                                      'vehicle_type': selected.vehicleType,
+                                      'vehicle_category': selected.category,
+                                      'color': selected.color,
+                                    });
+                                  } else if (selected is Map<String, dynamic>) {
+                                    CheckoutBackend.instance.selectVehicle(selected);
+                                  }
+                                  if (mounted) setState(() {});
+                                }
+                              },
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
                                 child: Row(

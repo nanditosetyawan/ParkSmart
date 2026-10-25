@@ -93,6 +93,20 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
       } catch (_) {}
     }
 
+    // Filter hanya kartu yang sudah tercapai sesuai tier pengguna (Bronze tidak boleh memunculkan Silver/Gold/Platinum)
+    final allowedTiers = <String>{'regular', 'bronze'};
+    final tierUpper = widget.initialTier.toUpperCase();
+    if (tierUpper == 'SILVER' || tierUpper == 'GOLD' || tierUpper == 'PLATINUM') {
+      allowedTiers.add('silver');
+    }
+    if (tierUpper == 'GOLD' || tierUpper == 'PLATINUM') {
+      allowedTiers.add('gold');
+    }
+    if (tierUpper == 'PLATINUM') {
+      allowedTiers.add('platinum');
+    }
+    loaded = loaded.where((c) => allowedTiers.contains((c['card_tier'] ?? '').toString().toLowerCase())).toList();
+
     if (loaded.isEmpty) {
       loaded = [
         {

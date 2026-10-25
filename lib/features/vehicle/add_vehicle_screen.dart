@@ -21,6 +21,8 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   String? _scannedPlate;
   String? _scannedExpiry;
   late final TextEditingController _nameController;
+  late final TextEditingController _plateController;
+  late final TextEditingController _expiryController;
 
   // Foto fisik kendaraan (opsional) dengan kompresi 70% tidak buram
   Uint8List? _vehiclePhotoBytes;
@@ -31,11 +33,15 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
   void initState() {
     super.initState();
     _nameController = TextEditingController();
+    _plateController = TextEditingController();
+    _expiryController = TextEditingController(text: '10 • 28');
   }
 
   @override
   void dispose() {
     _nameController.dispose();
+    _plateController.dispose();
+    _expiryController.dispose();
     super.dispose();
   }
 
@@ -172,14 +178,140 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
       setState(() {
         _scannedPlate = result['plateNumber'];
         _scannedExpiry = result['plateExpiry'];
+        if (_scannedPlate != null) _plateController.text = _scannedPlate!;
+        if (_scannedExpiry != null) _expiryController.text = _scannedExpiry!;
       });
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text('Foto 2x berhasil diolah! Plat: $_scannedPlate • Masa Berlaku: $_scannedExpiry'),
+          content: Text('Foto 2x berhasil diolah! Plat: ${_plateController.text} • Masa Berlaku: ${_expiryController.text}'),
           backgroundColor: const Color(0xFF10B981),
         ),
       );
     }
+  }
+
+  void _showEditPlateDialog() {
+    final tempPlateCtrl = TextEditingController(text: _plateController.text);
+    final tempExpiryCtrl = TextEditingController(text: _expiryController.text.isNotEmpty ? _expiryController.text : '10 • 28');
+    final isDark = ThemeService.instance.isDarkMode;
+
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: isDark ? const Color(0xFF1E232B) : Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        return Padding(
+          padding: EdgeInsets.only(
+            left: 20,
+            right: 20,
+            top: 24,
+            bottom: MediaQuery.of(ctx).viewInsets.bottom + 24,
+          ),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Center(
+                child: Container(
+                  width: 40,
+                  height: 4,
+                  decoration: BoxDecoration(
+                    color: isDark ? Colors.white24 : Colors.black12,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 18),
+              Text(
+                'Ketik / Edit Plat Nomor Kendaraan'.tr,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                'Masukkan plat nomor kendaraan Anda (bebas menambahkan banyak kendaraan)'.tr,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF64748B),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: tempPlateCtrl,
+                textCapitalization: TextCapitalization.characters,
+                autofocus: true,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  letterSpacing: 2,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Nomor Plat (TNKB)'.tr,
+                  hintText: 'Contoh: B 1234 ABC',
+                  prefixIcon: const Icon(Icons.pin),
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF2E3848) : const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: tempExpiryCtrl,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+                decoration: InputDecoration(
+                  labelText: 'Masa Berlaku STNK (MM • YY)'.tr,
+                  hintText: 'Contoh: 10 • 28',
+                  prefixIcon: const Icon(Icons.date_range),
+                  filled: true,
+                  fillColor: isDark ? const Color(0xFF2E3848) : const Color(0xFFF1F5F9),
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+              const SizedBox(height: 20),
+              SizedBox(
+                width: double.infinity,
+                height: 48,
+                child: ElevatedButton(
+                  onPressed: () {
+                    final cleanPlate = tempPlateCtrl.text.trim().toUpperCase();
+                    if (cleanPlate.isEmpty) return;
+                    setState(() {
+                      _plateController.text = cleanPlate;
+                      _expiryController.text = tempExpiryCtrl.text.trim().isNotEmpty
+                          ? tempExpiryCtrl.text.trim()
+                          : '10 • 28';
+                      _scannedPlate = cleanPlate;
+                      _scannedExpiry = _expiryController.text;
+                    });
+                    Navigator.pop(ctx);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: const Color(0xFF10B981),
+                    foregroundColor: Colors.white,
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  ),
+                  child: Text(
+                    'Terapkan Plat'.tr,
+                    style: GoogleFonts.plusJakartaSans(fontSize: 15, fontWeight: FontWeight.bold),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
+    );
   }
 
   @override
@@ -464,112 +596,163 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                         ),
                         const SizedBox(height: 12),
 
-                        // KOTAK HITAM PLAT (BUKAN TOMBOL - TEMPAT HASIL OLAHAN FOTO 2X)
-                        Container(
-                          width: double.infinity,
-                          height: 72,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF111215),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(
-                              color: _scannedPlate != null
-                                  ? const Color(0xFF34D399)
-                                  : (isDark ? theme.border : const Color(0xFF2B2D33)),
-                              width: 2,
-                            ),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.35),
-                                blurRadius: 8,
-                                offset: const Offset(0, 3),
+                        // KOTAK HITAM PLAT (KETUK UNTUK EDIT / TAMPILKAN HASIL SCAN)
+                        GestureDetector(
+                          onTap: _showEditPlateDialog,
+                          child: Container(
+                            width: double.infinity,
+                            height: 72,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF111215),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: _plateController.text.isNotEmpty
+                                    ? const Color(0xFF34D399)
+                                    : (isDark ? theme.border : const Color(0xFF2B2D33)),
+                                width: 2,
                               ),
-                            ],
-                          ),
-                          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                          child: _scannedPlate == null
-                              ? const SizedBox(width: double.infinity)
-                              : Row(
-                                  children: [
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        mainAxisAlignment: MainAxisAlignment.center,
-                                        children: [
-                                          FittedBox(
-                                            fit: BoxFit.scaleDown,
-                                            alignment: Alignment.centerLeft,
-                                            child: Text(
-                                              _scannedPlate!,
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 22,
-                                                fontWeight: FontWeight.w900,
-                                                color: Colors.white,
-                                                letterSpacing: 4,
-                                              ),
-                                            ),
-                                          ),
-                                          Text(
-                                            'KORLANTAS POLRI',
-                                            style: GoogleFonts.plusJakartaSans(
-                                              fontSize: 8,
-                                              color: const Color(0xFFA3A3A3),
-                                              letterSpacing: 1.5,
-                                            ),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                    Container(
-                                      width: 1,
-                                      height: double.infinity,
-                                      color: Colors.white24,
-                                      margin: const EdgeInsets.symmetric(horizontal: 12),
-                                    ),
-                                    Column(
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.35),
+                                  blurRadius: 8,
+                                  offset: const Offset(0, 3),
+                                ),
+                              ],
+                            ),
+                            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                            child: _plateController.text.isEmpty
+                                ? Center(
+                                    child: Row(
                                       mainAxisAlignment: MainAxisAlignment.center,
                                       children: [
+                                        const Icon(Icons.edit_note, color: Colors.white70, size: 22),
+                                        const SizedBox(width: 8),
                                         Text(
-                                          _scannedExpiry ?? '10 • 26',
+                                          'Ketuk untuk Masukkan Plat Manual / Foto Kamera'.tr,
                                           style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12,
-                                            fontWeight: FontWeight.w800,
-                                            color: const Color(0xFFE5E5E5),
-                                            letterSpacing: 2,
-                                          ),
-                                        ),
-                                        Text(
-                                          'IDN',
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 9,
-                                            fontWeight: FontWeight.bold,
-                                            color: const Color(0xFFA3A3A3),
-                                            letterSpacing: 1,
+                                            fontSize: 12.5,
+                                            fontWeight: FontWeight.w600,
+                                            color: Colors.white70,
                                           ),
                                         ),
                                       ],
                                     ),
-                                  ],
+                                  )
+                                : Row(
+                                    children: [
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          mainAxisAlignment: MainAxisAlignment.center,
+                                          children: [
+                                            FittedBox(
+                                              fit: BoxFit.scaleDown,
+                                              alignment: Alignment.centerLeft,
+                                              child: Text(
+                                                _plateController.text,
+                                                style: GoogleFonts.plusJakartaSans(
+                                                  fontSize: 22,
+                                                  fontWeight: FontWeight.w900,
+                                                  color: Colors.white,
+                                                  letterSpacing: 4,
+                                                ),
+                                              ),
+                                            ),
+                                            Text(
+                                              'KORLANTAS POLRI',
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 8,
+                                                color: const Color(0xFFA3A3A3),
+                                                letterSpacing: 1.5,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                      Container(
+                                        width: 1,
+                                        height: double.infinity,
+                                        color: Colors.white24,
+                                        margin: const EdgeInsets.symmetric(horizontal: 12),
+                                      ),
+                                      Column(
+                                        mainAxisAlignment: MainAxisAlignment.center,
+                                        children: [
+                                          Text(
+                                            _expiryController.text.isNotEmpty ? _expiryController.text : '10 • 28',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12,
+                                              fontWeight: FontWeight.w800,
+                                              color: const Color(0xFFE5E5E5),
+                                              letterSpacing: 2,
+                                            ),
+                                          ),
+                                          Text(
+                                            'IDN',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 9,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFFA3A3A3),
+                                              letterSpacing: 1,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      const Icon(Icons.edit, size: 16, color: Color(0xFF34D399)),
+                                    ],
+                                  ),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Row(
+                          children: [
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _openCameraScanner,
+                                icon: const Icon(Icons.camera_alt_outlined, size: 16),
+                                label: Text('Foto Kamera (2x)'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600)),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: theme.border),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
                                 ),
+                              ),
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: OutlinedButton.icon(
+                                onPressed: _showEditPlateDialog,
+                                icon: const Icon(Icons.edit, size: 16),
+                                label: Text('Ketik Manual'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.w600)),
+                                style: OutlinedButton.styleFrom(
+                                  side: BorderSide(color: theme.border),
+                                  padding: const EdgeInsets.symmetric(vertical: 10),
+                                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                         const SizedBox(height: 8),
                         Row(
                           children: [
                             Icon(
-                              _scannedPlate != null ? Icons.verified : Icons.info_outline,
+                              _plateController.text.isNotEmpty ? Icons.verified : Icons.info_outline,
                               size: 13,
-                              color: _scannedPlate != null
+                              color: _plateController.text.isNotEmpty
                                   ? const Color(0xFF10B981)
                                   : const Color(0xFFF59E0B),
                             ),
                             const SizedBox(width: 5),
                             Expanded(
                               child: Text(
-                                _scannedPlate != null
-                                    ? 'Plat dan masa berlaku terisi dari foto (gunakan tombol "Buka Kamera" di atas jika ingin foto ulang).'.tr
-                                    : 'Gunakan tombol "Buka Kamera" di atas untuk memindai plat & STNK. Plat hitam akan terisi otomatis.'.tr,
+                                _plateController.text.isNotEmpty
+                                    ? 'Plat siap didaftarkan. Ketuk plat atau tombol "Ketik Manual" jika ingin mengubah.'.tr
+                                    : 'Gunakan tombol di atas untuk foto plat atau ketik manual plat kendaraan Anda.'.tr,
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 11,
-                                  color: _scannedPlate != null
+                                  color: _plateController.text.isNotEmpty
                                       ? (isDark ? const Color(0xFF6EE7B7) : const Color(0xFF047857))
                                       : (isDark ? const Color(0xFFFCD34D) : const Color(0xFFB45309)),
                                   fontWeight: FontWeight.w500,
@@ -968,22 +1151,22 @@ class _AddVehicleScreenState extends State<AddVehicleScreen> {
                       onPressed: AddVehicleBackend.instance.isLoading
                           ? null
                           : () async {
-                              if (_scannedPlate == null || _scannedExpiry == null) {
+                              if (_plateController.text.trim().isEmpty) {
                                 ScaffoldMessenger.of(context).showSnackBar(
                                   SnackBar(
-                                    content: Text('Wajib mengambil 2 foto: Plat Nomor & Masa Berlaku STNK terlebih dahulu!'.tr),
+                                    content: Text('Nomor plat kendaraan wajib diisi! Silakan scan kamera atau ketik manual.'.tr),
                                     backgroundColor: const Color(0xFFDC2626),
                                     duration: const Duration(seconds: 3),
                                   ),
                                 );
-                                _openCameraScanner();
+                                _showEditPlateDialog();
                                 return;
                               }
 
                               final success = await AddVehicleBackend.instance.saveVehicle(
-                                plateNumber: _scannedPlate!,
-                                plateExpiry: _scannedExpiry!,
-                                vehicleName: _nameController.text,
+                                plateNumber: _plateController.text.trim(),
+                                plateExpiry: _expiryController.text.trim().isNotEmpty ? _expiryController.text.trim() : '10 • 28',
+                                vehicleName: _nameController.text.trim().isNotEmpty ? _nameController.text.trim() : 'Kendaraan Saya',
                                 category: _selectedCategory,
                                 color: _selectedColor,
                                 vehiclePhotoBytes: _vehiclePhotoBytes,

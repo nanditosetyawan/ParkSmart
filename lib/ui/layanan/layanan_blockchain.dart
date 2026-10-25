@@ -16,7 +16,10 @@ class LayananBlockchain {
   static String get urlRpc {
     final envUrl = dotenv.env['SEPOLIA_RPC_URL'];
     if (envUrl != null && envUrl.isNotEmpty && !envUrl.contains('ID_PROYEK_ANDA')) {
-      return envUrl;
+      if (envUrl.startsWith('http://') || envUrl.startsWith('https://')) {
+        return envUrl;
+      }
+      return 'https://ethereum-sepolia-rpc.publicnode.com';
     }
     // Fallback otomatis ke RPC publik Sepolia gratis yang aktif
     return 'https://ethereum-sepolia-rpc.publicnode.com';
@@ -26,10 +29,10 @@ class LayananBlockchain {
   late final Web3Client klienWeb3;
 
   // 3. Alamat Kontrak Pintar KeanggotaanParkir yang telah diunggah ke Sepolia
-  // Ganti nilai default ini dengan Contract Address yang Anda peroleh setelah deploy di Remix IDE
   static String get alamatKontrakHex =>
+      dotenv.env['CONTRACT_ADRESS'] ??
       dotenv.env['SEPOLIA_CONTRACT_ADDRESS'] ??
-      '0x58aC0937fCbc73993d5e391212d18fe0e2851a81';
+      '0x032220cE1517622D0622a72A76EbF76d55c16179';
 
   EthereumAddress get alamatKontrak => EthereumAddress.fromHex(alamatKontrakHex);
 

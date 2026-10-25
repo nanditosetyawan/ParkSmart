@@ -177,16 +177,19 @@ class CustomCameraBackend extends ChangeNotifier {
           ? ocrRawText
           : (manualFallback ?? '');
 
+      final dynamicFallback = manualFallback ??
+          'B ${1000 + (DateTime.now().millisecondsSinceEpoch % 8999)} ${['KLM', 'DTO', 'JKT', 'XYZ'][DateTime.now().second % 4]}';
+
       final detected = IndonesianPlateOcrParser.extractPlate(
         inputText,
-        fallback: 'B 5678 KLM',
+        fallback: dynamicFallback,
       );
 
       _scannedPlate = detected;
       return detected;
     } catch (e) {
       _errorMessage = 'Gagal memproses gambar plat nomor: $e';
-      return manualFallback ?? 'B 5678 KLM';
+      return manualFallback ?? 'B ${1000 + (DateTime.now().millisecondsSinceEpoch % 8999)} KLM';
     } finally {
       _isProcessing = false;
       notifyListeners();

@@ -234,7 +234,7 @@ class ProfileBackend extends ChangeNotifier {
           debugPrint('[ProfileBackend] Error query user_kyc: $err');
         }
 
-        // Ambil semua koleksi kartu keanggotaan pengguna dari tabel user_member_cards
+        // Ambil semua koleksi kartu keanggotaan pengguna dari tabel user_member_cards (Hanya kartu yang sudah dicapai)
         try {
           if (_userId.isNotEmpty) {
             final cardsRes = await _client
@@ -243,7 +243,18 @@ class ProfileBackend extends ChangeNotifier {
                 .eq('user_id', _userId)
                 .order('created_at', ascending: true);
 
-            _userCards = List<Map<String, dynamic>>.from(cardsRes);
+            final allCards = List<Map<String, dynamic>>.from(cardsRes);
+            final allowedTiers = <String>{'regular', 'bronze'};
+            if (_totalSpent >= 100000 || _memberTier == 'SILVER' || _memberTier == 'GOLD' || _memberTier == 'PLATINUM') {
+              allowedTiers.add('silver');
+            }
+            if (_totalSpent >= 200000 || _memberTier == 'GOLD' || _memberTier == 'PLATINUM') {
+              allowedTiers.add('gold');
+            }
+            if (_totalSpent >= 500000 || _memberTier == 'PLATINUM') {
+              allowedTiers.add('platinum');
+            }
+            _userCards = allCards.where((c) => allowedTiers.contains((c['card_tier'] ?? '').toString().toLowerCase())).toList();
           }
         } catch (err) {
           debugPrint('[ProfileBackend] Error query user_member_cards: $err');
