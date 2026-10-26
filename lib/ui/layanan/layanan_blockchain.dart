@@ -173,4 +173,54 @@ class LayananBlockchain {
     }
     return daftarKartu;
   }
+
+  /// Menerbitkan kartu keanggotaan baru secara riil ke jaringan blockchain Sepolia (On-Chain)
+  /// Menggunakan Relayer Private Key dari .env untuk mengeksekusi kontrak pintar `terbitkanKeanggotaan`
+  Future<String?> broadcastMemberCardOnChain({
+    required String userUuid,
+    required String tier,
+    required String memberHashCode,
+  }) async {
+    try {
+      final privKey = dotenv.env['RELAYER_PRIVAT_KEY'];
+      if (privKey == null || privKey.isEmpty) {
+        debugPrint('[LayananBlockchain] RELAYER_PRIVAT_KEY tidak ditemukan di .env');
+        return null;
+      }
+
+      inisialisasi();
+      final credentials = EthPrivateKey.fromHex(privKey.trim());
+      final abi = await _ambilAbiKontrak();
+      final contract = DeployedContract(
+        ContractAbi.fromJson(abi, 'KeanggotaanParkir'),
+        alamatKontrak,
+      );
+
+      final terbitkanFn = contract.function('terbitkanKeanggotaan');
+
+      // Turunkan alamat dompet Ethereum dari UUID pengguna (format 20 byte / 40 hex char)
+      final rawHex = userUuid.replaceAll('-', '').toLowerCase();
+      final cleanUuid = (rawHex + rawHex).substring(0, 40);
+      final userWallet = EthereumAddress.fromHex('0x$cleanUuid');
+
+      debugPrint('[LayananBlockchain] Menerbitkan kartu on-chain $tier ($memberHashCode) untuk user ${userWallet.with0x}...');
+
+      final txHash = await klienWeb3.sendTransaction(
+        credentials,
+        Transaction.callContract(
+          contract: contract,
+          function: terbitkanFn,
+          parameters: [userWallet, tier.toUpperCase(), memberHashCode],
+          maxGas: 1200000,
+        ),
+        chainId: 11155111, // Sepolia Testnet Chain ID
+      );
+
+      debugPrint('[LayananBlockchain] SUKSES! Real On-Chain Tx Hash: $txHash');
+      return txHash;
+    } catch (e) {
+      debugPrint('[LayananBlockchain] Gagal broadcast transaksi on-chain: $e');
+      return null;
+    }
+  }
 }

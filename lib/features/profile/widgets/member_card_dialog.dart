@@ -345,6 +345,40 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
             .order('created_at', ascending: true);
         if (res.isNotEmpty) {
           loaded = List<Map<String, dynamic>>.from(res);
+
+          // Cek apakah ada kartu yang belum terbit di blockchain on-chain (tx_hash kosong atau bukan 0x...)
+          for (int i = 0; i < loaded.length; i++) {
+            final card = loaded[i];
+            final tx = card['tx_hash']?.toString() ?? '';
+            final tier = card['card_tier']?.toString() ?? 'regular';
+            final hash = card['member_hash_code']?.toString() ?? '';
+            final cardId = card['id']?.toString() ?? '';
+
+            // Jika belum ada tx_hash on-chain ril, broadcast langsung via smart contract Sepolia
+            if (tx.isEmpty || !tx.startsWith('0x') || tx.length != 66) {
+              LayananBlockchain.instance
+                  .broadcastMemberCardOnChain(
+                    userUuid: uid,
+                    tier: tier,
+                    memberHashCode: hash,
+                  )
+                  .then((realTxHash) {
+                if (realTxHash != null && realTxHash.isNotEmpty && cardId.isNotEmpty) {
+                  Supabase.instance.client
+                      .from('user_member_cards')
+                      .update({'tx_hash': realTxHash})
+                      .eq('id', cardId)
+                      .then((_) {
+                    if (mounted) {
+                      setState(() {
+                        loaded[i]['tx_hash'] = realTxHash;
+                      });
+                    }
+                  });
+                }
+              });
+            }
+          }
         }
       } catch (err) {
         debugPrint('[MemberCardDialog] Error fetch user_member_cards: $err');
