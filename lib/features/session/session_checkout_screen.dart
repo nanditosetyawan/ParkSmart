@@ -1,4 +1,7 @@
+import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
+import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
@@ -16,12 +19,106 @@ class SessionCheckoutScreen extends StatefulWidget {
 }
 
 class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
+  final GlobalKey _receiptKey = GlobalKey();
+  bool _isDownloading = false;
+
   @override
   void initState() {
     super.initState();
     SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: widget.sessionId);
     // Hentikan notifikasi darurat saat user melakukan checkout
     ParkingNotificationService().onSessionEnded();
+  }
+
+  Future<void> _downloadReceipt() async {
+    if (_isDownloading) return;
+    setState(() => _isDownloading = true);
+
+    try {
+      // 1. Ambil RenderRepaintBoundary dari GlobalKey
+      final boundary = _receiptKey.currentContext?.findRenderObject() as RenderRepaintBoundary?;
+      if (boundary == null) {
+        throw Exception('Gagal menemukan komponen struk.');
+      }
+
+      // 2. Render ke ui.Image dengan pixelRatio tinggi (3.0 untuk resolusi jernih HD)
+      final ui.Image image = await boundary.toImage(pixelRatio: 3.0);
+      final ByteData? byteData = await image.toByteData(format: ui.ImageByteFormat.png);
+      if (byteData == null) {
+        throw Exception('Gagal mengonversi gambar.');
+      }
+      final Uint8List pngBytes = byteData.buffer.asUint8List();
+
+      // 3. Simpan ke Galeri via native MethodChannel
+      const channel = MethodChannel('com.example.smart_parking/audio');
+      final fileName = 'ParkSmart_Struk_${DateTime.now().millisecondsSinceEpoch}.png';
+      
+      final bool? success = await channel.invokeMethod<bool>('saveImageToGallery', {
+        'bytes': pngBytes,
+        'fileName': fileName,
+      });
+
+      if (mounted) {
+        if (success == true) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              behavior: SnackBarBehavior.floating,
+              backgroundColor: const Color(0xFF1B5E20),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+              content: Row(
+                children: [
+                  const Icon(Icons.check_circle_outline, color: Colors.white, size: 22),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Struk parkir berhasil disimpan ke Galeri!'.tr,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                        fontSize: 13,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              duration: const Duration(seconds: 3),
+            ),
+          );
+        } else {
+          throw Exception('Gagal menyimpan berkas ke galeri.');
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            behavior: SnackBarBehavior.floating,
+            backgroundColor: const Color(0xFFDC2626),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            content: Row(
+              children: [
+                const Icon(Icons.error_outline, color: Colors.white, size: 22),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Gagal mengunduh struk: $e'.tr,
+                    style: GoogleFonts.plusJakartaSans(
+                      color: Colors.white,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            duration: const Duration(seconds: 4),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) {
+        setState(() => _isDownloading = false);
+      }
+    }
   }
 
   @override
@@ -147,8 +244,15 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                           padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
                           child: Column(
                             children: [
-                              // Status Graphic & Thanks
-                              Column(
+                              // Area Nota / Struk Lengkap yang ditangkap untuk unduh gambar
+                              RepaintBoundary(
+                                key: _receiptKey,
+                                child: Container(
+                                  color: isDark ? theme.bg : const Color(0xFFFCF9F2),
+                                  child: Column(
+                                    children: [
+                                      // Status Graphic & Thanks
+                                      Column(
                           children: [
                             Container(
                               width: 64,
@@ -549,90 +653,105 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                             ],
                           ),
                         ),
-                        const SizedBox(height: 24),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 24),
 
-                        // Tombol Buka Palang Keluar: tombol hitam jadi putih font color hitam di dark mode
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: ElevatedButton(
-                            onPressed: () async {
-                              await backend.completeSessionCheckout();
-                              if (context.mounted) {
-                                Navigator.pushAndRemoveUntil(
-                                  context,
-                                  MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen()),
-                                  (route) => false,
-                                );
-                              }
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
-                              foregroundColor: isDark ? Colors.black : Colors.white,
-                              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
-                              elevation: 0,
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Buka Palang Keluar'.tr,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: isDark ? Colors.black : Colors.white,
-                                  ),
-                                ),
-                                const SizedBox(width: 8),
-                                Icon(
-                                  Icons.arrow_forward,
-                                  size: 20,
-                                  color: isDark ? Colors.black : Colors.white,
-                                ),
-                              ],
-                            ),
+                // Tombol Buka Palang Keluar: tombol hitam jadi putih font color hitam di dark mode
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: () async {
+                      await backend.completeSessionCheckout();
+                      if (context.mounted) {
+                        Navigator.pushAndRemoveUntil(
+                          context,
+                          MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen()),
+                          (route) => false,
+                        );
+                      }
+                    },
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      foregroundColor: isDark ? Colors.black : Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(28)),
+                      elevation: 0,
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'Buka Palang Keluar'.tr,
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: isDark ? Colors.black : Colors.white,
                           ),
                         ),
-                        const SizedBox(height: 12),
-
-                        // Tombol Unduh Struk: tombol transparan outline putih font teks putih di dark mode
-                        SizedBox(
-                          width: double.infinity,
-                          height: 56,
-                          child: OutlinedButton(
-                            onPressed: () {},
-                            style: OutlinedButton.styleFrom(
-                              backgroundColor: isDark ? Colors.transparent : const Color(0xFFF1EEE7),
-                              foregroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
-                              side: isDark ? const BorderSide(color: Colors.white, width: 1.5) : BorderSide.none,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(28),
-                              ),
-                            ),
-                            child: Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Icon(
-                                  Icons.download,
-                                  size: 20,
-                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                                ),
-                                const SizedBox(width: 8),
-                                Text(
-                                  'Unduh Struk / E-Receipt'.tr,
-                                  style: GoogleFonts.plusJakartaSans(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: isDark ? Colors.white : const Color(0xFF1C1C18),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
+                        const SizedBox(width: 8),
+                        Icon(
+                          Icons.arrow_forward,
+                          size: 20,
+                          color: isDark ? Colors.black : Colors.white,
                         ),
                       ],
                     ),
                   ),
+                ),
+                const SizedBox(height: 12),
+
+                // Tombol Unduh Struk: tombol transparan outline putih font teks putih di dark mode
+                SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: OutlinedButton(
+                    onPressed: _isDownloading ? null : _downloadReceipt,
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: isDark ? Colors.transparent : const Color(0xFFF1EEE7),
+                      foregroundColor: isDark ? Colors.white : const Color(0xFF1C1C18),
+                      side: isDark ? const BorderSide(color: Colors.white, width: 1.5) : BorderSide.none,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(28),
+                      ),
+                    ),
+                    child: _isDownloading
+                        ? SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              strokeWidth: 2.5,
+                              valueColor: AlwaysStoppedAnimation<Color>(
+                                isDark ? Colors.white : const Color(0xFF1C1C18),
+                              ),
+                            ),
+                          )
+                        : Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.download,
+                                size: 20,
+                                color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                              ),
+                              const SizedBox(width: 8),
+                              Text(
+                                'Unduh Struk / E-Receipt'.tr,
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w600,
+                                  color: isDark ? Colors.white : const Color(0xFF1C1C18),
+                                ),
+                              ),
+                            ],
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
                 ),
               ],
             ),

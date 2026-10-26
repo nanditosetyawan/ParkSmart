@@ -1,6 +1,9 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/parking_notification_service.dart';
+import '../../../core/services/session_service.dart';
+import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk SessionCheckoutScreen (lib/features/session/session_checkout_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk performa optimal
@@ -73,25 +76,71 @@ class SessionCheckoutBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
-      // 1. Ambil nama user
-      final user = await _client
-          .from('users')
-          .select('full_name')
-          .order('created_at', ascending: true)
-          .limit(1)
-          .maybeSingle();
-      if (user != null && user['full_name'] != null) {
-        _userName = user['full_name'].toString().split(' ').first;
+      // 1. Ambil identitas user yang sedang aktif login
+      String currentUserId = SessionService.instance.userId ?? ProfileBackend.instance.userId;
+      if (currentUserId.isEmpty) {
+        try {
+          final prefs = await SharedPreferences.getInstance();
+          currentUserId = prefs.getString('ps_session_user_id') ?? prefs.getString('user_profile_id') ?? '';
+        } catch (_) {}
       }
 
-      // 2. Ambil sesi parkir
+      String userFullName = '';
+      if (currentUserId.isNotEmpty) {
+        final userRow = await _client
+            .from('users')
+            .select('full_name')
+            .eq('id', currentUserId)
+            .maybeSingle();
+        if (userRow != null && userRow['full_name'] != null) {
+          userFullName = userRow['full_name'].toString();
+        }
+      }
+
+      if (userFullName.isEmpty) {
+        final email = SessionService.instance.identifier ?? ProfileBackend.instance.email;
+        if (email.isNotEmpty) {
+          final userRow = await _client
+              .from('users')
+              .select('id, full_name')
+              .eq('email', email)
+              .maybeSingle();
+          if (userRow != null) {
+            if (userRow['full_name'] != null) {
+              userFullName = userRow['full_name'].toString();
+            }
+            if (currentUserId.isEmpty && userRow['id'] != null) {
+              currentUserId = userRow['id'].toString();
+            }
+          }
+        }
+      }
+
+      if (userFullName.isEmpty && ProfileBackend.instance.name.isNotEmpty && ProfileBackend.instance.name != 'Pengguna Baru') {
+        userFullName = ProfileBackend.instance.name;
+      }
+
+      if (userFullName.isNotEmpty) {
+        _userName = userFullName.split(' ').first;
+      } else {
+        _userName = 'Pengguna';
+      }
+
+      // 2. Ambil sesi parkir yang sedang aktif / sesuai parameter
       var query = _client
           .from('parking_sessions')
-          .select('id, session_code, location_id, slot_id, plate_number, vehicle_desc, check_in_time, check_out_time, parking_fee, total_fee, gate_out_id, status, booking_id');
+          .select('id, session_code, location_id, slot_id, user_id, plate_number, vehicle_desc, check_in_time, check_out_time, parking_fee, total_fee, gate_out_id, status, booking_id');
 
-      final session = sessionId != null
-          ? await query.eq('id', sessionId).maybeSingle()
-          : await query.eq('status', 'active').order('check_in_time', ascending: false).limit(1).maybeSingle();
+      Map<String, dynamic>? session;
+      if (sessionId != null) {
+        session = await query.eq('id', sessionId).maybeSingle();
+      } else {
+        var activeQuery = query.eq('status', 'active');
+        if (currentUserId.isNotEmpty) {
+          activeQuery = activeQuery.eq('user_id', currentUserId);
+        }
+        session = await activeQuery.order('check_in_time', ascending: false).limit(1).maybeSingle();
+      }
 
       if (session != null) {
         _activeSessionId = session['id']?.toString();
@@ -164,10 +213,16 @@ class SessionCheckoutBackend extends ChangeNotifier {
         }
       } else {
         // Fallback: periksa tabel bookings jika pengguna langsung checkout dari reservasi aktif
-        final booking = await _client
+        var bookingQuery = _client
             .from('bookings')
-            .select('id, booking_code, location_id, slot_id, vehicle_id, start_time, end_time, total_price, duration_hours, booking_status')
-            .inFilter('booking_status', ['upcoming', 'active'])
+            .select('id, user_id, booking_code, location_id, slot_id, vehicle_id, start_time, end_time, total_price, duration_hours, booking_status')
+            .inFilter('booking_status', ['upcoming', 'active']);
+
+        if (currentUserId.isNotEmpty) {
+          bookingQuery = bookingQuery.eq('user_id', currentUserId);
+        }
+
+        final booking = await bookingQuery
             .order('start_time', ascending: false)
             .limit(1)
             .maybeSingle();

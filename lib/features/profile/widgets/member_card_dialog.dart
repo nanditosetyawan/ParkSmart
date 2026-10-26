@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 import '../../../core/services/session_service.dart';
+import '../../../core/services/currency_service.dart';
 import '../../../ui/layanan/layanan_blockchain.dart';
 import '../backend/profile_backend.dart';
 
@@ -25,16 +26,31 @@ void showFramelessMemberCardDialog(
     barrierColor: Colors.black.withValues(alpha: 0.75),
     transitionDuration: const Duration(milliseconds: 320),
     pageBuilder: (context, anim1, anim2) {
-      return Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
-          child: Material(
-            color: Colors.transparent,
-            child: MemberCardsCarouselDialog(
-              initialTier: tier,
-              initialMemberCode: memberCode,
+      return Scaffold(
+        backgroundColor: Colors.transparent,
+        body: Stack(
+          children: [
+            // Konten Carousel Kartu di Tengah Layar
+            Center(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 32),
+                child: Material(
+                  color: Colors.transparent,
+                  child: MemberCardsCarouselDialog(
+                    initialTier: tier,
+                    initialMemberCode: memberCode,
+                  ),
+                ),
+              ),
             ),
-          ),
+
+            // Tombol Info (i) di Kanan Atas Layar HP
+            Positioned(
+              top: MediaQuery.of(context).padding.top + 16,
+              right: 20,
+              child: const _MemberTierInfoButton(),
+            ),
+          ],
         ),
       );
     },
@@ -49,6 +65,241 @@ void showFramelessMemberCardDialog(
       );
     },
   );
+}
+
+/// Tombol Info Lingkaran Huruf "i" dengan Background Transparan di Kanan Atas Layar HP
+class _MemberTierInfoButton extends StatelessWidget {
+  const _MemberTierInfoButton();
+
+  void _showTierRequirementNote(BuildContext context) {
+    final profile = ProfileBackend.instance;
+    final int currentSpent = profile.totalSpent;
+    final String currentTier = profile.memberTier.toUpperCase();
+
+    // Syarat Belanja per Tingkatan (Thresholds):
+    // BRONZE   : 0 (Awal)
+    // SILVER   : Rp 100.000
+    // GOLD     : Rp 200.000
+    // PLATINUM : Rp 500.000
+    String nextTier = '';
+    int nextRequirement = 0;
+    int remaining = 0;
+
+    if (currentTier == 'BRONZE') {
+      nextTier = 'Silver';
+      nextRequirement = 100000;
+      remaining = (nextRequirement - currentSpent).clamp(0, nextRequirement);
+    } else if (currentTier == 'SILVER') {
+      nextTier = 'Gold';
+      nextRequirement = 200000;
+      remaining = (nextRequirement - currentSpent).clamp(0, nextRequirement);
+    } else if (currentTier == 'GOLD') {
+      nextTier = 'Platinum';
+      nextRequirement = 500000;
+      remaining = (nextRequirement - currentSpent).clamp(0, nextRequirement);
+    } else {
+      // PLATINUM (Tingkat Maksimal)
+      nextTier = 'Maksimal';
+      nextRequirement = 500000;
+      remaining = 0;
+    }
+
+    final currency = CurrencyService.instance;
+    final String remainingStr = currency.format(remaining);
+
+    showDialog(
+      context: context,
+      barrierColor: Colors.black.withValues(alpha: 0.45),
+      builder: (ctx) => Center(
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(24),
+          child: BackdropFilter(
+            filter: ui.ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+            child: Container(
+              width: 300,
+              margin: const EdgeInsets.symmetric(horizontal: 24),
+              padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 20),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.88),
+                borderRadius: BorderRadius.circular(24),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.95),
+                  width: 1.5,
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.18),
+                    blurRadius: 30,
+                    offset: const Offset(0, 12),
+                  ),
+                  BoxShadow(
+                    color: const Color(0xFF0284C7).withValues(alpha: 0.08),
+                    blurRadius: 15,
+                    spreadRadius: 2,
+                  ),
+                ],
+              ),
+              child: Material(
+                color: Colors.transparent,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Container(
+                          width: 28,
+                          height: 28,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF0284C7).withValues(alpha: 0.12),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFF0284C7).withValues(alpha: 0.3),
+                              width: 1,
+                            ),
+                          ),
+                          child: const Center(
+                            child: Text(
+                              'i',
+                              style: TextStyle(
+                                fontFamily: 'serif',
+                                fontStyle: FontStyle.italic,
+                                fontWeight: FontWeight.bold,
+                                fontSize: 15,
+                                color: Color(0xFF0369A1),
+                              ),
+                            ),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          'Informasi Level Member',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF0F172A),
+                            letterSpacing: -0.2,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 14),
+                    if (nextTier != 'Maksimal')
+                      RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 13.5,
+                            height: 1.55,
+                            color: const Color(0xFF334155),
+                            fontWeight: FontWeight.w500,
+                          ),
+                          children: [
+                            const TextSpan(text: 'Transaksi Sebanyak '),
+                            TextSpan(
+                              text: remainingStr,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFF0369A1), // Biru tua kontras
+                              ),
+                            ),
+                            const TextSpan(text: ' untuk naik ke level '),
+                            TextSpan(
+                              text: nextTier,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontWeight: FontWeight.w800,
+                                color: const Color(0xFFB45309), // Amber/emas pekat kontras
+                              ),
+                            ),
+                            const TextSpan(text: '.'),
+                          ],
+                        ),
+                      )
+                    else
+                      Text(
+                        'Selamat! Anda telah mencapai level tertinggi (Platinum). Nikmati seluruh keuntungan eksklusif parkir.',
+                        textAlign: TextAlign.center,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13.5,
+                          height: 1.5,
+                          color: const Color(0xFF047857), // Hijau zamrud kontras
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    const SizedBox(height: 18),
+                    GestureDetector(
+                      onTap: () => Navigator.of(ctx).pop(),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 8.5),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF0F172A),
+                          borderRadius: BorderRadius.circular(20),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.12),
+                              blurRadius: 8,
+                              offset: const Offset(0, 3),
+                            ),
+                          ],
+                        ),
+                        child: Text(
+                          'Mengerti',
+                          style: GoogleFonts.plusJakartaSans(
+                            fontSize: 12.5,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _showTierRequirementNote(context),
+      child: Container(
+        width: 38,
+        height: 38,
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.15),
+          shape: BoxShape.circle,
+          border: Border.all(
+            color: Colors.white.withValues(alpha: 0.35),
+            width: 1.2,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.25),
+              blurRadius: 10,
+              offset: const Offset(0, 3),
+            ),
+          ],
+        ),
+        child: const Center(
+          child: Text(
+            'i',
+            style: TextStyle(
+              fontFamily: 'serif',
+              fontStyle: FontStyle.italic,
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }
 
 class MemberCardsCarouselDialog extends StatefulWidget {
@@ -163,34 +414,6 @@ class _MemberCardsCarouselDialogState extends State<MemberCardsCarouselDialog> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        // Indikator Koleksi Multi-Kartu jika pengguna memiliki lebih dari 1 kartu
-        if (_cards.length > 1) ...[
-          Container(
-            margin: const EdgeInsets.only(bottom: 12),
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-            decoration: BoxDecoration(
-              color: const Color(0xFF0F172A).withValues(alpha: 0.85),
-              borderRadius: BorderRadius.circular(20),
-              border: Border.all(color: const Color(0xFF38BDF8).withValues(alpha: 0.4)),
-            ),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                const Icon(Icons.style_rounded, size: 14, color: Color(0xFF38BDF8)),
-                const SizedBox(width: 8),
-                Text(
-                  'Koleksi Kartu: ${_currentPage + 1} dari ${_cards.length} (Geser untuk memilih)',
-                  style: GoogleFonts.plusJakartaSans(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-
         // PageView Kartu Member Berstandar ISO ID-1
         ConstrainedBox(
           constraints: const BoxConstraints(maxWidth: 380),
@@ -306,35 +529,40 @@ class MemberAtmCard extends StatelessWidget {
       theme = _CardTheme.bronze;
     }
 
-    // Ambil kode blockchain riil yang BISA DICEK di Sepolia Etherscan:
-    // Prioritas 1: tx_hash (Hash Transaksi Blockchain riil di Sepolia, format 0x... 66 karakter)
-    // Prioritas 2: alamat smart contract resmi jika tx_hash belum terisi
+    // 1. Kode Hash Transaksi Kartu Member (tx_hash yang bisa diverifikasi di Etherscan)
+    // Utamakan tx_hash transaksi blockchain unik (0x... 66 hex) milik user & tier ini.
+    // Jika tx_hash belum ada, gunakan member_hash_code unik.
+    final String cardDisplayCode;
     final String fullBlockchainCode;
+
     if (blockchainCode != null &&
         blockchainCode!.trim().isNotEmpty &&
         blockchainCode!.trim().startsWith('0x') &&
         blockchainCode!.trim() != '#----') {
       fullBlockchainCode = blockchainCode!.trim();
-    } else if (memberCode.trim().isNotEmpty && memberCode.trim().startsWith('0x')) {
+      cardDisplayCode = fullBlockchainCode;
+    } else if (memberCode.trim().isNotEmpty && memberCode.trim() != '#----') {
       fullBlockchainCode = memberCode.trim();
+      cardDisplayCode = memberCode.trim();
     } else {
       fullBlockchainCode = LayananBlockchain.alamatKontrakHex;
+      cardDisplayCode = fullBlockchainCode;
     }
 
-    // Link web verifikasi Sepolia Etherscan (mengarahkan langsung ke transaksi / smart contract jika tersedia)
+    // Format tampilan kartu: jika hash blockchain panjang (0x...), potong 12 karakter + "..."
+    final String displayBlockchainCode = cardDisplayCode.startsWith('0x') && cardDisplayCode.length > 12
+        ? '${cardDisplayCode.substring(0, 12)}...'
+        : cardDisplayCode;
+
+    // Link web verifikasi Sepolia Etherscan (Prioritas /tx/ untuk hash transaksi 66 karakter)
     final String verifyUrl;
     if (fullBlockchainCode.startsWith('0x') && fullBlockchainCode.length == 66) {
       verifyUrl = 'https://sepolia.etherscan.io/tx/$fullBlockchainCode';
     } else if (fullBlockchainCode.startsWith('0x') && fullBlockchainCode.length == 42) {
       verifyUrl = 'https://sepolia.etherscan.io/address/$fullBlockchainCode';
     } else {
-      verifyUrl = 'https://sepolia.etherscan.io/';
+      verifyUrl = 'https://sepolia.etherscan.io/tx/$fullBlockchainCode';
     }
-
-    // Format: 12 karakter pertama + "..." (sesuai permintaan user)
-    final String displayBlockchainCode = fullBlockchainCode.length > 12
-        ? '${fullBlockchainCode.substring(0, 12)}...'
-        : fullBlockchainCode;
 
     return AspectRatio(
       aspectRatio: kAtmCardAspectRatio,

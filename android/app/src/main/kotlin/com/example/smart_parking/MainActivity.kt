@@ -145,6 +145,51 @@ class MainActivity : FlutterFragmentActivity() {
                         result.success(false)
                     }
                 }
+                "saveImageToGallery" -> {
+                    try {
+                        val bytes = call.argument<ByteArray>("bytes")
+                        val fileName = call.argument<String>("fileName") ?: "ParkSmart_Receipt_${System.currentTimeMillis()}.png"
+                        if (bytes == null) {
+                            result.error("INVALID_ARGS", "Byte array is null", null)
+                            return@setMethodCallHandler
+                        }
+
+                        val contentResolver = applicationContext.contentResolver
+                        val contentValues = android.content.ContentValues().apply {
+                            put(android.provider.MediaStore.MediaColumns.DISPLAY_NAME, fileName)
+                            put(android.provider.MediaStore.MediaColumns.MIME_TYPE, "image/png")
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                put(android.provider.MediaStore.MediaColumns.RELATIVE_PATH, android.os.Environment.DIRECTORY_PICTURES + "/ParkSmart")
+                                put(android.provider.MediaStore.MediaColumns.IS_PENDING, 1)
+                            }
+                        }
+
+                        val uri = contentResolver.insert(android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI, contentValues)
+                        if (uri != null) {
+                            contentResolver.openOutputStream(uri)?.use { stream ->
+                                stream.write(bytes)
+                                stream.flush()
+                            }
+
+                            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.Q) {
+                                contentValues.clear()
+                                contentValues.put(android.provider.MediaStore.MediaColumns.IS_PENDING, 0)
+                                contentResolver.update(uri, contentValues, null, null)
+                            } else {
+                                // Kirim broadcast media scanner untuk Android lama
+                                val intent = android.content.Intent(android.content.Intent.ACTION_MEDIA_SCANNER_SCAN_FILE).apply {
+                                    data = uri
+                                }
+                                sendBroadcast(intent)
+                            }
+                            result.success(true)
+                        } else {
+                            result.error("INSERT_FAILED", "Failed to create MediaStore entry", null)
+                        }
+                    } catch (e: Exception) {
+                        result.error("SAVE_FAILED", e.localizedMessage, null)
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

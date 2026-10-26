@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'edit_profile_screen.dart';
 import 'ktp_camera_screen.dart';
 import 'pin_settings_screen.dart';
+import '../auth/face_id_scanner_dialog.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
@@ -90,28 +91,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _loadUserProfile() async {
     final prefs = await SharedPreferences.getInstance();
-    bool faceEnabled = prefs.getBool('face_id_enabled') ?? false;
+    final bool faceEnabled = prefs.getBool('face_id_enabled') ?? false;
     final fpEnabled = prefs.getBool('fingerprint_enabled') ?? false;
-
-    // Validasi apakah hardware perangkat mendukung biometrik
-    if (faceEnabled) {
-      try {
-        final auth = LocalAuthentication();
-        final isSupported = await auth.isDeviceSupported();
-        final canCheck = await auth.canCheckBiometrics;
-        final available = await auth.getAvailableBiometrics();
-        final hasBio = isSupported &&
-            canCheck &&
-            (available.contains(BiometricType.face) ||
-                available.contains(BiometricType.weak) ||
-                available.contains(BiometricType.strong) ||
-                available.isNotEmpty);
-        if (!hasBio) {
-          faceEnabled = false;
-          await prefs.setBool('face_id_enabled', false);
-        }
-      } catch (_) {}
-    }
 
     final profile = ProfileBackend.instance;
     await profile.fetchProfile();
@@ -158,38 +139,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
       return;
     }
 
-    final LocalAuthentication auth = LocalAuthentication();
     try {
-      final bool isSupported = await auth.isDeviceSupported();
-      final bool canCheck = await auth.canCheckBiometrics;
-      final List<BiometricType> available = await auth.getAvailableBiometrics();
-
-      debugPrint('Biometrics Face check - supported: $isSupported, canCheck: $canCheck, available: $available');
-
-      // Cek apakah perangkat mendukung biometrik wajah atau biometrik sistem
-      final bool hasFaceBiometric = isSupported &&
-          canCheck &&
-          (available.contains(BiometricType.face) ||
-              available.contains(BiometricType.weak) ||
-              available.contains(BiometricType.strong) ||
-              available.isNotEmpty);
-
-      if (!hasFaceBiometric) {
-        _showBiometricSystemOffDialog(
-          title: 'Pengaturan Face ID Sistem Mati',
-          message:
-              'Fitur Face ID / Pemindai Wajah tidak tersedia atau belum didaftarkan pada pengaturan keamanan sistem Android perangkat Anda.\n\nSilakan daftarkan wajah Anda terlebih dahulu di Pengaturan HP > Keamanan > Biometrik / Face Unlock.',
-          icon: Icons.face_retouching_off,
-        );
-        setState(() => _faceIdEnabled = false);
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setBool('face_id_enabled', false);
-        return;
-      }
-
-      final bool authenticated = await auth.authenticate(
-        localizedReason: 'Konfirmasi pemindaian wajah untuk mengaktifkan Face ID',
-        biometricOnly: true,
+      final bool authenticated = await FaceIdScannerDialog.show(
+        context,
+        title: 'Aktivasi Face ID',
+        subtitle: 'Posisikan wajah Anda di dalam lingkaran untuk aktivasi',
       );
 
       if (authenticated) {
@@ -211,24 +165,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('face_id_enabled', false);
       }
-    } on PlatformException catch (e) {
-      debugPrint('Face ID error: ${e.message}');
-      _showBiometricSystemOffDialog(
-        title: 'Pengaturan Face ID Sistem Mati',
-        message:
-            'Sensor pemindai wajah tidak aktif atau belum didaftarkan pada sistem Android perangkat Anda (${e.message ?? 'Tidak aktif'}).',
-        icon: Icons.face_retouching_off,
-      );
-      setState(() => _faceIdEnabled = false);
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setBool('face_id_enabled', false);
     } catch (e) {
-      _showBiometricSystemOffDialog(
-        title: 'Pengaturan Face ID Sistem Mati',
-        message:
-            'Gagal mengakses sensor wajah perangkat. Pastikan sensor biometrik diaktifkan pada pengaturan sistem perangkat Anda.',
-        icon: Icons.face_retouching_off,
-      );
+      debugPrint('Face ID error: $e');
       setState(() => _faceIdEnabled = false);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('face_id_enabled', false);

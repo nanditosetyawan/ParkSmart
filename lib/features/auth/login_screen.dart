@@ -22,6 +22,7 @@ import '../../theme/app_spacing.dart';
 import '../home/home_screen.dart';
 import '../auth/register_screen.dart';
 import '../auth/forgot_password_screen.dart';
+import 'face_id_scanner_dialog.dart';
 import '../../core/utils/hash_util.dart';
 import '../admin/super_admin/admin_dashboard_screen.dart';
 import '../admin/operations/admin_operations_dashboard_screen.dart';
@@ -179,23 +180,20 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
 
   Future<void> _authenticateWithFaceId() async {
     if (!_faceIdEnabled) return;
-    final LocalAuthentication auth = LocalAuthentication();
     try {
-      final bool isSupported = await auth.isDeviceSupported();
-      final bool canCheck = await auth.canCheckBiometrics;
-      if (!isSupported || !canCheck) return;
-
       final prefs = await SharedPreferences.getInstance();
       final String? bioEmail = prefs.getString('face_id_user_email') ?? prefs.getString('biometric_user_email');
       final targetEmail = _emailController.text.trim().isNotEmpty
           ? _emailController.text.trim()
           : (bioEmail ?? '');
 
-      final bool didAuth = await auth.authenticate(
-        localizedReason: targetEmail.isNotEmpty
-            ? 'Pindai wajah untuk membuka akun $targetEmail'
-            : 'Pindai wajah untuk membuka layar',
-        biometricOnly: true,
+      if (!mounted) return;
+      final bool didAuth = await FaceIdScannerDialog.show(
+        context,
+        title: 'Masuk dengan Face ID',
+        subtitle: targetEmail.isNotEmpty
+            ? 'Posisikan wajah Anda untuk akun $targetEmail'
+            : 'Posisikan wajah Anda di dalam lingkaran',
       );
 
       if (didAuth && mounted) {
@@ -649,6 +647,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final double currentTop = normalTop + _dragOffset;
     final double sheetHeight = screenH - normalTop;
 
+    // Hitung progress seretan (0.0 = posisi normal di atas, 1.0 = mentok di bawah)
+    final double dragProgress = maxDragDown > 0 ? (_dragOffset / maxDragDown).clamp(0.0, 1.0) : 0.0;
+    // Opacity konten formulir: Memudar hilang halus saat diseret ke bawah (mencapai 0 saat diseret ~45% jarak)
+    final double formOpacity = (1.0 - (dragProgress / 0.45)).clamp(0.0, 1.0);
+
     return Scaffold(
       backgroundColor: Colors.black,
       body: Stack(
@@ -801,19 +804,23 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                         }
                         return false;
                       },
-                      child: SingleChildScrollView(
-                        controller: _scrollController,
-                        physics: const ClampingScrollPhysics(),
-                        padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            const SizedBox(height: 10),
-                            // Heading Selamat Datang
-                            Text(
-                              'Selamat Datang',
-                              style: AppTypography.displayHero(color: isDark ? Colors.white : null),
-                            ),
+                      child: Opacity(
+                        opacity: formOpacity,
+                        child: IgnorePointer(
+                          ignoring: formOpacity < 0.2,
+                          child: SingleChildScrollView(
+                            controller: _scrollController,
+                            physics: const ClampingScrollPhysics(),
+                            padding: const EdgeInsets.symmetric(horizontal: AppSpacing.pageH),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                const SizedBox(height: 10),
+                                // Heading Selamat Datang
+                                Text(
+                                  'Selamat Datang',
+                                  style: AppTypography.displayHero(color: isDark ? Colors.white : null),
+                                ),
 
                             // Formulir Input
                             const SizedBox(height: 24),
@@ -952,7 +959,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                   if (_fingerprintEnabled) ...[
                                     Expanded(
                                       child: _SecondaryButton(
-                                        label: 'Biometrik',
+                                        label: 'Sidik Jari',
                                         icon: Icons.fingerprint,
                                         isDark: isDark,
                                         onTap: () async {
@@ -1163,7 +1170,9 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                       ),
                     ),
                   ),
-                  // Buffer bawah agar saat sheet memantul loncat lebih tinggi (overshoot),
+                ),
+              ),
+              // Buffer bawah agar saat sheet memantul loncat lebih tinggi (overshoot),
                   // bagian bawah layar tetap tertutup penuh dan latar belakang tidak bocor
                   const SizedBox(height: 150.0),
                 ],

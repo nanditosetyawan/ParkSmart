@@ -251,6 +251,9 @@ class ParkingNotificationService {
   // ─── BACKGROUND SERVICE ───────────────────────────────────────────────────
 
   static Future<void> initBackgroundService() async {
+    // Pastikan channel notifikasi sudah terdaftar di sistem Android terlebih dahulu
+    await _ensurePluginInitialized();
+
     final service = FlutterBackgroundService();
     await service.configure(
       androidConfiguration: AndroidConfiguration(
@@ -322,6 +325,47 @@ void onBackgroundStart(ServiceInstance service) async {
     },
     onDidReceiveBackgroundNotificationResponse: _notifBackgroundHandler,
   );
+
+  // Pastikan Notification Channel terdaftar di dalam Background Isolate Android
+  final androidPlugin = plugin.resolvePlatformSpecificImplementation<
+      AndroidFlutterLocalNotificationsPlugin>();
+  if (androidPlugin != null) {
+    const bgChannel = AndroidNotificationChannel(
+      'parking_background_channel',
+      'ParkSmart Background Monitor',
+      description: 'Memantau waktu parkir aktif di latar belakang',
+      importance: Importance.low,
+      playSound: false,
+      enableVibration: false,
+    );
+    await androidPlugin.createNotificationChannel(bgChannel);
+
+    const urgentChannel = AndroidNotificationChannel(
+      'urgent_channel_v4',
+      'Urgent Parking Notifications',
+      description: 'Peringatan waktu parkir dengan suara darurat',
+      importance: Importance.max,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('sound_darurat'),
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      enableVibration: true,
+    );
+    await androidPlugin.createNotificationChannel(urgentChannel);
+  }
+
+  if (service is AndroidServiceInstance) {
+    service.on('setAsForeground').listen((event) {
+      service.setAsForegroundService();
+    });
+    service.on('setAsBackground').listen((event) {
+      service.setAsBackgroundService();
+    });
+    // Set notification content yang valid untuk foreground service
+    service.setForegroundNotificationInfo(
+      title: 'ParkSmart',
+      content: 'Memantau sesi parkir aktif di latar belakang...',
+    );
+  }
 
   service.on('stopService').listen((event) {
     service.stopSelf();

@@ -151,6 +151,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   String _weatherCondition = 'Memuat...';
   String _weatherEmoji = '⛅';
   LatLng? _currentPosition;
+  LatLng? _userGpsPosition; // Posisi GPS riil asli perangkat pengguna
   double _heading = 0.0; // Sudut orientasi kompas dalam radian
 
   StreamSubscription<Position>? _positionSub;
@@ -202,8 +203,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
               _parkingLocations.add(loc);
             }
           }
-          // Jika ada lokasi dari database dan belum ada yang dipilih, pusatkan ke lokasi pertama
-          if (_selectedParking == null && _parkingLocations.isNotEmpty) {
+          // Jika ada lokasi dari database, belum ada yang dipilih, dan belum dapat GPS, pusatkan ke lokasi pertama
+          if (_selectedParking == null && _parkingLocations.isNotEmpty && !_isGpsActive && _userGpsPosition == null) {
             final firstLoc = _parkingLocations.first;
             if (firstLoc['point'] != null) {
               _currentPosition = firstLoc['point'] as LatLng;
@@ -440,6 +441,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         if (mounted) {
           setState(() {
             _currentPosition = LatLng(pos.latitude, pos.longitude);
+            _userGpsPosition = LatLng(pos.latitude, pos.longitude);
             _isGpsActive = true;
           });
           _fetchWeather(_currentPosition!);
@@ -510,6 +512,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         setState(() {
           _isGpsActive = true;
           _currentPosition = userPos;
+          _userGpsPosition = userPos;
         });
         _mapController.move(userPos, 16.5);
         _fetchWeather(userPos);
@@ -526,6 +529,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         if (mounted) {
           setState(() {
             _currentPosition = LatLng(pos.latitude, pos.longitude);
+            _userGpsPosition = LatLng(pos.latitude, pos.longitude);
             if (pos.heading != 0) {
               _heading = (pos.heading * pi) / 180;
             }
@@ -2196,13 +2200,28 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                 return true;
                               }).toList();
 
-                              if (_selectedCategory == 'Terdekat' && _currentPosition != null) {
+                              final LatLng? refGps = _userGpsPosition ?? _currentPosition;
+
+                              // Selalu urutkan dari jarak terdekat dari lokasi GPS pengguna
+                              if (refGps != null) {
                                 displayedLocs.sort((a, b) {
                                   final ptA = a['point'] as LatLng?;
                                   final ptB = b['point'] as LatLng?;
-                                  if (ptA == null || ptB == null) return 0;
-                                  final distA = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptA.latitude, ptA.longitude);
-                                  final distB = Geolocator.distanceBetween(_currentPosition!.latitude, _currentPosition!.longitude, ptB.latitude, ptB.longitude);
+                                  if (ptA == null && ptB == null) return 0;
+                                  if (ptA == null) return 1;
+                                  if (ptB == null) return -1;
+                                  final distA = Geolocator.distanceBetween(
+                                    refGps.latitude,
+                                    refGps.longitude,
+                                    ptA.latitude,
+                                    ptA.longitude,
+                                  );
+                                  final distB = Geolocator.distanceBetween(
+                                    refGps.latitude,
+                                    refGps.longitude,
+                                    ptB.latitude,
+                                    ptB.longitude,
+                                  );
                                   return distA.compareTo(distB);
                                 });
                               }
@@ -2216,15 +2235,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                                   final String name = loc['name'] as String;
                                   final LatLng? pt = loc['point'] as LatLng?;
                                   String dist = (loc['distance'] as String?) ?? '1.2 km';
-                                  if (_currentPosition != null && pt != null) {
+                                  if (refGps != null && pt != null) {
                                     final dMeters = Geolocator.distanceBetween(
-                                      _currentPosition!.latitude,
-                                      _currentPosition!.longitude,
+                                      refGps.latitude,
+                                      refGps.longitude,
                                       pt.latitude,
                                       pt.longitude,
                                     );
                                     if (dMeters < 1000) {
-                                      dist = '${dMeters.round()}m';
+                                      dist = '${dMeters.round()} m';
                                     } else {
                                       dist = '${(dMeters / 1000).toStringAsFixed(1)} km';
                                     }
@@ -3306,7 +3325,7 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       Icon(isEv ? Icons.electric_car : Icons.local_parking, size: 13, color: Colors.white),
                       const SizedBox(width: 4),
                       Text(
-                        isEv ? 'Khusus EV' : 'Mobil & Motor',
+                        isEv ? 'EV' : 'Mobil & Motor',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,

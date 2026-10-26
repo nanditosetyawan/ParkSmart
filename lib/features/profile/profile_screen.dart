@@ -233,11 +233,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   ),
                   const SizedBox(height: 12),
 
-                  _MenuItem(
-                    icon: Icons.contact_support, subtitle: 'CUSTOMER CARE'.tr, title: 'Bantuan & Dukungan'.tr,
-                    onTap: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen())),
-                  ),
-                  const SizedBox(height: 24),
+                  
                   
 
                   _MenuItem(

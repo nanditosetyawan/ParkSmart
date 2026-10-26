@@ -1,6 +1,7 @@
 import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/file_download_service.dart';
@@ -55,7 +56,24 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
           : (widget.id ?? 'bukti');
       final fileName = 'ParkSmart_Bukti_$code.png';
 
-      final savedPath = await FileDownloadService.instance.downloadPng(pngBytes, fileName);
+      // Simpan langsung ke Galeri Android via MediaStore (Pictures/ParkSmart)
+      bool savedToGallery = false;
+      try {
+        const channel = MethodChannel('com.example.smart_parking/audio');
+        final bool? res = await channel.invokeMethod<bool>('saveImageToGallery', {
+          'bytes': pngBytes,
+          'fileName': fileName,
+        });
+        savedToGallery = res == true;
+      } catch (e) {
+        debugPrint('[HistoryDetailScreen] MethodChannel saveImageToGallery failed: $e');
+      }
+
+      // Fallback simpan berkas jika native method belum terjangkau
+      String? savedPath;
+      if (!savedToGallery) {
+        savedPath = await FileDownloadService.instance.downloadPng(pngBytes, fileName);
+      }
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -66,9 +84,11 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    savedPath != null
-                        ? 'Bukti transaksi berhasil diunduh ($fileName)'.tr
-                        : 'Bukti transaksi berhasil diekspor'.tr,
+                    savedToGallery
+                        ? 'Bukti transaksi berhasil disimpan ke Galeri!'.tr
+                        : (savedPath != null
+                            ? 'Bukti transaksi berhasil diunduh ($fileName)'.tr
+                            : 'Bukti transaksi berhasil diekspor'.tr),
                     style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600),
                   ),
                 ),
@@ -141,30 +161,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                           child: Icon(Icons.arrow_back, size: 20, color: textMain),
                         ),
                       ),
-                      Row(
-                        children: [
-                          GestureDetector(
-                            onTap: _isDownloading ? null : _downloadReceiptPng,
-                            child: Container(
-                              width: 40,
-                              height: 40,
-                              decoration: BoxDecoration(color: surface, shape: BoxShape.circle),
-                              child: _isDownloading
-                                  ? Center(
-                                      child: SizedBox(
-                                        width: 18,
-                                        height: 18,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: textMain,
-                                        ),
-                                      ),
-                                    )
-                                  : Icon(Icons.download, size: 19, color: textMain),
-                            ),
-                          ),
-                        ],
-                      ),
+                      const SizedBox(width: 40),
                     ],
                   ),
                 ),
@@ -245,51 +242,7 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                     children: [
                                       const SizedBox(height: 6),
                                       // Watermark Branding ParkSmart di Gambar Bukti
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                        children: [
-                                          Row(
-                                            children: [
-                                              Container(
-                                                width: 32,
-                                                height: 32,
-                                                decoration: BoxDecoration(
-                                                  color: const Color(0xFF10B981),
-                                                  borderRadius: BorderRadius.circular(10),
-                                                ),
-                                                child: const Icon(Icons.local_parking_rounded, color: Colors.white, size: 20),
-                                              ),
-                                              const SizedBox(width: 8),
-                                              Text(
-                                                'ParkSmart',
-                                                style: GoogleFonts.plusJakartaSans(
-                                                  fontSize: 17,
-                                                  fontWeight: FontWeight.w800,
-                                                  color: textMain,
-                                                  letterSpacing: -0.3,
-                                                ),
-                                              ),
-                                            ],
-                                          ),
-                                          Container(
-                                            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-                                            decoration: BoxDecoration(
-                                              color: terracotta.withValues(alpha: 0.12),
-                                              borderRadius: BorderRadius.circular(8),
-                                              border: Border.all(color: terracotta.withValues(alpha: 0.3)),
-                                            ),
-                                            child: Text(
-                                              'BUKTI PEMBAYARAN RESMI',
-                                              style: GoogleFonts.plusJakartaSans(
-                                                fontSize: 10,
-                                                fontWeight: FontWeight.w700,
-                                                color: terracotta,
-                                                letterSpacing: 0.8,
-                                              ),
-                                            ),
-                                          ),
-                                        ],
-                                      ),
+                                 
                                       const SizedBox(height: 16),
                                       RichText(
                                         text: TextSpan(
