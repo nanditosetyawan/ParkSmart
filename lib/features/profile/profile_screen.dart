@@ -75,7 +75,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, ProfileBackend.instance, LanguageService.instance]),
+      listenable: Listenable.merge([
+        ThemeService.instance,
+        ProfileBackend.instance,
+        LanguageService.instance,
+        CurrencyService.instance,
+      ]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final profile = ProfileBackend.instance;

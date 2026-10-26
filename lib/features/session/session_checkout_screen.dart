@@ -3,6 +3,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/language_service.dart';
+import '../../core/services/parking_notification_service.dart';
 import '../profile/feedback_screen.dart' as feedback;
 import 'backend/session_checkout_backend.dart';
 
@@ -19,6 +20,8 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
   void initState() {
     super.initState();
     SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: widget.sessionId);
+    // Hentikan notifikasi darurat saat user melakukan checkout
+    ParkingNotificationService().onSessionEnded();
   }
 
   @override

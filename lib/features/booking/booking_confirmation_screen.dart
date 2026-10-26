@@ -377,38 +377,45 @@ class _BookingConfirmationScreenState extends State<BookingConfirmationScreen> {
                             children: [
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'LOKASI PARKIR'.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 11,
-                                          fontWeight: FontWeight.w600,
-                                          color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
-                                          letterSpacing: 0.5,
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        Text(
+                                          'LOKASI PARKIR'.tr,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 11,
+                                            fontWeight: FontWeight.w600,
+                                            color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
+                                            letterSpacing: 0.5,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        BookingConfirmationBackend.instance.locationName.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.w700,
-                                          color: theme.textPrimary,
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          BookingConfirmationBackend.instance.locationName.tr,
+                                          softWrap: true,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                            color: theme.textPrimary,
+                                            height: 1.25,
+                                          ),
                                         ),
-                                      ),
-                                      const SizedBox(height: 2),
-                                      Text(
-                                        BookingConfirmationBackend.instance.locationSub.tr,
-                                        style: GoogleFonts.plusJakartaSans(
-                                          fontSize: 12,
-                                          color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
+                                        const SizedBox(height: 2),
+                                        Text(
+                                          BookingConfirmationBackend.instance.locationSub.tr,
+                                          softWrap: true,
+                                          style: GoogleFonts.plusJakartaSans(
+                                            fontSize: 12,
+                                            color: isDark ? theme.textSecondary : const Color(0xFF7A7874),
+                                          ),
                                         ),
-                                      ),
-                                    ],
+                                      ],
+                                    ),
                                   ),
+                                  const SizedBox(width: 12),
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                                     decoration: BoxDecoration(

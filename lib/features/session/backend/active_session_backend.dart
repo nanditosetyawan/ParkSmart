@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/parking_notification_service.dart';
 
 /// Backend khusus untuk ActiveSessionScreen (lib/features/session/active_session_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk performa optimal
@@ -120,6 +121,9 @@ class ActiveSessionBackend extends ChangeNotifier {
           if (_expectedCheckOutTime != null) {
             final diff = _expectedCheckOutTime!.difference(DateTime.now()).inSeconds;
             _remainingSeconds = diff > 0 ? diff : 0;
+            // Sinkronisasi otomatis ke background monitor agar tetap terpantau saat app ditutup
+            ParkingNotificationService().saveActiveSession(expectedCheckout: _expectedCheckOutTime!);
+            ParkingNotificationService.startBackgroundMonitor(expectedCheckout: _expectedCheckOutTime!);
           }
         }
 

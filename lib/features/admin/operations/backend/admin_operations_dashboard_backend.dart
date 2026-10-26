@@ -225,7 +225,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
 
       final activeBookingsRes = await _client
           .from('bookings')
-          .select('id, location_id, slot_id, booking_status, payment_status, vehicle_type')
+          .select('id, location_id, slot_id, booking_status, payment_status, vehicle_desc')
           .inFilter('booking_status', ['upcoming', 'active'])
           .eq('payment_status', 'paid');
 
@@ -277,7 +277,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
               final sId = b['slot_id']?.toString();
               if (sId == null || !occupiedSlotIds.contains(sId)) {
                 extraOccupancy++;
-                final vt = (b['vehicle_type'] ?? '').toString().toLowerCase();
+                final vt = (b['vehicle_desc'] ?? '').toString().toLowerCase();
                 if (vt.contains('ev') || vt.contains('electric')) {
                   occupiedEv++;
                 } else if (vt.contains('motor') || vt.contains('bike')) {

@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
+import '../../../core/services/parking_notification_service.dart';
 import '../../profile/backend/profile_backend.dart';
 
 /// Backend khusus untuk HomeScreen (lib/features/home/home_screen.dart)
@@ -377,6 +378,12 @@ class HomeBackend extends ChangeNotifier {
         if (sStatus == 'active' || sStatus == 'overstay') {
           if (bId != null && bId.isNotEmpty) {
             activeBookingIds.add(bId);
+          }
+
+          // Sinkronisasikan ke monitor background jika ada waktu checkout
+          if (expTime != null) {
+            ParkingNotificationService().saveActiveSession(expectedCheckout: expTime);
+            ParkingNotificationService.startBackgroundMonitor(expectedCheckout: expTime);
           }
 
           list.add({

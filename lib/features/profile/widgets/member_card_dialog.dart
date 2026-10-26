@@ -321,8 +321,15 @@ class MemberAtmCard extends StatelessWidget {
       fullBlockchainCode = LayananBlockchain.alamatKontrakHex;
     }
 
-    // Link web verifikasi utama (sesuai permintaan user: https://sepolia.etherscan.io/)
-    final String verifyUrl = 'https://sepolia.etherscan.io/';
+    // Link web verifikasi Sepolia Etherscan (mengarahkan langsung ke transaksi / smart contract jika tersedia)
+    final String verifyUrl;
+    if (fullBlockchainCode.startsWith('0x') && fullBlockchainCode.length == 66) {
+      verifyUrl = 'https://sepolia.etherscan.io/tx/$fullBlockchainCode';
+    } else if (fullBlockchainCode.startsWith('0x') && fullBlockchainCode.length == 42) {
+      verifyUrl = 'https://sepolia.etherscan.io/address/$fullBlockchainCode';
+    } else {
+      verifyUrl = 'https://sepolia.etherscan.io/';
+    }
 
     // Format: 12 karakter pertama + "..." (sesuai permintaan user)
     final String displayBlockchainCode = fullBlockchainCode.length > 12
@@ -634,9 +641,29 @@ class MemberAtmCard extends StatelessWidget {
                           child: ElevatedButton(
                             onPressed: () async {
                               Navigator.of(dialogContext).pop();
-                              final uri = Uri.parse(verifyUrl);
-                              if (await canLaunchUrl(uri)) {
-                                await launchUrl(uri, mode: LaunchMode.externalApplication);
+                              try {
+                                final uri = Uri.parse(verifyUrl);
+                                final launched = await launchUrl(
+                                  uri,
+                                  mode: LaunchMode.externalApplication,
+                                );
+                                if (!launched) {
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.platformDefault,
+                                  );
+                                }
+                              } catch (err) {
+                                debugPrint('[MemberCardDialog] launchUrl external error: $err');
+                                try {
+                                  final uri = Uri.parse(verifyUrl);
+                                  await launchUrl(
+                                    uri,
+                                    mode: LaunchMode.inAppWebView,
+                                  );
+                                } catch (e) {
+                                  debugPrint('[MemberCardDialog] launchUrl inAppWebView error: $e');
+                                }
                               }
                             },
                             style: ElevatedButton.styleFrom(

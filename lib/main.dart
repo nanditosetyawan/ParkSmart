@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'core/services/notification_service.dart';
+import 'core/services/parking_notification_service.dart';
 import 'core/services/currency_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/services/maintenance_service.dart';
@@ -74,6 +75,12 @@ void main() async {
       await NotificationService().init();
     } catch (e) {
       debugPrint('NotificationService init error: $e');
+    }
+    // Inisialisasi background service untuk monitoring timer parkir
+    try {
+      await ParkingNotificationService.initBackgroundService();
+    } catch (e) {
+      debugPrint('ParkingNotificationService init error: $e');
     }
   }
 

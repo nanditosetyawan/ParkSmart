@@ -1,6 +1,7 @@
 import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/parking_notification_service.dart';
 
 /// Backend khusus untuk CheckinScreen (lib/features/session/checkin_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk performa optimal
@@ -178,6 +179,9 @@ class CheckinBackend extends ChangeNotifier {
 
       if (insertedSession != null) {
         _activeSessionId = insertedSession['id']?.toString();
+        // Simpan sesi dan aktifkan monitor background agar tetap berjalan jika user menutup aplikasi
+        ParkingNotificationService().saveActiveSession(expectedCheckout: expectedOut);
+        ParkingNotificationService.startBackgroundMonitor(expectedCheckout: expectedOut);
       }
 
       // 3. Update status slot menjadi 'occupied'

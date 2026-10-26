@@ -70,4 +70,40 @@ class NotificationService {
       // Ignore if on desktop/web or headless
     }
   }
+
+  /// Menampilkan notifikasi darurat parkir (suara darurat)
+  Future<void> showUrgentParkingNotification({int minsLeft = 10}) async {
+    try {
+      await requestPermissions();
+      const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(
+        'urgent_channel_v4',
+        'Urgent Parking Notifications',
+        channelDescription: 'Peringatan waktu parkir dengan suara darurat',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        sound: RawResourceAndroidNotificationSound('sound_darurat'),
+        audioAttributesUsage: AudioAttributesUsage.alarm,
+        enableVibration: true,
+        fullScreenIntent: true,
+        autoCancel: true,
+      );
+      const NotificationDetails details = NotificationDetails(android: androidDetails);
+      await _flutterLocalNotificationsPlugin.show(
+        id: 777,
+        title: '⚠️ Sisa Waktu Parkir $minsLeft Menit!',
+        body: 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
+        notificationDetails: details,
+        payload: 'expiring_session',
+      );
+    } catch (_) {}
+  }
+
+  /// Membatalkan notifikasi darurat parkir
+  Future<void> cancelUrgentParkingNotification() async {
+    try {
+      await _flutterLocalNotificationsPlugin.cancel(id: 777);
+    } catch (_) {}
+  }
 }
+

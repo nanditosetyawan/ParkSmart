@@ -1215,13 +1215,10 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
   @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance]),
+      listenable: Listenable.merge([ThemeService.instance, LanguageService.instance, CurrencyService.instance]),
       builder: (context, _) {
         final theme = ThemeService.instance;
         final isDark = theme.isDarkMode;
-        final formattedBalance = _balance
-            .toString()
-            .replaceAllMapped(RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'), (m) => '${m[1]}.');
 
         return PopScope(
           canPop: false,
@@ -1583,7 +1580,7 @@ class _PaymentMethodsScreenState extends State<PaymentMethodsScreen> {
                           id: 'parksmart_pay',
                           icon: Icons.account_balance_wallet,
                           title: 'ParkSmart Pay',
-                          subtitle: 'Saldo Rp $formattedBalance',
+                          subtitle: 'Saldo ${CurrencyService.instance.format(_balance)}',
                           badge: 'Utama',
                         ),
 

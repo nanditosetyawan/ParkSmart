@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/session_service.dart';
+import '../../../core/services/parking_notification_service.dart';
 import '../../admin/operations/backend/admin_operations_dashboard_backend.dart';
 import '../../profile/backend/profile_backend.dart';
 import 'active_session_backend.dart';
@@ -33,6 +34,7 @@ class ExtendSessionBackend extends ChangeNotifier {
   String _currentDeadline = '-';
 
   DateTime? _expectedCheckOut;
+  DateTime? get newExpectedCheckOut => _expectedCheckOut;
 
   final List<Map<String, dynamic>> options = [
     {
@@ -360,6 +362,12 @@ class ExtendSessionBackend extends ChangeNotifier {
         // 3. Sinkronisasi ke ActiveSessionBackend (sisi user) & Admin Dashboard (sisi admin)
         await ActiveSessionBackend.instance.fetchActiveSession();
         await AdminOperationsDashboardBackend.instance.fetchDashboardData();
+
+        // 4. Hentikan notifikasi darurat & update timer background sisi notifikasi
+        final finalCheckout = _expectedCheckOut ?? newEnd;
+        await ParkingNotificationService().onSessionExtended(
+          newExpectedCheckout: finalCheckout,
+        );
       }
       return true;
     } catch (e) {

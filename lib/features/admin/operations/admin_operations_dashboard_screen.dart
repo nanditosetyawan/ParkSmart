@@ -698,7 +698,7 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               ),
             )
           else
-            ..._liveSessions.map((s) {
+            ..._liveSessions.take(3).map((s) {
             final rawExp = s['raw_expected_check_out_time'] as DateTime?;
             String liveDuration = s['duration']?.toString() ?? '1j';
             bool isOverstay = s['isOverstay'] == true;
@@ -807,7 +807,12 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
           }),
           const SizedBox(height: 8),
           OutlinedButton.icon(
-            onPressed: () => Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen())),
+            onPressed: () async {
+              await Navigator.push(context, MaterialPageRoute(builder: (_) => const ActiveUsersScreen()));
+              if (mounted) {
+                AdminOperationsDashboardBackend.instance.fetchDashboardData();
+              }
+            },
             icon: const Icon(Icons.open_in_new_rounded, size: 14),
             label: Text('Buka Monitor Kendaraan Lengkap', style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold)),
             style: OutlinedButton.styleFrom(

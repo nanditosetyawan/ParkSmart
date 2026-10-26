@@ -1,7 +1,9 @@
+import 'dart:async';
 import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/admin_active_users_backend.dart';
+import 'manage_parking_screen.dart';
 
 class ActiveUsersScreen extends StatefulWidget {
   const ActiveUsersScreen({super.key});
@@ -13,6 +15,7 @@ class ActiveUsersScreen extends StatefulWidget {
 class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
   final TextEditingController _searchController = TextEditingController();
   int _selectedFilter = 0; // 0=Semua, 1=Normal, 2=Overstay, 3=EV
+  Timer? _liveTimer;
 
   List<Map<String, dynamic>> get _sessions => AdminActiveUsersBackend.instance.sessions;
 
@@ -20,10 +23,14 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
   void initState() {
     super.initState();
     AdminActiveUsersBackend.instance.fetchActiveSessions();
+    _liveTimer = Timer.periodic(const Duration(seconds: 15), (_) {
+      if (mounted) setState(() {});
+    });
   }
 
   @override
   void dispose() {
+    _liveTimer?.cancel();
     _searchController.dispose();
     super.dispose();
   }
@@ -45,6 +52,10 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
   }
 
   void _showActionModal(Map<String, dynamic> session) {
+    final rawCheckIn = session['raw_check_in_time'] as DateTime?;
+    final relativeCheckIn = AdminActiveUsersBackend.formatRelativeCheckIn(rawCheckIn, multiline: false);
+    final checkInStr = '${session['checkInFormatted']} ($relativeCheckIn)';
+
     showModalBottomSheet(
       context: context,
       backgroundColor: Colors.white,
@@ -83,9 +94,27 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
               ],
             ),
             const Divider(color: Color(0xFFF3F4F6), height: 24),
-            _buildDetailRow('Lokasi & Slot:', '${session['location']} (${session['slot']})'),
+            _buildDetailRow(
+              'Lokasi Parkir:',
+              '${session['location']}',
+              onTapValue: () {
+                Navigator.pop(ctx);
+                final locId = session['location_id']?.toString() ?? '';
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => ManageParkingScreen(
+                      initialTabIndex: 1,
+                      initialLocationId: locId.isNotEmpty ? locId : null,
+                      initialLocationName: session['location'],
+                    ),
+                  ),
+                );
+              },
+            ),
+            _buildDetailRow('Slot & Lantai:', '${session['slot']} (${session['floor']})'),
             _buildDetailRow('Kendaraan:', session['vehicle']),
-            _buildDetailRow('Jam Check-In:', session['checkIn']),
+            _buildDetailRow('Jam Check-In:', checkInStr),
             _buildDetailRow('Durasi Berjalan:', session['duration']),
             _buildDetailRow('Akumulasi Biaya:', session['fee']),
             const SizedBox(height: 20),
@@ -143,14 +172,31 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
     );
   }
 
-  Widget _buildDetailRow(String label, String value) {
+  Widget _buildDetailRow(String label, String value, {VoidCallback? onTapValue, Color? valueColor}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: GoogleFonts.plusJakartaSans(fontSize: 12, color: const Color(0xFF76777B))),
-          Text(value, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+          const SizedBox(width: 12),
+          Expanded(
+            child: GestureDetector(
+              onTap: onTapValue,
+              child: Text(
+                value,
+                textAlign: TextAlign.end,
+                softWrap: true,
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 12,
+                  fontWeight: FontWeight.bold,
+                  color: valueColor ?? (onTapValue != null ? const Color(0xFF114177) : const Color(0xFF1A1A18)),
+                  decoration: onTapValue != null ? TextDecoration.underline : TextDecoration.none,
+                ),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -341,7 +387,7 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                                     children: [
                                       Text(item['user'], style: GoogleFonts.plusJakartaSans(fontSize: 14, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                                       const SizedBox(height: 2),
-                                      Text('${item['vehicle']} · ${item['slot']}', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
+                                      Text('${item['vehicle']} · ${item['slot']} (${item['floor']})', style: GoogleFonts.plusJakartaSans(fontSize: 11, color: const Color(0xFF76777B))),
                                     ],
                                   ),
                                 ),
@@ -355,47 +401,126 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                                   Container(
                                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                                     decoration: BoxDecoration(color: const Color(0xFFD1F2EB), borderRadius: BorderRadius.circular(6)),
-                                    child: Text('EV ${item['battery']}', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
+                                    child: Text('EV', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
                                   ),
                               ],
                             ),
                             const Divider(color: Color(0xFFF3F4F6), height: 20),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Column(
+                            Builder(
+                              builder: (context) {
+                                final rawCheckIn = item['raw_check_in_time'] as DateTime?;
+                                final relativeCheckIn = AdminActiveUsersBackend.formatRelativeCheckIn(rawCheckIn, multiline: true);
+
+                                return Row(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Text('Jam Masuk', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                                    const SizedBox(height: 2),
-                                    Text(item['checkIn'] ?? '-', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Jam Masuk', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            relativeCheckIn,
+                                            softWrap: true,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF1A1A18),
+                                              height: 1.25,
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      flex: 2,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Durasi', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            item['duration'] ?? '-',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF1A1A18),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      flex: 3,
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text('Biaya', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            item['fee'] ?? '-',
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 11.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF17A18A),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                    const SizedBox(width: 6),
+                                    Expanded(
+                                      flex: 4,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          final locId = item['location_id']?.toString() ?? '';
+                                          Navigator.push(
+                                            context,
+                                            MaterialPageRoute(
+                                              builder: (_) => ManageParkingScreen(
+                                                initialTabIndex: 1, // Tab Denah
+                                                initialLocationId: locId.isNotEmpty ? locId : null,
+                                                initialLocationName: item['location'],
+                                              ),
+                                            ),
+                                          );
+                                        },
+                                        child: Column(
+                                          crossAxisAlignment: CrossAxisAlignment.start,
+                                          children: [
+                                            Row(
+                                              mainAxisSize: MainAxisSize.min,
+                                              children: [
+                                                Text('Lokasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
+                                                const SizedBox(width: 2),
+                                                const Icon(Icons.arrow_outward_rounded, size: 10, color: Color(0xFF114177)),
+                                              ],
+                                            ),
+                                            const SizedBox(height: 2),
+                                            Text(
+                                              item['location'] ?? 'Atur Denah',
+                                              softWrap: true,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              style: GoogleFonts.plusJakartaSans(
+                                                fontSize: 11,
+                                                fontWeight: FontWeight.bold,
+                                                color: const Color(0xFF114177),
+                                                decoration: TextDecoration.underline,
+                                                height: 1.2,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
+                                      ),
+                                    ),
                                   ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Durasi Parkir', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                                    const SizedBox(height: 2),
-                                    Text(item['duration'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Total Biaya', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                                    const SizedBox(height: 2),
-                                    Text(item['fee'], style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF17A18A))),
-                                  ],
-                                ),
-                                Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text('Gedung', style: GoogleFonts.plusJakartaSans(fontSize: 10, color: const Color(0xFF76777B))),
-                                    const SizedBox(height: 2),
-                                    Text(item['location'], style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.w600, color: const Color(0xFF114177))),
-                                  ],
-                                ),
-                              ],
+                                );
+                              },
                             ),
                             const SizedBox(height: 12),
                             InkWell(

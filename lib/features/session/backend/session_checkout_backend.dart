@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/parking_notification_service.dart';
 
 /// Backend khusus untuk SessionCheckoutScreen (lib/features/session/session_checkout_screen.dart)
 /// Menggunakan Targeted Column Query (NO SELECT *) untuk performa optimal
@@ -280,6 +281,9 @@ class SessionCheckoutBackend extends ChangeNotifier {
           'occupied_since': null,
         }).eq('slot_code', _slotCode);
       }
+      
+      // Hentikan notifikasi darurat & monitor background saat checkout berhasil
+      await ParkingNotificationService().onSessionEnded();
 
       return true;
     } catch (e) {

@@ -5,6 +5,7 @@ import '../../core/services/theme_service.dart';
 import '../../core/services/currency_service.dart';
 import '../notification/notification_screen.dart';
 import '../../core/services/language_service.dart';
+import '../../core/services/parking_notification_service.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'session_checkout_screen.dart';
 import 'extend_session_screen.dart';
@@ -25,6 +26,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   int _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds > 0
       ? ActiveSessionBackend.instance.remainingSeconds
       : 3600;
+  bool _urgentNotifTriggered = false;
 
   @override
   void initState() {
@@ -35,6 +37,19 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
         setState(() {
           _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;
         });
+        // Simpan sesi ke ParkingNotificationService agar bisa dipantau di background
+        final checkout = ActiveSessionBackend.instance.expectedCheckOutTime;
+        if (checkout != null) {
+          ParkingNotificationService().saveActiveSession(expectedCheckout: checkout);
+          ParkingNotificationService.startBackgroundMonitor(expectedCheckout: checkout);
+        }
+        // Jika sudah ≤ 10 menit saat buka, langsung trigger
+        if (_remainingSeconds <= 600 && _remainingSeconds > 0 && !_urgentNotifTriggered) {
+          _urgentNotifTriggered = true;
+          ParkingNotificationService().triggerUrgentWarning(
+            remainingSeconds: _remainingSeconds,
+          );
+        }
       }
     });
     _startTimer();
@@ -47,6 +62,13 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
         setState(() {
           if (_remainingSeconds > 0) {
             _remainingSeconds--;
+            // Trigger notifikasi darurat saat tepat 10 menit tersisa
+            if (_remainingSeconds == 600 && !_urgentNotifTriggered) {
+              _urgentNotifTriggered = true;
+              ParkingNotificationService().triggerUrgentWarning(
+                remainingSeconds: _remainingSeconds,
+              );
+            }
             if (_remainingSeconds == 0) {
               _onSessionExpired();
             }
@@ -60,6 +82,8 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
 
   void _onSessionExpired() async {
     _timer?.cancel();
+    // Hentikan semua notifikasi darurat saat sesi habis
+    await ParkingNotificationService().onSessionEnded();
     final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
     await SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: sId);
     await SessionCheckoutBackend.instance.completeSessionCheckout();
@@ -82,6 +106,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
   @override
   void dispose() {
     _timer?.cancel();
+    // Jangan stop notif di dispose — biarkan tetap jalan di background
     super.dispose();
   }
 
@@ -413,6 +438,8 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                         if (mounted) {
                                           setState(() {
                                             _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;
+                                            // Reset flag agar notif bisa trigger lagi saat nanti sisa 10 menit
+                                            _urgentNotifTriggered = false;
                                           });
                                         }
                                       }

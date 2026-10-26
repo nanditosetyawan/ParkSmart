@@ -416,51 +416,63 @@ class _HistoryCard extends StatelessWidget {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  children: [
-                    Container(
-                      width: 48,
-                      height: 48,
-                      decoration: BoxDecoration(
-                        color: iconBoxBg,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(color: isDark ? Colors.transparent : const Color(0xFFEBE8E1)),
-                      ),
-                      child: Icon(icon, size: 24, color: iconColor),
-                    ),
-                    const SizedBox(width: 12),
-                    Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          mallName,
-                          style: GoogleFonts.plusJakartaSans(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: textMain,
-                          ),
+                Expanded(
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: 48,
+                        height: 48,
+                        decoration: BoxDecoration(
+                          color: iconBoxBg,
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: isDark ? Colors.transparent : const Color(0xFFEBE8E1)),
                         ),
-                        const SizedBox(height: 2),
-                        Row(
+                        child: Icon(icon, size: 24, color: iconColor),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Icon(Icons.calendar_month, size: 14, color: textSub),
-                            const SizedBox(width: 4),
                             Text(
-                              plateNumber != null && plateNumber!.isNotEmpty
-                                  ? '$date • $plateNumber'
-                                  : date,
+                              mallName,
+                              softWrap: true,
                               style: GoogleFonts.plusJakartaSans(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: textSub,
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                                color: textMain,
+                                height: 1.25,
                               ),
+                            ),
+                            const SizedBox(height: 4),
+                            Row(
+                              children: [
+                                Icon(Icons.calendar_month, size: 14, color: textSub),
+                                const SizedBox(width: 4),
+                                Expanded(
+                                  child: Text(
+                                    plateNumber != null && plateNumber!.isNotEmpty
+                                        ? '$date • $plateNumber'
+                                        : date,
+                                    maxLines: 1,
+                                    overflow: TextOverflow.ellipsis,
+                                    style: GoogleFonts.plusJakartaSans(
+                                      fontSize: 12,
+                                      fontWeight: FontWeight.w500,
+                                      color: textSub,
+                                    ),
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),
-                      ],
-                    ),
-                  ],
+                      ),
+                    ],
+                  ),
                 ),
+                const SizedBox(width: 8),
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
                   decoration: BoxDecoration(
