@@ -580,12 +580,15 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                       ),
                       Row(
                         children: [
-                          SelectableText(
-                            admin['password']?.toString() ?? '-',
-                            style: GoogleFonts.plusJakartaSans(
-                              fontSize: 14,
-                              fontWeight: FontWeight.bold,
-                              color: const Color(0xFF6D28D9),
+                          Expanded(
+                            child: SelectableText(
+                              admin['password']?.toString() ?? '-',
+                              maxLines: 1,
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 13,
+                                fontWeight: FontWeight.bold,
+                                color: const Color(0xFF6D28D9),
+                              ),
                             ),
                           ),
                           const SizedBox(width: 8),
@@ -594,10 +597,10 @@ class _AdminUserManagementScreenState extends State<AdminUserManagementScreen> {
                               final pass = admin['password']?.toString() ?? '';
                               Clipboard.setData(ClipboardData(text: pass));
                               ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Kata sandi "$pass" berhasil disalin!'),
-                                  backgroundColor: const Color(0xFF17A18A),
-                                  duration: const Duration(seconds: 2),
+                                const SnackBar(
+                                  content: Text('Kata sandi / Hash berhasil disalin!'),
+                                  backgroundColor: Color(0xFF17A18A),
+                                  duration: Duration(seconds: 2),
                                 ),
                               );
                             },

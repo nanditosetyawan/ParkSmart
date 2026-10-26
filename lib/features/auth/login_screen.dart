@@ -22,6 +22,7 @@ import '../../theme/app_spacing.dart';
 import '../home/home_screen.dart';
 import '../auth/register_screen.dart';
 import '../auth/forgot_password_screen.dart';
+import '../../core/utils/hash_util.dart';
 import '../admin/super_admin/admin_dashboard_screen.dart';
 import '../admin/operations/admin_operations_dashboard_screen.dart';
 import '../admin/finance/admin_finance_dashboard_screen.dart';
@@ -147,7 +148,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     final bool remember = prefs.getBool('remember_me') ?? false;
     final bool fp = prefs.getBool('fingerprint_enabled') ?? false;
     final bool face = prefs.getBool('face_id_enabled') ?? false;
-    final String? bioEmail = prefs.getString('biometric_user_email');
+    final String? bioEmail = prefs.getString('face_id_user_email') ?? prefs.getString('biometric_user_email');
 
     if (mounted) {
       setState(() {
@@ -159,15 +160,15 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
           final String? savedPassword = prefs.getString('saved_password');
           if (_emailController.text.isEmpty && savedEmail != null) _emailController.text = savedEmail;
           if (savedPassword != null) _passwordController.text = savedPassword;
-        } else if (_fingerprintEnabled && bioEmail != null && bioEmail.isNotEmpty) {
-          // Sidik jari aktif: otomatis isi field email, password kosong
+        } else if ((_fingerprintEnabled || _faceIdEnabled) && bioEmail != null && bioEmail.isNotEmpty) {
+          // Biometrik aktif: otomatis isi field email jika belum terisi
           if (_emailController.text.isEmpty) {
             _emailController.text = bioEmail;
           }
         }
       });
 
-      // Jika Face ID aktif, beneran memakai sistem Android untuk membuka layar
+      // Jika Face ID aktif, jalankan autentikasi biometrik wajah
       if (_faceIdEnabled) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
           _authenticateWithFaceId();
@@ -180,16 +181,24 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
     if (!_faceIdEnabled) return;
     final LocalAuthentication auth = LocalAuthentication();
     try {
-      final List<BiometricType> available = await auth.getAvailableBiometrics();
-      if (!available.contains(BiometricType.face)) {
-        return;
-      }
+      final bool isSupported = await auth.isDeviceSupported();
+      final bool canCheck = await auth.canCheckBiometrics;
+      if (!isSupported || !canCheck) return;
+
+      final prefs = await SharedPreferences.getInstance();
+      final String? bioEmail = prefs.getString('face_id_user_email') ?? prefs.getString('biometric_user_email');
+      final targetEmail = _emailController.text.trim().isNotEmpty
+          ? _emailController.text.trim()
+          : (bioEmail ?? '');
+
       final bool didAuth = await auth.authenticate(
-        localizedReason: 'Pindai wajah untuk membuka layar',
+        localizedReason: targetEmail.isNotEmpty
+            ? 'Pindai wajah untuk membuka akun $targetEmail'
+            : 'Pindai wajah untuk membuka layar',
         biometricOnly: true,
       );
+
       if (didAuth && mounted) {
-        final targetEmail = _emailController.text.trim();
         if (targetEmail.isNotEmpty) {
           try {
             final userResponse = await Supabase.instance.client
@@ -198,6 +207,16 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 .eq('email', targetEmail)
                 .maybeSingle();
             if (userResponse != null && mounted) {
+              if (userResponse['status'] == 'banned' || userResponse['status'] == 'inactive') {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Akun dinonaktifkan: ${userResponse['ban_reason'] ?? 'Hubungi CS'}'),
+                    backgroundColor: Colors.redAccent,
+                  ),
+                );
+                return;
+              }
+
               final uid = userResponse['id'].toString();
               final userName = userResponse['full_name'] ?? 'Pengguna';
               final userEmail = userResponse['email'] ?? targetEmail;
@@ -222,6 +241,8 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                 memberTier: memberTier,
               );
               VehicleBackend.instance.fetchVehicles();
+              PaymentMethodsBackend.instance.fetchBalance();
+              CheckoutBackend.instance.setUserId(uid);
             }
           } catch (_) {}
         }
@@ -296,7 +317,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
 
       final dbPassword = response['password']?.toString() ?? '';
-      if (dbPassword.isEmpty || password != dbPassword) {
+      if (dbPassword.isEmpty || !HashUtil.verifyPassword(password, dbPassword)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -443,7 +464,7 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
       }
 
       final dbPassword = response['password']?.toString() ?? '';
-      if (dbPassword.isEmpty || password != dbPassword) {
+      if (dbPassword.isEmpty || !HashUtil.verifyPassword(password, dbPassword)) {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -1068,6 +1089,17 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             }
                                           }
                                         },
+                                      ),
+                                    ),
+                                    const SizedBox(width: 12),
+                                  ],
+                                  if (_faceIdEnabled) ...[
+                                    Expanded(
+                                      child: _SecondaryButton(
+                                        label: 'Face ID',
+                                        icon: Icons.face,
+                                        isDark: isDark,
+                                        onTap: () => _authenticateWithFaceId(),
                                       ),
                                     ),
                                     const SizedBox(width: 12),

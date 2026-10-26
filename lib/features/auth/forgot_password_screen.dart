@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/theme_service.dart';
+import '../../core/utils/hash_util.dart';
 
 class ForgotPasswordScreen extends StatefulWidget {
   const ForgotPasswordScreen({super.key});
@@ -96,7 +97,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         await Supabase.instance.client
             .from('users')
             .update({
-              'password': newPassword,
+              'password': HashUtil.hashPassword(newPassword),
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', userResponse['id']);
@@ -135,7 +136,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         await Supabase.instance.client
             .from('admins')
             .update({
-              'password': newPassword,
+              'password': HashUtil.hashPassword(newPassword),
               'updated_at': DateTime.now().toIso8601String(),
             })
             .eq('id', adminResponse['id']);

@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../../core/utils/hash_util.dart';
 
 /// Backend khusus untuk AdminUserManagementScreen
 /// Mengelola staf admin (Super Admin, Operasional, Finansial, CS)
@@ -117,6 +118,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
 
     try {
       final roleDb = _mapRoleToDb(admin['role'] as String? ?? 'Admin Operasional');
+      final plainPassword = admin['password']?.toString() ?? 'superadmin123';
       final inserted = await _client.from('admins').insert({
         'email': admin['email'] ?? 'admin@parksmart.id',
         'full_name': admin['name'] ?? 'Admin Baru',
@@ -124,7 +126,7 @@ class AdminUserManagementBackend extends ChangeNotifier {
         'role': roleDb,
         'division': admin['role'] ?? 'Operasional',
         'status': admin['status'] == 'Aktif' ? 'active' : 'inactive',
-        'password': admin['password'] ?? 'superadmin123',
+        'password': HashUtil.hashPassword(plainPassword),
       }).select().single();
 
       admin['id'] = inserted['id']?.toString() ?? admin['id'];
@@ -154,7 +156,10 @@ class AdminUserManagementBackend extends ChangeNotifier {
         'status': updated['status'] == 'Aktif' ? 'active' : 'inactive',
       };
       if (updated['password'] != null && updated['password'].toString().isNotEmpty) {
-        updatePayload['password'] = updated['password'];
+        final rawPass = updated['password'].toString();
+        // Hanya hash jika belum berupa hash (hash SHA-256 panjangnya 64 karakter heksadesimal)
+        final isAlreadyHashed = rawPass.length == 64 && RegExp(r'^[0-9a-fA-F]+$').hasMatch(rawPass);
+        updatePayload['password'] = isAlreadyHashed ? rawPass : HashUtil.hashPassword(rawPass);
       }
       await _client.from('admins').update(updatePayload).eq('id', id);
       return true;

@@ -93,14 +93,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
     bool faceEnabled = prefs.getBool('face_id_enabled') ?? false;
     final fpEnabled = prefs.getBool('fingerprint_enabled') ?? false;
 
-    // Validasi apakah hardware perangkat benar-benar memiliki sensor Face ID terdaftar
+    // Validasi apakah hardware perangkat mendukung biometrik
     if (faceEnabled) {
       try {
         final auth = LocalAuthentication();
         final isSupported = await auth.isDeviceSupported();
         final canCheck = await auth.canCheckBiometrics;
         final available = await auth.getAvailableBiometrics();
-        if (!isSupported || !canCheck || !available.contains(BiometricType.face)) {
+        final hasBio = isSupported &&
+            canCheck &&
+            (available.contains(BiometricType.face) ||
+                available.contains(BiometricType.weak) ||
+                available.contains(BiometricType.strong) ||
+                available.isNotEmpty);
+        if (!hasBio) {
           faceEnabled = false;
           await prefs.setBool('face_id_enabled', false);
         }
@@ -160,10 +166,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
       debugPrint('Biometrics Face check - supported: $isSupported, canCheck: $canCheck, available: $available');
 
-      // Ketat: HANYA jika perangkat secara spesifik memiliki sensor wajah terdaftar
-      final bool hasRealFace = isSupported && canCheck && available.contains(BiometricType.face);
+      // Cek apakah perangkat mendukung biometrik wajah atau biometrik sistem
+      final bool hasFaceBiometric = isSupported &&
+          canCheck &&
+          (available.contains(BiometricType.face) ||
+              available.contains(BiometricType.weak) ||
+              available.contains(BiometricType.strong) ||
+              available.isNotEmpty);
 
-      if (!hasRealFace) {
+      if (!hasFaceBiometric) {
         _showBiometricSystemOffDialog(
           title: 'Pengaturan Face ID Sistem Mati',
           message:
@@ -184,8 +195,17 @@ class _SettingsScreenState extends State<SettingsScreen> {
       if (authenticated) {
         final prefs = await SharedPreferences.getInstance();
         await prefs.setBool('face_id_enabled', true);
+        final currentEmail = ProfileBackend.instance.email;
+        final currentUserId = ProfileBackend.instance.userId;
+        await prefs.setString('face_id_user_email', currentEmail);
+        await prefs.setString('face_id_user_id', currentUserId);
+        // Fallback untuk biometrik umum jika belum diset
+        if (prefs.getString('biometric_user_email') == null) {
+          await prefs.setString('biometric_user_email', currentEmail);
+          await prefs.setString('biometric_user_id', currentUserId);
+        }
         setState(() => _faceIdEnabled = true);
-        _showSuccessToast('Face ID sistem Android berhasil diaktifkan');
+        _showSuccessToast('Face ID berhasil diaktifkan untuk akun $currentEmail');
       } else {
         setState(() => _faceIdEnabled = false);
         final prefs = await SharedPreferences.getInstance();
@@ -1544,7 +1564,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                                 decoration: BoxDecoration(color: ThemeService.instance.chipBg, borderRadius: BorderRadius.circular(16)),
                                 child: _isCacheCleared 
                                   ? Row(children: [const Icon(Icons.done, size: 14, color: Color(0xFF45474A)), const SizedBox(width: 4), Text('Beres', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)))])
-                                  : Text('Bersihkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color.fromARGB(255, 255, 255, 255))),
+                                  : Text('Bersihkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color.fromARGB(255, 0, 0, 0))),
                               ),
                             ),
                           ],

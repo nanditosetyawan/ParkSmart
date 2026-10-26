@@ -8,6 +8,7 @@ import '../home/backend/home_backend.dart';
 import '../home/home_screen.dart';
 import '../profile/backend/profile_backend.dart';
 import '../profile/backend/vehicle_backend.dart';
+import '../../core/utils/hash_util.dart';
 import 'login_screen.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -119,7 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'full_name': name,
             'email': email,
             'phone': phone,
-            'password': password,
+            'password': HashUtil.hashPassword(password),
             'member_tier': 'BRONZE',
             'wallet_balance': 0.00,
             'points': 0,

@@ -23,6 +23,7 @@ import '../../core/services/currency_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../profile/backend/feedback_backend.dart';
 import '../profile/backend/vehicle_backend.dart';
+import 'widgets/compass_detail_dialog.dart';
 
 class ExploreMapScreen extends StatefulWidget {
   final Map<String, dynamic>? initialSelectedParking;
@@ -154,6 +155,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
 
   StreamSubscription<Position>? _positionSub;
   StreamSubscription<MagnetometerEvent>? _magSub;
+  StreamSubscription<AccelerometerEvent>? _accelSub;
+  double _lastAx = 0.0, _lastAy = 9.8, _lastAz = 0.0;
 
   // Draggable Sheet Controller
   final DraggableScrollableController _sheetController = DraggableScrollableController();
@@ -168,6 +171,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
   @override
   void initState() {
     super.initState();
+    // Inisialisasi sensor kompas riil perangkat
+    _initCompassSensor();
     // Titik awal peta default: Jakarta (akan diperbarui otomatis dengan GPS perangkat riil)
     _currentPosition = const LatLng(-6.1754, 106.7933);
     _fetchWeather(_currentPosition!);
@@ -326,9 +331,96 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     _searchFocusNode.dispose();
     _positionSub?.cancel();
     _magSub?.cancel();
+    _accelSub?.cancel();
     _sheetController.dispose();
     _placeDetailsController.dispose();
     super.dispose();
+  }
+
+  /// Inisialisasi sensor kompas riil menggunakan Magnetometer & Accelerometer (Tilt Compensated)
+  void _initCompassSensor() {
+    if (kIsWeb) {
+      if (mounted) setState(() => _heading = 0.0);
+      return;
+    }
+    try {
+      _accelSub?.cancel();
+      _accelSub = accelerometerEventStream().listen((acc) {
+        _lastAx = acc.x;
+        _lastAy = acc.y;
+        _lastAz = acc.z;
+      }, onError: (_) {});
+
+      _magSub?.cancel();
+      _magSub = magnetometerEventStream().listen((event) {
+        double mx = event.x;
+        double my = event.y;
+        double mz = event.z;
+
+        // Kompensasi kemiringan ponsel menggunakan gravitasi accelerometer
+        double normAcc = sqrt(_lastAx * _lastAx + _lastAy * _lastAy + _lastAz * _lastAz);
+        double rad;
+        if (normAcc > 0.5) {
+          double pitch = asin((_lastAy / normAcc).clamp(-1.0, 1.0));
+          double roll = asin((-_lastAx / normAcc).clamp(-1.0, 1.0));
+
+          double cosP = cos(pitch);
+          double sinP = sin(pitch);
+          double cosR = cos(roll);
+          double sinR = sin(roll);
+
+          double xH = mx * cosR + mz * sinR;
+          double yH = mx * sinP * sinR + my * cosP - mz * sinP * cosR;
+          rad = atan2(-xH, yH);
+        } else {
+          rad = atan2(-mx, my);
+        }
+
+        if (mounted) {
+          // Circular smoothing (low-pass filter) agar jarum berputar mulus tanpa jitter
+          double targetDeg = (rad * 180 / pi + 360) % 360;
+          double currentDeg = (_heading * 180 / pi + 360) % 360;
+          double diff = targetDeg - currentDeg;
+          while (diff < -180) {
+            diff += 360;
+          }
+          while (diff > 180) {
+            diff -= 360;
+          }
+          double smoothedDeg = (currentDeg + diff * 0.22 + 360) % 360;
+          setState(() {
+            _heading = (smoothedDeg * pi) / 180;
+          });
+        }
+      }, onError: (_) {});
+    } catch (_) {}
+  }
+
+  /// Membuka dialog kompas detail frameless dengan sensor riil
+  void _showCompassDialog() {
+    showGeneralDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierLabel: 'Kompas Detail',
+      barrierColor: Colors.black.withValues(alpha: 0.25),
+      transitionDuration: const Duration(milliseconds: 280),
+      transitionBuilder: (context, anim, secondaryAnim, child) {
+        return FadeTransition(
+          opacity: anim,
+          child: ScaleTransition(
+            scale: Tween<double>(begin: 0.92, end: 1.0).animate(
+              CurvedAnimation(parent: anim, curve: Curves.easeOutCubic),
+            ),
+            child: child,
+          ),
+        );
+      },
+      pageBuilder: (context, anim, secondaryAnim) {
+        return CompassDetailDialog(
+          userPosition: _currentPosition,
+        );
+      },
+    );
   }
 
   /// Deteksi otomatis posisi GPS pengguna saat membuka peta
@@ -441,27 +533,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
         }
       });
 
-      // 5. Dengarkan sensor Magnetometer (hanya di perangkat mobile asli yang memiliki sensor kompas)
-      if (!kIsWeb) {
-        try {
-          _magSub?.cancel();
-          _magSub = magnetometerEventStream().listen((event) {
-            final rad = atan2(event.y, event.x);
-            if (mounted) {
-              setState(() {
-                _heading = rad;
-              });
-            }
-          });
-        } catch (_) {}
-      } else {
-        // Di web/laptop, buat orientasi menghadap ke atas / sudut awal yang bagus
-        if (mounted) {
-          setState(() {
-            _heading = 0.0;
-          });
-        }
-      }
+      // 5. Dengarkan sensor Kompas riil
+      _initCompassSensor();
     } catch (e) {
       // Fallback aman
       if (mounted) {
@@ -1298,13 +1371,78 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             ),
           ),
 
-          // 3. TOMBOL SISI BAWAH KANAN (Tombol Putih GPS & Ruang Kosong Pengganti Tombol Biru)
+          // 3. TOMBOL SISI BAWAH KANAN (Tombol Kompas & Tombol Putih GPS)
           Positioned(
             right: 16,
             bottom: totalBottomHeight + 68,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
+                // TOMBOL KOMPAS KECIL SISI USER (Ukuran 48x48 sama dengan GPS, jarum berputar mengikuti sensor riil)
+                GestureDetector(
+                  onTap: _showCompassDialog,
+                  child: Container(
+                    width: 48,
+                    height: 48,
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: isDark ? theme.card : Colors.white,
+                      border: isDark ? Border.all(color: theme.border) : null,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withValues(alpha: 0.18),
+                          blurRadius: 8,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                        // Lingkaran dial kompas kecil
+                        Container(
+                          width: 36,
+                          height: 36,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: isDark ? const Color(0xFF1E232B) : const Color(0xFFF1F5F9),
+                          ),
+                          child: Stack(
+                            alignment: Alignment.center,
+                            children: [
+                              // Penanda Utara N kecil
+                              Positioned(
+                                top: 2,
+                                child: Text(
+                                  'N',
+                                  style: GoogleFonts.plusJakartaSans(
+                                    fontSize: 8,
+                                    fontWeight: FontWeight.w900,
+                                    color: const Color(0xFFEF4444),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        // Jarum kompas kecil bergerak dinamis mengikuti sensor riil asli
+                        Transform.rotate(
+                          angle: -_heading,
+                          child: SizedBox(
+                            width: 30,
+                            height: 30,
+                            child: CustomPaint(
+                              painter: MiniCompassNeedlePainter(isDark: isDark),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // TOMBOL FOKUSKAN GPS
                 GestureDetector(
                   onTap: _toggleGpsTracking,
                   child: Container(
