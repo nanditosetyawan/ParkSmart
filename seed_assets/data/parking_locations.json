@@ -1,0 +1,296 @@
+[
+  {
+    "id": "1de5fe38-9f54-4f99-adc2-206e5fefdd88",
+    "code": "PKR-304501",
+    "name": "Universitas Ahmad Dahlan Kampus 4",
+    "type": "Kampus",
+    "city": "Yogyakarta",
+    "province": "Yogyakarta",
+    "address": "Jl. Ki Ageng Pemanahan, Kragilan, Tamanan, Kec. Banguntapan, Kabupaten Bantul, Daerah Istimewa Yogyakarta 55191",
+    "latitude": -7.8334,
+    "longitude": 110.383029,
+    "checkin_radius_meters": 150,
+    "total_capacity": 4,
+    "car_slots_capacity": 3,
+    "motor_slots_capacity": 1,
+    "ev_slots_capacity": 0,
+    "hourly_rate_mobil": 5000,
+    "hourly_rate_motor": 1000,
+    "hourly_rate_ev": 7500,
+    "operating_hours": "06:00 - 17:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking",
+      "EV Charging Station"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951180567_3337.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951180567_3337.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951185069_417.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951188190_6454.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951191570_5160.jpg"
+    ],
+    "created_at": "2026-10-25T18:01:45.622241+00:00",
+    "updated_at": "2026-10-26T14:26:32.820621+00:00",
+    "floors": [
+      "Lantai 1"
+    ],
+    "is_ev_ready": true
+  },
+  {
+    "id": "e93e16e8-1d53-47b0-8010-68a004d7b3cf",
+    "code": "PKR-978865",
+    "name": "Universitas Negeri Surabaya - Kampus 1",
+    "type": "Kampus",
+    "city": "Surabaya",
+    "province": "Surabaya",
+    "address": "Jl. Ketintang Wiyata, Ketintang, Kec. Gayungan, Surabaya, Jawa Timur 60231",
+    "latitude": -7.3131,
+    "longitude": 112.7283,
+    "checkin_radius_meters": 150,
+    "total_capacity": 15,
+    "car_slots_capacity": 11,
+    "motor_slots_capacity": 3,
+    "ev_slots_capacity": 2,
+    "hourly_rate_mobil": 4000,
+    "hourly_rate_motor": 1745,
+    "hourly_rate_ev": 7500,
+    "operating_hours": "06:00 - 20:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking",
+      "EV Charging Station"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951852632_776.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951852632_776.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951859574_1975.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951862535_5333.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792951865820_2014.jpg"
+    ],
+    "created_at": "2026-10-25T18:12:59.842296+00:00",
+    "updated_at": "2026-10-25T18:12:59.842296+00:00",
+    "floors": [
+      "Lantai 1",
+      "Lantai 2"
+    ],
+    "is_ev_ready": true
+  },
+  {
+    "id": "7b22a0aa-f92a-497f-a628-162dcfe0ada1",
+    "code": "PKR-221862",
+    "name": "Universitas Pembangunan Nasional Veteran Yogyakarta",
+    "type": "Kampus",
+    "city": "Yogyakarta",
+    "province": "Yogyakarta",
+    "address": "Jl. Babarsari Jl. Tambak Bayan No.2, Janti, Caturtunggal, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281",
+    "latitude": -7.76211,
+    "longitude": 110.409282,
+    "checkin_radius_meters": 150,
+    "total_capacity": 20,
+    "car_slots_capacity": 14,
+    "motor_slots_capacity": 4,
+    "ev_slots_capacity": 2,
+    "hourly_rate_mobil": 5000,
+    "hourly_rate_motor": 2000,
+    "hourly_rate_ev": 7500,
+    "operating_hours": "06:00 - 17:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking",
+      "EV Charging Station"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950362104_6858.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950362104_6858.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950366482_9549.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950373166_3420.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950377025_4885.jpg"
+    ],
+    "created_at": "2026-10-25T17:43:42.863973+00:00",
+    "updated_at": "2026-10-25T17:54:52.762994+00:00",
+    "floors": [
+      "Lantai 1",
+      "Lantai 2",
+      "Lantai 3"
+    ],
+    "is_ev_ready": true
+  },
+  {
+    "id": "923f7d1b-9c9f-408a-84f2-41e4c506807b",
+    "code": "PKR-867439",
+    "name": "Pakuwon Mall Yogyakarta",
+    "type": "Mall / Pusat Perbelanjaan",
+    "city": "Yogyakarta",
+    "province": "Yogyakarta",
+    "address": "Jl. Ring Road Utara, Kaliwaru, Condongcatur, Kec. Depok, Kabupaten Sleman, Daerah Istimewa Yogyakarta 55281",
+    "latitude": -7.758611,
+    "longitude": 110.399,
+    "checkin_radius_meters": 150,
+    "total_capacity": 10,
+    "car_slots_capacity": 7,
+    "motor_slots_capacity": 2,
+    "ev_slots_capacity": 1,
+    "hourly_rate_mobil": 20000,
+    "hourly_rate_motor": 15000,
+    "hourly_rate_ev": 35000,
+    "operating_hours": "10:00 - 22:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking",
+      "EV Charging Station"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950715393_9030.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950715393_9030.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950718477_1617.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950722022_434.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1792950725724_1726.jpg"
+    ],
+    "created_at": "2026-10-25T17:54:28.481726+00:00",
+    "updated_at": "2026-10-25T17:54:28.481726+00:00",
+    "floors": [
+      "Lantai 1",
+      "Lantai 2",
+      "Lantai 3"
+    ],
+    "is_ev_ready": true
+  },
+  {
+    "id": "a1b1534f-51e0-42ca-bf09-5dd03de42e22",
+    "code": "PKR-725328",
+    "name": "Tunjungan Plaza Surabaya",
+    "type": "Mall / Pusat Perbelanjaan",
+    "city": "Surabaya",
+    "province": "Surabaya",
+    "address": "Tunjungan plaza, Jl. Jenderal Basuki Rachmat No.8-12 Lt 5, Kedungdoro, Kec. Tegalsari, Surabaya, Jawa Timur 60261",
+    "latitude": -7.26278,
+    "longitude": 112.73917,
+    "checkin_radius_meters": 150,
+    "total_capacity": 10,
+    "car_slots_capacity": 8,
+    "motor_slots_capacity": 2,
+    "ev_slots_capacity": 0,
+    "hourly_rate_mobil": 7000,
+    "hourly_rate_motor": 5000,
+    "hourly_rate_ev": 0,
+    "operating_hours": "10:00 - 23:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793024702374_3606.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793024702374_3606.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793024694116_8254.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793024697888_7760.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793024705928_6819.jpg"
+    ],
+    "created_at": "2026-10-26T14:25:26.385221+00:00",
+    "updated_at": "2026-10-26T14:25:26.385221+00:00",
+    "floors": [
+      "Lantai 1",
+      "Lantai 2",
+      "Lantai 3"
+    ],
+    "is_ev_ready": false
+  },
+  {
+    "id": "addb6297-bba0-4a27-bc13-74bf2751d22c",
+    "code": "PKR-101181",
+    "name": "Pasar Tradisional Beringharjo",
+    "type": "Mall / Pusat Perbelanjaan",
+    "city": "Yogyakarta",
+    "province": "Yogyakarta",
+    "address": "Jl. Margo Mulyo No.16, Ngupasan, Kec. Gondomanan, Kota Yogyakarta, Daerah Istimewa Yogyakarta 55122",
+    "latitude": -7.7988,
+    "longitude": 110.3657,
+    "checkin_radius_meters": 150,
+    "total_capacity": 5,
+    "car_slots_capacity": 4,
+    "motor_slots_capacity": 1,
+    "ev_slots_capacity": 0,
+    "hourly_rate_mobil": 50000,
+    "hourly_rate_motor": 15000,
+    "hourly_rate_ev": 0,
+    "operating_hours": "06:00 - 23:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025008655_3233.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025008655_3233.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025012683_5938.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025016040_2013.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025020671_1539.jpg"
+    ],
+    "created_at": "2026-10-26T14:31:42.227155+00:00",
+    "updated_at": "2026-10-26T14:31:42.227155+00:00",
+    "floors": [
+      "Lantai 1"
+    ],
+    "is_ev_ready": false
+  },
+  {
+    "id": "b6de51f3-130c-4cdf-ada0-93a45e24f611",
+    "code": "PKR-421761",
+    "name": "PT Freeport Indonesia",
+    "type": "Industri",
+    "city": "Papua",
+    "province": "Papua",
+    "address": "Jl. Mandala Raya Selatan No. 1 Kuala Kencana, Koperapoka, Distrik Mimka Baru, Kabupaten Mimika, Papua Tengah 99920",
+    "latitude": -4.0517,
+    "longitude": 137.1117,
+    "checkin_radius_meters": 150,
+    "total_capacity": 20,
+    "car_slots_capacity": 14,
+    "motor_slots_capacity": 4,
+    "ev_slots_capacity": 2,
+    "hourly_rate_mobil": 5000,
+    "hourly_rate_motor": 1000,
+    "hourly_rate_ev": 7500,
+    "operating_hours": "06:00 - 23:00",
+    "facilities": [
+      "CCTV 24 Jam",
+      "Covered Parking",
+      "EV Charging Station"
+    ],
+    "rating": 0,
+    "review_count": 0,
+    "status": "active",
+    "image_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025380114_800.jpg",
+    "images": [
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025380114_800.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025383295_5440.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025385866_7021.jpg",
+      "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/parking-locations/loc_1793025389235_3329.jpg"
+    ],
+    "created_at": "2026-10-26T14:37:02.883509+00:00",
+    "updated_at": "2026-10-26T14:37:02.883509+00:00",
+    "floors": [
+      "Lantai 1",
+      "Lantai 2",
+      "Lantai 3"
+    ],
+    "is_ev_ready": true
+  }
+]

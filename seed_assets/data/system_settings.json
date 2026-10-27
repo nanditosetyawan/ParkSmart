@@ -1,0 +1,50 @@
+[
+  {
+    "key": "feature_toggles",
+    "value": {
+      "is_arcade_active": true,
+      "is_biometric_login_enforced": false,
+      "is_ev_charging_booking_enabled": true,
+      "is_crypto_blockchain_audit_live": true
+    },
+    "description": "Toggle fitur aplikasi",
+    "updated_by": null,
+    "updated_at": "2026-10-22T11:44:58.10404+00:00"
+  },
+  {
+    "key": "ai_config",
+    "value": {
+      "max_tokens": 1024,
+      "model_name": "qwen/qwen3.8-27b",
+      "temperature": 0.7,
+      "is_autonomous_pricing_enabled": true
+    },
+    "description": "Konfigurasi model kecerdasan buatan AI Jarvis untuk deteksi plat kamera & dynamic pricing",
+    "updated_by": null,
+    "updated_at": "2026-10-22T15:50:37.349929+00:00"
+  },
+  {
+    "key": "company_treasury",
+    "value": {
+      "balance": 46404001,
+      "currency": "IDR",
+      "last_user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+      "last_injection": 500000
+    },
+    "description": "Saldo kas utama cadangan operasional ParkSmart ID",
+    "updated_by": null,
+    "updated_at": "2026-10-26T09:52:27.31358+00:00"
+  },
+  {
+    "key": "modular_maintenance",
+    "value": {
+      "ai": true,
+      "kyc": false,
+      "push": false,
+      "booking": false
+    },
+    "description": "Pemeliharaan modular per fitur (booking, AI, KYC, Push)",
+    "updated_by": null,
+    "updated_at": "2026-10-27T00:49:55.344603+00:00"
+  }
+]

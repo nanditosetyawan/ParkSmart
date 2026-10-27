@@ -1,0 +1,47 @@
+[
+  {
+    "id": "c370b869-b78a-4abe-bc73-0c1b3866b9d7",
+    "user_id": "225428bf-e24d-4869-98c6-fed811518497",
+    "plate_number": "B 1111 ABB",
+    "vehicle_type": "mobil",
+    "vehicle_category": "suv",
+    "brand": "Kendaraan",
+    "model": "Saya",
+    "color": "Hitam Solid",
+    "plate_expiry": "10 • 28",
+    "photo_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/vehicles/c370b869-b78a-4abe-bc73-0c1b3866b9d7/car_c370b869-b78a-4abe-bc73-0c1b3866b9d7_1792983276674.jpg",
+    "is_default": true,
+    "created_at": "2026-10-26T02:52:56.781793+00:00",
+    "updated_at": "2026-10-26T09:54:37.548473+00:00"
+  },
+  {
+    "id": "cd02e022-f451-4082-8812-c44690acdfa1",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "plate_number": "AB5894LI",
+    "vehicle_type": "mobil",
+    "vehicle_category": "suv",
+    "brand": "HRV",
+    "model": "HRV",
+    "color": "Merah Maroon",
+    "plate_expiry": "11•26",
+    "photo_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/vehicles/df714843-c4cf-4d45-b385-0390404d4429/car_df714843-c4cf-4d45-b385-0390404d4429_1792928515651.jpg",
+    "is_default": false,
+    "created_at": "2026-10-25T11:41:56.16632+00:00",
+    "updated_at": "2026-10-25T11:41:56.166459+00:00"
+  },
+  {
+    "id": "2b82696f-274c-4102-ae42-ffa26ed895e9",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "plate_number": "B2975KP",
+    "vehicle_type": "motor",
+    "vehicle_category": "motor",
+    "brand": "Beat",
+    "model": "125",
+    "color": "Putih Mutiara",
+    "plate_expiry": "11 • 30",
+    "photo_url": "https://necsdylhtswrrqassvzp.supabase.co/storage/v1/object/public/vehicles/df714843-c4cf-4d45-b385-0390404d4429/car_df714843-c4cf-4d45-b385-0390404d4429_1792952802669.jpg",
+    "is_default": true,
+    "created_at": "2026-10-25T18:26:43.218341+00:00",
+    "updated_at": "2026-10-25T18:26:43.21836+00:00"
+  }
+]

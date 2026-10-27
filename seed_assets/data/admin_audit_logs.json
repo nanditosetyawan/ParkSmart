@@ -1,0 +1,47 @@
+[
+  {
+    "id": "a0ab05a6-f9fd-4ecb-a4c2-53790f4e53b6",
+    "admin_id": null,
+    "admin_name": "Gibran Widodo",
+    "admin_email": "superadmin@parksmart.id",
+    "role": "Super Admin",
+    "action": "Login berhasil (Sesi Aktif)",
+    "device_model": "Vivo V2602",
+    "ip_address": "182.2.85.224",
+    "location": "Surakarta, Indonesia",
+    "isp": "PT Telekomunikasi Selular Indonesia",
+    "status": "Berhasil (Real-Time)",
+    "is_current_session": false,
+    "created_at": "2026-10-23T07:39:05.527212+00:00"
+  },
+  {
+    "id": "65f08184-16c5-4fad-a150-7291ba4f5708",
+    "admin_id": null,
+    "admin_name": "Admin Finansial",
+    "admin_email": null,
+    "role": "Admin Finansial",
+    "action": "Injeksi Saldo Dompet 500000 ke User wowok",
+    "device_model": "Portal Finansial Admin",
+    "ip_address": null,
+    "location": null,
+    "isp": null,
+    "status": "Berhasil",
+    "is_current_session": false,
+    "created_at": "2026-10-25T11:51:12.056375+00:00"
+  },
+  {
+    "id": "c02afc75-4404-4273-8385-3e36ee2bf576",
+    "admin_id": null,
+    "admin_name": "Admin Finansial",
+    "admin_email": null,
+    "role": "Admin Finansial",
+    "action": "Injeksi Saldo Dompet 500000 ke User Andi Prawono",
+    "device_model": "Portal Finansial Admin",
+    "ip_address": null,
+    "location": null,
+    "isp": null,
+    "status": "Berhasil",
+    "is_current_session": false,
+    "created_at": "2026-10-26T09:52:27.652054+00:00"
+  }
+]

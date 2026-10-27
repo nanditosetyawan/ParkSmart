@@ -1,0 +1,26 @@
+[
+  {
+    "id": "76759292-fe23-4be5-ae69-fa588e0257c8",
+    "sender_admin_id": null,
+    "recipient_user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "target_role": "finance",
+    "title": "Injeksi Saldo Dompet",
+    "message": "Berhasil menambahkan saldo Rp 500.000 ke dompet Andi Prawono. Keterangan: kayaaa",
+    "notification_type": "success",
+    "action_type": "wallet_injection",
+    "is_read": false,
+    "created_at": "2026-10-26T09:52:27.766865+00:00"
+  },
+  {
+    "id": "98c3517f-e563-43e8-ba22-ede023ec6446",
+    "sender_admin_id": null,
+    "recipient_user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "target_role": "user",
+    "title": "Saldo Dompet Masuk",
+    "message": "Saldo sebesar Rp 500.000 telah ditambahkan ke dompet digital Anda oleh Admin Finansial. Keterangan: kayaaa",
+    "notification_type": "wallet_injection",
+    "action_type": "wallet",
+    "is_read": true,
+    "created_at": "2026-10-26T09:52:27.882924+00:00"
+  }
+]

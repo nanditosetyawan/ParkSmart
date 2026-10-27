@@ -1,0 +1,20 @@
+[
+  {
+    "id": "29321296-8756-4cfd-a988-a74785cd948d",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "game_name": "car_racing",
+    "score": 4500,
+    "points_earned": 4500,
+    "played_at": "2026-10-27T00:41:44.739456+00:00",
+    "score_type": "current"
+  },
+  {
+    "id": "12c7a09f-47e2-4fa4-b127-9fc4aaf06170",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "game_name": "car_racing",
+    "score": 4500,
+    "points_earned": 4500,
+    "played_at": "2026-10-27T00:44:17.598628+00:00",
+    "score_type": "highest"
+  }
+]

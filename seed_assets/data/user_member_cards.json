@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ecad6d6d-9aea-4a1b-9e5d-07651c757c75",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "card_tier": "regular",
+    "member_hash_code": "#fb9c-c92a-c4a1",
+    "nft_token_id": null,
+    "tx_hash": "0x7eac80c8de57394420e4cff2544e1c74b016c6bfaa6244e7a4aa9ee22d9a8da6",
+    "is_active": false,
+    "unlocked_at": "2026-10-25T06:37:52.659729+00:00",
+    "created_at": "2026-10-25T06:37:52.659729+00:00",
+    "updated_at": "2026-10-25T06:37:52.659729+00:00"
+  },
+  {
+    "id": "e5ae4b82-c31c-4e35-b0cf-d24d14c6f7d8",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "card_tier": "silver",
+    "member_hash_code": "#83d5-aa57-3ab5",
+    "nft_token_id": null,
+    "tx_hash": "0xf4badc970005f612020e1d3421171c7dcc04435b0cdce39374b24cf5b4e06e31",
+    "is_active": false,
+    "unlocked_at": "2026-10-26T15:22:40.494451+00:00",
+    "created_at": "2026-10-26T15:22:40.494451+00:00",
+    "updated_at": "2026-10-26T15:22:40.494451+00:00"
+  },
+  {
+    "id": "41c835db-4e4c-4c5c-b68e-7bade3eecd3f",
+    "user_id": "df714843-c4cf-4d45-b385-0390404d4429",
+    "card_tier": "gold",
+    "member_hash_code": "#69b1-d973-580b",
+    "nft_token_id": null,
+    "tx_hash": "0xc9110bf9a0b36f2dba4ca4110b2566cf900b4afd7050a051bbca3a278a165075",
+    "is_active": true,
+    "unlocked_at": "2026-10-26T15:22:40.697243+00:00",
+    "created_at": "2026-10-26T15:22:40.697243+00:00",
+    "updated_at": "2026-10-26T15:22:40.697243+00:00"
+  },
+  {
+    "id": "96e0f5a8-3068-4f58-bbce-a6eb843859d5",
+    "user_id": "225428bf-e24d-4869-98c6-fed811518497",
+    "card_tier": "regular",
+    "member_hash_code": "#46f5-14df-e3a2",
+    "nft_token_id": null,
+    "tx_hash": "0x25dbe8ba509bfd6aeb07df07906428974aa5c5e10e510c9dc5b8cbda52e6048f",
+    "is_active": true,
+    "unlocked_at": "2026-10-25T06:32:33.554151+00:00",
+    "created_at": "2026-10-25T06:32:33.554151+00:00",
+    "updated_at": "2026-10-25T06:32:33.554151+00:00"
+  }
+]

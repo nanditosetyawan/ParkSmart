@@ -1,0 +1,40 @@
+{
+  "dumpedAt": "2026-10-27T04:26:46.992Z",
+  "supabaseUrl": "https://necsdylhtswrrqassvzp.supabase.co",
+  "buckets": [
+    {
+      "bucket": "avatars",
+      "count": 1
+    },
+    {
+      "bucket": "vehicles",
+      "count": 3
+    },
+    {
+      "bucket": "parking-locations",
+      "count": 28
+    },
+    {
+      "bucket": "kyc-documents",
+      "count": 2
+    }
+  ],
+  "tables": {
+    "users": 2,
+    "admins": 4,
+    "admin_audit_logs": 3,
+    "arcade_scores": 2,
+    "bookings": 4,
+    "customer_feedbacks": 0,
+    "parking_locations": 7,
+    "parking_sessions": 3,
+    "parking_slots": 84,
+    "payments": 13,
+    "system_notifications": 2,
+    "system_settings": 4,
+    "user_favorites": 1,
+    "user_kyc": 2,
+    "user_member_cards": 4,
+    "vehicles": 3
+  }
+}
