@@ -10,7 +10,6 @@ import '../auth/login_screen.dart' as auth;
 import 'vehicle_screen.dart' as vehicle;
 import 'payment_methods_screen.dart';
 import 'settings_screen.dart' as settings;
-import 'feedback_screen.dart' as feedback;
 
 import '../../core/services/session_service.dart';
 import '../../core/services/language_service.dart';

@@ -178,61 +178,161 @@ Gunakan akun resmi berikut untuk menguji seluruh hak akses sistem:
 
 ---
 
-## 🚀 8. Panduan Instalasi & Migrasi Database 1-Langkah
+## 🚀 8. Panduan Instalasi & Urutan Migrasi Database Terpadu
 
-Ikuti tahapan di bawah ini untuk mengklon, mengonfigurasi, dan menyinkronkan database & storage secara otomatis:
+Agar instalasi berjalan lancar dan tidak terjadi tabrakan ketergantungan database, **ikuti urutan langkah teknis berikut secara disiplin**:
 
-### Langkah 1: Klon Repositori
-Jalankan perintah berikut pada terminal Anda:
+```
+┌─────────────────────────┐       ┌─────────────────────────┐       ┌──────────────────────────────┐
+│  LANGKAH 1: GIT CLONE   │ ───►  │   LANGKAH 2: SETUP .ENV │ ───►  │ LANGKAH 3: SCHEMA DDL (SQL)  │
+│  Unduh repositori proyek │       │   Konfigurasi Kredensial│       │ Buat 16 Tabel & Trigger Dulu │
+└─────────────────────────┘       └─────────────────────────┘       └──────────────┬───────────────┘
+                                                                                   │
+                                                                                   ▼
+┌─────────────────────────┐       ┌─────────────────────────┐       ┌──────────────────────────────┐
+│ LANGKAH 5: FLUTTER RUN  │ ◄───  │ FLUTTER DEPENDENCIES    │ ◄───  │ LANGKAH 4: SEED STORAGE & DB │
+│ Jalankan Aplikasi Utama │       │ Unduh package library   │       │ Upload 34 Foto & Isi 16 Tabel│
+└─────────────────────────┘       └─────────────────────────┘       └──────────────────────────────┘
+```
+
+---
+
+### 📥 Langkah 1: Klon Repositori
+
+Unduh repositori kode sumber ParkSmart ke komputer lokal Anda dan masuk ke direktori proyek:
 
 ```bash
 git clone https://github.com/nanditosetyawan/ParkSmart.git
 cd ParkSmart
 ```
 
-### Langkah 2: Konfigurasi File Environment (`.env`)
-Salin file template `.env.example` menjadi `.env`:
+---
+
+### ⚙️ Langkah 2: Konfigurasi File Environment (`.env`)
+
+Buat salinan file environment dari template yang telah disediakan:
 
 ```bash
 cp .env.example .env
 ```
 
-Buka file `.env` dan sesuaikan dengan kredensial proyek Supabase Anda:
+Buka file `.env` yang baru dibuat menggunakan text editor, lalu lengkapi dengan kredensial proyek Supabase Anda:
 
 ```env
-# Supabase API Configuration
+# ==============================================================================
+# KONFIGURASI SUPABASE (DATABASE & STORAGE)
+# ==============================================================================
 SUPABASE_URL=https://<your-project-id>.supabase.co
 SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 SUPABASE_PROJECT_ID=<your-project-id>
 
-# AI Engine API
+# ==============================================================================
+# AI ENGINE API (GROQ CLOUD)
+# ==============================================================================
 GROQ_API_KEY=gsk_...
 
-# Web3 Blockchain Sepolia Testnet
+# ==============================================================================
+# WEB3 BLOCKCHAIN SEPOLIA TESTNET
+# ==============================================================================
 SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your-infura-key>
 SEPOLIA_CONTRACT_ADDRESS=0x032220cE1517622D0622a72A76EbF76d55c16179
 ENABLE_ONCHAIN_BROADCAST=true
 ```
 
-### Langkah 3: Eksekusi Migrasi Database & Cloud Storage Otomatis
-Jalankan satu perintah ini untuk membuat seluruh bucket storage, mengunggah 34+ gambar fisik, dan mengisi 16 tabel database:
+---
+
+### 🗄️ Langkah 3: Eksekusi Skema Database (`schema.sql`) — **WAJIB PERTAMA**
+
+> [!IMPORTANT]
+> **Mengapa `schema.sql` Harus Dijalankan Sebelum Seed Storage?**
+> Pada proyek Supabase baru, database masih kosong melompong (belum memiliki tabel relasional). Script *seeder* (`seed_storage.dart`) memasukkan data melalui REST API Supabase. Jika Anda menjalankan seeder sebelum tabelnya dibuat, Supabase akan menolak dengan error `404 Not Found` / `42P01 relation does not exist`. 
+> 
+> Oleh karena itu, **skema tabel fisik (`schema.sql`) WAJIB dibuat terlebih dahulu!**
+
+#### Cara Eksekusi (Melalui Supabase SQL Editor):
+1. Buka browser dan masuk ke [Supabase Dashboard](https://supabase.com/dashboard).
+2. Pilih proyek Supabase Anda, lalu klik menu **SQL Editor** (ikon `>_` di bilah kiri).
+3. Buka file lokal proyek Anda di [`lib/database/schema.sql`](lib/database/schema.sql), lalu salin seluruh kodenya (`Ctrl + A` -> `Ctrl + C`).
+4. Tempel (*paste*) kode tersebut ke lembar kerja SQL Editor Supabase.
+5. Klik tombol **Run** (atau tekan pintasan `Ctrl + Enter`).
+6. Tunggu 2–3 detik hingga muncul konfirmasi hijau: `Success. No rows returned`.
+
+> [!TIP]
+> Skrip `schema.sql` di atas secara otomatis membuat **16 tabel relasional**, tipe data custom ENUM, indeks performa, relasi Foreign Key antar tabel, trigger otomatis kenaikan tier member (*spending accumulator*), stored procedure `extend_parking_session`, dan pendaftaran realtime publication.
+
+---
+
+### 📦 Langkah 4: Eksekusi Seeder Data & Cloud Storage Otomatis (`seed_storage.dart`) — **DILAKUKAN KEDUA**
+
+Setelah seluruh ke-16 tabel fisik berhasil terbentuk di Langkah 3, sekarang Anda dapat mengisi data awal dan mengunggah gambar fisik ke Supabase Storage secara otomatis.
+
+> [!NOTE]
+> **Apa Saja yang Dilakukan Script Seeder Ini Secara Otomatis?**
+> 1. Memeriksa dan otomatis membuat 4 Bucket Supabase Storage jika belum ada: `avatars`, `vehicles`, `parking-locations`, dan `kyc-documents`.
+> 2. Mengunggah **34 file gambar fisik asli** dari folder lokal [`seed_assets/storage/`](seed_assets/storage/) ke cloud storage Supabase.
+> 3. Mengambil URL publik resmi dari masing-masing gambar yang berhasil terunggah.
+> 4. Menyuntikkan seluruh baris data awal ke dalam **16 tabel database** (7 lokasi parkir, 84 slot, 4 akun admin, 2 akun pengguna, data KYC e-KTP, riwayat pembayaran, game arcade, dan konfigurasi maintenance) dengan URL gambar yang sudah cocok 100%!
+
+Jalankan perintah berikut di terminal Anda:
 
 ```bash
 dart run tools/seed_storage.dart
 ```
 
-*(Atau jika menggunakan lingkungan Node.js)*:
+*(Atau jika lingkungan Anda menggunakan runtime Node.js, Anda juga dapat menjalankan)*:
 ```bash
 node tools/seed_all.mjs
 ```
 
-### Langkah 4: Jalankan Aplikasi Flutter
-Unduh dependensi dan jalankan aplikasi pada emulator atau perangkat fisik Android/iOS:
+**Hasil Terminal yang Diharapkan:**
+```text
+================================================================
+  PARKSMART SEED STORAGE & DATABASE SINKRONISASI
+================================================================
+[1/2] Memproses unggah file fisik ke Supabase Storage...
+[Storage] Memeriksa/membuat bucket: avatars, vehicles, parking-locations, kyc-documents... OK!
+[Storage] Mengunggah 34 aset gambar fisik... Selesai 100%!
+[2/2] Menyuntikkan data JSON ke 16 tabel Supabase...
+  - Tabel admins: 4 baris berhasil disinkronkan.
+  - Tabel users: 2 baris berhasil disinkronkan.
+  - Tabel parking_locations: 7 lokasi berhasil disinkronkan.
+  - Tabel parking_slots: 84 slot berhasil disinkronkan.
+  - ... (seluruh 16 tabel sukses)
+================================================================
+DATABASE DAN STORAGE BERHASIL DISINKRONISASI DENGAN SEMPURNA!
+================================================================
+```
+
+*(Opsi Tambahan Tanpa Upload Gambar Fisik)*: Jika Anda hanya ingin mengisi database dengan teks tanpa mengunggah file gambar ke Cloud Storage, Anda cukup menyalin isi file [`lib/database/seed.sql`](lib/database/seed.sql) ke Supabase SQL Editor dan klik **Run**. Namun, **`seed_storage.dart` sangat direkomendasikan** agar antarmuka aplikasi menampilkan foto fisik asli.
+
+---
+
+### 🚀 Langkah 5: Jalankan Aplikasi Flutter
+
+Setelah database dan storage terisi lengkap, unduh seluruh dependensi Flutter dan jalankan aplikasinya pada emulator atau perangkat fisik Anda:
 
 ```bash
+# 1. Unduh seluruh dependensi pustaka
 flutter pub get
+
+# 2. Jalankan aplikasi pada simulator / device fisik
 flutter run
 ```
+
+---
+
+## 📚 9. Dokumentasi & Blueprint Database Terpadu
+
+Repositori ini menyediakan dokumentasi arsitektur dan skrip database lengkap yang telah **disinkronkan 100%**:
+
+| File / Folder | Fungsi & Status | Kapan Digunakan? |
+| :--- | :--- | :--- |
+| **[`seed_assets/`](seed_assets/)** & **[`tools/seed_storage.dart`](tools/seed_storage.dart)** | **Master Seeder Otomatis (Storage + Database)**.<br/>Membuat bucket, upload 34 gambar fisik asli, dan mengisi 16 tabel. | **Paling Direkomendasikan** untuk setup cepat di Supabase baru via 1 command: `dart run tools/seed_storage.dart`. |
+| **[`lib/database/schema.sql`](lib/database/schema.sql)** | **Master DDL PostgreSQL (16 Tabel Utuh)**.<br/>Mencakup ekstensi UUID/pgcrypto, custom ENUMs, foreign keys, triggers tier spending, stored procedure `extend_parking_session`, dan realtime publication. | Digunakan jika ingin membuat seluruh struktur tabel via Supabase SQL Editor dari awal. |
+| **[`lib/database/seed.sql`](lib/database/seed.sql)** | **Master Seed SQL Murni**.<br/>Query `INSERT INTO` untuk seluruh 16 tabel (7 lokasi, 84 slot, admin, user, kyc, games, payments). | Digunakan jika ingin menyuntikkan data via Supabase SQL Editor tanpa menjalankan skrip terminal. |
+| **[`RAT.md`](RAT.md)** | **Diagram Relasi Antar Tabel (RAT / ERD)**.<br/>Visualisasi kardinalitas antar 16 entitas dalam format box-drawing dan skema relasional. | Sangat penting untuk pelaporan akademik, skripsi, dan dokumentasi arsitektur. |
+| **[`supabase.md`](supabase.md)** & **[`CREATEsupabase.md`](CREATEsupabase.md)** | **Kamus Data & Spesifikasi Teknis Database**.<br/>Dokumentasi tipe data, enkripsi, dan panduan konfigurasi manual. | Rujukan teknis backend dan arsitektur keamanan data. |
+| **[`lib/database/migrations/`](lib/database/migrations/)** | **Arsip Riwayat Migrasi (Changelog)**.<br/>Rekam jejak tahapan penambahan blockchain, auto-spent trigger, dan realtime. | Bersifat historis (*seluruh isinya sudah terkonsolidasi utuh di dalam `schema.sql`*). |
 
 ---
 
