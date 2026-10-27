@@ -33,6 +33,7 @@
 | **Konektivitas Web3** | Ethereum Sepolia Testnet via Infura JSON-RPC & Relayer Smart Contract |
 | **Kecerdasan Buatan** | Groq Cloud API Llama 3 dengan Real-time Database Prompt Context Injection |
 | **Sensor Perangkat** | Accelerometer & Gyroscope (Mini Arcade Games), GPS Geolocation & Magnetometer |
+| **Integrasi Cuaca & Kurs** | Open-Meteo Weather Forecast API & ExchangeRate-API (Multi-Currency Switcher) |
 
 ---
 
@@ -69,7 +70,7 @@ ParkSmart ID mengintegrasikan:
 1. **Peta LBS & Reservasi Slot Real-time**: Menampilkan ketersediaan slot mobil, motor, dan EV Charging Station secara interaktif.
 2. **Multi-Role RBAC Admin Portal**: Membagi tata kelola manajerial menjadi 4 role independen: **Super Admin**, **Admin Operasional**, **Admin Finansial**, dan **Admin Customer Service**.
 3. **Web3 Decentralized Membership Card**: Menerbitkan kartu anggota digital on-chain berbasis Smart Contract Ethereum Sepolia yang terverifikasi dan anti-pemalsuan.
-4. **Sistem Pemeliharaan Platform 3-Tingkat**: Memberikan kendali penuh kepada Super Admin untuk melakukan *Global Maintenance Lockdown*, *Mode Peringatan*, maupun *Modular Maintenance* tanpa mematikan proses background API, timer sesi, dan perhitungan tarif.
+4. **Sistem Pemeliharaan Platform**: Memberikan kendali penuh kepada Super Admin untuk melakukan *Global Maintenance Lockdown*, *Mode Peringatan*, maupun *Modular Maintenance* tanpa mematikan proses background API, timer sesi, dan perhitungan tarif.
 5. **Kecerdasan Buatan Kontekstual**: AI Assistant berbasis Groq LLM yang mampu membaca basis data slot aktif secara langsung.
 
 ---
@@ -95,9 +96,9 @@ Menghadirkan ekosistem digital terpadu di mana pengemudi dapat memesan slot spes
 
 ### 3.2 Persona Staf: 4 Role Administrator
 1. **Super Admin (Gibran Widodo)**: Menjaga stabilitas platform, mengatur maintenance darurat, mengaudit log aktivitas staf, dan memverifikasi berkas KTP pengguna.
-2. **Admin Operasional (Erick Thohir)**: Memantau okupansi slot di lapangan secara live, melakukan validasi plat nomor kendaraan, dan melakukan force check-out jika tiket pengguna terkendala.
-3. **Admin Finansial (Sri Mulyani)**: Melakukan rekonsiliasi pembayaran harian, mengaudit perputaran kas dompet digital, dan menganalisis laporan pendapatan per lokasi.
-4. **Admin CS (Prabowo Subianto)**: Menjawab pengaduan dan keluhan fasilitas pengguna serta memeriksa kelengkapan pengajuan KYC pengguna.
+2. **Admin Operasional (Erick Thohir)**: Memantau okupansi slot di lapangan secara live, dan melakukan force check-out jika tiket pengguna terkendala.
+3. **Admin Finansial (Sri Mulyani)**: Melakukan rekonsiliasi pembayaran harian, mengaudit perputaran kas dompet digital, menginject saldo ke user tertentu, dan menganalisis laporan pendapatan per lokasi.
+4. **Admin CS (Prabowo Subianto)**: Menjawab ulasan yang diajukan pengguna.
 
 ---
 
@@ -123,32 +124,33 @@ Menjadi standar platform smart parking terpadu di Indonesia yang menggabungkan k
 Sistem ParkSmart mengonsolidasikan seluruh otoritas ke dalam 5 entitas hak akses:
 
 ```
-+-----------------------------------------------------------------------------------+
-|                               PARKSMART ID PLATFORM                               |
-+-----------------------------------------------------------------------------------+
-|                                                                                   |
-|  [ ROLE: USER ]            [ ROLE: SUPER ADMIN ]        [ ROLE: OPERASIONAL ]     |
-|  - Booking & Peta          - Master Dashboard Control   - Okupansi Slot Realtime  |
-|  - Smart QR Scanner        - Global Maintenance Lock    - Force Check-out Sesi    |
-|  - E-Wallet & Payments     - Mode Peringatan Saja       - Validasi Plat Kendaraan |
-|  - Member Card Web3        - Modular Maintenance        - Buka/Tutup Slot Manual  |
-|  - Mini Games Arcade       - Approval Verifikasi KYC                              |
-|  - AI Assistant & KYC      - Audit Logs Akses Staf                                |
-|                                                                                   |
-|                            [ ROLE: FINANSIAL ]          [ ROLE: CS & SUPPORT ]    |
-|                            - Rekonsiliasi Kas & QRIS    - Penanganan Komplain     |
-|                            - Laporan Pendapatan Lokasi  - Review Keluhan Slot     |
-|                            - Injeksi Saldo Treasury     - Review Berkas KYC Awal  |
-|                                                                                   |
-+-----------------------------------------------------------------------------------+
++---------------------------------------------------------------------------------------+
+|                                 PARKSMART ID PLATFORM                                 |
++---------------------------------------------------------------------------------------+
+|                                                                                       |
+|  [ ROLE: USER ]          [ ROLE: SUPER ADMIN ]         [ ROLE: OPERASIONAL ]          |
+|  - Booking & Peta        - Master Dashboard Control    - Okupansi Slot Realtime       |
+|  - Smart QR Scanner      - Global Maintenance Lock     - Force Check-out Sesi         |
+|  - E-Wallet & Payments   - Mode Peringatan Saja        - Buka/Tutup Slot Manual       |
+|  - Member Card Web3      - Modular Maintenance                                        |
+|  - Mini Games Arcade     - Approval Verifikasi KYC                                    |
+|  - AI Assistant          - Audit Logs Akses Staf                                      |
+|                                                                                       |
+|                          [ ROLE: FINANSIAL ]           [ ROLE: CS & SUPPORT ]         |
+|                          - Rekonsiliasi Kas            - Membalas Ulasan Pengguna     |
+|                          - Laporan Pendapatan Lokasi                                  |
+|                          - Injeksi Saldo                                              |
+|                                                                                       |
++---------------------------------------------------------------------------------------+
 ```
 
 ---
 
 # **6. Functional Requirements: Modul Pengguna (User)**
 
-### 6.1 Peta & Penjelajahan Lokasi Parkir
+### 6.1 Peta, Penjelajahan Lokasi Parkir & Prakiraan Cuaca Live
 * Menampilkan marker lokasi parkir interaktif pada peta berbasis OpenStreetMap.
+* Widget cuaca lokal real-time (suhu °C, kondisi iklim, dan emoji dinamis) terintegrasi via Open-Meteo Weather API berdasarkan koordinat GPS pengguna.
 * Indikator ketersediaan slot (Hijau: Tersedia, Oranye: Padat, Merah: Penuh).
 * Informasi detail: Alamat lengkap, jam operasional, radius check-in, kapasitas slot mobil, motor, dan EV.
 
@@ -157,20 +159,17 @@ Sistem ParkSmart mengonsolidasikan seluruh otoritas ke dalam 5 entitas hak akses
 * Estimasi perhitungan biaya parkir otomatis berdasarkan durasi waktu yang dipilih.
 * Penahanan slot (*temporary reservation hold*) untuk mencegah *double-booking*.
 
-### 6.3 Smart Scanner (Check-in & Check-out)
-* Pemindai kamera QR Code berkecepatan tinggi untuk membaca token tiket di pos masuk dan pos keluar.
-* Validasi geolokasi: Check-in hanya diizinkan jika koordinat GPS pengguna berada di dalam batas radius lokasi parkir.
 
-### 6.4 Timer Sesi Parkir & Perpanjangan (Extend Session)
+### 6.3 Timer Sesi Parkir & Perpanjangan (Extend Session)
 * Widget penghitung waktu mundur durasi parkir aktif yang berjalan secara real-time.
 * Fitur perpanjangan waktu parkir (*Extend Parking Session*) secara instan dengan penyesuaian tagihan otomatis.
 
-### 6.5 Dompet Digital ParkSmart Pay & Multi-Payment
-* Pengelolaan saldo dompet, riwayat transaksi, top-up saldo, pembayaran QRIS, dan Virtual Account.
+### 6.4 Dompet Digital ParkSmart Pay & Multi-Payment
+* Pengelolaan saldo dompet, riwayat transaksi, top-up saldo.
 * Pengamanan otorisasi pembayaran menggunakan PIN 4-digit atau autentikasi biometrik.
 
 ### 6.6 Asisten AI Cerdas (Groq Cloud LLM)
-* Chatbot interaktif berbahasa Indonesia yang memahami konteks basis data lokasi parkir, tarif, dan fasilitas.
+* Chatbot interaktif berbahasa Indonesia yang memahami konteks basis data lokasi parkir, tarif.
 * Kemampuan memberikan rekomendasi parkir paling relevan dengan cepat.
 
 ### 6.7 Gamifikasi Sensor: Mini Arcade Games
@@ -184,9 +183,14 @@ Sistem ParkSmart mengonsolidasikan seluruh otoritas ke dalam 5 entitas hak akses
 * Kode hash unik kartu (*member hash code*) dan bukti hash transaksi on-chain (`tx_hash`) yang dapat diverifikasi di explorer blockchain.
 
 ### 6.9 Verifikasi Identitas KYC e-KTP
-* Kamera pemindaian e-KTP dengan ekstraksi OCR otomatis untuk nama dan NIK.
-* Pengambilan foto selfie wajah untuk pencocokan biometrik.
-* Pengunggahan berkas secara terenkripsi ke Cloud Storage dengan status persetujuan dari Super Admin.
+* Kamera pemindaian e-KTP.
+* Pengambilan foto selfie wajah.
+* Pengunggahan berkas ke Cloud Storage dengan status persetujuan dari Super Admin.
+
+### 6.10 Konversi Multi-Mata Uang Global (Multi-Currency Converter)
+* Mengintegrasikan ExchangeRate-API (Open ER-API) untuk konversi kurs valuta asing secara langsung.
+* Mendukung 6 pilihan mata uang: Rupiah (IDR 🇮🇩), US Dollar (USD 🇺🇸), Euro (EUR 🇪🇺), Singapore Dollar (SGD 🇸🇬), Ringgit Malaysia (MYR 🇲🇾), dan Japanese Yen (JPY 🇯🇵).
+* Nilai tukar disimpan secara cerdas pada cache SharedPreferences untuk optimalisasi lalu lintas data dan kenyamanan saat offline.
 
 ---
 
@@ -203,18 +207,16 @@ Sistem ParkSmart mengonsolidasikan seluruh otoritas ke dalam 5 entitas hak akses
 ### 7.2 Portal Admin Operasional (`operational`)
 * **Monitoring Lapangan Real-time**: Memantau denah slot dan okupansi kendaraan secara langsung per lantai gedung.
 * **Kontrol Ketersediaan Manual**: Mengubah status slot parkir menjadi *Available*, *Booked*, atau *Maintenance*.
-* **Pencocokan Kendaraan Gerbang**: Memvalidasi plat nomor fisik kendaraan dengan data tiket pengguna.
 * **Force Check-out Darurat**: Menyelesaikan sesi parkir secara manual jika terjadi kendala pada barcode pengguna.
 
 ### 7.3 Portal Admin Finansial (`finance`)
-* **Rekonsiliasi Pembayaran Digital**: Memverifikasi seluruh mutasi kas dari dompet digital, QRIS, dan Virtual Account.
+* **Rekonsiliasi Pembayaran Digital**: Memverifikasi seluruh mutasi kas dari dompet digital.
 * **Analisis Pendapatan Komparatif**: Memantau grafik pendapatan per hari, per minggu, dan per lokasi mall/gedung.
 * **Manajemen Kas Treasury Platform**: Memantau cadangan dana operasional sistem.
+* **Inject Saldo User**: Menginject saldo ke dompet user tertentu.
 
 ### 7.4 Portal Admin Customer Service (`cs`)
 * **Penanganan Feedback & Ulasan**: Membaca rating bintang 1-5, saran, dan keluhan fasilitas dari pengguna.
-* **Penyelesaian Masalah**: Membalas keluhan pengguna dan menandai status tiket pengaduan (*Resolved*).
-* **Pemeriksaan Berkas KYC Tahap Awal**: Membantu memverifikasi kejelasan foto identitas pengguna.
 
 ---
 
@@ -247,7 +249,7 @@ Seluruh arsitektur data dibangun di atas PostgreSQL Supabase dan mematuhi aturan
 
 Sistem penyimpanan media cloud dibagi ke dalam 4 bucket terstruktur:
 * 🗂️ **`avatars`** *(Public)*: Foto profil pengguna aplikasi.
-* 🗂️ **`vehicles`** *(Public)*: Foto fisik kendaraan pengguna untuk pencocokan gerbang.
+* 🗂️ **`vehicles`** *(Public)*: Foto fisik kendaraan pengguna.
 * 🗂️ **`parking-locations`** *(Public)*: 28+ foto lokasi parkir, mall mitra, kampus, dan denah lantai.
 * 🗂️ **`kyc-documents`** *(Protected RLS)*: Foto fisik KTP dan selfie wajah verifikasi pengguna.
 
@@ -303,7 +305,7 @@ flutter run
 ---
 
 <p align="center">
-  <b>ParkSmart ID — Production Requirements Document (PRD v2.0)</b><br/>
+  <b>ParkSmart ID — Production Requirements Document</b><br/>
   Disahkan untuk Final Project Pemrograman Mobile Semester 5.<br/>
   © 2026 ParkSmart ID Team. All Rights Reserved.
 </p>

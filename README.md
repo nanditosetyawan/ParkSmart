@@ -1,4 +1,4 @@
-# 🚗 ParkSmart ID — Smart Parking & Web3 Blockchain Ecosystem
+# ParkSmart ID — Smart Parking & Web3 Blockchain Ecosystem
 
 <p align="center">
   <img src="assets/images/app_icon.png" width="100" height="100" alt="ParkSmart Logo" style="border-radius: 20px;" />
@@ -14,7 +14,7 @@
   <img src="https://img.shields.io/badge/Supabase-Database%20%26%20Storage-3ECF8E?logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Ethereum-Sepolia%20Testnet-627EEA?logo=ethereum&logoColor=white" alt="Ethereum" />
   <img src="https://img.shields.io/badge/AI%20Engine-Groq%20Llama%203-F55036?logo=groq&logoColor=white" alt="Groq AI" />
-  <img src="https://img.shields.io/badge/License-MIT-blue.svg" alt="License" />
+
 </p>
 
 ---
@@ -43,6 +43,8 @@ Aplikasi ini menggabungkan:
 | **Kecerdasan Buatan (AI)** | Groq Cloud API | Inference berkecepatan tinggi Llama 3 untuk asisten pencarian kontekstual lokasi dan tarif. |
 | **Visi Komputer & OCR** | Google ML Kit | Pemindaian barcode/QR tiket serta pembacaan karakter teks e-KTP secara otomatis. |
 | **Peta & Geospasial** | `flutter_map` & OpenStreetMap | Visualisasi peta interaktif dengan perhitungan jarak Haversine dan penentuan rute. |
+| **Prakiraan Cuaca Real-time** | Open-Meteo Weather API | Pengambilan data suhu (°C) dan iklim lokal langsung di atas peta navigasi secara live. |
+| **Konversi Mata Uang Global** | ExchangeRate-API (Open ER-API) | Konversi kurs valuta asing otomatis untuk multi-currency switcher (IDR, USD, EUR, SGD, MYR, JPY). |
 
 ---
 
@@ -53,6 +55,8 @@ Aplikasi ini menggabungkan:
 3. **Ethereum Sepolia JSON-RPC Endpoint (Infura)**: Eksekusi transaksi *minting* kartu anggota, pengecekan saldo relayer, dan validasi hash transaksi on-chain.
 4. **OpenStreetMap / OSRM Routing Engine**: Penentuan rute perjalanan dari posisi GPS pengguna menuju lokasi parkir tujuan.
 5. **Biometric Security API (`local_auth`)**: Autentikasi biometrik lokal (Fingerprint & Face Recognition) untuk otorisasi dompet parkir.
+6. **Open-Meteo Weather Forecast API**: Menyajikan data cuaca real-time (suhu dalam °C, cuaca cerah/berawan/hujan, dan ikon dinamis) pada peta navigasi lokasi parkir sesuai titik koordinat GPS pengguna.
+7. **ExchangeRate-API (Open ER-API)**: Sinkronisasi kurs valuta asing live (IDR ke USD, EUR, SGD, MYR, JPY) dengan sistem caching cerdas 12 jam untuk mendukung konversi multi-mata uang bagi pengguna internasional.
 
 ---
 
@@ -70,17 +74,17 @@ Aplikasi ini menggabungkan:
   * Catatan kepemilikan kartu member on-chain, status keanggotaan permanen, serta hash token digital.
 
 ### B. Penyimpanan Offline & Lokal (Client-Side)
-- **`SharedPreferences`**:
+**`SharedPreferences`**:
   * Cache token sesi login, konfigurasi bahasa aktif (Indonesia/English), tema aplikasi (Dark/Light Mode), riwayat pencarian peta, dan salinan lokal status pemeliharaan sistem.
-- **Secure Biometric Keystore**:
-  * Pengamanan PIN 4-digit dompet parkir dengan enkripsi hardware untuk verifikasi transaksi cepat.
+
 
 ---
 
 ## 📱 5. Rincian Fitur Aplikasi Pengguna (User)
 
-1. **Peta Interaktif & Pencarian Lokasi**:
+1. **Peta Interaktif, Pencarian Lokasi & Cuaca Live**:
    - Menampilkan lokasi parkir terdekat secara live berdasarkan koordinat GPS pengguna.
+   - Widget prakiraan cuaca lokal real-time (suhu °C, awan/hujan/cerah, dan emoji dinamis) terintegrasi via Open-Meteo API.
    - Informasi detail kapasitas slot mobil, motor, dan slot khusus kendaraan listrik (EV Charging Station).
 2. **Reservasi & Pemilihan Slot Terjadwal**:
    - Memilih lantai dan nomor slot parkir secara visual.
@@ -107,6 +111,9 @@ Aplikasi ini menggabungkan:
 9. **Verifikasi Identitas KYC e-KTP**:
    - Pengambilan foto e-KTP dan foto selfie wajah langsung melalui kamera aplikasi.
    - Pembacaan data NIK dan identitas otomatis melalui OCR deteksi dokumen.
+10. **Multi-Currency Global Converter**:
+    - Konversi nilai tarif parkir dan saldo dompet secara dinamis ke 6 mata uang global: Rupiah (IDR 🇮🇩), US Dollar (USD 🇺🇸), Euro (EUR 🇪🇺), Singapore Dollar (SGD 🇸🇬), Ringgit Malaysia (MYR 🇲🇾), dan Yen Jepang (JPY 🇯🇵).
+    - Nilai tukar terhubung live via ExchangeRate-API dengan sistem penyimpanan lokal otomatis.
 
 ---
 
@@ -115,17 +122,17 @@ Aplikasi ini menggabungkan:
 ParkSmart membagi pengelolaan sistem ke dalam **4 portal admin khusus**:
 
 ```
-                              ┌─────────────────────────────┐
-                              │     SUPER ADMIN PORTAL      │
-                              │ (Master Control & Lockdown) │
-                              └──────────────┬──────────────┘
-                                             │
-             ┌───────────────────────────────┼───────────────────────────────┐
-             │                               │                               │
-┌────────────┴─────────────┐   ┌─────────────┴────────────┐   ┌──────────────┴────────────┐
-│   ADMIN OPERASIONAL      │   │     ADMIN FINANSIAL      │   │   ADMIN CUSTOMER SERVICE  │
-│ (Slot, Gerbang, Kendaraan)│   │ (Rekonsiliasi, Pendapatan)│   │ (KYC Verifikasi, Feedback) │
-└──────────────────────────┘   └──────────────────────────┘   └───────────────────────────┘
+                   ┌─────────────────────────────────────────────┐
+                   │             SUPER ADMIN PORTAL              │
+                   │ (Master Control, Lockdown & Verifikasi KYC) │
+                   └──────────────────────┬──────────────────────┘
+                                          │
+             ┌────────────────────────────┼────────────────────────────┐
+             │                            │                            │
+┌────────────┴────────────┐  ┌────────────┴────────────┐  ┌────────────┴────────────┐
+│    ADMIN OPERASIONAL    │  │     ADMIN FINANSIAL     │  │ ADMIN CUSTOMER SERVICE  │
+│ (Slot, Pos & Kendaraan) │  │ (Inject Saldo & Revenue)│  │ (Keluhan & Feedback CS) │
+└─────────────────────────┘  └─────────────────────────┘  └─────────────────────────┘
 ```
 
 ### 1. 👑 Super Admin (`super_admin`)
@@ -135,24 +142,22 @@ ParkSmart membagi pengelolaan sistem ke dalam **4 portal admin khusus**:
   - *Mode Peringatan Saja (Warning Only Mode)*: Menampilkan pop-up pengumuman informasi tanpa memblokir navigasi dan pesanan tiket pengguna.
   - *Maintenance Per Modul Sistem*: Menonaktifkan sementara modul tertentu (Gateway Booking, Engine AI Assistant, Modul KYC KTP, atau Gateway Push Notifikasi) secara terpisah.
 * **Verifikasi KYC**: Meninjau foto KTP dan foto selfie pengguna, menyetujui (*Approve*) atau menolak (*Reject*) dengan alasan penolakan.
-* **Manajemen Data**: Kontrol penuh data pengguna, admin operasional, lokasi parkir, dan audit log keamanan.
+* **Manajemen Data**: Kontrol penuh data admin operasional, lokasi parkir, dan audit log keamanan.
 
 ### 2. 🚦 Admin Operasional Lapangan (`operational`)
 * **Monitoring Okupansi Lapangan**: Melihat denah slot mobil, motor, dan EV di lokasi secara real-time.
 * **Kontrol Ketersediaan Manual**: Mengubah status slot menjadi *Available*, *Booked*, atau *Maintenance*.
-* **Pemeriksaan Pos Masuk/Keluar**: Validasi fisik kendaraan pengguna dan pencocokan plat nomor di gerbang parkir.
 * **Force Check-out Darurat**: Menyelesaikan sesi parkir secara manual apabila pengguna mengalami kendala teknis atau tiket hilang.
 
 ### 3. 💳 Admin Finansial & Akuntansi (`finance`)
 * **Rekonsiliasi Pembayaran**: Memverifikasi seluruh aliran dana masuk dari QRIS, Virtual Account, dan saldo dompet.
 * **Audit Transaksi Harian & Bulanan**: Memeriksa detail transaksi pembayaran tiket, perpanjangan durasi, dan penalti keterlambatan.
 * **Analisis Pendapatan per Lokasi**: Melihat laporan pendapatan tertinggi dan tingkat utilitas komersial setiap lokasi parkir.
-* **Ekspor Laporan Keuangan**: Menghasilkan rekapan neraca pendapatan untuk keperluan pembukuan resmi.
+* **Inject Saldo User**: Mentransfer Saldo K user tertentu dengan fitur search.
 
 ### 4. 🎧 Admin Customer Service & Keluhan (`cs`)
-* **Pusat Pengaduan & Feedback**: Menerima laporan kendala slot, keluhan sistem gerbang, dan ulasan bintang pengguna.
-* **Penanganan Bantuan Langsung**: Merespons tiket bantuan pengguna dan memperbarui status penanganan masalah (*In Progress* / *Resolved*).
-* **Pemeriksaan Berkas KYC Awal**: Meneliti kelengkapan dokumen identitas pengguna sebelum disahkan.
+**Pusat Feedback**: Menerima ulasan bintang pengguna.
+
 
 ---
 
@@ -174,25 +179,25 @@ Gunakan akun resmi berikut untuk menguji seluruh hak akses sistem:
 | Pengguna | Email Login | Password | PIN Dompet | Saldo Dompet | Member Tier | Status KYC |
 | :--- | :--- | :--- | :--- | :--- | :--- | :--- |
 | **User Utama** | `user@gmail.com` | `123456` | `4040` | Rp 1.044.500,- | **GOLD** | Sedang Diajukan (*Pending*) |
-| **User Sekunder** | `aji@gmail.com` | `aji123` | `1111` | Rp 182.000,- | **BRONZE** | Terverifikasi (*Approved*) |
+| **User Sekunder** | `aji@gmail.com` | `aji123` | `1111` | Rp 182.000,- | **BRONZE** | Belum Diajukan |
 
 ---
 
 ## 🚀 8. Panduan Instalasi & Urutan Migrasi Database Terpadu
 
-Agar instalasi berjalan lancar dan tidak terjadi tabrakan ketergantungan database, **ikuti urutan langkah teknis berikut secara disiplin**:
+Agar instalasi berjalan lancar dan tidak terjadi tabrakan ketergantungan database maupun dependensi paket, **ikuti urutan langkah teknis berikut secara disiplin**:
 
 ```
-┌─────────────────────────┐       ┌─────────────────────────┐       ┌──────────────────────────────┐
-│  LANGKAH 1: GIT CLONE   │ ───►  │   LANGKAH 2: SETUP .ENV │ ───►  │ LANGKAH 3: SCHEMA DDL (SQL)  │
-│  Unduh repositori proyek │       │   Konfigurasi Kredensial│       │ Buat 16 Tabel & Trigger Dulu │
-└─────────────────────────┘       └─────────────────────────┘       └──────────────┬───────────────┘
-                                                                                   │
-                                                                                   ▼
-┌─────────────────────────┐       ┌─────────────────────────┐       ┌──────────────────────────────┐
-│ LANGKAH 5: FLUTTER RUN  │ ◄───  │ FLUTTER DEPENDENCIES    │ ◄───  │ LANGKAH 4: SEED STORAGE & DB │
-│ Jalankan Aplikasi Utama │       │ Unduh package library   │       │ Upload 34 Foto & Isi 16 Tabel│
-└─────────────────────────┘       └─────────────────────────┘       └──────────────────────────────┘
+┌─────────────────────────┐       ┌─────────────────────────┐       ┌─────────────────────────┐
+│  LANGKAH 1: GIT CLONE   │ ───►  │  LANGKAH 2: PUB GET     │ ───►  │  LANGKAH 3: SETUP .ENV  │
+│ Unduh repositori proyek │       │  Unduh dependensi Dart  │       │  Konfigurasi Kredensial │
+└─────────────────────────┘       └─────────────────────────┘       └───────────┬─────────────┘
+                                                                                │
+                                                                                ▼
+┌─────────────────────────┐       ┌─────────────────────────┐       ┌───────────┴─────────────┐
+│  LANGKAH 6: FLUTTER RUN │ ◄───  │ LANGKAH 5: SEED STORAGE │ ◄───  │ LANGKAH 4: SCHEMA (SQL) │
+│ Jalankan Aplikasi Utama │       │  Upload 34 Foto & 16 DB │       │ Buat 16 Tabel & Trigger │
+└─────────────────────────┘       └─────────────────────────┘       └─────────────────────────┘
 ```
 
 ---
@@ -208,7 +213,21 @@ cd ParkSmart
 
 ---
 
-### ⚙️ Langkah 2: Konfigurasi File Environment (`.env`)
+### 📦 Langkah 2: Unduh Dependensi Proyek (`flutter pub get`)
+
+Unduh seluruh pustaka pihak ketiga yang dibutuhkan aplikasi ke direktori `.dart_tool/`:
+
+```bash
+flutter pub get
+```
+
+> [!TIP]
+> **Mengapa Dependensi Harus Diunduh di Langkah Ini?**
+> Skrip seeder otomatis (`tools/seed_storage.dart`) membutuhkan pustaka Dart seperti `package:http/http.dart`. Menjalankan `flutter pub get` di awal memastikan seluruh dependensi Flutter & Dart terpasang lengkap sebelum Anda mengeksekusi skrip seeder di terminal.
+
+---
+
+### ⚙️ Langkah 3: Konfigurasi File Environment (`.env`)
 
 Buat salinan file environment dari template yang telah disediakan:
 
@@ -216,32 +235,65 @@ Buat salinan file environment dari template yang telah disediakan:
 cp .env.example .env
 ```
 
-Buka file `.env` yang baru dibuat menggunakan text editor, lalu lengkapi dengan kredensial proyek Supabase Anda:
+Buka file `.env` yang baru dibuat menggunakan text editor. Berikut adalah struktur lengkap seluruh variabel environment beserta nilai contohnya:
 
 ```env
 # ==============================================================================
-# KONFIGURASI SUPABASE (DATABASE & STORAGE)
+# 1. KREDENSIAL SUPABASE (DATABASE & CLOUD STORAGE)
 # ==============================================================================
-SUPABASE_URL=https://<your-project-id>.supabase.co
-SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
-SUPABASE_PROJECT_ID=<your-project-id>
+# ID unik proyek Supabase (didapat dari: Project Settings > General)
+SUPABASE_PROJECT_ID=isi_project_id
+
+# URL endpoint REST & Realtime API (format: https://<project-id>.supabase.co)
+SUPABASE_URL=https://<abcdefghijklmnopqrst>.supabase.co
+
+# Kunci API publik anonim untuk otorisasi client (didapat dari: Project Settings > API)
+SUPABASE_ANON_KEY=SAMPLE_ANON_SIGNATURE_KEY_HERE...
+
+# Personal Access Token pengelola untuk upload storage & DDL (didapat dari: Account > Access Tokens) ijin akses full di profile and never expired
+SUPABASE_ACCESS_TOKEN=isi_token_access
 
 # ==============================================================================
-# AI ENGINE API (GROQ CLOUD)
+# 2. AI ENGINE API (GROQ CLOUD LLM)
 # ==============================================================================
-GROQ_API_KEY=gsk_...
+# Kunci API inferensi Groq Llama 3 (didapat dari: https://console.groq.com/keys)
+GROQ_API_KEY=isi_api_key
 
 # ==============================================================================
-# WEB3 BLOCKCHAIN SEPOLIA TESTNET
+# 3. WEB3 BLOCKCHAIN SEPOLIA TESTNET
 # ==============================================================================
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/<your-infura-key>
-SEPOLIA_CONTRACT_ADDRESS=0x032220cE1517622D0622a72A76EbF76d55c16179
+# Endpoint JSON-RPC Ethereum Sepolia (didapat dari: https://infura.io/ atau https://alchemy.com/)
+SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_infura_api_key_here
+
+# Alamat kontrak pintar kartu anggota (didapat dari deploy di https://remix.ethereum.org/)
+SEPOLIA_CONTRACT_ADDRESS=isi_contract_address
+
+# Private Key relayer admin untuk pembayaran gas fee transaksi minting member on-chain, buka menu Detail Akun di metamask (Account Details), lalu klik Show Private Key
+RELAYER_PRIVAT_KEY=isi_privat_key
+
+# Sakelar siaran on-chain (atur true untuk broadcast live ke Sepolia testnet)
 ENABLE_ONCHAIN_BROADCAST=true
 ```
 
+#### 📖 Panduan Cara Memperoleh Kredensial `.env`
+
+Berikut adalah rincian panduan ringkas 2 kalimat untuk masing-masing variabel environment:
+
+| Variabel Environment | Sumber & Cara Memperolehnya | Keterangan & Fungsi Singkat |
+| :--- | :--- | :--- |
+| **`SUPABASE_PROJECT_ID`** | Buka **Supabase Dashboard** > pilih proyek Anda > klik menu **Project Settings** > **General**. | Salin string unik pada kolom *Reference ID*. Nilai ini merupakan penanda unik repositori database cloud proyek Anda. |
+| **`SUPABASE_URL`** | Buka **Supabase Dashboard** > **Project Settings** > klik menu **API**. | Salin tautan pada kolom *Project URL* yang berformat `https://<id>.supabase.co`. Tautan ini menjadi basis endpoint REST API & Realtime Socket. |
+| **`SUPABASE_ANON_KEY`** | Buka **Supabase Dashboard** > **Project Settings** > klik menu **API**. | Salin token panjang pada bagian *Project API keys* bertuliskan `anon` `public`. Kunci publik ini mengotorisasi aplikasi Flutter untuk mengakses tabel dengan proteksi RLS. |
+| **`SUPABASE_ACCESS_TOKEN`** | Klik profil Anda di pojok Supabase Dashboard > pilih [Access Tokens](https://supabase.com/dashboard/account/tokens) > klik **Generate new token**. | Berikan izin *Full Access* dan centang masa berlaku *Never Expire*. Token ini dipakai oleh terminal untuk otomatis membuat bucket storage dan mengunggah gambar fisik. |
+| **`GROQ_API_KEY`** | Buka konsol pengembang Groq di [console.groq.com/keys](https://console.groq.com/keys) lalu klik tombol **Create API Key**. | Beri nama kunci dan salin string token yang diawali `gsk_...`. Token ini mengaktifkan AI chatbot Llama 3 untuk pencarian tempat parkir dan rekomendasi tarif. |
+| **`SEPOLIA_RPC_URL`** | Buat akun di [infura.io](https://www.infura.io/) atau [alchemy.com](https://www.alchemy.com/), buat *API Key* baru, lalu pilih jaringan **Ethereum Sepolia**. | Salin link endpoint RPC HTTP yang berformat `https://sepolia.infura.io/v3/...`. URL ini menjadi pintu masuk aplikasi Flutter untuk membaca status blockchain. |
+| **`SEPOLIA_CONTRACT_ADDRESS`** | deploy kode Solidity via [Remix IDE](https://remix.ethereum.org/). | Alamat ini menunjuk ke lokasi smart contract kartu anggota di Sepolia. Seluruh mutasi tier pengguna dicatat permanen pada alamat kontrak ini. |
+| **`RELAYER_PRIVAT_KEY`** | Buka ekstensi **MetaMask**, pilih akun admin berdana Sepolia ETH, klik **Titik Tiga** > **Account Details** > klik **Show Private Key**. | Masukkan sandi MetaMask Anda dan salin kode heksadesimal 64 karakter. Private key ini mendanai gas fee otomatis sehingga pengguna biasa dapat menerima kartu member secara gratis. |
+| **`ENABLE_ONCHAIN_BROADCAST`** | Cukup isi dengan nilai teks `true` (atau `false` jika ingin simulasi offline saja). | Berfungsi sebagai sakelar keamanan sistem. Jika bernilai `true`, setiap aktivasi kartu anggota akan otomatis disiarkan langsung ke blockchain Sepolia. |
+
 ---
 
-### 🗄️ Langkah 3: Eksekusi Skema Database (`schema.sql`) — **WAJIB PERTAMA**
+### 🗄️ Langkah 4: Eksekusi Skema Database (`schema.sql`) — **WAJIB SEBELUM SEED**
 
 > [!IMPORTANT]
 > **Mengapa `schema.sql` Harus Dijalankan Sebelum Seed Storage?**
@@ -262,9 +314,9 @@ ENABLE_ONCHAIN_BROADCAST=true
 
 ---
 
-### 📦 Langkah 4: Eksekusi Seeder Data & Cloud Storage Otomatis (`seed_storage.dart`) — **DILAKUKAN KEDUA**
+### 🚀 Langkah 5: Eksekusi Seeder Data & Cloud Storage Otomatis (`seed_storage.dart`)
 
-Setelah seluruh ke-16 tabel fisik berhasil terbentuk di Langkah 3, sekarang Anda dapat mengisi data awal dan mengunggah gambar fisik ke Supabase Storage secara otomatis.
+Setelah seluruh ke-16 tabel fisik berhasil terbentuk di Langkah 4, sekarang Anda dapat mengisi data awal dan mengunggah gambar fisik ke Supabase Storage secara otomatis.
 
 > [!NOTE]
 > **Apa Saja yang Dilakukan Script Seeder Ini Secara Otomatis?**
@@ -307,15 +359,11 @@ DATABASE DAN STORAGE BERHASIL DISINKRONISASI DENGAN SEMPURNA!
 
 ---
 
-### 🚀 Langkah 5: Jalankan Aplikasi Flutter
+### 📱 Langkah 6: Jalankan Aplikasi Flutter
 
-Setelah database dan storage terisi lengkap, unduh seluruh dependensi Flutter dan jalankan aplikasinya pada emulator atau perangkat fisik Anda:
+Setelah dependensi terunduh serta database dan storage terisi lengkap, jalankan aplikasi pada emulator atau perangkat fisik Anda:
 
 ```bash
-# 1. Unduh seluruh dependensi pustaka
-flutter pub get
-
-# 2. Jalankan aplikasi pada simulator / device fisik
 flutter run
 ```
 
@@ -337,6 +385,6 @@ Repositori ini menyediakan dokumentasi arsitektur dan skrip database lengkap yan
 ---
 
 <p align="center">
-  Dibuat dengan dedikasi untuk penyelesaian <b>Project Akhir Teori Mobile (Semester 5)</b>.<br/>
+  Dibuat dengan dedikasi untuk penyelesaian <b>Project Akhir Teori Mobile</b>.<br/>
   © 2026 <b>ParkSmart ID Team</b>. Hak Cipta Dilindungi Undang-Undang.
 </p>
