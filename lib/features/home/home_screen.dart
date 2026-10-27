@@ -147,7 +147,9 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   void initState() {
     super.initState();
+    // Daftarkan listener perubahan status maintenance & bahasa
     LanguageService.instance.addListener(_onLanguageChanged);
+    MaintenanceService.instance.addListener(_onMaintenanceChanged);
     SystemChrome.setEnabledSystemUIMode(
       SystemUiMode.manual,
       overlays: SystemUiOverlay.values,
@@ -164,20 +166,33 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Periksa apakah sistem sedang dalam mode maintenance global
+    // Periksa status pemeliharaan saat layar pertama kali dipasang
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted &&
-          MaintenanceService.instance.isGlobalMaintenance &&
-          !MaintenanceService.instance.isWarningOnly) {
-        MaintenanceService.showGlobalMaintenanceDialog(context);
+      if (!mounted) return;
+      final m = MaintenanceService.instance;
+      if (m.isGlobalMaintenance) {
+        if (!m.isWarningOnly) {
+          MaintenanceService.showGlobalMaintenanceDialog(context);
+        } else {
+          MaintenanceService.showWarningDialog(context);
+        }
       }
     });
+  }
+
+  void _onMaintenanceChanged() {
+    if (!mounted) return;
+    final m = MaintenanceService.instance;
+    if (m.isGlobalMaintenance && !m.isWarningOnly && !m.isGlobalDialogOpen) {
+      MaintenanceService.showGlobalMaintenanceDialog(context);
+    }
   }
 
   @override
   void dispose() {
     _searchController.dispose();
     LanguageService.instance.removeListener(_onLanguageChanged);
+    MaintenanceService.instance.removeListener(_onMaintenanceChanged);
     _sessionPollTimer?.cancel();
     _positionSub?.cancel();
     _magSub?.cancel();
@@ -606,44 +621,47 @@ class _HomeScreenState extends State<HomeScreen> {
                           if (!service.isGlobalMaintenance) return const SizedBox.shrink();
 
                           if (service.isWarningOnly) {
-                            return Container(
-                              margin: const EdgeInsets.only(top: 14),
-                              padding: const EdgeInsets.all(12),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFFFEF3C7),
-                                borderRadius: BorderRadius.circular(14),
-                                border: Border.all(color: const Color(0xFFFDE68A)),
-                              ),
-                              child: Row(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
-                                  const SizedBox(width: 8),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          service.warningTitle,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 12.5,
-                                            fontWeight: FontWeight.bold,
-                                            color: const Color(0xFF92400E),
+                            return GestureDetector(
+                              onTap: () => MaintenanceService.showWarningDialog(context),
+                              child: Container(
+                                margin: const EdgeInsets.only(top: 14),
+                                padding: const EdgeInsets.all(12),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFFEF3C7),
+                                  borderRadius: BorderRadius.circular(14),
+                                  border: Border.all(color: const Color(0xFFFDE68A)),
+                                ),
+                                child: Row(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Icon(Icons.info_outline, color: Color(0xFFD97706), size: 18),
+                                    const SizedBox(width: 8),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            service.warningTitle,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 12.5,
+                                              fontWeight: FontWeight.bold,
+                                              color: const Color(0xFF92400E),
+                                            ),
                                           ),
-                                        ),
-                                        const SizedBox(height: 2),
-                                        Text(
-                                          service.warningMessage,
-                                          style: GoogleFonts.plusJakartaSans(
-                                            fontSize: 11,
-                                            color: const Color(0xFFB45309),
-                                            height: 1.35,
+                                          const SizedBox(height: 2),
+                                          Text(
+                                            service.warningMessage,
+                                            style: GoogleFonts.plusJakartaSans(
+                                              fontSize: 11,
+                                              color: const Color(0xFFB45309),
+                                              height: 1.35,
+                                            ),
                                           ),
-                                        ),
-                                      ],
+                                        ],
+                                      ),
                                     ),
-                                  ),
-                                ],
+                                  ],
+                                ),
                               ),
                             );
                           }

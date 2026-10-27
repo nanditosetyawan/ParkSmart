@@ -460,13 +460,14 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
                   _maintenanceMode = true;
                 });
                 Navigator.pop(ctx);
-                await MaintenanceService.instance.setGlobalMaintenance(
-                  true,
+                await AdminAppSettingsBackend.instance.saveMaintenanceSettings(
+                  isGlobal: true,
                   title: _maintenanceTitleCtrl.text,
                   message: _maintenanceMessageCtrl.text,
                   eta: _maintenanceEtaCtrl.text,
-                  warningOnly: _showMaintenanceBannerOnly,
-                  notifyPush: true,
+                  isWarningOnly: _showMaintenanceBannerOnly,
+                  warningTitle: _warningTitleCtrl.text,
+                  warningMessage: _warningMessageCtrl.text,
                 );
                 if (mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -505,13 +506,14 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
       setState(() {
         _maintenanceMode = false;
       });
-      MaintenanceService.instance.setGlobalMaintenance(
-        false,
+      AdminAppSettingsBackend.instance.saveMaintenanceSettings(
+        isGlobal: false,
         title: _maintenanceTitleCtrl.text,
         message: _maintenanceMessageCtrl.text,
         eta: _maintenanceEtaCtrl.text,
-        warningOnly: _showMaintenanceBannerOnly,
-        notifyPush: false,
+        isWarningOnly: _showMaintenanceBannerOnly,
+        warningTitle: _warningTitleCtrl.text,
+        warningMessage: _warningMessageCtrl.text,
       );
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -577,17 +579,20 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 20),
             child: ElevatedButton.icon(
-              onPressed: () {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      'Pengaturan Modul Sistem Tersimpan dan Berlaku!',
-                      style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+              onPressed: () async {
+                await AdminAppSettingsBackend.instance.saveAllModuleToggles(_moduleToggles);
+                if (mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        'Pengaturan Modul Sistem Tersimpan dan Berlaku!',
+                        style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                      ),
+                      backgroundColor: const Color(0xFF17A18A),
+                      behavior: SnackBarBehavior.floating,
                     ),
-                    backgroundColor: const Color(0xFF17A18A),
-                    behavior: SnackBarBehavior.floating,
-                  ),
-                );
+                  );
+                }
               },
               icon: const Icon(Icons.check_circle_outline, color: Colors.white),
               label: Text(

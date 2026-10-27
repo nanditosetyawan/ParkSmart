@@ -10,6 +10,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/language_service.dart';
+import '../../core/services/maintenance_service.dart';
 import 'backend/profile_backend.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -1225,6 +1226,16 @@ class _SettingsScreenState extends State<SettingsScreen> {
                             Color? kycSubtitleColor;
                             Widget kycActionWidget = Icon(Icons.chevron_right, color: ThemeService.instance.iconColor);
                             VoidCallback kycOnTap = () {
+                              if (MaintenanceService.instance.isKycMaintenance) {
+                                MaintenanceService.showModularMaintenanceDialog(
+                                  context,
+                                  title: 'Modul Wajib KYC KTP Sedang Maintenance',
+                                  message:
+                                      'Layanan verifikasi identitas KTP sementara dinonaktifkan untuk pembaharuan sistem. Fitur jelajah dan reservasi tetap berjalan.',
+                                  icon: Icons.shield_outlined,
+                                );
+                                return;
+                              }
                               Navigator.push(context, MaterialPageRoute(builder: (_) => const KtpCameraScreen())).then((_) {
                                 ProfileBackend.instance.fetchProfile();
                               });

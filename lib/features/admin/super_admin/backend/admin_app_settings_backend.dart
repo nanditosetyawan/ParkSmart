@@ -72,7 +72,7 @@ class AdminAppSettingsBackend extends ChangeNotifier {
       final res = await _client
           .from('system_settings')
           .select('key, value')
-          .inFilter('key', ['maintenance_mode', 'feature_toggles']);
+          .inFilter('key', ['maintenance_mode', 'modular_maintenance']);
 
       for (var row in res) {
         if (row['key'] == 'maintenance_mode' && row['value'] is Map) {
@@ -84,6 +84,14 @@ class AdminAppSettingsBackend extends ChangeNotifier {
           if (val['warning_only'] != null) _showWarningOnly = val['warning_only'] == true;
           if (val['warning_title'] != null) _warningTitle = val['warning_title'].toString();
           if (val['warning_message'] != null) _warningMessage = val['warning_message'].toString();
+        } else if (row['key'] == 'modular_maintenance' && row['value'] is Map) {
+          final modMap = row['value'] as Map<String, dynamic>;
+          for (var k in _moduleToggles.keys) {
+            if (modMap.containsKey(k)) {
+              _moduleToggles[k] = modMap[k] == true;
+              await local.setModuleMaintenance(k, modMap[k] == true);
+            }
+          }
         }
       }
     } catch (e) {
@@ -121,6 +129,7 @@ class AdminAppSettingsBackend extends ChangeNotifier {
       title: title,
       message: message,
       eta: eta,
+      warningOnly: isWarningOnly,
     );
     await local.setWarningOnlySettings(
       isWarningOnly,
@@ -169,6 +178,30 @@ class AdminAppSettingsBackend extends ChangeNotifier {
       return true;
     } catch (e) {
       debugPrint('[AdminAppSettingsBackend] updateModuleToggle error: $e');
+      return false;
+    }
+  }
+
+  /// Menyimpan seluruh toggle modular maintenance sekaligus
+  Future<bool> saveAllModuleToggles(Map<String, bool> toggles) async {
+    _moduleToggles.addAll(toggles);
+    notifyListeners();
+
+    final local = MaintenanceService.instance;
+    for (var entry in toggles.entries) {
+      await local.setModuleMaintenance(entry.key, entry.value);
+    }
+
+    try {
+      await _client.from('system_settings').upsert({
+        'key': 'modular_maintenance',
+        'value': _moduleToggles,
+        'description': 'Pemeliharaan modular per fitur (booking, AI, KYC, Push)',
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+      return true;
+    } catch (e) {
+      debugPrint('[AdminAppSettingsBackend] saveAllModuleToggles error: $e');
       return false;
     }
   }

@@ -1,9 +1,11 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'notification_service.dart';
 
-/// Service sentral untuk mengelola status Maintenance Global dan Modular Platform
+/// Service sentral untuk mengelola status Maintenance Global, Mode Peringatan, dan Modular Platform
 class MaintenanceService extends ChangeNotifier {
   static final MaintenanceService _instance = MaintenanceService._internal();
   factory MaintenanceService() => _instance;
@@ -43,6 +45,11 @@ class MaintenanceService extends ChangeNotifier {
   bool _isKycMaintenance = false;
   bool _isPushMaintenance = false;
 
+  // Dialog state tracking (mencegah duplikasi dialog saat sinkronisasi realtime)
+  bool _isGlobalDialogOpen = false;
+  BuildContext? _activeDialogContext;
+  Timer? _syncTimer;
+
   // Getters
   bool get isGlobalMaintenance => _isGlobalMaintenance;
   String get maintenanceTitle => _maintenanceTitle;
@@ -57,6 +64,23 @@ class MaintenanceService extends ChangeNotifier {
   bool get isAiMaintenance => _isAiMaintenance;
   bool get isKycMaintenance => _isKycMaintenance;
   bool get isPushMaintenance => _isPushMaintenance;
+  bool get isGlobalDialogOpen => _isGlobalDialogOpen;
+
+  /// Cek apakah modul tertentu sedang dalam pemeliharaan
+  bool isModuleInMaintenance(String moduleKey) {
+    switch (moduleKey.toLowerCase()) {
+      case 'booking':
+        return _isBookingMaintenance;
+      case 'ai':
+        return _isAiMaintenance;
+      case 'kyc':
+        return _isKycMaintenance;
+      case 'push':
+        return _isPushMaintenance;
+      default:
+        return false;
+    }
+  }
 
   /// Inisialisasi awal saat aplikasi start
   Future<void> init() async {
@@ -77,9 +101,111 @@ class MaintenanceService extends ChangeNotifier {
       _isPushMaintenance = prefs.getBool(_kModPush) ?? false;
 
       notifyListeners();
+
+      // Sinkronkan data aktual dari Supabase
+      await checkStatusFromRemote();
+
+      // Jalankan sinkronisasi background secara berkala
+      startStatusSync();
     } catch (e) {
       debugPrint('Error init MaintenanceService: $e');
     }
+  }
+
+  /// Memeriksa status langsung dari Supabase database
+  Future<bool> checkStatusFromRemote() async {
+    try {
+      SupabaseClient? client;
+      try {
+        client = Supabase.instance.client;
+      } catch (_) {
+        // Supabase belum diinisialisasi (misal di test environment)
+        return _isGlobalMaintenance && !_isWarningOnly;
+      }
+
+      final res = await client
+          .from('system_settings')
+          .select('key, value')
+          .inFilter('key', ['maintenance_mode', 'modular_maintenance']);
+
+      for (var row in res) {
+        if (row['key'] == 'maintenance_mode' && row['value'] is Map) {
+          final val = row['value'] as Map<String, dynamic>;
+          _isGlobalMaintenance = val['is_active'] == true;
+          if (val['title'] != null && val['title'].toString().trim().isNotEmpty) {
+            _maintenanceTitle = val['title'].toString().trim();
+          }
+          if (val['message'] != null && val['message'].toString().trim().isNotEmpty) {
+            _maintenanceMessage = val['message'].toString().trim();
+          }
+          if (val['eta'] != null && val['eta'].toString().trim().isNotEmpty) {
+            _maintenanceEta = val['eta'].toString().trim();
+          }
+          if (val['warning_only'] != null) {
+            _isWarningOnly = val['warning_only'] == true;
+          }
+          if (val['warning_title'] != null && val['warning_title'].toString().trim().isNotEmpty) {
+            _warningTitle = val['warning_title'].toString().trim();
+          }
+          if (val['warning_message'] != null && val['warning_message'].toString().trim().isNotEmpty) {
+            _warningMessage = val['warning_message'].toString().trim();
+          }
+        } else if (row['key'] == 'modular_maintenance' && row['value'] is Map) {
+          final modMap = row['value'] as Map<String, dynamic>;
+          if (modMap.containsKey('booking')) _isBookingMaintenance = modMap['booking'] == true;
+          if (modMap.containsKey('ai')) _isAiMaintenance = modMap['ai'] == true;
+          if (modMap.containsKey('kyc')) _isKycMaintenance = modMap['kyc'] == true;
+          if (modMap.containsKey('push')) _isPushMaintenance = modMap['push'] == true;
+        }
+      }
+
+      // Simpan pembaruan ke cache SharedPreferences
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kGlobalActive, _isGlobalMaintenance);
+      await prefs.setString(_kTitle, _maintenanceTitle);
+      await prefs.setString(_kMessage, _maintenanceMessage);
+      await prefs.setString(_kEta, _maintenanceEta);
+      await prefs.setBool(_kWarningOnly, _isWarningOnly);
+      await prefs.setString(_kWarningTitle, _warningTitle);
+      await prefs.setString(_kWarningMessage, _warningMessage);
+
+      await prefs.setBool(_kModBooking, _isBookingMaintenance);
+      await prefs.setBool(_kModAi, _isAiMaintenance);
+      await prefs.setBool(_kModKyc, _isKycMaintenance);
+      await prefs.setBool(_kModPush, _isPushMaintenance);
+
+      notifyListeners();
+
+      // Kembalikan apakah Global Lockdown aktif
+      return _isGlobalMaintenance && !_isWarningOnly;
+    } catch (e) {
+      debugPrint('[MaintenanceService] checkStatusFromRemote error: $e');
+      // Jika terjadi kegagalan jaringan, pertahankan status aman yang tersimpan
+      return _isGlobalMaintenance && !_isWarningOnly;
+    }
+  }
+
+  /// Mulai sinkronisasi periodik status di background (setiap 10 detik)
+  void startStatusSync({Duration interval = const Duration(seconds: 10)}) {
+    _syncTimer?.cancel();
+    _syncTimer = Timer.periodic(interval, (_) async {
+      final isLockdown = await checkStatusFromRemote();
+      if (!isLockdown && _isGlobalDialogOpen && _activeDialogContext != null) {
+        // Jika Superadmin menonaktifkan maintenance, tutup modal secara otomatis
+        try {
+          if (Navigator.of(_activeDialogContext!).canPop()) {
+            Navigator.of(_activeDialogContext!).pop();
+          }
+        } catch (_) {}
+        _isGlobalDialogOpen = false;
+        _activeDialogContext = null;
+      }
+    });
+  }
+
+  void stopStatusSync() {
+    _syncTimer?.cancel();
+    _syncTimer = null;
   }
 
   /// Update pengaturan maintenance global
@@ -109,7 +235,7 @@ class MaintenanceService extends ChangeNotifier {
     notifyListeners();
 
     // Trigger Android push notification jika maintenance global diaktifkan
-    if (active && notifyPush) {
+    if (active && notifyPush && !_isPushMaintenance) {
       await NotificationService().showMaintenanceNotification(
         title: _maintenanceTitle,
         body: _maintenanceMessage,
@@ -139,7 +265,7 @@ class MaintenanceService extends ChangeNotifier {
 
   /// Update modul toggle (OFF = Normal, ON = Sedang Maintenance)
   Future<void> setModuleMaintenance(String moduleKey, bool isMaintenance) async {
-    switch (moduleKey) {
+    switch (moduleKey.toLowerCase()) {
       case 'booking':
         _isBookingMaintenance = isMaintenance;
         break;
@@ -156,7 +282,7 @@ class MaintenanceService extends ChangeNotifier {
 
     try {
       final prefs = await SharedPreferences.getInstance();
-      switch (moduleKey) {
+      switch (moduleKey.toLowerCase()) {
         case 'booking':
           await prefs.setBool(_kModBooking, isMaintenance);
           break;
@@ -176,162 +302,347 @@ class MaintenanceService extends ChangeNotifier {
   }
 
   /// Tampilkan Pop-Up Dialog Maintenance Global ke Layar Pengguna
-  static Future<void> showGlobalMaintenanceDialog(BuildContext context) {
+  /// Menghalangi interaksi, tidak bisa di-back/dismiss, tombol periksa status aktual.
+  static Future<void> showGlobalMaintenanceDialog(BuildContext context) async {
     final s = MaintenanceService.instance;
-    return showDialog(
+    if (s._isGlobalDialogOpen) return;
+    s._isGlobalDialogOpen = true;
+
+    await showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (ctx) => PopScope(
-        canPop: false,
-        child: AlertDialog(
-          backgroundColor: Colors.white,
-          surfaceTintColor: Colors.transparent,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-          contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 20),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Ikon Pulsing / Peringatan
-              Container(
-                width: 72,
-                height: 72,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFDE8E4),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFFFCA5A5), width: 2),
-                ),
-                child: const Icon(Icons.build_circle_rounded, size: 40, color: Color(0xFFD94B4B)),
-              ),
-              const SizedBox(height: 18),
-              // Badge Status
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFDC2626).withValues(alpha: 0.1),
-                  borderRadius: BorderRadius.circular(30),
-                  border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.3)),
-                ),
-                child: Row(
+      barrierColor: Colors.black.withValues(alpha: 0.65),
+      builder: (ctx) {
+        s._activeDialogContext = ctx;
+        bool isChecking = false;
+        String? feedbackMessage;
+        Color feedbackColor = const Color(0xFFDC2626);
+
+        return PopScope(
+          canPop: false,
+          child: StatefulBuilder(
+            builder: (dialogCtx, setDialogState) {
+              return AlertDialog(
+                backgroundColor: Colors.white,
+                surfaceTintColor: Colors.transparent,
+                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+                contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+                content: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
+                    // Ikon Pemeliharaan
                     Container(
-                      width: 6,
-                      height: 6,
-                      decoration: const BoxDecoration(color: Color(0xFFDC2626), shape: BoxShape.circle),
+                      width: 72,
+                      height: 72,
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFFDE8E4),
+                        shape: BoxShape.circle,
+                        border: Border.all(color: const Color(0xFFFCA5A5), width: 2),
+                      ),
+                      child: const Icon(Icons.build_circle_rounded, size: 40, color: Color(0xFFD94B4B)),
                     ),
-                    const SizedBox(width: 6),
-                    Text(
-                      'PEMELIHARAAN SISTEM',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10.5,
-                        fontWeight: FontWeight.w800,
-                        color: const Color(0xFFDC2626),
-                        letterSpacing: 0.8,
+                    const SizedBox(height: 18),
+                    // Badge Status
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFDC2626).withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(30),
+                        border: Border.all(color: const Color(0xFFDC2626).withValues(alpha: 0.3)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: const BoxDecoration(color: Color(0xFFDC2626), shape: BoxShape.circle),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            'PEMELIHARAAN SISTEM',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 10.5,
+                              fontWeight: FontWeight.w800,
+                              color: const Color(0xFFDC2626),
+                              letterSpacing: 0.8,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 14),
-              // Judul dari Super Admin
-              Text(
-                s.maintenanceTitle,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: const Color(0xFF1A1A18),
-                  height: 1.3,
-                ),
-              ),
-              const SizedBox(height: 10),
-              // Pesan dari Super Admin
-              Text(
-                s.maintenanceMessage,
-                textAlign: TextAlign.center,
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 13,
-                  color: const Color(0xFF5A5B60),
-                  height: 1.5,
-                ),
-              ),
-              if (s.maintenanceEta.isNotEmpty) ...[
-                const SizedBox(height: 16),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFF8FAFC),
-                    borderRadius: BorderRadius.circular(12),
-                    border: Border.all(color: const Color(0xFFE2E8F0)),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.access_time_filled, size: 16, color: Color(0xFF475569)),
-                      const SizedBox(width: 8),
-                      Flexible(
+                    const SizedBox(height: 14),
+                    // Judul Pengumuman Pop-up
+                    Text(
+                      s.maintenanceTitle,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                        color: const Color(0xFF1A1A18),
+                        height: 1.3,
+                      ),
+                    ),
+                    const SizedBox(height: 10),
+                    // Isi Pesan Pop-up & Notifikasi
+                    Text(
+                      s.maintenanceMessage,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 13,
+                        color: const Color(0xFF5A5B60),
+                        height: 1.5,
+                      ),
+                    ),
+                    // Estimasi Downtime ETA
+                    if (s.maintenanceEta.trim().isNotEmpty) ...[
+                      const SizedBox(height: 16),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFF8FAFC),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.access_time_filled, size: 16, color: Color(0xFF475569)),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                'Estimasi: ${s.maintenanceEta}',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.w600,
+                                  color: const Color(0xFF334155),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    // Feedback jika pemeriksaan status dilakukan
+                    if (feedbackMessage != null) ...[
+                      const SizedBox(height: 12),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: feedbackColor.withValues(alpha: 0.1),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(color: feedbackColor.withValues(alpha: 0.3)),
+                        ),
                         child: Text(
-                          'Estimasi: ${s.maintenanceEta}',
+                          feedbackMessage!,
+                          textAlign: TextAlign.center,
                           style: GoogleFonts.plusJakartaSans(
-                            fontSize: 12,
+                            fontSize: 11.5,
                             fontWeight: FontWeight.w600,
-                            color: const Color(0xFF334155),
+                            color: feedbackColor,
                           ),
                         ),
                       ),
                     ],
-                  ),
-                ),
-              ],
-              const SizedBox(height: 24),
-              // Tombol Periksa Status / Refresh
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton.icon(
-                  onPressed: () {
-                    Navigator.pop(ctx);
-                    if (s.isGlobalMaintenance && !s.isWarningOnly) {
-                      // Jika masih aktif, tampilkan kembali snackbar feedback
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                          content: Text(
-                            'Sistem masih dalam masa perbaikan. Harap menunggu hingga selesai.',
-                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
-                          ),
-                          backgroundColor: const Color(0xFFD94B4B),
-                          behavior: SnackBarBehavior.floating,
+                    const SizedBox(height: 22),
+                    // Tombol Periksa Status Kembali
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: isChecking
+                            ? null
+                            : () async {
+                                setDialogState(() {
+                                  isChecking = true;
+                                  feedbackMessage = null;
+                                });
+
+                                try {
+                                  final isLockdown = await s.checkStatusFromRemote();
+
+                                  if (!isLockdown) {
+                                    // Status normal terverifikasi! Tutup pop-up
+                                    s._isGlobalDialogOpen = false;
+                                    s._activeDialogContext = null;
+                                    if (ctx.mounted) {
+                                      Navigator.of(ctx).pop();
+                                    }
+                                    if (context.mounted) {
+                                      ScaffoldMessenger.of(context).showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            'Status normal terverifikasi. Layanan aplikasi kembali beroperasi!',
+                                            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+                                          ),
+                                          backgroundColor: const Color(0xFF10B981),
+                                          behavior: SnackBarBehavior.floating,
+                                        ),
+                                      );
+                                    }
+                                  } else {
+                                    // Masih dalam masa maintenance! POP-UP TETAP TERBUKA & PENGGUNA TETAP DIBLOKIR
+                                    setDialogState(() {
+                                      isChecking = false;
+                                      feedbackMessage = 'Sistem masih dalam pemeliharaan terjadwal. Harap menunggu hingga perbaikan selesai.';
+                                      feedbackColor = const Color(0xFFDC2626);
+                                    });
+                                  }
+                                } catch (e) {
+                                  // Kegagalan jaringan / error: TETAP BLOKIR
+                                  setDialogState(() {
+                                    isChecking = false;
+                                    feedbackMessage = 'Gagal memeriksa status jaringan. Pembatasan tetap diberlakukan demi kestabilan.';
+                                    feedbackColor = const Color(0xFFDC2626);
+                                  });
+                                }
+                              },
+                        icon: isChecking
+                            ? const SizedBox(
+                                width: 16,
+                                height: 16,
+                                child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white),
+                              )
+                            : const Icon(Icons.refresh, size: 16, color: Colors.white),
+                        label: Text(
+                          isChecking ? 'Memeriksa Status...' : 'Periksa Status Kembali',
+                          style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white),
                         ),
-                      );
-                    }
-                  },
-                  icon: const Icon(Icons.refresh, size: 16, color: Colors.white),
-                  label: Text(
-                    'Periksa Status Kembali',
-                    style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF1C1D1F),
+                          padding: const EdgeInsets.symmetric(vertical: 13),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+
+    s._isGlobalDialogOpen = false;
+    s._activeDialogContext = null;
+  }
+
+  /// Tampilkan Pop-Up Dialog Mode Peringatan Saja (Warning Only Mode)
+  /// Menampilkan judul & deskripsi peringatan, TANPA estimasi waktu, tombol "Oke" menutup pop-up.
+  static Future<void> showWarningDialog(BuildContext context) {
+    final s = MaintenanceService.instance;
+    return showDialog(
+      context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
+      builder: (ctx) => AlertDialog(
+        backgroundColor: Colors.white,
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        contentPadding: const EdgeInsets.fromLTRB(24, 26, 24, 22),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Ikon Informasi / Peringatan
+            Container(
+              width: 72,
+              height: 72,
+              decoration: BoxDecoration(
+                color: const Color(0xFFFEF3C7),
+                shape: BoxShape.circle,
+                border: Border.all(color: const Color(0xFFFDE68A), width: 2),
+              ),
+              child: const Icon(Icons.info_outline_rounded, size: 38, color: Color(0xFFD97706)),
+            ),
+            const SizedBox(height: 18),
+            // Badge Status
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              decoration: BoxDecoration(
+                color: const Color(0xFFD97706).withValues(alpha: 0.12),
+                borderRadius: BorderRadius.circular(30),
+                border: Border.all(color: const Color(0xFFD97706).withValues(alpha: 0.3)),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Container(
+                    width: 6,
+                    height: 6,
+                    decoration: const BoxDecoration(color: Color(0xFFD97706), shape: BoxShape.circle),
                   ),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFF1C1D1F),
-                    padding: const EdgeInsets.symmetric(vertical: 13),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                  const SizedBox(width: 6),
+                  Text(
+                    'PEMBERITAHUAN SISTEM',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 10.5,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFFD97706),
+                      letterSpacing: 0.8,
+                    ),
                   ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 14),
+            // Judul Peringatan
+            Text(
+              s.warningTitle,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 17,
+                fontWeight: FontWeight.bold,
+                color: const Color(0xFF1A1A18),
+                height: 1.3,
+              ),
+            ),
+            const SizedBox(height: 10),
+            // Isi Pesan Peringatan (Tanpa Estimasi Downtime)
+            Text(
+              s.warningMessage,
+              textAlign: TextAlign.center,
+              style: GoogleFonts.plusJakartaSans(
+                fontSize: 13,
+                color: const Color(0xFF5A5B60),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            // Tombol Oke
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => Navigator.of(ctx).pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFF1C1D1F),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 13),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                child: Text(
+                  'Oke',
+                  style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.white, fontSize: 14),
                 ),
               ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  /// Tampilkan Pop-Up Dialog Maintenance Modular (misal Gateway Booking)
+  /// Tampilkan Pop-Up Dialog Maintenance Modular (misal Gateway Booking, AI, KYC)
   static Future<void> showModularMaintenanceDialog(
     BuildContext context, {
-    required String title,
-    required String message,
+    String title = 'Modul Sedang Dalam Pemeliharaan',
+    String message =
+        'Modul ini sedang menjalani pemeliharaan sementara. Silakan coba kembali setelah layanan tersedia.',
     IconData icon = Icons.lock_clock_rounded,
   }) {
     return showDialog(
       context: context,
+      barrierDismissible: true,
+      barrierColor: Colors.black.withValues(alpha: 0.6),
       builder: (ctx) => AlertDialog(
         backgroundColor: Colors.white,
         surfaceTintColor: Colors.transparent,
@@ -409,7 +720,7 @@ class MaintenanceService extends ChangeNotifier {
                   const SizedBox(width: 8),
                   Expanded(
                     child: Text(
-                      'Fitur lain seperti peta jelajah, detail parkir, dan AI Assistant tetap beroperasi normal.',
+                      'Fitur lain pada aplikasi tetap dapat beroperasi normal.',
                       style: GoogleFonts.plusJakartaSans(
                         fontSize: 11.5,
                         color: const Color(0xFF0F766E),
@@ -427,7 +738,7 @@ class MaintenanceService extends ChangeNotifier {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: () => Navigator.pop(ctx),
+              onPressed: () => Navigator.of(ctx).pop(),
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF1C1D1F),
                 foregroundColor: Colors.white,

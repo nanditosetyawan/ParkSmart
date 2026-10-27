@@ -5,6 +5,7 @@ import 'package:camera/camera.dart';
 import 'package:image_picker/image_picker.dart';
 import 'backend/ktp_camera_backend.dart';
 import 'backend/profile_backend.dart';
+import '../../core/services/maintenance_service.dart';
 
 class KtpCameraScreen extends StatefulWidget {
   const KtpCameraScreen({super.key});
@@ -25,6 +26,21 @@ class _KtpCameraScreenState extends State<KtpCameraScreen> {
   @override
   void initState() {
     super.initState();
+    if (MaintenanceService.instance.isKycMaintenance) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          Navigator.pop(context);
+          MaintenanceService.showModularMaintenanceDialog(
+            context,
+            title: 'Modul Wajib KYC KTP Sedang Maintenance',
+            message:
+                'Layanan verifikasi identitas KTP sementara dinonaktifkan untuk pembaharuan sistem. Fitur jelajah dan reservasi tetap berjalan.',
+            icon: Icons.shield_outlined,
+          );
+        }
+      });
+      return;
+    }
     _initCamera();
   }
 

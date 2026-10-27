@@ -1,4 +1,5 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'maintenance_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -23,6 +24,10 @@ class NotificationService {
 
   Future<void> showNotification({required int id, required String title, required String body}) async {
     try {
+      if (MaintenanceService.instance.isPushMaintenance) {
+        // Gateway Push Notification dinonaktifkan oleh Superadmin
+        return;
+      }
       const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
         'payment_channel', 'Payment Notifications',
         channelDescription: 'Notifications for successful payments',
