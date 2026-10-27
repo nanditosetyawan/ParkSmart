@@ -767,6 +767,7 @@ class _SlotSelectionScreenState extends State<SlotSelectionScreen> {
                             final endMinute = endHour == 23 ? 59 : now.minute;
                             final end = DateTime(now.year, now.month, now.day, endHour, endMinute);
 
+                            CheckoutBackend.instance.clear();
                             CheckoutBackend.instance.setBookingDetails(
                               locationId: loc?['id']?.toString(),
                               locationName: loc?['name']?.toString() ?? 'Pakuwon Mall',

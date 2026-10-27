@@ -175,7 +175,7 @@ class HomeBackend extends ChangeNotifier {
       // 1. Ambil semua lokasi aktif dari database Supabase
       final response = await _client
           .from('parking_locations')
-          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, operating_hours')
+          .select('id, code, name, type, city, address, latitude, longitude, total_capacity, hourly_rate_mobil, hourly_rate_motor, hourly_rate_ev, rating, review_count, status, image_url, images, facilities, operating_hours, is_ev_ready, ev_slots_capacity')
           .order('rating', ascending: false);
 
       List<Map<String, dynamic>> rawList = List<Map<String, dynamic>>.from(response);
@@ -237,10 +237,38 @@ class HomeBackend extends ChangeNotifier {
           return type.contains('mall');
         }).toList();
       } else if (_selectedCategory == 'Parkir EV') {
-        // Filter kolom 'type' yang mengandung kata kunci "%ev%" (case-insensitive substring)
+        // Filter lokasi yang memiliki fasilitas EV (is_ev_ready, ev_slots_capacity, hourly_rate_ev, fasilitas EV)
         rawList = rawList.where((loc) {
           final type = (loc['type'] ?? '').toString().toLowerCase();
-          return type.contains('ev');
+          final isEvReady = loc['is_ev_ready'] == true ||
+              loc['is_ev_ready'] == 1 ||
+              loc['is_ev_ready']?.toString().toLowerCase() == 'true';
+          final evSlots = (loc['ev_slots_capacity'] as num?)?.toInt() ?? 0;
+          final hourlyRateEv = (loc['hourly_rate_ev'] as num?)?.toDouble() ?? 0.0;
+
+          bool hasEvFacility = false;
+          final facilities = loc['facilities'];
+          if (facilities is List) {
+            hasEvFacility = facilities.any((f) {
+              final str = f.toString().toLowerCase();
+              return str.contains('ev') ||
+                  str.contains('charging') ||
+                  str.contains('spklu') ||
+                  str.contains('listrik');
+            });
+          } else if (facilities != null) {
+            final str = facilities.toString().toLowerCase();
+            hasEvFacility = str.contains('ev') ||
+                str.contains('charging') ||
+                str.contains('spklu') ||
+                str.contains('listrik');
+          }
+
+          return isEvReady ||
+              evSlots > 0 ||
+              hourlyRateEv > 0 ||
+              hasEvFacility ||
+              type.contains('ev');
         }).toList();
       }
 

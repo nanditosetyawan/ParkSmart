@@ -14,6 +14,7 @@ import '../../core/services/maintenance_service.dart';
 import 'backend/parking_detail_backend.dart';
 import '../checkout/backend/checkout_backend.dart';
 import '../booking/backend/slot_selection_backend.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 class ParkingDetailScreen extends StatefulWidget {
   final String? locationId;
@@ -236,8 +237,8 @@ class _ParkingDetailScreenState extends State<ParkingDetailScreen> {
                                         setState(() => _currentPhotoIndex = idx);
                                       },
                                       itemBuilder: (context, idx) {
-                                        return Image.network(
-                                          photos[idx],
+                                        return AppCachedNetworkImage(
+                                          imageUrl: photos[idx],
                                           fit: BoxFit.cover,
                                           errorBuilder: (context, error, stackTrace) => Container(
                                             color: isDark ? const Color(0xFF1E293B) : const Color(0xFFECE8E0),

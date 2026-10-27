@@ -5,6 +5,7 @@ import '../../../core/services/session_service.dart';
 import '../../../core/services/parking_notification_service.dart';
 import '../../admin/operations/backend/admin_operations_dashboard_backend.dart';
 import '../../profile/backend/profile_backend.dart';
+import '../../profile/backend/payment_methods_backend.dart';
 import 'active_session_backend.dart';
 
 /// Backend khusus untuk ExtendSessionScreen (lib/features/session/extend_session_screen.dart)
@@ -19,6 +20,7 @@ class ExtendSessionBackend extends ChangeNotifier {
   bool get isLoading => _isLoading;
 
   String? _sessionId;
+  String? get sessionId => _sessionId;
   bool get hasSessionToExtend => _sessionId != null;
 
   String get slotCode => _slotCode;
@@ -88,19 +90,27 @@ class ExtendSessionBackend extends ChangeNotifier {
     try {
       final activeUserId = ProfileBackend.instance.userId.isNotEmpty
           ? ProfileBackend.instance.userId
-          : (SessionService.instance.userId ?? '');
+          : (SessionService.instance.userId ?? Supabase.instance.client.auth.currentUser?.id ?? '');
 
       if (activeUserId.isNotEmpty) {
         try {
-          final wallet = await _client
-              .from('wallets')
-              .select('balance')
-              .eq('user_id', activeUserId)
+          final uRow = await _client
+              .from('users')
+              .select('wallet_balance')
+              .eq('id', activeUserId)
               .maybeSingle();
-          if (wallet != null) {
-            _walletBalance = (wallet['balance'] as num?)?.toDouble() ?? 0.0;
+          if (uRow != null && uRow['wallet_balance'] != null) {
+            _walletBalance = (double.tryParse(uRow['wallet_balance'].toString()) ?? 0.0);
+          } else if (ProfileBackend.instance.walletBalance > 0) {
+            _walletBalance = ProfileBackend.instance.walletBalance.toDouble();
           }
-        } catch (_) {}
+        } catch (_) {
+          if (ProfileBackend.instance.walletBalance > 0) {
+            _walletBalance = ProfileBackend.instance.walletBalance.toDouble();
+          }
+        }
+      } else if (ProfileBackend.instance.walletBalance > 0) {
+        _walletBalance = ProfileBackend.instance.walletBalance.toDouble();
       }
       var query = _client
           .from('parking_sessions')
@@ -252,37 +262,57 @@ class ExtendSessionBackend extends ChangeNotifier {
       final newEnd = baseTime.add(Duration(minutes: minutesToAdd));
 
       // Jika bayar menggunakan wallet, pastikan saldo cukup & kurangi saldo
-      if (paymentMethod.toLowerCase().contains('wallet')) {
-        final walletRes = await _client
-            .from('wallets')
-            .select('id, balance')
-            .eq('user_id', activeUserId)
-            .maybeSingle();
-
-        if (walletRes != null) {
-          final currentBal = (walletRes['balance'] as num?)?.toDouble() ?? 0.0;
-          if (currentBal < cost) {
-            debugPrint('[ExtendSessionBackend] Saldo wallet tidak cukup: $currentBal < $cost');
-            return false;
-          }
-          final newBal = currentBal - cost;
-          await _client.from('wallets').update({
-            'balance': newBal,
-            'updated_at': DateTime.now().toUtc().toIso8601String(),
-          }).eq('id', walletRes['id']);
-          _walletBalance = newBal;
-
+      if (paymentMethod.toLowerCase().contains('wallet') || paymentMethod.toLowerCase().contains('parksmart')) {
+        double currentBal = _walletBalance;
+        if (activeUserId.isNotEmpty) {
           try {
-            await _client.from('wallet_transactions').insert({
-              'wallet_id': walletRes['id'],
-              'user_id': activeUserId,
-              'amount': cost,
-              'type': 'expense',
-              'description': 'Perpanjangan Durasi Parkir ${opt['title']}',
-              'status': 'completed',
-            });
+            final uRow = await _client
+                .from('users')
+                .select('wallet_balance')
+                .eq('id', activeUserId)
+                .maybeSingle();
+            if (uRow != null && uRow['wallet_balance'] != null) {
+              currentBal = (double.tryParse(uRow['wallet_balance'].toString()) ?? currentBal);
+            }
           } catch (_) {}
         }
+
+        if (currentBal < cost) {
+          debugPrint('[ExtendSessionBackend] Saldo wallet tidak cukup: $currentBal < $cost');
+          return false;
+        }
+
+        final newBal = currentBal - cost;
+        if (activeUserId.isNotEmpty) {
+          try {
+            await _client.from('users').update({
+              'wallet_balance': newBal,
+              'updated_at': DateTime.now().toUtc().toIso8601String(),
+            }).eq('id', activeUserId);
+          } catch (e) {
+            debugPrint('[ExtendSessionBackend] update users.wallet_balance error: $e');
+          }
+        }
+        _walletBalance = newBal;
+        try {
+          ProfileBackend.instance.fetchProfile();
+          PaymentMethodsBackend.instance.fetchBalance();
+        } catch (_) {}
+
+        try {
+          final trxCode = 'PAY-EXT-${Random().nextInt(900000) + 100000}';
+          await _client.from('payments').insert({
+            'transaction_code': trxCode,
+            'user_id': activeUserId.isNotEmpty ? activeUserId : null,
+            'session_id': _sessionId,
+            'transaction_type': 'parking_payment',
+            'payment_method': 'wallet',
+            'amount': cost,
+            'description': 'Perpanjangan Durasi Parkir ${opt['title']}',
+            'status': 'success',
+            'completed_at': DateTime.now().toIso8601String(),
+          });
+        } catch (_) {}
       }
 
       if (_sessionId != null) {
@@ -309,6 +339,8 @@ class ExtendSessionBackend extends ChangeNotifier {
           try {
             final res = await _client.from('parking_sessions').update({
               'expected_check_out_time': newEnd.toUtc().toIso8601String(),
+              'status': 'active',
+              'check_out_time': null,
               'extended_count': 1,
               'extended_minutes': minutesToAdd,
             }).or('id.eq.$_sessionId,session_code.eq.$_sessionId').select('id, booking_id');
@@ -316,6 +348,7 @@ class ExtendSessionBackend extends ChangeNotifier {
             if (res.isNotEmpty && res[0]['booking_id'] != null) {
               await _client.from('bookings').update({
                 'end_time': newEnd.toUtc().toIso8601String(),
+                'booking_status': 'active',
                 'extended_count': 1,
                 'extended_minutes': minutesToAdd,
               }).eq('id', res[0]['booking_id']);
@@ -325,6 +358,7 @@ class ExtendSessionBackend extends ChangeNotifier {
           try {
             await _client.from('bookings').update({
               'end_time': newEnd.toUtc().toIso8601String(),
+              'booking_status': 'active',
               'extended_count': 1,
               'extended_minutes': minutesToAdd,
             }).or('id.eq.$_sessionId,booking_code.eq.$_sessionId');
@@ -332,6 +366,21 @@ class ExtendSessionBackend extends ChangeNotifier {
 
           _expectedCheckOut = newEnd;
         }
+
+        // Pastikan status parking_sessions dan bookings selalu 'active' di database
+        try {
+          final sRow = await _client.from('parking_sessions').update({
+            'status': 'active',
+            'check_out_time': null,
+          }).eq('id', _sessionId!).select('booking_id').maybeSingle();
+
+          final bId = sRow?['booking_id']?.toString();
+          if (bId != null && bId.isNotEmpty) {
+            await _client.from('bookings').update({
+              'booking_status': 'active',
+            }).eq('id', bId);
+          }
+        } catch (_) {}
 
         final endToDisplay = _expectedCheckOut ?? newEnd;
         _currentDeadline = '${endToDisplay.hour.toString().padLeft(2, '0')}:${endToDisplay.minute.toString().padLeft(2, '0')} WIB';
@@ -344,26 +393,13 @@ class ExtendSessionBackend extends ChangeNotifier {
           _remainingTimeFormatted = '$hrs:$mins:$secs';
         }
 
-        // 2. Catat pembayaran perpanjangan jam di tabel payments
-        final code = 'PAY-EXT-${Random().nextInt(900000) + 100000}';
-        try {
-          await _client.from('payments').insert({
-            'transaction_code': code,
-            'session_id': _sessionId,
-            'user_id': activeUserId,
-            'transaction_type': 'parking_payment',
-            'payment_method': paymentMethod == 'ParkSmart Wallet' ? 'wallet' : 'gopay',
-            'amount': cost,
-            'description': 'Perpanjangan Durasi Parkir ${opt['title']}',
-            'status': 'success',
-          });
-        } catch (_) {}
-
-        // 3. Sinkronisasi ke ActiveSessionBackend (sisi user) & Admin Dashboard (sisi admin)
-        await ActiveSessionBackend.instance.fetchActiveSession();
+        // 2. Sinkronisasi ke ActiveSessionBackend (sisi user) & Admin Dashboard (sisi admin)
+        await ActiveSessionBackend.instance.fetchActiveSession(sessionId: _sessionId);
         await AdminOperationsDashboardBackend.instance.fetchDashboardData();
 
-        // 4. Hentikan notifikasi darurat & update timer background sisi notifikasi
+        // 3. Update timer background & batalkan status darurat lama
+        ParkingNotificationService().saveActiveSession(expectedCheckout: endToDisplay);
+        ParkingNotificationService.startBackgroundMonitor(expectedCheckout: endToDisplay);
         final finalCheckout = _expectedCheckOut ?? newEnd;
         await ParkingNotificationService().onSessionExtended(
           newExpectedCheckout: finalCheckout,

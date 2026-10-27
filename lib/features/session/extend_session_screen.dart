@@ -666,7 +666,9 @@ class _ExtendSessionScreenState extends State<ExtendSessionScreen> {
                       context,
                       MaterialPageRoute(
                         builder: (_) => PinScreen(
-                          nextScreen: const ActiveSessionScreen(),
+                          nextScreen: ActiveSessionScreen(
+                            sessionId: widget.sessionId ?? ExtendSessionBackend.instance.sessionId,
+                          ),
                           transactionType: 'perpanjangan parkir',
                           customTitle: 'Konfirmasi PIN Perpanjangan'.tr,
                           onConfirmPin: () async {

@@ -180,6 +180,33 @@ class ParkingNotificationService {
 
   Future<void> stopUrgentNotification() async => cancelUrgentNotification();
 
+  /// Trigger notifikasi darurat (10 Menit Tersisa) yang 100% identik dengan tombol Urgent Action di Developer Options Profil
+  static Future<void> showSystemUrgentNotificationDirectly({BuildContext? context}) async {
+    await _ensurePluginInitialized();
+    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
+      'urgent_channel_v4',
+      'Urgent Notifications',
+      channelDescription: 'Peringatan waktu parkir dengan suara darurat penuh',
+      importance: Importance.max,
+      priority: Priority.high,
+      playSound: true,
+      sound: RawResourceAndroidNotificationSound('sound_darurat'),
+      audioAttributesUsage: AudioAttributesUsage.alarm,
+      actions: <AndroidNotificationAction>[
+        AndroidNotificationAction('perpanjang_id', 'Perpanjang'),
+        AndroidNotificationAction('checkout_id', 'Checkout'),
+      ],
+    );
+    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
+    await _plugin.show(
+      id: 0,
+      title: 'Sisa Waktu Parkir 10 Menit!',
+      body: 'Waktu hampir habis. Segera perpanjang atau checkout.',
+      notificationDetails: platformChannelSpecifics,
+      payload: 'expiring_session',
+    );
+  }
+
   // ─── TRIGGER UTAMA ────────────────────────────────────────────────────────
 
   /// Dipanggil saat timer parkir mencapai sisa ≤ 10 menit (600 detik).

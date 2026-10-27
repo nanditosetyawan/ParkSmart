@@ -491,7 +491,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  void _toggleMaintenanceMode(bool value) {
+  void _toggleMaintenanceMode(bool value) async {
     if (value) {
       showDialog(
         context: context,
@@ -625,17 +625,19 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
     } else {
       setState(() => _isMaintenanceActive = false);
-      MaintenanceService.instance.setGlobalMaintenance(false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Mode Maintenance DIMATIKAN. Layanan beroperasi normal kembali.',
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white),
+      await MaintenanceService.instance.setGlobalMaintenance(false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Mode Maintenance DIMATIKAN. Layanan beroperasi normal kembali.',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600, color: Colors.white),
+            ),
+            backgroundColor: const Color(0xFF17A18A),
+            behavior: SnackBarBehavior.floating,
           ),
-          backgroundColor: const Color(0xFF17A18A),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
     }
   }
 
@@ -802,14 +804,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text('Tata Kelola & Wewenang Inti', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
+                  Text('Tata Kelola', style: GoogleFonts.plusJakartaSans(fontSize: 16, fontWeight: FontWeight.bold, color: const Color(0xFF1A1A18))),
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                     decoration: BoxDecoration(
                       color: const Color(0xFFEDE9FE),
                       borderRadius: BorderRadius.circular(6),
                     ),
-                    child: Text('Domain Khusus', style: GoogleFonts.plusJakartaSans(fontSize: 10, fontWeight: FontWeight.bold, color: const Color(0xFF6D28D9))),
+                   
                   ),
                 ],
               ),
@@ -2151,7 +2153,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   },
                   icon: const Icon(Icons.open_in_new, size: 14, color: Color(0xFF114177)),
                   label: Text(
-                    'Buka Modul KYC Penuh',
+                    'Buka Modul KYC',
                     style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: const Color(0xFF114177)),
                   ),
                   style: OutlinedButton.styleFrom(
@@ -2164,10 +2166,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(width: 8),
               Expanded(
                 child: ElevatedButton.icon(
-                  onPressed: _generateMoreKyc,
-                  icon: const Icon(Icons.autorenew, size: 14, color: Colors.white),
+                  onPressed: _refreshKycQueue,
+                  icon: const Icon(Icons.refresh, size: 14, color: Colors.white),
                   label: Text(
-                    'Generate Berkas Baru',
+                    'Refresh',
                     style: GoogleFonts.plusJakartaSans(fontSize: 11, fontWeight: FontWeight.bold, color: Colors.white),
                   ),
                   style: ElevatedButton.styleFrom(
@@ -2473,31 +2475,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  void _generateMoreKyc() {
-    final names = ['Budi Prasetyo', 'Nadia Putri', 'Indra Wicaksono', 'Laras Kusuma', 'Fajar Ramadhan'];
-    final cities = ['Jakarta Selatan, DKI', 'Surabaya, Jatim', 'Denpasar, Bali', 'Medan, Sumut', 'Makassar, Sulsel'];
-    final random = math.Random();
-    final pickedName = names[random.nextInt(names.length)];
-    final pickedCity = cities[random.nextInt(cities.length)];
-    final generatedNik = '31710${random.nextInt(899999) + 100000}000${random.nextInt(9) + 1}';
-
-    setState(() {
-      _pendingKycList.add({
-        'id': 'KYC-00${_pendingKycList.length + 5}',
-        'name': pickedName,
-        'nik': generatedNik,
-        'submittedAt': 'Baru saja',
-        'status': 'Menunggu',
-        'city': pickedCity,
-        'dob': '${random.nextInt(28) + 1} Agustus ${1990 + random.nextInt(15)}',
-        'address': 'Jl. Kenanga Timur No. ${random.nextInt(99) + 1}',
-      });
-    });
-
-    ScaffoldMessenger.of(context).showSnackBar(
+  Future<void> _refreshKycQueue() async {
+    final messenger = ScaffoldMessenger.of(context);
+    await Future.wait([
+      AdminDashboardBackend.instance.fetchDashboardMetrics(),
+      AdminKycBackend.instance.fetchKycList(),
+    ]);
+    if (!mounted) return;
+    setState(() {});
+    messenger.showSnackBar(
       SnackBar(
-        content: Text('Pengajuan pendaftaran KTP baru atas nama $pickedName berhasil dibuat.'),
-        backgroundColor: const Color(0xFFE07A5F),
+        content: Text(
+          _pendingKycList.isEmpty
+              ? 'Antrean KTP telah diperbarui. Tidak ada antrean pengajuan saat ini.'
+              : 'Antrean KTP berhasil diperbarui (${_pendingKycList.length} pengajuan pending).',
+        ),
+        backgroundColor: const Color(0xFF17A18A),
+        duration: const Duration(seconds: 2),
+        behavior: SnackBarBehavior.floating,
       ),
     );
   }

@@ -34,6 +34,7 @@ import 'backend/home_backend.dart';
 import '../../core/services/session_service.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/language_service.dart';
+import '../../core/services/app_image_cache_service.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -166,9 +167,10 @@ class _HomeScreenState extends State<HomeScreen> {
       }
     });
 
-    // Periksa status pemeliharaan saat layar pertama kali dipasang
+    // Periksa status pemeliharaan saat layar pertama kali dipasang (khusus akun pengguna)
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
+      if (SessionService.instance.isAdmin) return;
       final m = MaintenanceService.instance;
       if (m.isGlobalMaintenance) {
         if (!m.isWarningOnly) {
@@ -182,6 +184,7 @@ class _HomeScreenState extends State<HomeScreen> {
 
   void _onMaintenanceChanged() {
     if (!mounted) return;
+    if (SessionService.instance.isAdmin) return;
     final m = MaintenanceService.instance;
     if (m.isGlobalMaintenance && !m.isWarningOnly && !m.isGlobalDialogOpen) {
       MaintenanceService.showGlobalMaintenanceDialog(context);
@@ -618,7 +621,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         listenable: MaintenanceService.instance,
                         builder: (context, _) {
                           final service = MaintenanceService.instance;
-                          if (!service.isGlobalMaintenance) return const SizedBox.shrink();
+                          if (!service.isGlobalMaintenance || SessionService.instance.isAdmin) return const SizedBox.shrink();
 
                           if (service.isWarningOnly) {
                             return GestureDetector(
@@ -1178,8 +1181,8 @@ class _HomeScreenState extends State<HomeScreen> {
                           // Parking spot image
                           ClipRRect(
                             borderRadius: AppRadii.imgRadius,
-                            child: Image.network(
-                              imageUrl,
+                            child: AppCachedNetworkImage(
+                              imageUrl: imageUrl,
                               width: 64, height: 64, fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) => Container(
                                 width: 64, height: 64, color: AppColors.surfaceDim,
@@ -1912,8 +1915,8 @@ class _RecommendationsListState extends State<_RecommendationsList> {
             children: [
               // 1. FULL BACKGROUND IMAGE (Menampilkan mobil & area parkir dengan jelas)
               Positioned.fill(
-                child: Image.network(
-                  imageUrl,
+                child: AppCachedNetworkImage(
+                  imageUrl: imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: const Color(0xFFE5E7EB),

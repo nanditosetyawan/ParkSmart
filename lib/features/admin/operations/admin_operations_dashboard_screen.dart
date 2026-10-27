@@ -13,6 +13,7 @@ import 'manage_parking_screen.dart';
 import '../../sitemap_screen.dart';
 import '../../auth/login_screen.dart';
 import '../../../core/services/session_service.dart';
+import '../../../core/services/parking_notification_service.dart';
 import 'backend/admin_operations_dashboard_backend.dart';
 
 class AdminOperationsDashboardScreen extends StatefulWidget {
@@ -996,11 +997,27 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      final sm = ScaffoldMessenger.of(context);
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
+                      final targetUserId = session['user_id']?.toString();
+                      final plate = session['plate']?.toString() ?? 'Kendaraan';
+                      final userName = session['user']?.toString() ?? 'Pengguna';
+
+                      // 1. Rekam ke database system_notifications untuk user pemilik sesi
+                      await AdminOperationsDashboardBackend.instance.sendUrgentReminderNotification(
+                        userId: targetUserId,
+                        plateNumber: plate,
+                        locationName: session['location']?.toString(),
+                      );
+
+                      // 2. Munculkan notifikasi darurat sistem (100% identik dengan tombol Urgent Action di Developer Options profil)
+                      await ParkingNotificationService.showSystemUrgentNotificationDirectly();
+
+                      sm.showSnackBar(
                         SnackBar(
-                          content: Text('Notifikasi peringatan berhasil dikirimkan ke ${session['user']}!'),
+                          content: Text('Notifikasi darurat peringatan berhasil dikirimkan ke $userName!'),
+                          backgroundColor: const Color(0xFF17A18A),
                           behavior: SnackBarBehavior.floating,
                         ),
                       );

@@ -463,15 +463,9 @@ class _HistoryDetailScreenState extends State<HistoryDetailScreen> {
                                                         borderRadius: BorderRadius.circular(16),
                                                         border: Border.all(color: isDark ? cardBorder : const Color(0xFFE5E2DB)),
                                                       ),
-                                                      child: Row(
-                                                        children: [
-                                                          Icon(Icons.payments, size: 15, color: terracotta),
-                                                          const SizedBox(width: 6),
-                                                          Text(
-                                                            backend.paymentMethod.tr,
-                                                            style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w500, color: textMain),
-                                                          ),
-                                                        ],
+                                                      child: Text(
+                                                        backend.paymentMethod.tr,
+                                                        style: GoogleFonts.plusJakartaSans(fontSize: 13, fontWeight: FontWeight.w600, color: textMain),
                                                       ),
                                                     ),
                                                   ),

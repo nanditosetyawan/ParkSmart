@@ -403,6 +403,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
             .select('''
               id,
               session_code,
+              user_id,
               plate_number,
               vehicle_desc,
               vehicle_type,
@@ -416,7 +417,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
               slot_id,
               location_id,
               booking_id,
-              users(full_name, phone),
+              users(id, full_name, phone),
               parking_locations(name, address),
               parking_slots(slot_code, floor_name)
             ''')
@@ -487,6 +488,7 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
             return {
               'id': row['session_code']?.toString() ?? 'SES-000',
               'db_id': row['id']?.toString(),
+              'user_id': row['user_id']?.toString() ?? userData?['id']?.toString(),
               'slot_id': row['slot_id']?.toString(),
               'booking_id': row['booking_id']?.toString(),
               'plate': row['plate_number']?.toString() ?? 'B 1234 XYZ',
@@ -877,14 +879,39 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
     }
   }
 
+  /// Mengirimkan notifikasi darurat peringatan (10 menit tersisa) ke user yang dituju
+  Future<bool> sendUrgentReminderNotification({
+    required String? userId,
+    required String? plateNumber,
+    required String? locationName,
+  }) async {
+    try {
+      if (userId != null && userId.isNotEmpty) {
+        await _client.from('system_notifications').insert({
+          'recipient_user_id': userId,
+          'target_role': 'user',
+          'title': 'Sisa Waktu Parkir 10 Menit!',
+          'message': 'Waktu hampir habis. Segera perpanjang atau checkout.',
+          'notification_type': 'urgent',
+          'action_type': 'expiring_session',
+          'is_read': false,
+        });
+      }
+      return true;
+    } catch (e) {
+      debugPrint('[AdminOperationsDashboardBackend] sendUrgentReminderNotification error: $e');
+      return false;
+    }
+  }
+
   /// Admin Force Check-Out tepat pada sesi kendaraan aktif tertentu
   Future<bool> forceCheckOutSession(String sessionIdentifier) async {
     try {
-      final sess = await _client
-          .from('parking_sessions')
-          .select('id, slot_id, booking_id')
-          .or('id.eq.$sessionIdentifier,session_code.eq.$sessionIdentifier')
-          .maybeSingle();
+      final isUuid = RegExp(r'^[0-9a-fA-F-]{36}$').hasMatch(sessionIdentifier);
+      final query = _client.from('parking_sessions').select('id, slot_id, booking_id');
+      final sess = isUuid
+          ? await query.eq('id', sessionIdentifier).maybeSingle()
+          : await query.eq('session_code', sessionIdentifier).maybeSingle();
 
       if (sess == null) return false;
 

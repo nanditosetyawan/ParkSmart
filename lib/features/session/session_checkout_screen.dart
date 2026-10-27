@@ -669,7 +669,13 @@ class _SessionCheckoutScreenState extends State<SessionCheckoutScreen> {
                       if (context.mounted) {
                         Navigator.pushAndRemoveUntil(
                           context,
-                          MaterialPageRoute(builder: (_) => const feedback.FeedbackScreen()),
+                          MaterialPageRoute(
+                            builder: (_) => feedback.FeedbackScreen(
+                              locationName: backend.locationName,
+                              slotCode: backend.slotCode,
+                              floorName: backend.floorName,
+                            ),
+                          ),
                           (route) => false,
                         );
                       }

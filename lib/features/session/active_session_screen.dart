@@ -60,20 +60,23 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (mounted) {
         setState(() {
-          if (_remainingSeconds > 0) {
+          final checkout = ActiveSessionBackend.instance.expectedCheckOutTime;
+          if (checkout != null) {
+            final diff = checkout.difference(DateTime.now()).inSeconds;
+            _remainingSeconds = diff > 0 ? diff : 0;
+          } else if (_remainingSeconds > 0) {
             _remainingSeconds--;
-            // Trigger notifikasi darurat saat tepat 10 menit tersisa
-            if (_remainingSeconds == 600 && !_urgentNotifTriggered) {
-              _urgentNotifTriggered = true;
-              ParkingNotificationService().triggerUrgentWarning(
-                remainingSeconds: _remainingSeconds,
-              );
-            }
-            if (_remainingSeconds == 0) {
-              _onSessionExpired();
-            }
-          } else {
-            _timer?.cancel();
+          }
+
+          // Trigger notifikasi darurat saat tepat 10 menit tersisa
+          if (_remainingSeconds <= 600 && _remainingSeconds > 590 && !_urgentNotifTriggered) {
+            _urgentNotifTriggered = true;
+            ParkingNotificationService().triggerUrgentWarning(
+              remainingSeconds: _remainingSeconds,
+            );
+          }
+          if (_remainingSeconds == 0) {
+            _onSessionExpired();
           }
         });
       }
@@ -82,9 +85,26 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
 
   void _onSessionExpired() async {
     _timer?.cancel();
-    // Hentikan semua notifikasi darurat saat sesi habis
-    await ParkingNotificationService().onSessionEnded();
     final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
+
+    // Verifikasi terlebih dahulu ke database apakah sesi telah diperpanjang oleh user
+    await ActiveSessionBackend.instance.fetchActiveSession(sessionId: sId);
+    final freshCheckout = ActiveSessionBackend.instance.expectedCheckOutTime;
+    final now = DateTime.now();
+    if (freshCheckout != null && freshCheckout.isAfter(now)) {
+      // Sesi telah berhasil diperpanjang! Sinkronkan timer baru dan JANGAN checkout
+      if (mounted) {
+        setState(() {
+          _remainingSeconds = freshCheckout.difference(now).inSeconds;
+          _urgentNotifTriggered = false;
+        });
+        _startTimer();
+      }
+      return;
+    }
+
+    // Jika waktu memang benar-benar telah habis tanpa perpanjangan:
+    await ParkingNotificationService().onSessionEnded();
     await SessionCheckoutBackend.instance.fetchCheckoutDetails(sessionId: sId);
     await SessionCheckoutBackend.instance.completeSessionCheckout();
     if (mounted) {
@@ -441,6 +461,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                                             // Reset flag agar notif bisa trigger lagi saat nanti sisa 10 menit
                                             _urgentNotifTriggered = false;
                                           });
+                                          _startTimer();
                                         }
                                       }
                                     },

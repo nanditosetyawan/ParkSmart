@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:image_picker/image_picker.dart';
 import '../../../../core/services/parking_image_service.dart';
+import '../../../../core/services/app_image_cache_service.dart';
 import 'backend/manage_parking_backend.dart';
 
 class ManageParkingScreen extends StatefulWidget {
@@ -2127,8 +2128,8 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
     if (pathOrUrl.startsWith('http://') ||
         pathOrUrl.startsWith('https://') ||
         pathOrUrl.startsWith('blob:')) {
-      return Image.network(
-        pathOrUrl,
+      return AppCachedNetworkImage(
+        imageUrl: pathOrUrl,
         fit: BoxFit.cover,
         errorBuilder: (context, error, stackTrace) => const Center(
           child: Icon(Icons.broken_image_rounded, color: Color(0xFF94A3B8), size: 22),
@@ -2520,7 +2521,7 @@ class _ManageParkingScreenState extends State<ManageParkingScreen> with SingleTi
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
-                        Image.network(presets[i]['url']!, fit: BoxFit.cover),
+                        AppCachedNetworkImage(imageUrl: presets[i]['url']!, fit: BoxFit.cover),
                         Positioned(
                           bottom: 0,
                           left: 0,

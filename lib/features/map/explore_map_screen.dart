@@ -24,6 +24,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../profile/backend/feedback_backend.dart';
 import '../profile/backend/vehicle_backend.dart';
 import 'widgets/compass_detail_dialog.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 class ExploreMapScreen extends StatefulWidget {
   final Map<String, dynamic>? initialSelectedParking;
@@ -1507,8 +1508,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                       children: [
                         const SizedBox(width: 14),
                         // Logo Google Maps berwarna dari internet link
-                        Image.network(
-                          'https://img.icons8.com/color/96/google-maps-new.png',
+                        AppCachedNetworkImage(
+                          imageUrl: 'https://img.icons8.com/color/96/google-maps-new.png',
                           width: 24,
                           height: 24,
                           fit: BoxFit.contain,
@@ -2596,8 +2597,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
                   child: Stack(
                     fit: StackFit.expand,
                     children: [
-                      Image.network(
-                        photoUrl,
+                      AppCachedNetworkImage(
+                        imageUrl: photoUrl,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) => Container(
                           color: const Color(0xFFE8F0FE),
@@ -3294,8 +3295,8 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
             children: [
               // 1. FULL BACKGROUND IMAGE
               Positioned.fill(
-                child: Image.network(
-                  imageUrl,
+                child: AppCachedNetworkImage(
+                  imageUrl: imageUrl,
                   fit: BoxFit.cover,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: isDark ? const Color(0xFF1E293B) : const Color(0xFFE5E7EB),
@@ -3969,8 +3970,8 @@ class _VoiceSearchBottomSheetState extends State<VoiceSearchBottomSheet>
             children: [
               Row(
                 children: [
-                  Image.network(
-                    'https://img.icons8.com/color/96/google-maps-new.png',
+                  AppCachedNetworkImage(
+                    imageUrl: 'https://img.icons8.com/color/96/google-maps-new.png',
                     width: 22,
                     height: 22,
                     fit: BoxFit.contain,

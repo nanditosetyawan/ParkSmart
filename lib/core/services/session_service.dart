@@ -55,6 +55,7 @@ class SessionService with WidgetsBindingObserver {
 
   bool get isLoggedIn => _isLoggedIn;
   String? get userType => _userType;
+  bool get isAdmin => _isLoggedIn && _userType == 'admin';
   String? get identifier => _identifier;
   String? get userId => _userId;
   String? get userName => _userName;

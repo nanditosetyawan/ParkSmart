@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/admin_active_users_backend.dart';
 import 'manage_parking_screen.dart';
+import '../../../core/services/parking_notification_service.dart';
 
 class ActiveUsersScreen extends StatefulWidget {
   const ActiveUsersScreen({super.key});
@@ -122,10 +123,15 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
-                    onPressed: () {
+                    onPressed: () async {
+                      final sm = ScaffoldMessenger.of(context);
                       Navigator.pop(ctx);
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Notifikasi peringatan dikirimkan ke ${session['user']}!')),
+                      await ParkingNotificationService.showSystemUrgentNotificationDirectly();
+                      sm.showSnackBar(
+                        SnackBar(
+                          content: Text('Notifikasi darurat peringatan berhasil dikirimkan ke ${session['user']}!'),
+                          backgroundColor: const Color(0xFF17A18A),
+                        ),
                       );
                     },
                     icon: const Icon(Icons.notifications_active_outlined, size: 16, color: Color(0xFF114177)),

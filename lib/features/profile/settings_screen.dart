@@ -11,6 +11,7 @@ import '../../core/services/currency_service.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/language_service.dart';
 import '../../core/services/maintenance_service.dart';
+import '../../core/services/app_image_cache_service.dart';
 import 'backend/profile_backend.dart';
 
 class SettingsScreen extends StatefulWidget {
@@ -30,10 +31,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void initState() {
     super.initState();
     _loadUserProfile();
+    _loadActualCacheSize();
     CurrencyService.instance.addListener(_onCurrencyChanged);
     ThemeService.instance.addListener(_onThemeChanged);
     ProfileBackend.instance.addListener(_onProfileChanged);
     LanguageService.instance.addListener(_onLanguageChanged);
+  }
+
+  Future<void> _loadActualCacheSize() async {
+    final size = await AppImageCacheService.instance.getFormattedCacheSize();
+    if (mounted) {
+      setState(() {
+        _cacheSize = size;
+        _isCacheCleared = size.startsWith('0');
+      });
+    }
   }
 
   void _onLanguageChanged() {
@@ -126,7 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   bool _faceIdEnabled = false;
   bool _fingerprintEnabled = false;
   bool _notifEnabled = true;
-  String _cacheSize = '128.4 MB tersimpan';
+  String _cacheSize = 'Menghitung...';
   bool _isCacheCleared = false;
   String _selectedParkingPref = 'Mobil SUV';
 
@@ -1093,8 +1105,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           children: [
                             ClipOval(
                               child: _avatarUrl != null && _avatarUrl!.isNotEmpty
-                                  ? Image.network(
-                                      _avatarUrl!,
+                                  ? AppCachedNetworkImage(
+                                      imageUrl: _avatarUrl!,
                                       width: 56,
                                       height: 56,
                                       fit: BoxFit.cover,
@@ -1502,18 +1514,29 @@ class _SettingsScreenState extends State<SettingsScreen> {
                               ),
                             ),
                             GestureDetector(
-                              onTap: _isCacheCleared ? null : () {
+                              onTap: _isCacheCleared ? null : () async {
+                                final messenger = ScaffoldMessenger.of(context);
+                                await AppImageCacheService.instance.clearAllCache();
+                                if (!mounted) return;
                                 setState(() {
                                   _cacheSize = '0 KB tersimpan';
                                   _isCacheCleared = true;
                                 });
+                                messenger.showSnackBar(
+                                  SnackBar(
+                                    content: Text('Cache perangkat berhasil dibersihkan!'.tr),
+                                    backgroundColor: const Color(0xFF17A18A),
+                                    behavior: SnackBarBehavior.floating,
+                                    duration: const Duration(seconds: 2),
+                                  ),
+                                );
                               },
                               child: Container(
                                 padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                                 decoration: BoxDecoration(color: ThemeService.instance.chipBg, borderRadius: BorderRadius.circular(16)),
                                 child: _isCacheCleared 
-                                  ? Row(children: [const Icon(Icons.done, size: 14, color: Color(0xFF45474A)), const SizedBox(width: 4), Text('Beres', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)))])
-                                  : Text('Bersihkan', style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color.fromARGB(255, 0, 0, 0))),
+                                  ? Row(children: [const Icon(Icons.done, size: 14, color: Color(0xFF45474A)), const SizedBox(width: 4), Text('Beres'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: const Color(0xFF45474A)))])
+                                  : Text('Bersihkan'.tr, style: GoogleFonts.plusJakartaSans(fontSize: 12, fontWeight: FontWeight.bold, color: ThemeService.instance.textPrimary)),
                               ),
                             ),
                           ],

@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/ticket_status_helper.dart';
+import '../../profile/backend/payment_methods_backend.dart';
 
 /// Backend khusus untuk HistoryDetailScreen (lib/features/history/history_detail_screen.dart)
 class HistoryDetailBackend extends ChangeNotifier {
@@ -8,6 +9,25 @@ class HistoryDetailBackend extends ChangeNotifier {
   static final HistoryDetailBackend instance = HistoryDetailBackend._();
 
   SupabaseClient get _client => Supabase.instance.client;
+
+  String _formatPaymentMethod(String? raw) {
+    if (raw == null || raw.trim().isEmpty) {
+      try {
+        final selected = PaymentMethodsBackend.instance.selectedMethod.toLowerCase();
+        if (selected.contains('gopay')) return 'GoPay';
+        if (selected.contains('ovo')) return 'OVO';
+        if (selected.contains('shopee')) return 'ShopeePay';
+      } catch (_) {}
+      return 'ParkSmart Pay';
+    }
+    final lower = raw.toLowerCase().trim();
+    if (lower.contains('gopay')) return 'GoPay';
+    if (lower.contains('ovo')) return 'OVO';
+    if (lower.contains('shopee')) return 'ShopeePay';
+    if (lower.contains('dana')) return 'DANA';
+    if (lower.contains('wallet') || lower.contains('parksmart')) return 'ParkSmart Pay';
+    return raw[0].toUpperCase() + raw.substring(1);
+  }
 
   bool _isLoading = false;
   bool get isLoading => _isLoading;
@@ -190,22 +210,58 @@ class HistoryDetailBackend extends ChangeNotifier {
           _checkOutTime = 'Sedang Berlangsung';
         }
 
+        final expectedCoDt = res['expected_check_out_time'] != null
+            ? DateTime.tryParse(res['expected_check_out_time'].toString())?.toLocal()
+            : null;
+
         if (ciDt != null && coDt != null) {
           final diff = coDt.difference(ciDt);
           final hours = diff.inHours;
           final mins = diff.inMinutes % 60;
           _duration = '${hours}j ${mins}m';
+        } else if (ciDt != null && expectedCoDt != null) {
+          final diff = expectedCoDt.difference(ciDt);
+          final hours = diff.inHours;
+          final mins = diff.inMinutes % 60;
+          _duration = mins > 0 ? '${hours}j ${mins}m' : '$hours Jam';
         } else if (booking?['duration_hours'] != null) {
           _duration = '${booking!['duration_hours']} Jam';
         } else {
           _duration = '$dHours Jam';
         }
 
-        final expectedCoDt = res['expected_check_out_time'] != null
-            ? DateTime.tryParse(res['expected_check_out_time'].toString())?.toLocal()
-            : null;
-
         _paymentMethod = 'ParkSmart Pay';
+        try {
+          final bId = res['booking_id']?.toString();
+          final sId = res['id']?.toString();
+          Map<String, dynamic>? payRecord;
+          if (bId != null && bId.isNotEmpty) {
+            payRecord = await _client
+                .from('payments')
+                .select('payment_method')
+                .eq('booking_id', bId)
+                .order('created_at', ascending: false)
+                .limit(1)
+                .maybeSingle();
+          }
+          if (payRecord == null && sId != null && sId.isNotEmpty && res['user_id'] != null) {
+            payRecord = await _client
+                .from('payments')
+                .select('payment_method')
+                .eq('user_id', res['user_id'].toString())
+                .order('created_at', ascending: false)
+                .limit(1)
+                .maybeSingle();
+          }
+          if (payRecord != null && payRecord['payment_method'] != null) {
+            _paymentMethod = _formatPaymentMethod(payRecord['payment_method'].toString());
+          } else {
+            _paymentMethod = _formatPaymentMethod(null);
+          }
+        } catch (_) {
+          _paymentMethod = _formatPaymentMethod(null);
+        }
+
         _serviceFee = 0;
         _discount = 0;
         _status = TicketMark.resolve(
@@ -318,6 +374,30 @@ class HistoryDetailBackend extends ChangeNotifier {
           _timestamp = '${dt.year}-${dt.month.toString().padLeft(2, '0')}-${dt.day.toString().padLeft(2, '0')} ${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')} UTC+7';
 
           _paymentMethod = 'ParkSmart Pay';
+          try {
+            final bookId = bRes['id']?.toString();
+            if (bookId != null && bookId.isNotEmpty) {
+              final payRecord = await _client
+                  .from('payments')
+                  .select('payment_method')
+                  .eq('booking_id', bookId)
+                  .order('created_at', ascending: false)
+                  .limit(1)
+                  .maybeSingle();
+              if (payRecord != null && payRecord['payment_method'] != null) {
+                _paymentMethod = _formatPaymentMethod(payRecord['payment_method'].toString());
+              } else if (bRes['payment_method'] != null) {
+                _paymentMethod = _formatPaymentMethod(bRes['payment_method'].toString());
+              } else {
+                _paymentMethod = _formatPaymentMethod(null);
+              }
+            } else {
+              _paymentMethod = _formatPaymentMethod(null);
+            }
+          } catch (_) {
+            _paymentMethod = _formatPaymentMethod(null);
+          }
+
           _serviceFee = 0;
           _discount = 0;
         }

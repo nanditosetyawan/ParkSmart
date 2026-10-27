@@ -6,6 +6,7 @@ import '../../core/services/language_service.dart';
 import '../parking/parking_detail_screen.dart';
 import 'backend/favorite_backend.dart';
 import '../profile/backend/vehicle_backend.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 class FavoriteScreen extends StatefulWidget {
   const FavoriteScreen({super.key});
@@ -210,8 +211,8 @@ class _FavoriteScreenState extends State<FavoriteScreen> {
                                     // Foto Parkir
                                     ClipRRect(
                                       borderRadius: const BorderRadius.horizontal(left: Radius.circular(16)),
-                                      child: Image.network(
-                                        imgUrl,
+                                      child: AppCachedNetworkImage(
+                                        imageUrl: imgUrl,
                                         width: 110,
                                         height: 120,
                                         fit: BoxFit.cover,

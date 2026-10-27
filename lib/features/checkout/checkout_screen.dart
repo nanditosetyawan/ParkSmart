@@ -17,6 +17,7 @@ import '../profile/payment_methods_screen.dart';
 import '../profile/backend/payment_methods_backend.dart';
 import 'backend/checkout_backend.dart';
 import '../booking/backend/booking_confirmation_backend.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 const _kSurface = Color(0xFFFCF9F2);
 const _kCard = Color(0xFFFFFFFF);
@@ -38,7 +39,7 @@ class CheckoutScreen extends StatefulWidget {
 
 class _CheckoutScreenState extends State<CheckoutScreen> {
   Timer? _countdownTimer;
-  int _remainingSeconds = 179; // 2 menit 59 detik
+  int _remainingSeconds = 0;
 
   @override
   void initState() {
@@ -61,49 +62,62 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
         return;
       }
 
-      final createdAt = CheckoutBackend.instance.holdCreatedAt ?? DateTime.now();
-      final elapsed = DateTime.now().difference(createdAt).inSeconds;
-      final remaining = 179 - elapsed;
-
-      if (remaining <= 0) {
-        await CheckoutBackend.instance.cancelHoldBooking();
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text('Batas waktu pembayaran (02:59) telah habis. Slot telah dilepas.'.tr),
-              backgroundColor: Colors.redAccent,
-            ),
-          );
-          Navigator.pop(context);
-        }
-        return;
-      }
-
-      if (mounted) {
-        setState(() {
-          _remainingSeconds = remaining;
-        });
-        _startTimer();
-      }
+      _syncTimerFromHoldBooking();
     } else {
       // 2. Pertama kali masuk checkout dari pemilihan slot
+      // Slot belum ditahan dan status belum dibayar belum ada di database
       await CheckoutBackend.instance.fetchCheckoutData();
-      final ok = await CheckoutBackend.instance.createHoldBooking();
       if (!mounted) return;
 
-      if (!ok) {
+      if (CheckoutBackend.instance.isSlotHeld) {
+        _syncTimerFromHoldBooking();
+      } else {
+        _countdownTimer?.cancel();
+        setState(() {
+          _remainingSeconds = 0;
+        });
+      }
+    }
+  }
+
+  void _syncTimerFromHoldBooking() {
+    if (!CheckoutBackend.instance.isSlotHeld) {
+      _countdownTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _remainingSeconds = 0;
+        });
+      }
+      return;
+    }
+
+    final createdAt = CheckoutBackend.instance.holdCreatedAt ?? DateTime.now();
+    final elapsed = DateTime.now().difference(createdAt).inSeconds;
+    final remaining = 179 - elapsed;
+
+    if (remaining <= 0) {
+      _countdownTimer?.cancel();
+      if (mounted) {
+        setState(() {
+          _remainingSeconds = 0;
+        });
+      }
+      CheckoutBackend.instance.cancelHoldBooking();
+      if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Slot ini sudah dibooking orang lain atau terjadi kendala. Silakan pilih jadwal/slot lain.'.tr),
+            content: Text('Batas waktu pembayaran (02:59) telah habis. Slot telah dilepas.'.tr),
             backgroundColor: Colors.redAccent,
           ),
         );
         Navigator.pop(context);
-        return;
       }
+      return;
+    }
 
+    if (mounted) {
       setState(() {
-        _remainingSeconds = 179;
+        _remainingSeconds = remaining;
       });
       _startTimer();
     }
@@ -180,33 +194,36 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                        decoration: BoxDecoration(
-                          color: isDark ? const Color(0xFF451A1A) : _kSecondaryFixed,
-                          borderRadius: AppRadii.pillRadius,
-                          border: Border.all(color: isDark ? const Color(0xFFF97316) : const Color(0xFFE5A99C)),
-                        ),
-                        child: Row(
-                          children: [
-                            Container(
-                              width: 6,
-                              height: 6,
-                              decoration: BoxDecoration(
-                                color: isDark ? const Color(0xFFFB923C) : _kSecondary,
-                                shape: BoxShape.circle,
+                      if (CheckoutBackend.instance.isSlotHeld && _remainingSeconds > 0)
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                          decoration: BoxDecoration(
+                            color: isDark ? const Color(0xFF451A1A) : _kSecondaryFixed,
+                            borderRadius: AppRadii.pillRadius,
+                            border: Border.all(color: isDark ? const Color(0xFFF97316) : const Color(0xFFE5A99C)),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 6,
+                                height: 6,
+                                decoration: BoxDecoration(
+                                  color: isDark ? const Color(0xFFFB923C) : _kSecondary,
+                                  shape: BoxShape.circle,
+                                ),
                               ),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${'Slot Ditahan'.tr} ($_timerDisplay)',
-                              style: AppTypography.overline(
-                                color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF742814),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${'Slot Ditahan'.tr} ($_timerDisplay)',
+                                style: AppTypography.overline(
+                                  color: isDark ? const Color(0xFFFED7AA) : const Color(0xFF742814),
+                                ),
                               ),
-                            ),
-                          ],
-                        ),
-                      ),
+                            ],
+                          ),
+                        )
+                      else
+                        const SizedBox.shrink(),
                       Text(
                         'Langkah 3 dari 3'.tr,
                         style: AppTypography.caption(
@@ -325,8 +342,8 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           borderRadius: BorderRadius.circular(12),
                           child: Stack(
                             children: [
-                              Image.network(
-                                'https://lh3.googleusercontent.com/aida-public/AB6AXuDT0ZoyfWQcaEzs6MHLz6cuAXmKYUfHvadgETmWMtDwDuHAQhgcLiExY2mDLfNdWUdhWJoyC0sIf_osQTNETlWG6QXuvrzt9oCMDE4d0CREPiJpum3drIn1rtXLXgLl4HsnxtgkPgDgSOSnvn7RdMvWizDgqYP7xfa9hk9A9VxzxR2LlzGcOZRirFyUW3QE4M98E7yAJBDEjo9mQJ74n_PbHdd95axOTGk3heFrVOSVwgMXU9tAad86',
+                              AppCachedNetworkImage(
+                                imageUrl: 'https://lh3.googleusercontent.com/aida-public/AB6AXuDT0ZoyfWQcaEzs6MHLz6cuAXmKYUfHvadgETmWMtDwDuHAQhgcLiExY2mDLfNdWUdhWJoyC0sIf_osQTNETlWG6QXuvrzt9oCMDE4d0CREPiJpum3drIn1rtXLXgLl4HsnxtgkPgDgSOSnvn7RdMvWizDgqYP7xfa9hk9A9VxzxR2LlzGcOZRirFyUW3QE4M98E7yAJBDEjo9mQJ74n_PbHdd95axOTGk3heFrVOSVwgMXU9tAad86',
                                 width: double.infinity,
                                 height: 144,
                                 fit: BoxFit.cover,
@@ -778,6 +795,12 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                           final end = CheckoutBackend.instance.scheduledEndTime ??
                               start.add(Duration(hours: CheckoutBackend.instance.durationHours));
 
+                          // 0. Pengaman: Tolak pemesanan jika durasi di bawah 1 jam (60 menit)
+                          if (end.difference(start).inMinutes < 60) {
+                            _showMinDurationWarningDialog(context);
+                            return;
+                          }
+
                           // 1. Validasi jam masuk tidak di masa lalu
                           if (start.isBefore(now.subtract(const Duration(minutes: 2)))) {
                             ScaffoldMessenger.of(context).showSnackBar(
@@ -833,71 +856,117 @@ class _CheckoutScreenState extends State<CheckoutScreen> {
                             return; // JANGAN DILOLOSKAN PAYMENT!
                           }
 
-                          final booking = await CheckoutBackend.instance.confirmAndCreateBooking();
-                          if (booking == null) {
-                            if (context.mounted) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Gagal membuat pesanan. Slot mungkin baru saja dibooking pengguna lain.'.tr),
-                                  backgroundColor: Colors.redAccent,
-                                ),
-                              );
+                          final hasPin = await PinBackend.instance.hasPin();
+                          if (!context.mounted) return;
+
+                          if (hasPin) {
+                            // User lama: sudah ada PIN
+                            // Trigger slot hold & pembuatan booking terjadi di sini saat menuju halaman PIN bayar
+                            final booking = await CheckoutBackend.instance.confirmAndCreateBooking();
+                            if (booking == null) {
+                              if (context.mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text('Gagal membuat pesanan. Slot mungkin baru saja dibooking pengguna lain.'.tr),
+                                    backgroundColor: Colors.redAccent,
+                                  ),
+                                );
+                              }
+                              return;
                             }
-                            return;
-                          }
 
-                          final veh = CheckoutBackend.instance.selectedVehicle;
-                          final vehicleName = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Land Cruiser';
-                          final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
-                          final bId = booking['id']?.toString();
+                            final veh = CheckoutBackend.instance.selectedVehicle;
+                            final vehicleName = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Land Cruiser';
+                            final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
+                            final bId = booking['id']?.toString();
 
-                          final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
-                          final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+                            final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+                            final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
 
-                          BookingConfirmationBackend.instance.setConfirmedPass(
-                            bookingCode: booking['booking_code'] ?? '#PS-88210-CP',
-                            locationName: CheckoutBackend.instance.locationName.tr,
-                            locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
-                            slotCode: CheckoutBackend.instance.slotCode,
-                            vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota Land Cruiser',
-                            plateNumber: plateNumber,
-                            validTime: '$startStr - $endStr WIB',
-                            bookingId: bId,
-                            ticketStatus: TicketMark.belumDibayar,
-                            totalPrice: CheckoutBackend.instance.totalPayment,
-                          );
-
-                          if (context.mounted) {
-                            final hasPin = await PinBackend.instance.hasPin();
-                            if (!context.mounted) return;
-
-                            final paymentPinScreen = PinScreen(
+                            BookingConfirmationBackend.instance.setConfirmedPass(
+                              bookingCode: booking['booking_code'] ?? '#PS-88210-CP',
+                              locationName: CheckoutBackend.instance.locationName.tr,
+                              locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
+                              slotCode: CheckoutBackend.instance.slotCode,
+                              vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota Land Cruiser',
+                              plateNumber: plateNumber,
+                              validTime: '$startStr - $endStr WIB',
                               bookingId: bId,
-                              nextScreen: BookingConfirmationScreen(bookingId: bId),
-                              transactionType: 'parkir',
-                              customTitle: 'Konfirmasi PIN Pembayaran'.tr,
+                              ticketStatus: TicketMark.belumDibayar,
+                              totalPrice: CheckoutBackend.instance.totalPayment,
                             );
 
-                            if (!hasPin) {
-                              Navigator.pushReplacement(
+                            _syncTimerFromHoldBooking();
+
+                            if (context.mounted) {
+                              Navigator.push(
                                 context,
                                 MaterialPageRoute(
                                   builder: (_) => PinScreen(
-                                    transactionType: 'buat pin',
-                                    customTitle: 'Buat PIN Transaksi'.tr,
+                                    bookingId: bId,
+                                    nextScreen: BookingConfirmationScreen(bookingId: bId),
+                                    transactionType: 'parkir',
+                                    customTitle: 'Konfirmasi PIN Pembayaran'.tr,
                                     backToHome: false,
-                                    nextScreen: paymentPinScreen,
                                   ),
                                 ),
-                              );
-                            } else {
-                              Navigator.pushReplacement(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (_) => paymentPinScreen,
-                                ),
-                              );
+                              ).then((_) {
+                                if (mounted) {
+                                  _syncTimerFromHoldBooking();
+                                }
+                              });
                             }
+                          } else {
+                            // User baru: belum punya PIN
+                            // Jangan buat booking dulu! Navigasikan ke alur Buat PIN -> Konfirmasi PIN
+                            // Trigger booking & slot hold akan dieksekusi di onNextScreenBuilder saat PIN sukses dibuat dan mau masuk layar PIN bayar
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PinScreen(
+                                  transactionType: 'buat pin',
+                                  customTitle: 'Buat PIN Transaksi'.tr,
+                                  backToHome: false,
+                                  onNextScreenBuilder: () async {
+                                    final booking = await CheckoutBackend.instance.confirmAndCreateBooking();
+                                    if (booking == null) {
+                                      throw Exception('Gagal membuat pesanan');
+                                    }
+                                    final bId = booking['id']?.toString();
+                                    final veh = CheckoutBackend.instance.selectedVehicle;
+                                    final vehicleName = veh != null ? '${veh['brand'] ?? ''} ${veh['model'] ?? ''}'.trim() : 'Toyota Land Cruiser';
+                                    final plateNumber = veh != null ? (veh['plate_number'] ?? 'B 1945 RI') : 'B 1945 RI';
+                                    final startStr = '${start.hour.toString().padLeft(2, '0')}:${start.minute.toString().padLeft(2, '0')}';
+                                    final endStr = '${end.hour.toString().padLeft(2, '0')}:${end.minute.toString().padLeft(2, '0')}';
+
+                                    BookingConfirmationBackend.instance.setConfirmedPass(
+                                      bookingCode: booking['booking_code'] ?? '#PS-88210-CP',
+                                      locationName: CheckoutBackend.instance.locationName.tr,
+                                      locationSub: '${CheckoutBackend.instance.floorName}, Slot ${CheckoutBackend.instance.slotCode}',
+                                      slotCode: CheckoutBackend.instance.slotCode,
+                                      vehicleName: vehicleName.isNotEmpty ? vehicleName : 'Toyota Land Cruiser',
+                                      plateNumber: plateNumber,
+                                      validTime: '$startStr - $endStr WIB',
+                                      bookingId: bId,
+                                      ticketStatus: TicketMark.belumDibayar,
+                                      totalPrice: CheckoutBackend.instance.totalPayment,
+                                    );
+
+                                    return PinScreen(
+                                      bookingId: bId,
+                                      nextScreen: BookingConfirmationScreen(bookingId: bId),
+                                      transactionType: 'parkir',
+                                      customTitle: 'Konfirmasi PIN Pembayaran'.tr,
+                                      backToHome: false,
+                                    );
+                                  },
+                                ),
+                              ),
+                            ).then((_) {
+                              if (mounted) {
+                                _syncTimerFromHoldBooking();
+                              }
+                            });
                           }
                         },
                         style: ElevatedButton.styleFrom(
@@ -1500,7 +1569,7 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
     setState(() {
       _arrivalTime = selectedTime;
       final depMinutes = _departureTime.hour * 60 + _departureTime.minute;
-      if (depMinutes <= selMinutes) {
+      if (depMinutes - selMinutes < 60) {
         final newDepHour = (_arrivalTime.hour + 1).clamp(0, 23);
         final newDepMinute = newDepHour == 23 ? 59 : _arrivalTime.minute;
         _departureTime = TimeOfDay(hour: newDepHour, minute: newDepMinute);
@@ -1526,6 +1595,14 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
             backgroundColor: Colors.redAccent,
           ),
         );
+      }
+      return;
+    }
+
+    // Pengaman: Durasi minimal harus 1 jam (60 menit)
+    if (selMinutes - arrMinutes < 60) {
+      if (mounted) {
+        _showMinDurationWarningDialog(context);
       }
       return;
     }
@@ -1721,4 +1798,79 @@ class _JadwalSelectorState extends State<_JadwalSelector> {
       ),
     );
   }
+}
+
+/// Pop-up penolakan pemesanan durasi di bawah 1 jam (Light Mode Bersih & Elegan)
+void _showMinDurationWarningDialog(BuildContext context) {
+  showDialog(
+    context: context,
+    builder: (dialogCtx) => AlertDialog(
+      backgroundColor: Colors.white,
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      contentPadding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Container(
+            width: 56,
+            height: 56,
+            decoration: const BoxDecoration(
+              color: Color(0xFFFEF2F2),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.warning_amber_rounded,
+              color: Color(0xFFEF4444),
+              size: 32,
+            ),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'Durasi Parkir Minimal 1 Jam',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 17,
+              fontWeight: FontWeight.w700,
+              color: const Color(0xFF1E293B),
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Pemesanan parkir di ParkSmart minimal berdurasi 1 jam (60 menit). Mohon atur jam keluar sekurang-kurangnya 1 jam setelah jam masuk.',
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 13,
+              height: 1.4,
+              color: const Color(0xFF64748B),
+            ),
+          ),
+        ],
+      ),
+      actionsAlignment: MainAxisAlignment.center,
+      actionsPadding: const EdgeInsets.only(bottom: 20, left: 24, right: 24),
+      actions: [
+        SizedBox(
+          width: double.infinity,
+          child: ElevatedButton(
+            onPressed: () => Navigator.pop(dialogCtx),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: const Color(0xFF114177),
+              foregroundColor: Colors.white,
+              elevation: 0,
+              padding: const EdgeInsets.symmetric(vertical: 12),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+            ),
+            child: Text(
+              'Mengerti',
+              style: GoogleFonts.plusJakartaSans(
+                fontWeight: FontWeight.w600,
+                fontSize: 14,
+              ),
+            ),
+          ),
+        ),
+      ],
+    ),
+  );
 }

@@ -608,7 +608,7 @@ class _HistoryCard extends StatelessWidget {
                       Icon(Icons.verified, size: 15, color: isDark ? const Color(0xFF059669) : const Color(0xFF047857)),
                       const SizedBox(width: 6),
                       Text(
-                        'Verified by Blockchain',
+                        'Verified',
                         style: GoogleFonts.plusJakartaSans(
                           fontSize: 11,
                           fontWeight: FontWeight.w600,

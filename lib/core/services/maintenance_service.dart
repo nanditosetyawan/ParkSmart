@@ -4,6 +4,9 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'notification_service.dart';
+import 'session_service.dart';
+import '../../main.dart' show navigatorKey;
+import '../../features/auth/login_screen.dart';
 
 /// Service sentral untuk mengelola status Maintenance Global, Mode Peringatan, dan Modular Platform
 class MaintenanceService extends ChangeNotifier {
@@ -68,6 +71,7 @@ class MaintenanceService extends ChangeNotifier {
 
   /// Cek apakah modul tertentu sedang dalam pemeliharaan
   bool isModuleInMaintenance(String moduleKey) {
+    if (SessionService.instance.isAdmin) return false;
     switch (moduleKey.toLowerCase()) {
       case 'booking':
         return _isBookingMaintenance;
@@ -190,8 +194,8 @@ class MaintenanceService extends ChangeNotifier {
     _syncTimer?.cancel();
     _syncTimer = Timer.periodic(interval, (_) async {
       final isLockdown = await checkStatusFromRemote();
-      if (!isLockdown && _isGlobalDialogOpen && _activeDialogContext != null) {
-        // Jika Superadmin menonaktifkan maintenance, tutup modal secara otomatis
+      // Jika pemeliharaan nonaktif ATAU pengguna saat ini adalah akun admin, pastikan pop-up tertutup
+      if ((!isLockdown || SessionService.instance.isAdmin) && _isGlobalDialogOpen && _activeDialogContext != null) {
         try {
           if (Navigator.of(_activeDialogContext!).canPop()) {
             Navigator.of(_activeDialogContext!).pop();
@@ -208,7 +212,7 @@ class MaintenanceService extends ChangeNotifier {
     _syncTimer = null;
   }
 
-  /// Update pengaturan maintenance global
+  /// Update pengaturan maintenance global & sinkronkan langsung ke Supabase
   Future<void> setGlobalMaintenance(
     bool active, {
     String? title,
@@ -231,6 +235,27 @@ class MaintenanceService extends ChangeNotifier {
       await prefs.setString(_kEta, _maintenanceEta);
       await prefs.setBool(_kWarningOnly, _isWarningOnly);
     } catch (_) {}
+
+    // Sinkronkan ke Supabase system_settings agar tersimpan di cloud & tidak ditimpa background timer
+    try {
+      final client = Supabase.instance.client;
+      await client.from('system_settings').upsert({
+        'key': 'maintenance_mode',
+        'value': {
+          'is_active': _isGlobalMaintenance,
+          'title': _maintenanceTitle,
+          'message': _maintenanceMessage,
+          'eta': _maintenanceEta,
+          'warning_only': _isWarningOnly,
+          'warning_title': _warningTitle,
+          'warning_message': _warningMessage,
+        },
+        'description': 'Status darurat pemeliharaan sistem global dan banner peringatan',
+        'updated_at': DateTime.now().toIso8601String(),
+      });
+    } catch (e) {
+      debugPrint('[MaintenanceService] Gagal sinkronisasi setGlobalMaintenance ke Supabase: $e');
+    }
 
     notifyListeners();
 
@@ -304,6 +329,9 @@ class MaintenanceService extends ChangeNotifier {
   /// Tampilkan Pop-Up Dialog Maintenance Global ke Layar Pengguna
   /// Menghalangi interaksi, tidak bisa di-back/dismiss, tombol periksa status aktual.
   static Future<void> showGlobalMaintenanceDialog(BuildContext context) async {
+    // Akun admin (Super Admin, Ops, Finance, CS) 100% bebas dari pembatasan pemeliharaan
+    if (SessionService.instance.isAdmin) return;
+
     final s = MaintenanceService.instance;
     if (s._isGlobalDialogOpen) return;
     s._isGlobalDialogOpen = true;
@@ -514,6 +542,34 @@ class MaintenanceService extends ChangeNotifier {
                         ),
                       ),
                     ),
+                    const SizedBox(height: 10),
+                    // Tombol Keluar Akun / Akses Portal Admin
+                    TextButton.icon(
+                      onPressed: () async {
+                        s._isGlobalDialogOpen = false;
+                        s._activeDialogContext = null;
+                        if (ctx.mounted) {
+                          Navigator.of(ctx).pop();
+                        }
+                        await SessionService.instance.clearSession();
+                        final nav = navigatorKey.currentState;
+                        if (nav != null) {
+                          nav.pushAndRemoveUntil(
+                            MaterialPageRoute(builder: (_) => const LoginScreen()),
+                            (route) => false,
+                          );
+                        }
+                      },
+                      icon: const Icon(Icons.logout, size: 15, color: Color(0xFF76777B)),
+                      label: Text(
+                        'Keluar Akun (Ke Halaman Masuk / Portal Admin)',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF76777B),
+                        ),
+                      ),
+                    ),
                   ],
                 ),
               );
@@ -530,6 +586,7 @@ class MaintenanceService extends ChangeNotifier {
   /// Tampilkan Pop-Up Dialog Mode Peringatan Saja (Warning Only Mode)
   /// Menampilkan judul & deskripsi peringatan, TANPA estimasi waktu, tombol "Oke" menutup pop-up.
   static Future<void> showWarningDialog(BuildContext context) {
+    if (SessionService.instance.isAdmin) return Future.value();
     final s = MaintenanceService.instance;
     return showDialog(
       context: context,
@@ -639,6 +696,7 @@ class MaintenanceService extends ChangeNotifier {
         'Modul ini sedang menjalani pemeliharaan sementara. Silakan coba kembali setelah layanan tersedia.',
     IconData icon = Icons.lock_clock_rounded,
   }) {
+    if (SessionService.instance.isAdmin) return Future.value();
     return showDialog(
       context: context,
       barrierDismissible: true,

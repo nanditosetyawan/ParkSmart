@@ -40,8 +40,8 @@ class TicketMark {
     final sStatus = (sessionStatus ?? '').trim().toLowerCase();
     final now = DateTime.now();
 
-    // 1. Selesai: jika sudah checkout selesai, check_out_time ada
-    if (checkOutTime != null || sStatus == 'completed' || bStatus == 'completed') {
+    // 1. Selesai: jika sudah checkout selesai nyata (check_out_time ada) atau sesi dinyatakan selesai
+    if (checkOutTime != null || sStatus == 'completed') {
       return selesai;
     }
 
@@ -50,13 +50,31 @@ class TicketMark {
       return dibatalkan;
     }
 
-    // 3. Sesi aktif di gerbang atau reservasi aktif yang sudah check-in
-    // Wajib diprioritaskan agar sesi yang sedang berjalan tidak salah dianggap unpaid/belum dibayar
-    if (sStatus == 'active' || sStatus == 'overstay' || bStatus == 'active') {
+    // 3. Prioritaskan SESI AKTIF:
+    // Jika ada sesi parkir yang sedang berjalan aktif di lapangan (belum checkout),
+    // status WAJIB 'Aktif' selama belum melewati expectedCheckOutTime baru (hasil perpanjangan).
+    final bool hasActiveSession = (sStatus == 'active' || sStatus == 'overstay');
+    if (hasActiveSession) {
+      if (expectedCheckOutTime != null && now.isAfter(expectedCheckOutTime)) {
+        return selesai;
+      }
       return aktif;
     }
 
-    // 4. Waktu habis (selesai otomatis karena waktu telah berakhir untuk reservasi yang tidak aktif)
+    // Jika reservasi berstatus aktif dan belum check-out
+    if (bStatus == 'active') {
+      if (endTime != null && now.isAfter(endTime)) {
+        return selesai;
+      }
+      return aktif;
+    }
+
+    // 4. Booking selesai (hanya jika tidak ada sesi aktif yang sedang berjalan)
+    if (bStatus == 'completed') {
+      return selesai;
+    }
+
+    // 5. Waktu habis (selesai otomatis karena waktu telah berakhir untuk reservasi yang tidak aktif)
     if (expectedCheckOutTime != null && now.isAfter(expectedCheckOutTime)) {
       return selesai;
     }

@@ -483,48 +483,7 @@ class _KycDetailModalContent extends StatelessWidget {
                     },
                   ),
 
-                  const SizedBox(height: 20),
-
-                  // ──────────────────────────────────────────────────────────
-                  // TABEL DATA EKSTRAKSI RESMI DARI IDENTITAS
-                  // ──────────────────────────────────────────────────────────
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF9F9F9),
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(color: const Color(0xFFE4DFD5)),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          children: [
-                            const Icon(Icons.badge_outlined, size: 16, color: Color(0xFF114177)),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Rincian Data Pendaftar',
-                              style: GoogleFonts.plusJakartaSans(
-                                fontSize: 13,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFF1A1A18),
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 12),
-                        _buildDataRow('Nomor Induk (NIK)', nik, isBold: true, isCopyable: true),
-                        _buildDataRow('Nama Lengkap', name, isBold: true),
-                        _buildDataRow('Tempat / Tgl Lahir', '${city.split(',').first}, $dob'),
-                        _buildDataRow('Jenis Kelamin', gender),
-                        _buildDataRow('Alamat Domisili', address),
-                        _buildDataRow('Kota / Wilayah', city),
-                        _buildDataRow('Waktu Pengajuan', submittedAt),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
                 ],
               ),
             ),
@@ -1277,37 +1236,6 @@ class _KycDetailModalContent extends StatelessWidget {
     );
   }
 
-  Widget _buildDataRow(String label, String value, {bool isBold = false, bool isCopyable = false}) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 130,
-            child: Text(
-              label,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                color: const Color(0xFF76777B),
-              ),
-            ),
-          ),
-          const SizedBox(width: 6),
-          Expanded(
-            child: Text(
-              value,
-              style: GoogleFonts.plusJakartaSans(
-                fontSize: 12,
-                fontWeight: isBold ? FontWeight.bold : FontWeight.w500,
-                color: const Color(0xFF1A1A18),
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
 
   void _showZoomDialog(BuildContext context, {required String title, required Widget child}) {
     showDialog(

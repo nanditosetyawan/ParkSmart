@@ -13,9 +13,11 @@ import 'settings_screen.dart' as settings;
 
 import '../../core/services/session_service.dart';
 import '../../core/services/language_service.dart';
+import '../../core/services/parking_notification_service.dart';
 import 'edit_profile_screen.dart' as edit_profile;
 import 'backend/profile_backend.dart';
 import 'widgets/member_card_dialog.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -146,7 +148,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             decoration: BoxDecoration(color: ThemeService.instance.chipBg, shape: BoxShape.circle, border: Border.all(color: ThemeService.instance.border.withValues(alpha: 0.8))),
                             child: (profile.avatarUrl != null && profile.avatarUrl!.isNotEmpty)
                                 ? CircleAvatar(
-                                    backgroundImage: NetworkImage(profile.avatarUrl!),
+                                    backgroundImage: AppImageCacheService.instance.provider(profile.avatarUrl!),
                                   )
                                 : CircleAvatar(
                                     backgroundColor: const Color(0xFF114177),
@@ -778,27 +780,7 @@ Future<void> _initNotifications(BuildContext context) async {
 
 Future<void> _showSystemUrgentNotification(BuildContext context) async {
   await _initNotifications(context);
-  const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-    'urgent_channel_v4', 'Urgent Notifications',
-    channelDescription: 'Peringatan waktu parkir dengan suara darurat penuh',
-    importance: Importance.max,
-    priority: Priority.high,
-    playSound: true,
-    sound: RawResourceAndroidNotificationSound('sound_darurat'),
-    audioAttributesUsage: AudioAttributesUsage.alarm,
-    actions: <AndroidNotificationAction>[
-      AndroidNotificationAction('perpanjang_id', 'Perpanjang'),
-      AndroidNotificationAction('checkout_id', 'Checkout'),
-    ],
-  );
-  const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-  await flutterLocalNotificationsPlugin.show(
-    id: 0,
-    title: 'Sisa Waktu Parkir 10 Menit!',
-    body: 'Waktu hampir habis. Segera perpanjang atau checkout.',
-    notificationDetails: platformChannelSpecifics,
-    payload: 'expiring_session',
-  );
+  await ParkingNotificationService.showSystemUrgentNotificationDirectly();
 }
 
 Future<void> _showSystemInfoNotification(BuildContext context) async {

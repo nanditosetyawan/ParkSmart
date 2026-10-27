@@ -7,6 +7,7 @@ import '../../core/services/language_service.dart';
 import '../vehicle/add_vehicle_screen.dart';
 import '../history/verified_parking_sessions_screen.dart';
 import 'backend/vehicle_backend.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 class VehicleScreen extends StatefulWidget {
   final bool isSelectionMode;
@@ -96,8 +97,8 @@ class _VehicleScreenState extends State<VehicleScreen> {
             child: hasPhoto
                 ? ClipRRect(
                     borderRadius: BorderRadius.circular(16),
-                    child: Image.network(
-                      photoUrl,
+                    child: AppCachedNetworkImage(
+                      imageUrl: photoUrl,
                       fit: BoxFit.cover,
                       width: double.infinity,
                       height: 176,

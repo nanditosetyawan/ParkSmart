@@ -3,10 +3,21 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/language_service.dart';
 import '../home/home_screen.dart';
+import '../session/backend/session_checkout_backend.dart';
+import '../checkout/backend/checkout_backend.dart';
 import 'backend/feedback_backend.dart';
 
 class FeedbackScreen extends StatefulWidget {
-  const FeedbackScreen({super.key});
+  final String? locationName;
+  final String? slotCode;
+  final String? floorName;
+
+  const FeedbackScreen({
+    super.key,
+    this.locationName,
+    this.slotCode,
+    this.floorName,
+  });
 
   @override
   State<FeedbackScreen> createState() => _FeedbackScreenState();
@@ -31,6 +42,49 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
     'Tarif & Pembayaran',
     'Lainnya',
   ];
+
+  String get _displayLocation {
+    if (widget.locationName != null && widget.locationName!.trim().isNotEmpty && widget.locationName != '-') {
+      return widget.locationName!;
+    }
+    final sLoc = SessionCheckoutBackend.instance.locationName;
+    if (sLoc.isNotEmpty && sLoc != '-') return sLoc;
+
+    final cLoc = CheckoutBackend.instance.locationName;
+    if (cLoc.isNotEmpty && cLoc != '-') return cLoc;
+
+    return 'Area Parkir ParkSmart';
+  }
+
+  String get _displaySlot {
+    String slot = widget.slotCode ?? '';
+    if (slot.isEmpty || slot == '-') {
+      slot = SessionCheckoutBackend.instance.slotCode;
+    }
+    if (slot.isEmpty || slot == '-') {
+      slot = CheckoutBackend.instance.slotCode;
+    }
+
+    String floor = widget.floorName ?? '';
+    if (floor.isEmpty || floor == '-') {
+      floor = SessionCheckoutBackend.instance.floorName;
+    }
+    if (floor.isEmpty || floor == '-') {
+      floor = CheckoutBackend.instance.floorName;
+    }
+
+    final hasSlot = slot.isNotEmpty && slot != '-';
+    final hasFloor = floor.isNotEmpty && floor != '-';
+
+    if (hasSlot && hasFloor) {
+      return 'Slot $slot • $floor';
+    } else if (hasSlot) {
+      return 'Slot $slot';
+    } else if (hasFloor) {
+      return floor;
+    }
+    return 'Slot Area Parkir';
+  }
 
   String get _ratingLabel {
     switch (_rating) {
@@ -345,15 +399,22 @@ class _FeedbackScreenState extends State<FeedbackScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   Text(
-                                    'Area Parkir B2 - Grand Indonesia',
+                                    _displayLocation,
+                                    softWrap: true,
+                                    maxLines: 3,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 14,
                                       fontWeight: FontWeight.w600,
                                       color: isDark ? Colors.white : const Color(0xFF1C1C18),
                                     ),
                                   ),
+                                  const SizedBox(height: 2),
                                   Text(
-                                    'Sesi hari ini • Slot B2-41'.tr,
+                                    _displaySlot,
+                                    softWrap: true,
+                                    maxLines: 2,
+                                    overflow: TextOverflow.ellipsis,
                                     style: GoogleFonts.plusJakartaSans(
                                       fontSize: 12,
                                       color: isDark ? const Color(0xFF94A3B8) : const Color(0xFF45474A),

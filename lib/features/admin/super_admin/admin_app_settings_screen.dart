@@ -360,7 +360,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
     }
   }
 
-  void _confirmMaintenanceToggle(bool activate) {
+  void _confirmMaintenanceToggle(bool activate) async {
     if (activate) {
       showDialog(
         context: context,
@@ -506,7 +506,7 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
       setState(() {
         _maintenanceMode = false;
       });
-      AdminAppSettingsBackend.instance.saveMaintenanceSettings(
+      await AdminAppSettingsBackend.instance.saveMaintenanceSettings(
         isGlobal: false,
         title: _maintenanceTitleCtrl.text,
         message: _maintenanceMessageCtrl.text,
@@ -515,16 +515,18 @@ class _AdminAppSettingsScreenState extends State<AdminAppSettingsScreen> with Si
         warningTitle: _warningTitleCtrl.text,
         warningMessage: _warningMessageCtrl.text,
       );
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Mode maintenance DIMATIKAN. Layanan publik kembali normal.',
-            style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              'Mode maintenance DIMATIKAN. Layanan publik kembali normal.',
+              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.w600),
+            ),
+            backgroundColor: const Color(0xFF17A18A),
+            behavior: SnackBarBehavior.floating,
           ),
-          backgroundColor: const Color(0xFF17A18A),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
+        );
+      }
     }
   }
 

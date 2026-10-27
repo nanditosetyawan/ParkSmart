@@ -918,6 +918,7 @@ BEGIN
     SELECT COUNT(*) INTO v_cancelled_bookings FROM cancelled_rows;
 
     -- 2. Auto-complete booking berbayar yang waktu end_time telah lewat
+    -- PENTING: Jangan ubah booking menjadi 'completed' jika sesi parkirnya masih aktif dan belum lewat expected_check_out_time
     WITH completed_b_rows AS (
         UPDATE public.bookings
         SET booking_status = 'completed',
@@ -925,6 +926,12 @@ BEGIN
         WHERE payment_status = 'paid'
           AND booking_status IN ('upcoming', 'active')
           AND end_time <= NOW()
+          AND NOT EXISTS (
+              SELECT 1 FROM public.parking_sessions sess
+              WHERE sess.booking_id = public.bookings.id
+                AND sess.status = 'active'
+                AND (sess.expected_check_out_time IS NULL OR sess.expected_check_out_time > NOW())
+          )
         RETURNING id
     )
     SELECT COUNT(*) INTO v_completed_bookings FROM completed_b_rows;
@@ -980,7 +987,8 @@ $$;
 CREATE OR REPLACE FUNCTION public.extend_parking_session(
     p_session_id text,
     p_additional_minutes int,
-    p_cost numeric
+    p_cost numeric,
+    p_payment_method text DEFAULT 'wallet'::text
 )
 RETURNS jsonb
 LANGUAGE plpgsql
@@ -1016,6 +1024,8 @@ BEGIN
 
     UPDATE parking_sessions
     SET expected_check_out_time = v_new_end,
+        status = 'active',
+        check_out_time = NULL,
         total_fee = COALESCE(total_fee, 0) + p_cost,
         extended_count = COALESCE(extended_count, 0) + 1,
         extended_minutes = COALESCE(extended_minutes, 0) + p_additional_minutes,
@@ -1025,6 +1035,7 @@ BEGIN
     IF v_booking_id IS NOT NULL THEN
       UPDATE bookings
       SET end_time = v_new_end,
+          booking_status = 'active',
           duration_hours = COALESCE(duration_hours, 1) + v_additional_hours,
           total_price = COALESCE(total_price, 0) + p_cost,
           extended_count = COALESCE(extended_count, 0) + 1,
@@ -1062,6 +1073,7 @@ BEGIN
 
     UPDATE bookings
     SET end_time = v_new_end,
+        booking_status = 'active',
         duration_hours = v_new_duration_hours,
         total_price = COALESCE(total_price, 0) + p_cost,
         extended_count = COALESCE(extended_count, 0) + 1,

@@ -7,6 +7,7 @@ import '../../core/services/theme_service.dart';
 import '../../core/services/language_service.dart';
 import 'backend/edit_profile_backend.dart';
 import 'backend/profile_backend.dart';
+import '../../core/services/app_image_cache_service.dart';
 
 class EditProfileScreen extends StatefulWidget {
   final String? initialName;
@@ -467,8 +468,8 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                                           fit: BoxFit.cover,
                                         )
                                       : (_profileImageUrl != null && _profileImageUrl!.isNotEmpty)
-                                          ? Image.network(
-                                              _profileImageUrl!,
+                                          ? AppCachedNetworkImage(
+                                              imageUrl: _profileImageUrl!,
                                               width: 100,
                                               height: 100,
                                               fit: BoxFit.cover,

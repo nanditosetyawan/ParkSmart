@@ -29,6 +29,11 @@ class CheckoutBackend extends ChangeNotifier {
   DateTime? _holdCreatedAt;
   DateTime? get holdCreatedAt => _holdCreatedAt;
 
+  bool get isSlotHeld => _holdBookingId != null && _holdBookingId!.isNotEmpty;
+
+  String? _lastPaymentError;
+  String? get lastPaymentError => _lastPaymentError;
+
   void clear() {
     _userId = null;
     _selectedVehicle = null;
@@ -41,6 +46,7 @@ class CheckoutBackend extends ChangeNotifier {
     _floorName = '-';
     _holdBookingId = null;
     _holdCreatedAt = null;
+    _lastPaymentError = null;
     notifyListeners();
   }
 
@@ -325,6 +331,9 @@ class CheckoutBackend extends ChangeNotifier {
             .maybeSingle();
 
         if (updated != null) {
+          if (_holdCreatedAt == null && updated['created_at'] != null) {
+            _holdCreatedAt = DateTime.tryParse(updated['created_at'].toString())?.toLocal();
+          }
           return updated;
         }
       }
@@ -347,6 +356,11 @@ class CheckoutBackend extends ChangeNotifier {
         'booking_status': 'upcoming',
         'qr_code_hash': 'PARKSMART-$bookingCode',
       }).select('id, booking_code, total_price, start_time, end_time, location_id, slot_id, created_at, plate_number, vehicle_desc').maybeSingle();
+
+      if (bookingInsert != null) {
+        _holdBookingId = bookingInsert['id']?.toString();
+        _holdCreatedAt = DateTime.tryParse(bookingInsert['created_at'].toString())?.toLocal() ?? DateTime.now();
+      }
 
       // Tandai slot sebagai reserved sementara
       if (actualSlotId != null) {
@@ -810,12 +824,32 @@ class CheckoutBackend extends ChangeNotifier {
   /// Memproses pembayaran booking setelah validasi PIN sukses
   Future<bool> markBookingAsPaid(String bookingId) async {
     try {
+      _lastPaymentError = null;
       final bRes = await _client
           .from('bookings')
-          .select('id, total_price, user_id, booking_code, location_id, slot_id, parking_locations(name), parking_slots(slot_code)')
+          .select('id, total_price, user_id, booking_code, location_id, slot_id, booking_status, payment_status, created_at, parking_locations(name), parking_slots(slot_code)')
           .eq('id', bookingId)
           .maybeSingle();
-      if (bRes == null) return false;
+      if (bRes == null) {
+        _lastPaymentError = 'Data booking tidak ditemukan.';
+        return false;
+      }
+
+      final bStatus = (bRes['booking_status'] ?? '').toString().toLowerCase();
+      if (bStatus == 'cancelled' || bStatus == 'expired') {
+        _lastPaymentError = 'Batas waktu pembayaran 2 menit 59 detik telah habis atau booking telah dibatalkan.';
+        return false;
+      }
+
+      final payStatus = (bRes['payment_status'] ?? '').toString().toLowerCase();
+      if (payStatus == 'unpaid') {
+        final cat = DateTime.tryParse(bRes['created_at']?.toString() ?? '')?.toLocal();
+        if (cat != null && DateTime.now().difference(cat).inSeconds > 179) {
+          _lastPaymentError = 'Batas waktu pembayaran 2 menit 59 detik telah habis. Slot telah dilepas.';
+          await cancelHoldBooking(bookingId: bookingId);
+          return false;
+        }
+      }
 
       final now = DateTime.now();
       final startTime = _scheduledStartTime ?? now;
@@ -845,6 +879,7 @@ class CheckoutBackend extends ChangeNotifier {
 
         if (currentBal < price) {
           debugPrint('[CheckoutBackend] markBookingAsPaid ditolak: Saldo tidak mencukupi (Saldo: $currentBal, Dibutuhkan: $price)');
+          _lastPaymentError = 'insufficient_balance';
           return false;
         }
 

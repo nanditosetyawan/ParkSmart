@@ -7,10 +7,12 @@ import '../../core/services/notification_service.dart';
 import '../../core/services/language_service.dart';
 import '../checkout/backend/checkout_backend.dart';
 import '../profile/payment_methods_screen.dart';
+import '../session/active_session_screen.dart';
 import 'backend/pin_backend.dart';
 
 class PinScreen extends StatefulWidget {
-  final Widget nextScreen;
+  final Widget? nextScreen;
+  final Future<Widget> Function()? onNextScreenBuilder;
   final String transactionType; // 'parkir' atau 'perpanjangan parkir'
   final String? customTitle;
   final bool backToHome;
@@ -19,7 +21,8 @@ class PinScreen extends StatefulWidget {
 
   const PinScreen({
     super.key,
-    required this.nextScreen,
+    this.nextScreen,
+    this.onNextScreenBuilder,
     required this.transactionType,
     this.customTitle,
     this.backToHome = true,
@@ -87,6 +90,47 @@ class _PinScreenState extends State<PinScreen> {
         setState(() {
           _isProcessing = false;
         });
+
+        final lastErr = CheckoutBackend.instance.lastPaymentError;
+        if (lastErr != null && lastErr != 'insufficient_balance') {
+          showDialog(
+            context: context,
+            barrierDismissible: false,
+            builder: (dialogCtx) => AlertDialog(
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+              backgroundColor: isDark ? theme.surfaceField : Colors.white,
+              title: Text(
+                'Pembayaran Gagal'.tr,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.bold,
+                  color: isDark ? Colors.white : Colors.black,
+                ),
+              ),
+              content: Text(
+                lastErr,
+                style: GoogleFonts.plusJakartaSans(
+                  color: isDark ? theme.textMuted : Colors.black87,
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () {
+                    Navigator.pop(dialogCtx);
+                    Navigator.pop(context);
+                  },
+                  child: Text(
+                    'Kembali'.tr,
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFF17A18A),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          );
+          return;
+        }
         showDialog(
           context: context,
           barrierDismissible: false,
@@ -203,10 +247,22 @@ class _PinScreenState extends State<PinScreen> {
         Navigator.of(dialogCtx, rootNavigator: true).pop();
       }
       if (mounted) {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (_) => widget.nextScreen),
-        );
+        if (widget.nextScreen != null) {
+          if (widget.nextScreen is ActiveSessionScreen) {
+            Navigator.pushAndRemoveUntil(
+              context,
+              MaterialPageRoute(builder: (_) => widget.nextScreen!),
+              (route) => route.isFirst,
+            );
+          } else {
+            Navigator.pushReplacement(
+              context,
+              MaterialPageRoute(builder: (_) => widget.nextScreen!),
+            );
+          }
+        } else {
+          Navigator.pop(context);
+        }
       }
     }
 
@@ -433,11 +489,35 @@ class _PinScreenState extends State<PinScreen> {
           );
           await Future.delayed(const Duration(milliseconds: 600));
           if (mounted) {
-            // Jika ada alur layar pembayaran selanjutnya (misal beli tiket parkir): lanjut ke layar PIN pembayaran
-            if (widget.nextScreen is PinScreen) {
+            if (widget.onNextScreenBuilder != null) {
+              setState(() {
+                _isProcessing = true;
+              });
+              try {
+                final nextWidget = await widget.onNextScreenBuilder!();
+                if (!mounted) return;
+                Navigator.pushReplacement(
+                  context,
+                  MaterialPageRoute(builder: (_) => nextWidget),
+                );
+              } catch (e) {
+                if (mounted) {
+                  setState(() {
+                    _isProcessing = false;
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Terjadi kesalahan: $e'),
+                      backgroundColor: const Color(0xFFEF4444),
+                    ),
+                  );
+                }
+              }
+              return;
+            } else if (widget.nextScreen != null && widget.nextScreen is PinScreen) {
               Navigator.pushReplacement(
                 context,
-                MaterialPageRoute(builder: (_) => widget.nextScreen),
+                MaterialPageRoute(builder: (_) => widget.nextScreen!),
               );
             } else if (widget.backToHome) {
               Navigator.pushAndRemoveUntil(

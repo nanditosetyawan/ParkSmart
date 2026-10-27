@@ -105,7 +105,12 @@ class HistoryItem {
 
     final booking = map['bookings'] as Map<String, dynamic>?;
     final bookingPayStatus = (booking?['payment_status'] ?? 'paid').toString().toLowerCase();
-    final bookingStatus = (booking?['booking_status'] ?? '').toString().toLowerCase();
+    String bookingStatus = (booking?['booking_status'] ?? '').toString().toLowerCase();
+
+    // Jika sesi parkir berstatus aktif dan belum ada check-out time, sinkronkan bookingStatus ke active
+    if (statusStr == 'active' && checkOutTime == null) {
+      bookingStatus = 'active';
+    }
 
     num fee = (map['total_fee'] as num?)?.toDouble() ??
         (map['parking_fee'] as num?)?.toDouble() ??
@@ -115,10 +120,14 @@ class HistoryItem {
     }
     if (fee <= 0) fee = 5000.0;
 
-    int dHours = (booking?['duration_hours'] as num?)?.toInt() ?? 0;
-    if (dHours <= 0 && expectedCheckOutTime != null && checkInTime != null) {
+    // Hitung durasi aktual dari rentang waktu check-in sampai expected check-out (termasuk perpanjangan waktu)
+    int dHours = 0;
+    if (expectedCheckOutTime != null && checkInTime != null) {
       final diffMins = expectedCheckOutTime.difference(checkInTime).inMinutes;
-      dHours = (diffMins / 60.0).round();
+      dHours = (diffMins / 60.0).ceil();
+    }
+    if (dHours <= 0) {
+      dHours = (booking?['duration_hours'] as num?)?.toInt() ?? 0;
     }
     if (dHours <= 0) dHours = 1;
 
