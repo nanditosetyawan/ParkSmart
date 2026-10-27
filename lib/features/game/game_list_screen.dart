@@ -118,116 +118,120 @@ class _GameListScreenState extends State<GameListScreen> {
     return Theme(
       data: AppTheme.light,
       child: Scaffold(
-      backgroundColor: const Color(0xFF0F172A),
-      body: Stack(
-        children: [
-          Positioned.fill(
-            child: Container(
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+        backgroundColor: const Color(0xFF0F172A),
+        body: Stack(
+          children: [
+            Positioned.fill(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Color(0xFF1E293B), Color(0xFF0F172A)],
+                  ),
                 ),
               ),
             ),
-          ),
-          SafeArea(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Row(
-                    children: [
-                      GestureDetector(
-                        onTap: () => Navigator.pop(context),
-                        child: Container(
-                          width: 40,
-                          height: 40,
-                          decoration: BoxDecoration(
-                            color: const Color(0xFF1E293B),
-                            borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: const Color(0xFF475569)),
-                          ),
-                          child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0)),
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Text(
-                          'PILIH PERMAINAN',
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w900,
-                            color: const Color(0xFF34D399),
-                            letterSpacing: 1.5,
-                          ),
-                        ),
-                      ),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
-                          borderRadius: BorderRadius.circular(20),
-                          border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 16),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${_formatScore(_userPoints)} Pts',
-                              style: GoogleFonts.inter(
-                                fontSize: 12,
-                                fontWeight: FontWeight.bold,
-                                color: const Color(0xFFF59E0B),
-                              ),
+            SafeArea(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Row(
+                      children: [
+                        GestureDetector(
+                          onTap: () => Navigator.pop(context),
+                          child: Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFF1E293B),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(color: const Color(0xFF475569)),
                             ),
-                          ],
+                            child: const Icon(Icons.arrow_back, color: Color(0xFFE2E8F0)),
+                          ),
                         ),
-                      ),
-                    ],
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Text(
+                            'PILIH PERMAINAN',
+                            style: GoogleFonts.inter(
+                              fontSize: 18,
+                              fontWeight: FontWeight.w900,
+                              color: const Color(0xFF34D399),
+                              letterSpacing: 1.5,
+                            ),
+                          ),
+                        ),
+                        Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF59E0B).withValues(alpha: 0.15),
+                            borderRadius: BorderRadius.circular(20),
+                            border: Border.all(color: const Color(0xFFF59E0B).withValues(alpha: 0.4)),
+                          ),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              const Icon(Icons.stars_rounded, color: Color(0xFFF59E0B), size: 16),
+                              const SizedBox(width: 4),
+                              Text(
+                                '${_formatScore(_userPoints)} Pts',
+                                style: GoogleFonts.inter(
+                                  fontSize: 12,
+                                  fontWeight: FontWeight.bold,
+                                  color: const Color(0xFFF59E0B),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: ListView(
-                    padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-                    children: [
-                      _buildGameCard(
-                        context: context,
-                        icon: Icons.directions_car_rounded,
-                        name: 'Parking Challenge',
-                        lastScore: _isParkingActive ? _formatScore(_parkingHighScore) : 'Nonaktif',
-                        color1: const Color(0xFF114177),
-                        color2: const Color(0xFF17A18A),
-                        onTap: _openParkingGame,
-                      ),
-                      const SizedBox(height: 20),
-                      _buildGameCard(
-                        context: context,
-                        icon: Icons.precision_manufacturing_rounded,
-                        name: 'Claws Car',
-                        lastScore: null,
-                        color1: const Color(0xFF7E22CE),
-                        color2: const Color(0xFFEC4899),
-                        onTap: _openClawsGame,
-                      ),
-                    ],
+                  Expanded(
+                    child: ListView(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+                      children: [
+                        _buildGameCard(
+                          context: context,
+                          imagePath: 'assets/images/parking.jpeg',
+                          fallbackIcon: Icons.directions_car_rounded,
+                          name: 'Parking Challenge',
+                          lastScore: _isParkingActive ? _formatScore(_parkingHighScore) : 'Nonaktif',
+                          color1: const Color(0xFF114177),
+                          color2: const Color(0xFF17A18A),
+                          onTap: _openParkingGame,
+                        ),
+                        const SizedBox(height: 20),
+                        _buildGameCard(
+                          context: context,
+                          imagePath: 'assets/images/claws.jpeg',
+                          fallbackIcon: Icons.precision_manufacturing_rounded,
+                          name: 'Claws Car',
+                          lastScore: null,
+                          color1: const Color(0xFF7E22CE),
+                          color2: const Color(0xFFEC4899),
+                          onTap: _openClawsGame,
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
-    ));
+    );
   }
 
   Widget _buildGameCard({
     required BuildContext context,
-    required IconData icon,
+    required String imagePath,
+    required IconData fallbackIcon,
     required String name,
     String? lastScore,
     required Color color1,
@@ -251,18 +255,29 @@ class _GameListScreenState extends State<GameListScreen> {
         ),
         child: Column(
           children: [
-            Container(
-              height: 140,
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [color1, color2],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(23)),
+              child: SizedBox(
+                height: 140,
+                width: double.infinity,
+                child: Image.asset(
+                  imagePath,
+                  fit: BoxFit.cover,
+                  errorBuilder: (context, error, stackTrace) {
+                    return Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: [color1, color2],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: Center(
+                        child: Icon(fallbackIcon, size: 72, color: Colors.white.withValues(alpha: 0.9)),
+                      ),
+                    );
+                  },
                 ),
-                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
-              ),
-              child: Center(
-                child: Icon(icon, size: 72, color: Colors.white.withValues(alpha: 0.9)),
               ),
             ),
             Padding(

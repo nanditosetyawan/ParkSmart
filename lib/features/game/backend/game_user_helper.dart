@@ -62,26 +62,8 @@ class GameUserHelper {
       }
     }
 
-    // 6. Fallback ke akun pengguna aktif utama 'user@gmail.com'
-    try {
-      final row = await client.from('users').select('id').eq('email', 'user@gmail.com').maybeSingle();
-      if (row != null && row['id'] != null) {
-        return row['id'].toString();
-      }
-    } catch (e) {
-      debugPrint('[GameUserHelper] Error resolving fallback email: $e');
-    }
-
-    // 7. Fallback terakhir: ambil pengguna pertama di tabel users
-    try {
-      final row = await client.from('users').select('id').order('created_at', ascending: true).limit(1).maybeSingle();
-      if (row != null && row['id'] != null) {
-        return row['id'].toString();
-      }
-    } catch (e) {
-      debugPrint('[GameUserHelper] Error resolving any user: $e');
-    }
-
+    // 6. Tidak ada sesi aktif yang terdeteksi
+    debugPrint('[GameUserHelper] Warning: Tidak ditemukan user_id aktif dari sesi login.');
     return null;
   }
 }

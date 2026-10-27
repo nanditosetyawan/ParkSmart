@@ -44,7 +44,7 @@ ON CONFLICT (email) DO UPDATE SET
 -- 2. SEED DATA PENGGUNA RESMI DARI DATABASE AKTIF (2 PENGGUNA - PASSWORD HASH SHA-256)
 INSERT INTO public.users (
     id, email, phone, full_name, avatar_url, gender, birth_date, address,
-    wallet_balance, points, member_tier, total_spent, monthly_spent,
+    wallet_balance, points, claw_coins, member_tier, total_spent, monthly_spent,
     last_spending_month, member_hash_code, status_keanggotaan, total_parking_count, total_savings,
     favorite_location_ids, pin_hash, is_biometric_enabled, status, ban_reason, password,
     created_at, updated_at
@@ -52,7 +52,7 @@ INSERT INTO public.users (
 (
     'df714843-c4cf-4d45-b385-0390404d4429', 'user@gmail.com', '0813277156100', 'Andi Prawono',
     NULL, 'Laki-laki', NULL, NULL,
-    38500.00, 0, 'BRONZE', 0.00, 0.00,
+    38500.00, 25000, 5, 'BRONZE', 0.00, 0.00,
     '2026-10', '#fb9c-c92a-c4a1', false, 0, 0.00,
     '{}', '4040', false, 'active', NULL,
     'd2e165e32219d442bbad138f367beb9988ae9a1f86e0e30756f33c363acc022a', -- Asli: 123456
@@ -61,7 +61,7 @@ INSERT INTO public.users (
 (
     '225428bf-e24d-4869-98c6-fed811518497', 'aji@gmail.com', '085242636121', 'ajikaja',
     NULL, 'Laki-laki', NULL, NULL,
-    182000.00, 0, 'BRONZE', 0.00, 0.00,
+    182000.00, 0, 5, 'BRONZE', 0.00, 0.00,
     '2026-10', '#46f5-14df-e3a2', false, 0, 0.00,
     '{}', '1111', false, 'active', NULL,
     '892276b46fef3613f01a95d0723a87a145d479cd6048bbc00b5ada3ce12abde7', -- Asli: aji123
@@ -73,6 +73,7 @@ ON CONFLICT (email) DO UPDATE SET
     avatar_url = EXCLUDED.avatar_url,
     wallet_balance = EXCLUDED.wallet_balance,
     points = EXCLUDED.points,
+    claw_coins = EXCLUDED.claw_coins,
     member_tier = EXCLUDED.member_tier,
     total_spent = EXCLUDED.total_spent,
     monthly_spent = EXCLUDED.monthly_spent,

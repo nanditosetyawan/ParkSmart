@@ -130,12 +130,20 @@ class AdminKycBackend extends ChangeNotifier {
       final date = DateTime.tryParse(timestamp.toString());
       if (date == null) return 'Baru saja';
       final diff = DateTime.now().difference(date);
-      if (diff.inMinutes < 60) {
-        return '${diff.inMinutes} mnt lalu';
+      if (diff.isNegative || diff.inSeconds < 60) {
+        return 'Baru saja';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} menit yang lalu';
       } else if (diff.inHours < 24) {
-        return '${diff.inHours} jam lalu';
+        return '${diff.inHours} jam yang lalu';
+      } else if (diff.inDays < 30) {
+        return '${diff.inDays} hari yang lalu';
+      } else if (diff.inDays < 365) {
+        final months = (diff.inDays / 30).floor();
+        return '$months bulan yang lalu';
       } else {
-        return '${diff.inDays} hari lalu';
+        final years = (diff.inDays / 365).floor();
+        return '$years tahun yang lalu';
       }
     } catch (_) {
       return 'Baru saja';

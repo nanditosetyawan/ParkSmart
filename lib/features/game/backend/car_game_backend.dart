@@ -34,40 +34,49 @@ class CarGameBackend extends ChangeNotifier {
   /// Memuat skor tertinggi, skor sesi terakhir, dan total poin pengguna dari Supabase
   Future<void> loadUserScores({String? userId}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _highestScore = prefs.getInt('parking_high_score') ?? 0;
-      _userPoints = prefs.getInt('user_arcade_points') ?? 25000;
-
       final uid = await GameUserHelper.resolveUserId(userId);
+      final prefs = await SharedPreferences.getInstance();
+
       if (uid == null) {
+        _highestScore = 0;
+        _userPoints = 0;
+        _currentScore = 0;
         notifyListeners();
         return;
       }
 
-      // 1. Ambil skor dari Supabase arcade_scores
+      final highKey = 'parking_high_score_$uid';
+      final pointsKey = 'user_arcade_points_$uid';
+
+      _highestScore = prefs.getInt(highKey) ?? 0;
+      _userPoints = prefs.getInt(pointsKey) ?? 0;
+
+      // 1. Ambil skor dari Supabase arcade_scores milik user ini
       final scores = await _client
           .from('arcade_scores')
           .select('score, score_type')
           .eq('user_id', uid)
           .eq('game_name', gameName);
 
+      int dbHighest = 0;
       for (final s in scores) {
         final type = s['score_type']?.toString();
         final sc = (s['score'] as num?)?.toInt() ?? 0;
         if (type == 'highest') {
-          if (sc > _highestScore) _highestScore = sc;
+          if (sc > dbHighest) dbHighest = sc;
         } else if (type == 'current') {
           _currentScore = sc;
         }
       }
+      _highestScore = dbHighest > _highestScore ? dbHighest : _highestScore;
 
       // 2. Ambil poin pengguna dari Supabase users
       final user = await _client.from('users').select('points').eq('id', uid).maybeSingle();
       if (user != null && user['points'] != null) {
         _userPoints = (user['points'] as num).toInt();
-        await prefs.setInt('user_arcade_points', _userPoints);
+        await prefs.setInt(pointsKey, _userPoints);
       }
-      await prefs.setInt('parking_high_score', _highestScore);
+      await prefs.setInt(highKey, _highestScore);
 
       notifyListeners();
       debugPrint('[CarGameBackend] Loaded scores for user $uid: High=$_highestScore, Pts=$_userPoints');
@@ -87,22 +96,24 @@ class CarGameBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final uid = await GameUserHelper.resolveUserId(userId);
       final prefs = await SharedPreferences.getInstance();
       _currentScore = score;
       if (score > _highestScore) {
         _highestScore = score;
       }
-      await prefs.setInt('parking_high_score', _highestScore);
 
-      final uid = await GameUserHelper.resolveUserId(userId);
       if (uid == null) {
         // Mode offline / dev guest
         if (pointsEarned > 0) {
           _userPoints += pointsEarned;
-          await prefs.setInt('user_arcade_points', _userPoints);
         }
         return;
       }
+
+      final highKey = 'parking_high_score_$uid';
+      final pointsKey = 'user_arcade_points_$uid';
+      await prefs.setInt(highKey, _highestScore);
 
       final now = DateTime.now().toIso8601String();
 
@@ -146,7 +157,7 @@ class CarGameBackend extends ChangeNotifier {
         }).eq('id', uid);
 
         _userPoints = newPoints;
-        await prefs.setInt('user_arcade_points', newPoints);
+        await prefs.setInt(pointsKey, newPoints);
         await DatabaseCacheBalancerService.instance.invalidatePrefix('user_');
       }
 
@@ -157,5 +168,13 @@ class CarGameBackend extends ChangeNotifier {
       _isSaving = false;
       notifyListeners();
     }
+  }
+
+  /// Reset memory state saat logout / ganti akun
+  void clear() {
+    _highestScore = 0;
+    _currentScore = 0;
+    _userPoints = 0;
+    notifyListeners();
   }
 }

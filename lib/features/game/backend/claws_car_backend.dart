@@ -32,20 +32,33 @@ class ClawsCarBackend extends ChangeNotifier {
   int _userPoints = 0;
   int get userPoints => _userPoints;
 
+  int _clawCoins = 5;
+  int get clawCoins => _clawCoins;
+
   static const String gameName = 'claw_crane';
 
   /// Memuat skor tertinggi, skor sesi terakhir, dan saldo poin pengguna dari Supabase
   Future<void> loadUserScores({String? userId}) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      _highestScore = prefs.getInt('claws_car_high_score') ?? 0;
-      _userPoints = prefs.getInt('user_arcade_points') ?? 25000;
-
       final uid = await GameUserHelper.resolveUserId(userId);
+      final prefs = await SharedPreferences.getInstance();
+
       if (uid == null) {
+        _highestScore = 0;
+        _userPoints = 0;
+        _clawCoins = 5;
+        _currentScore = 0;
         notifyListeners();
         return;
       }
+
+      final highKey = 'claws_car_high_score_$uid';
+      final pointsKey = 'user_arcade_points_$uid';
+      final coinsKey = 'claws_car_coins_$uid';
+
+      _highestScore = prefs.getInt(highKey) ?? 0;
+      _userPoints = prefs.getInt(pointsKey) ?? 0;
+      _clawCoins = prefs.getInt(coinsKey) ?? 5;
 
       // 1. Ambil skor dari Supabase arcade_scores
       final scores = await _client
@@ -54,26 +67,34 @@ class ClawsCarBackend extends ChangeNotifier {
           .eq('user_id', uid)
           .eq('game_name', gameName);
 
+      int dbHighest = 0;
       for (final s in scores) {
         final type = s['score_type']?.toString();
         final sc = (s['score'] as num?)?.toInt() ?? 0;
         if (type == 'highest') {
-          if (sc > _highestScore) _highestScore = sc;
+          if (sc > dbHighest) dbHighest = sc;
         } else if (type == 'current') {
           _currentScore = sc;
         }
       }
+      _highestScore = dbHighest > _highestScore ? dbHighest : _highestScore;
 
-      // 2. Ambil poin dari Supabase users
-      final user = await _client.from('users').select('points').eq('id', uid).maybeSingle();
-      if (user != null && user['points'] != null) {
-        _userPoints = (user['points'] as num).toInt();
-        await prefs.setInt('user_arcade_points', _userPoints);
+      // 2. Ambil poin dan koin capit dari Supabase users
+      final user = await _client.from('users').select('points, claw_coins').eq('id', uid).maybeSingle();
+      if (user != null) {
+        if (user['points'] != null) {
+          _userPoints = (user['points'] as num).toInt();
+          await prefs.setInt(pointsKey, _userPoints);
+        }
+        if (user['claw_coins'] != null) {
+          _clawCoins = (user['claw_coins'] as num).toInt();
+          await prefs.setInt(coinsKey, _clawCoins);
+        }
       }
-      await prefs.setInt('claws_car_high_score', _highestScore);
+      await prefs.setInt(highKey, _highestScore);
 
       notifyListeners();
-      debugPrint('[ClawsCarBackend] Loaded scores for user $uid: High=$_highestScore, Pts=$_userPoints');
+      debugPrint('[ClawsCarBackend] Loaded scores for user $uid: High=$_highestScore, Pts=$_userPoints, Coins=$_clawCoins');
     } catch (e) {
       debugPrint('[ClawsCarBackend] Load score error: $e');
     }
@@ -89,21 +110,23 @@ class ClawsCarBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final uid = await GameUserHelper.resolveUserId(userId);
       final prefs = await SharedPreferences.getInstance();
       _currentScore = score;
       if (score > _highestScore) {
         _highestScore = score;
       }
-      await prefs.setInt('claws_car_high_score', _highestScore);
 
-      final uid = await GameUserHelper.resolveUserId(userId);
       if (uid == null) {
         if (pointsEarned > 0) {
           _userPoints += pointsEarned;
-          await prefs.setInt('user_arcade_points', _userPoints);
         }
         return;
       }
+
+      final highKey = 'claws_car_high_score_$uid';
+      final pointsKey = 'user_arcade_points_$uid';
+      await prefs.setInt(highKey, _highestScore);
 
       final now = DateTime.now().toIso8601String();
 
@@ -147,7 +170,7 @@ class ClawsCarBackend extends ChangeNotifier {
         }).eq('id', uid);
 
         _userPoints = newPoints;
-        await prefs.setInt('user_arcade_points', newPoints);
+        await prefs.setInt(pointsKey, newPoints);
         await DatabaseCacheBalancerService.instance.invalidatePrefix('user_');
       }
 
@@ -160,38 +183,78 @@ class ClawsCarBackend extends ChangeNotifier {
     }
   }
 
-  /// Menukar poin ke koin capit (Claw Crane) dan mengurangi saldo poin di tabel users
+  /// Reset state memori saat logout / pergantian user
+  void clear() {
+    _highestScore = 0;
+    _currentScore = 0;
+    _clawCoins = 5;
+    _userPoints = 0;
+    notifyListeners();
+  }
+
+  /// Mengurangi koin capit saat memainkan mesin dan sinkron ke tabel users
+  Future<void> consumeCoin({String? userId}) async {
+    try {
+      final uid = await GameUserHelper.resolveUserId(userId);
+      final coinsKey = uid != null ? 'claws_car_coins_$uid' : 'claws_car_coins';
+      final prefs = await SharedPreferences.getInstance();
+      final currentCoins = prefs.getInt(coinsKey) ?? _clawCoins;
+      final newCoins = (currentCoins - 1).clamp(0, 999999);
+      _clawCoins = newCoins;
+      await prefs.setInt(coinsKey, newCoins);
+
+      if (uid != null) {
+        await _client.from('users').update({
+          'claw_coins': newCoins,
+          'updated_at': DateTime.now().toIso8601String(),
+        }).eq('id', uid);
+      }
+      notifyListeners();
+    } catch (e) {
+      debugPrint('[ClawsCarBackend] Error consumeCoin: $e');
+    }
+  }
+
+  /// Menukar poin ke koin capit (Claw Crane) dan mengurangi saldo poin serta menambah koin di tabel users
   Future<void> exchangePointsForCoins({
     required int pointsToDeduct,
     required int coinsToAdd,
     String? userId,
   }) async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final currentCoins = prefs.getInt('claws_car_coins') ?? 5;
-      await prefs.setInt('claws_car_coins', currentCoins + coinsToAdd);
-
       final uid = await GameUserHelper.resolveUserId(userId);
+      final coinsKey = uid != null ? 'claws_car_coins_$uid' : 'claws_car_coins';
+      final pointsKey = uid != null ? 'user_arcade_points_$uid' : 'user_arcade_points';
+      final prefs = await SharedPreferences.getInstance();
+
+      final currentCoins = prefs.getInt(coinsKey) ?? _clawCoins;
+      final newCoins = currentCoins + coinsToAdd;
+      _clawCoins = newCoins;
+      await prefs.setInt(coinsKey, newCoins);
+
       if (uid == null) {
         _userPoints = (_userPoints - pointsToDeduct).clamp(0, 999999999);
-        await prefs.setInt('user_arcade_points', _userPoints);
+        await prefs.setInt(pointsKey, _userPoints);
+        notifyListeners();
         return;
       }
 
-      final user = await _client.from('users').select('points').eq('id', uid).maybeSingle();
+      final user = await _client.from('users').select('points, claw_coins').eq('id', uid).maybeSingle();
       final currentPoints = (user?['points'] as num?)?.toInt() ?? 0;
       final newPoints = (currentPoints - pointsToDeduct).clamp(0, 999999999);
 
       await _client.from('users').update({
         'points': newPoints,
+        'claw_coins': newCoins,
         'updated_at': DateTime.now().toIso8601String(),
       }).eq('id', uid);
 
       _userPoints = newPoints;
-      await prefs.setInt('user_arcade_points', newPoints);
+      await prefs.setInt(pointsKey, newPoints);
       await DatabaseCacheBalancerService.instance.invalidatePrefix('user_');
+      notifyListeners();
 
-      debugPrint('[ClawsCarBackend] Berhasil konversi DB: -$pointsToDeduct poin, +$coinsToAdd koin capit. Sisa poin: $newPoints');
+      debugPrint('[ClawsCarBackend] Berhasil konversi DB: -$pointsToDeduct poin, +$coinsToAdd koin capit. Sisa poin: $newPoints, Koin: $newCoins');
     } catch (e) {
       debugPrint('[ClawsCarBackend] Error exchangePointsForCoins: $e');
     }
@@ -227,8 +290,9 @@ class ClawsCarBackend extends ChangeNotifier {
           'completed_at': DateTime.now().toIso8601String(),
         });
 
-        // 4. Update SharedPreferences
+        // 4. Update SharedPreferences per user
         final prefs = await SharedPreferences.getInstance();
+        await prefs.setInt('user_wallet_balance_$uid', newBalance.toInt());
         await prefs.setInt('user_wallet_balance', newBalance.toInt());
 
         // 5. Invalidate cache dan perbarui backend

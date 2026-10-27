@@ -65,6 +65,32 @@ class AdminDashboardBackend extends ChangeNotifier {
     return dt.toUtc().add(const Duration(hours: 7));
   }
 
+  String _formatTimeAgo(dynamic timestamp) {
+    if (timestamp == null) return 'Baru saja';
+    try {
+      final date = DateTime.tryParse(timestamp.toString());
+      if (date == null) return 'Baru saja';
+      final diff = DateTime.now().difference(date);
+      if (diff.isNegative || diff.inSeconds < 60) {
+        return 'Baru saja';
+      } else if (diff.inMinutes < 60) {
+        return '${diff.inMinutes} menit lalu';
+      } else if (diff.inHours < 24) {
+        return '${diff.inHours} jam lalu';
+      } else if (diff.inDays < 30) {
+        return '${diff.inDays} hari lalu';
+      } else if (diff.inDays < 365) {
+        final months = (diff.inDays / 30).floor();
+        return '$months bulan lalu';
+      } else {
+        final years = (diff.inDays / 365).floor();
+        return '$years tahun lalu';
+      }
+    } catch (_) {
+      return 'Baru saja';
+    }
+  }
+
   /// Mulai polling berkala agar chart 1 Hari, 1 Minggu, 1 Bulan, dan 1 Tahun
   /// terus sinkron dengan waktu server WIB secara otomatis.
   void startPeriodicMetrics() {
@@ -108,7 +134,7 @@ class AdminDashboardBackend extends ChangeNotifier {
       // 3. Pending KYC
       final kycRes = await _client
           .from('user_kyc')
-          .select('id, full_name, nik, birth_place_city, birth_date, address, submitted_at, status')
+          .select('id, user_id, full_name, nik, birth_place_city, birth_date, address, submitted_at, status, ktp_image_url, selfie_image_url, gender')
           .eq('status', 'pending')
           .order('submitted_at', ascending: false);
 
@@ -116,13 +142,17 @@ class AdminDashboardBackend extends ChangeNotifier {
       _pendingKycList = kycRes.map<Map<String, dynamic>>((row) {
         return {
           'id': row['id']?.toString() ?? 'KYC-001',
+          'user_id': row['user_id']?.toString(),
           'name': row['full_name']?.toString() ?? 'Pengguna',
           'nik': row['nik']?.toString() ?? '-',
-          'submittedAt': 'Baru saja',
+          'submittedAt': _formatTimeAgo(row['submitted_at']),
           'status': 'Menunggu',
           'city': row['birth_place_city']?.toString() ?? 'Indonesia',
           'dob': row['birth_date']?.toString() ?? '-',
           'address': row['address']?.toString() ?? '-',
+          'gender': (row['gender']?.toString() ?? 'LAKI-LAKI').toUpperCase(),
+          'ktp_image_url': row['ktp_image_url'],
+          'selfie_image_url': row['selfie_image_url'],
         };
       }).toList();
 

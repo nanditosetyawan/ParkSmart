@@ -453,16 +453,15 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
       });
     }
 
-    // Sinkronisasi data skor & poin terbaru dari Supabase Database
+    // Sinkronisasi data skor, poin & koin capit terbaru dari Supabase Database
     await ClawsCarBackend.instance.loadUserScores();
     if (mounted) {
       setState(() {
         if (ClawsCarBackend.instance.highestScore > 0) {
           _highScore = ClawsCarBackend.instance.highestScore;
         }
-        if (ClawsCarBackend.instance.userPoints > 0) {
-          _userPoints = ClawsCarBackend.instance.userPoints;
-        }
+        _userPoints = ClawsCarBackend.instance.userPoints;
+        _credits = ClawsCarBackend.instance.clawCoins;
       });
     }
   }
@@ -1069,6 +1068,7 @@ class _ClawsCarScreenState extends State<ClawsCarScreen>
     });
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt('claws_car_coins', _credits);
+    ClawsCarBackend.instance.consumeCoin();
     HapticFeedback.heavyImpact();
 
     // 1. Dari posisi awal, MEMBUKA KUNCUP CAPITAN DULU

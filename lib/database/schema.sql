@@ -87,6 +87,7 @@ CREATE TABLE IF NOT EXISTS public.users (
     address TEXT,
     wallet_balance NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (wallet_balance >= 0),
     points INT NOT NULL DEFAULT 0 CHECK (points >= 0),
+    claw_coins INT NOT NULL DEFAULT 5 CHECK (claw_coins >= 0),
     member_tier member_tier_enum NOT NULL DEFAULT 'BRONZE',
     total_spent NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (total_spent >= 0),
     monthly_spent NUMERIC(14, 2) NOT NULL DEFAULT 0.00 CHECK (monthly_spent >= 0),
