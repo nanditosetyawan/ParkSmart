@@ -263,7 +263,7 @@ GROQ_API_KEY=isi_api_key
 # 3. WEB3 BLOCKCHAIN SEPOLIA TESTNET
 # ==============================================================================
 # Endpoint JSON-RPC Ethereum Sepolia (didapat dari: https://infura.io/ atau https://alchemy.com/)
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/your_infura_api_key_here
+SEPOLIA_RPC_URL=your_infura_api_key_here
 
 # Alamat kontrak pintar kartu anggota (didapat dari deploy di https://remix.ethereum.org/)
 SEPOLIA_CONTRACT_ADDRESS=isi_contract_address
