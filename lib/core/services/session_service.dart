@@ -112,6 +112,10 @@ class SessionService with WidgetsBindingObserver {
             _startInactivityCheckTimer();
             if (_userType == 'user') {
               ParkingNotificationService().startRealtimeUrgentListener();
+            } else if (_userType == 'admin') {
+              ParkingNotificationService().stopRealtimeUrgentListener();
+              ParkingNotificationService().cancelUrgentNotification();
+              ParkingNotificationService.stopBackgroundMonitor();
             }
             debugPrint('[SessionService] Sesi dipulihkan. Sisa waktu: $formattedRemainingTime');
           }
@@ -120,6 +124,10 @@ class SessionService with WidgetsBindingObserver {
           _startInactivityCheckTimer();
           if (_userType == 'user') {
             ParkingNotificationService().startRealtimeUrgentListener();
+          } else if (_userType == 'admin') {
+            ParkingNotificationService().stopRealtimeUrgentListener();
+            ParkingNotificationService().cancelUrgentNotification();
+            ParkingNotificationService.stopBackgroundMonitor();
           }
         }
       }
@@ -181,6 +189,18 @@ class SessionService with WidgetsBindingObserver {
 
     if (userType == 'user') {
       ParkingNotificationService().startRealtimeUrgentListener();
+    } else if (userType == 'admin') {
+      ParkingNotificationService().stopRealtimeUrgentListener();
+      ParkingNotificationService().cancelUrgentNotification();
+      ParkingNotificationService.stopBackgroundMonitor();
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.remove('ps_session_user_id');
+        await prefs.setBool('ps_parking_session_active', false);
+        await prefs.remove('ps_parking_expected_checkout');
+        await prefs.setBool('ps_parking_notif_dismissed', true);
+        await prefs.remove('ps_last_shown_urgent_notif_id');
+      } catch (_) {}
     }
 
     debugPrint('[SessionService] Sesi $userType dimulai untuk $userName ($identifier, uid: $userId). Batas waktu: 30 menit.');
@@ -332,6 +352,8 @@ class SessionService with WidgetsBindingObserver {
   /// Membersihkan seluruh data sesi (Manual Logout atau Timeout)
   Future<void> clearSession() async {
     ParkingNotificationService().stopRealtimeUrgentListener();
+    ParkingNotificationService().cancelUrgentNotification();
+    ParkingNotificationService.stopBackgroundMonitor();
 
     _isLoggedIn = false;
     _userType = null;

@@ -1,5 +1,6 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'maintenance_service.dart';
+import 'session_service.dart';
 
 class NotificationService {
   static final NotificationService _instance = NotificationService._internal();
@@ -78,6 +79,7 @@ class NotificationService {
 
   /// Menampilkan notifikasi darurat parkir (suara darurat)
   Future<void> showUrgentParkingNotification({int minsLeft = 10}) async {
+    if (SessionService.instance.isAdmin || SessionService.instance.userType == 'admin') return;
     try {
       await requestPermissions();
       const AndroidNotificationDetails androidDetails = AndroidNotificationDetails(

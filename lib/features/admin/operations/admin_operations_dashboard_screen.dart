@@ -33,6 +33,11 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
   @override
   void initState() {
     super.initState();
+    // 🛡️ Pastikan perangkat Admin Operasional tidak mendengarkan atau membunyikan notif alarm darurat user
+    ParkingNotificationService().stopRealtimeUrgentListener();
+    ParkingNotificationService().cancelUrgentNotification();
+    ParkingNotificationService.stopBackgroundMonitor();
+
     WidgetsBinding.instance.addObserver(this);
     _loadAdminInfo();
     AdminOperationsDashboardBackend.instance.addListener(_onBackendChanged);
@@ -1004,15 +1009,12 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                       final plate = session['plate']?.toString() ?? 'Kendaraan';
                       final userName = session['user']?.toString() ?? 'Pengguna';
 
-                      // 1. Rekam ke database system_notifications untuk user pemilik sesi
+                      // Rekam ke database system_notifications untuk user pemilik sesi (notifikasi & suara darurat dikirim ke HP user)
                       await AdminOperationsDashboardBackend.instance.sendUrgentReminderNotification(
                         userId: targetUserId,
                         plateNumber: plate,
                         locationName: session['location']?.toString(),
                       );
-
-                      // 2. Munculkan notifikasi darurat sistem (100% identik dengan tombol Urgent Action di Developer Options profil)
-                      await ParkingNotificationService.showSystemUrgentNotificationDirectly();
 
                       sm.showSnackBar(
                         SnackBar(

@@ -108,7 +108,8 @@ class AiContextService {
         final locId = loc['id'];
         final name = loc['name'];
         final city = loc['city'] ?? 'Jakarta';
-        final address = loc['address'] ?? '';
+        final address = (loc['address'] ?? '').toString();
+        final shortAddress = address.length > 50 ? '${address.substring(0, 50)}...' : address;
         final opHours = loc['operating_hours'] ?? 'Buka 24 Jam';
         final rateMobil = loc['hourly_rate_mobil'] ?? 5000;
         final rateMotor = loc['hourly_rate_motor'] ?? 2000;
@@ -126,12 +127,12 @@ class AiContextService {
         }
 
         buffer.writeln(
-          '- ID Lokasi: $locId | Nama: $name ($city) | Status: $status | Jam Operasional: $opHours | Tersedia: $avail/$total slot | Tarif Mobil: Rp $rateMobil/jam, Motor: Rp $rateMotor/jam | Rating: $rating/5 | Fasilitas: $facilities | Alamat: $address | Ringkasan Ulasan Pengunjung: $reviewSummary',
+          '- ID: $locId | Nama: $name ($city) | Alamat: $shortAddress | Status: $status | Buka: $opHours | Slot: $avail/$total | Tarif: Mobil Rp$rateMobil, Motor Rp$rateMotor | Rating: $rating/5 | Fasilitas: $facilities | Ulasan: $reviewSummary',
         );
       }
       buffer.writeln();
 
-      // 4. Ambil data pesanan (bookings) pengguna yang sedang login
+      // 4. Ambil data pesanan (bookings) pengguna yang sedang login (dibatasi 3 terbaru untuk efisiensi token)
       final uid = await GameUserHelper.resolveUserId();
       if (uid != null && uid.isNotEmpty) {
         try {
@@ -140,7 +141,7 @@ class AiContextService {
               .select('id, booking_code, total_price, payment_status, booking_status, start_time, end_time, plate_number, vehicle_desc, parking_locations(id, name, address, city, image_url)')
               .eq('user_id', uid)
               .order('created_at', ascending: false)
-              .limit(10);
+              .limit(3);
 
           _cachedUserBookings = List<Map<String, dynamic>>.from(bookingsRes);
 

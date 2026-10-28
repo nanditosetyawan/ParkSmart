@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/database_cache_balancer_service.dart';
 import 'ai_context_service.dart';
+import 'ai_security_service.dart';
 
 /// Backend khusus untuk AiAssistantScreen
 /// Menghubungkan asisten pintar dengan konfigurasi AI dari Super Admin di `public.system_settings`,
@@ -55,6 +56,26 @@ class AiAssistantBackend extends ChangeNotifier {
     notifyListeners();
 
     try {
+      // 🛡️ Pemeriksaan keamanan & anti-manipulasi
+      final refusal = await AiSecurityService.inspectAndGetRefusal(query);
+      if (refusal != null) {
+        _chatHistory.add({
+          'sender': 'user',
+          'message': query,
+          'time': DateTime.now(),
+        });
+        _chatHistory.add({
+          'sender': 'ai',
+          'message': refusal,
+          'time': DateTime.now(),
+          'recommendations': [],
+        });
+        return {
+          'response': refusal,
+          'recommendations': [],
+        };
+      }
+
       // 1. Ambil data konteks real-time dari AiContextService
       await AiContextService.instance.buildRealTimeContextPrompt();
       final locations = AiContextService.instance.cachedLocations;

@@ -158,8 +158,10 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     // Langsung minta akses GPS saat membuka aplikasi agar posisi map relevan
     _initGpsAndOrientation();
-    // Inisialisasi listener notifikasi darurat realtime dari petugas lapangan
-    ParkingNotificationService().startRealtimeUrgentListener();
+    // Inisialisasi listener notifikasi darurat realtime dari petugas lapangan (khusus akun pengguna biasa)
+    if (!SessionService.instance.isAdmin && SessionService.instance.userType == 'user') {
+      ParkingNotificationService().startRealtimeUrgentListener();
+    }
     // Ambil data backend Supabase
     HomeBackend.instance.loadHomeData();
 

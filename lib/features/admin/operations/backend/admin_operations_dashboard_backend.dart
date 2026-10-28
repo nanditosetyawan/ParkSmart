@@ -887,11 +887,13 @@ class AdminOperationsDashboardBackend extends ChangeNotifier {
   }) async {
     try {
       if (userId != null && userId.isNotEmpty) {
+        final plateText = (plateNumber != null && plateNumber.isNotEmpty) ? ' ($plateNumber)' : '';
+        final locText = (locationName != null && locationName.isNotEmpty) ? ' di $locationName' : '';
         await _client.from('system_notifications').insert({
           'recipient_user_id': userId,
           'target_role': 'user',
-          'title': 'Sisa Waktu Parkir 10 Menit!',
-          'message': 'Waktu hampir habis. Segera perpanjang atau checkout.',
+          'title': '⚠️ Sisa Waktu Parkir 10 Menit!',
+          'message': 'Waktu parkir kendaraan Anda$plateText$locText hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
           'notification_type': 'urgent',
           'action_type': 'expiring_session',
           'is_read': false,

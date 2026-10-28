@@ -140,6 +140,25 @@ class ParkingNotificationService {
     String? body,
     int? minsLeft,
   }) async {
+    // 🛡️ PROTEKSI 1: Cek apakah sesi saat ini adalah Admin
+    final session = SessionService.instance;
+    if (session.isAdmin || session.userType == 'admin') {
+      debugPrint('[ParkingNotif] BLOCKED: HP Admin dilarang membunyikan alarm darurat / sound_darurat!');
+      return;
+    }
+
+    // 🛡️ PROTEKSI 2: Cek fallback dari SharedPreferences
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final userType = prefs.getString('ps_session_user_type');
+      final adminEmail = prefs.getString('current_admin_email');
+      final adminRole = prefs.getString('current_admin_role');
+      if (userType == 'admin' || (adminEmail != null && adminEmail.isNotEmpty) || (adminRole != null && adminRole.isNotEmpty)) {
+        debugPrint('[ParkingNotif] BLOCKED: SharedPreferences mendeteksi peran Admin. Alarm dibatalkan.');
+        return;
+      }
+    } catch (_) {}
+
     await _ensurePluginInitialized();
     try {
       final androidDetails = AndroidNotificationDetails(
@@ -233,11 +252,19 @@ class ParkingNotificationService {
   /// Berlangganan event INSERT di tabel `system_notifications` secara realtime
   /// Ketika Admin Operasional menekan "Kirim Pengingat", event langsung tiba di HP user
   void startRealtimeUrgentListener() {
+    // 🛡️ JANGAN PERNAH jalankan listener ini jika peran yang aktif adalah Admin!
+    final session = SessionService.instance;
+    if (session.isAdmin || session.userType == 'admin') {
+      debugPrint('[ParkingNotif] Device aktif sebagai Admin, menolak startRealtimeUrgentListener.');
+      stopRealtimeUrgentListener();
+      return;
+    }
+
+    final currentUid = session.userId;
+    if (currentUid == null || currentUid.isEmpty) return;
+
     if (_realtimeUrgentChannel != null) return;
     try {
-      final currentUid = SessionService.instance.userId;
-      if (currentUid == null || currentUid.isEmpty) return;
-
       final client = Supabase.instance.client;
       _realtimeUrgentChannel = client.channel('public:urgent_user_notif_$currentUid')
         ..onPostgresChanges(
@@ -250,12 +277,34 @@ class ParkingNotificationService {
             value: currentUid,
           ),
           callback: (payload) {
-            debugPrint('[ParkingNotif] Realtime urgent notif diterima dari admin: ${payload.newRecord}');
+            // 🛡️ 1. Cek apakah HP ini sedang aktif sebagai Admin
+            final activeSession = SessionService.instance;
+            if (activeSession.isAdmin || activeSession.userType == 'admin') {
+              debugPrint('[ParkingNotif] Realtime callback diabaikan: Device adalah Admin.');
+              return;
+            }
+
             final newRow = payload.newRecord;
+            final recipientId = newRow['recipient_user_id']?.toString();
+            final myUid = activeSession.userId;
+
+            // 🛡️ 2. Pastikan notifikasi ini BENAR-BENAR ditujukan ke user HP ini (bukan user lain / broadcast admin)
+            if (myUid == null || myUid.isEmpty || recipientId == null || recipientId != myUid) {
+              debugPrint('[ParkingNotif] Realtime urgent diabaikan: recipientId ($recipientId) != myUid ($myUid)');
+              return;
+            }
+
+            final targetRole = newRow['target_role']?.toString().toLowerCase();
+            if (targetRole != null && targetRole != 'user' && targetRole != 'all') {
+              debugPrint('[ParkingNotif] Diabaikan karena target_role bukan user ($targetRole)');
+              return;
+            }
+
             final nType = newRow['notification_type']?.toString().toLowerCase();
             final aType = newRow['action_type']?.toString().toLowerCase();
 
             if (nType == 'urgent' || aType == 'expiring_session') {
+              debugPrint('[ParkingNotif] Realtime urgent notif terverifikasi untuk user $myUid!');
               final title = newRow['title']?.toString() ?? '⚠️ Sisa Waktu Parkir 10 Menit!';
               final message = newRow['message']?.toString() ?? 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout.';
               showUrgentAlarmNotification(title: title, body: message);
@@ -474,6 +523,14 @@ void onBackgroundStart(ServiceInstance service) async {
     try {
       final prefs = await SharedPreferences.getInstance();
 
+      // 🛡️ PROTEKSI LATAR BELAKANG: Jika HP ini sedang digunakan oleh Admin, jangan pernah cek/bunyikan alarm user!
+      final userType = prefs.getString('ps_session_user_type');
+      final adminEmail = prefs.getString('current_admin_email');
+      final adminRole = prefs.getString('current_admin_role');
+      if (userType == 'admin' || (adminEmail != null && adminEmail.isNotEmpty) || (adminRole != null && adminRole.isNotEmpty)) {
+        return;
+      }
+
       // ─── 1. CEK NOTIFIKASI DARURAT DARI ADMIN LAPANGAN DI SUPABASE (BACKGROUND / KILLED) ───
       final supabaseUrl = prefs.getString('supabase_url');
       final supabaseAnonKey = prefs.getString('supabase_anon_key');
@@ -578,6 +635,16 @@ Future<void> _bgShowUrgentAlarmNotif(
   int? minsLeft,
 }) async {
   try {
+    // 🛡️ PROTEKSI: Pastikan HP ini bukan HP Admin saat memainkan alarm di background
+    final prefs = await SharedPreferences.getInstance();
+    final userType = prefs.getString('ps_session_user_type');
+    final adminEmail = prefs.getString('current_admin_email');
+    final adminRole = prefs.getString('current_admin_role');
+    if (userType == 'admin' || (adminEmail != null && adminEmail.isNotEmpty) || (adminRole != null && adminRole.isNotEmpty)) {
+      debugPrint('[ParkingBG] BLOCKED: Device terdeteksi Admin. Alarm dibatalkan.');
+      return;
+    }
+
     final androidDetails = AndroidNotificationDetails(
       'urgent_parking_alarm_v5',
       'Peringatan Darurat Parkir (Alarm)',

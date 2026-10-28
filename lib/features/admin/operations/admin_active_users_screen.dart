@@ -24,6 +24,11 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
   @override
   void initState() {
     super.initState();
+    // 🛡️ Pastikan HP Admin tidak menerima atau membunyikan notif alarm darurat user
+    ParkingNotificationService().stopRealtimeUrgentListener();
+    ParkingNotificationService().cancelUrgentNotification();
+    ParkingNotificationService.stopBackgroundMonitor();
+
     AdminActiveUsersBackend.instance.fetchActiveSessions();
     _liveTimer = Timer.periodic(const Duration(seconds: 15), (_) {
       if (mounted) setState(() {});
@@ -131,15 +136,12 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                       final plate = session['plate']?.toString() ?? 'Kendaraan';
                       final userName = session['user']?.toString() ?? 'Pengguna';
 
-                      // 1. Rekam ke database system_notifications untuk user pemilik sesi
+                      // Rekam ke database system_notifications untuk user pemilik sesi (notifikasi & suara darurat dikirim ke HP user)
                       await AdminOperationsDashboardBackend.instance.sendUrgentReminderNotification(
                         userId: targetUserId,
                         plateNumber: plate,
                         locationName: session['location']?.toString(),
                       );
-
-                      // 2. Munculkan notifikasi darurat sistem
-                      await ParkingNotificationService.showSystemUrgentNotificationDirectly();
 
                       sm.showSnackBar(
                         SnackBar(
