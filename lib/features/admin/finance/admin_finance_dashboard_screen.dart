@@ -90,10 +90,13 @@ class _AdminFinanceDashboardScreenState extends State<AdminFinanceDashboardScree
         data: AppTheme.light,
         child: Scaffold(
           key: _scaffoldKey,
-          backgroundColor: const Color(0xFFF9F9F9),
+          // ─── [ADMIN FINANCE] WARNA LATAR BELAKANG DASHBOARD ───
+          backgroundColor: const Color(0xFFF9F9F9), // <-- Ubah warna Background Dashboard Admin Finance
           drawer: _buildFinanceDrawer(context),
+
+          // ─── [ADMIN FINANCE] WARNA HEADER / TOPBAR (APPBAR) ───
           appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.white, // <-- Ubah warna TopBar/Header Admin Finance
           elevation: 0,
           leadingWidth: 54,
           // Tombol Ikon Wallet sebagai trigger drawer (menggantikan burger button)

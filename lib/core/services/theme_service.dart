@@ -13,12 +13,19 @@ class ThemeService extends ChangeNotifier {
   bool get isDarkMode => _isDarkMode;
   ThemeMode get themeMode => _isDarkMode ? ThemeMode.dark : ThemeMode.light;
 
-  // Background colors
-  Color get bg => _isDarkMode ? const Color(0xFF111418) : const Color(0xFFFCF9F2);
-  Color get bgSecondary => _isDarkMode ? const Color(0xFF181C22) : const Color(0xFFFAF7F2);
+  // ─── [USER] WARNA BACKGROUND & KARTU THEME SERVICE ───
+  // Ubah baris ini jika ingin mengubah background halaman yang terikat ThemeService (Home, Profile, AI Assistant, dll.)
+  Color get bg => _isDarkMode 
+      ? const Color(0xFF111418) // <-- Ubah warna Background User saat DARK MODE
+      : const Color(0xFFFCF9F2); // <-- Ubah warna Background User saat LIGHT MODE (Soft Cream)
+  Color get bgSecondary => _isDarkMode 
+      ? const Color(0xFF181C22) 
+      : const Color(0xFFFAF7F2);
 
   // Card / Surface colors
-  Color get card => _isDarkMode ? const Color(0xFF1E232B) : Colors.white;
+  Color get card => _isDarkMode 
+      ? const Color(0xFF1E232B) // <-- Ubah warna Card/Kartu saat DARK MODE
+      : Colors.white; // <-- Ubah warna Card/Kartu saat LIGHT MODE (Putih)
   Color get cardAlt => _isDarkMode ? const Color(0xFF262C36) : const Color(0xFFF9F7F2);
   Color get surfaceField => _isDarkMode ? const Color(0xFF262C36) : const Color(0xFFF1EEE7);
 

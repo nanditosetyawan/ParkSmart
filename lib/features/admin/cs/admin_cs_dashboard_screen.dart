@@ -97,10 +97,13 @@ class _AdminCsDashboardScreenState extends State<AdminCsDashboardScreen> {
           data: AppTheme.light,
           child: Scaffold(
             key: _scaffoldKey,
-            backgroundColor: const Color(0xFFF9F9F9),
+            // ─── [ADMIN CS] WARNA LATAR BELAKANG DASHBOARD ───
+            backgroundColor: const Color(0xFFF9F9F9), // <-- Ubah warna Background Dashboard Admin CS
             drawer: _buildCsDrawer(context),
+
+            // ─── [ADMIN CS] WARNA HEADER / TOPBAR (APPBAR) ───
             appBar: AppBar(
-              backgroundColor: Colors.white,
+              backgroundColor: Colors.white, // <-- Ubah warna TopBar/Header Admin CS
               elevation: 0,
           leadingWidth: 54,
           // Tombol Ikon CS sebagai trigger drawer (menggantikan burger button seperti di operasional)

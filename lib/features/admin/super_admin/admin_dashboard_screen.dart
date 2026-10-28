@@ -650,13 +650,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           data: AppTheme.light,
           child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF9F9F9),
+        // ─── [SUPER ADMIN] WARNA LATAR BELAKANG DASHBOARD ───
+        backgroundColor: const Color(0xFFF9F9F9), // <-- Ubah warna Background Dashboard Super Admin
 
         // ─── BURGER BAR (DRAWER) DENGAN RINGKASAN GLOBAL ───
         drawer: _buildBurgerDrawer(context),
 
+        // ─── [SUPER ADMIN] WARNA HEADER / TOPBAR (APPBAR) ───
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.white, // <-- Ubah warna TopBar/Header Super Admin
           elevation: 0,
           automaticallyImplyLeading: false,
           titleSpacing: 16,

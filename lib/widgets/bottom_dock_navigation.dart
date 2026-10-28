@@ -20,7 +20,8 @@ class BottomDockNavigation extends StatelessWidget {
       height: 68,
       constraints: const BoxConstraints(maxWidth: 360),
       decoration: BoxDecoration(
-        color: const Color(0xFF1C1D1F),
+        // ─── [USER] WARNA LATAR BILAH DOCK NAVIGASI BAWAH ───
+        color: const Color(0xFF1C1D1F), // <-- Ubah warna Latar Belakang Dock Navigasi Melayang (Hitam Charcoal)
         borderRadius: BorderRadius.circular(32),
         boxShadow: [
           BoxShadow(
@@ -88,7 +89,8 @@ class BottomDockNavigation extends StatelessWidget {
       child: Container(
         width: 48, height: 48,
         decoration: BoxDecoration(
-          color: isActive ? const Color(0xFFD67B5A) : Colors.transparent,
+          // ─── [USER] WARNA TAB AKTIF DI DOCK NAVIGASI ───
+          color: isActive ? const Color(0xFFD67B5A) : Colors.transparent, // <-- Ubah warna Lingkaran Tab Aktif (Terracotta Oranye)
           shape: BoxShape.circle,
         ),
         alignment: Alignment.center,

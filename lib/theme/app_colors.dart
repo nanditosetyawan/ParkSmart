@@ -5,22 +5,27 @@ import '../core/services/theme_service.dart';
 /// Light mode: #F6F3EC background, #FAF7F2 surface, #1C1D1F text
 /// Dark mode: #111418 background, #181C22 surface, #F8FAFC text
 class AppColors {
-  // Surfaces
+  // ─── [USER] WARNA LATAR BELAKANG & SURFACE UTAMA ───
+  // Ubah baris ini jika ingin mengganti warna background seluruh halaman user (Global)
   static Color get background => ThemeService.instance.isDarkMode 
-      ? const Color(0xFF111418) 
-      : const Color(0xFFF6F3EC);
+      ? const Color(0xFF111418) // <-- Ubah warna Background User saat DARK MODE
+      : const Color(0xFFF6F3EC); // <-- Ubah warna Background User saat LIGHT MODE (Cream)
+
   static Color get surface => ThemeService.instance.isDarkMode 
-      ? const Color(0xFF181C22) 
-      : const Color(0xFFFAF7F2);
+      ? const Color(0xFF181C22) // <-- Ubah warna Surface Sekunder saat DARK MODE
+      : const Color(0xFFFAF7F2); // <-- Ubah warna Surface Sekunder saat LIGHT MODE
+
   static Color get surfaceCard => ThemeService.instance.isDarkMode 
-      ? const Color(0xFF1E232B) 
-      : const Color(0xFFFFFFFF);
+      ? const Color(0xFF1E232B) // <-- Ubah warna Kartu/Card User saat DARK MODE
+      : const Color(0xFFFFFFFF); // <-- Ubah warna Kartu/Card User saat LIGHT MODE (Putih)
+
   static Color get surfaceDim => ThemeService.instance.isDarkMode 
       ? const Color(0xFF262C36) 
       : const Color(0xFFEFECE5);
+
   static Color get surfaceField => ThemeService.instance.isDarkMode 
-      ? const Color(0xFF262C36) 
-      : const Color(0xFFF3EFE7);
+      ? const Color(0xFF262C36) // <-- Ubah warna Latar Input Field saat DARK MODE
+      : const Color(0xFFF3EFE7); // <-- Ubah warna Latar Input Field saat LIGHT MODE
 
   // Text
   static Color get textPrimary => ThemeService.instance.isDarkMode 
@@ -50,10 +55,11 @@ class AppColors {
       : const Color(0xFFEAE5DB);
   static const Color warmTerracotta = Color(0xFF9A442D);
 
-  // Navigation
+  // ─── [USER] WARNA DOCK NAVIGASI BAWAH (BOTTOM DOCK) ───
+  // Ubah baris ini untuk mengganti warna latar bilah navigasi melayang bawah
   static Color get dockBg => ThemeService.instance.isDarkMode 
-      ? const Color(0xFF181C22) 
-      : const Color(0xFF1C1D1F);
+      ? const Color(0xFF181C22) // <-- Ubah warna Bottom Dock saat DARK MODE
+      : const Color(0xFF1C1D1F); // <-- Ubah warna Bottom Dock saat LIGHT MODE (Charcoal gelap)
 
   // Status
   static const Color statusAvailable = Color(0xFF2A9D8F);

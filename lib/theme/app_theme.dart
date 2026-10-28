@@ -7,7 +7,8 @@ class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
-      scaffoldBackgroundColor: const Color(0xFFFCF9F2),
+      // ─── [USER] WARNA BACKGROUND GLOBAL LIGHT MODE ───
+      scaffoldBackgroundColor: const Color(0xFFFCF9F2), // <-- Ubah warna Background Global Scaffold (Light Mode)
       cardColor: Colors.white,
       dividerColor: const Color(0xFFF1EEE7),
       colorScheme: const ColorScheme.light(
@@ -92,7 +93,8 @@ class AppTheme {
       return ThemeData(
         useMaterial3: true,
         brightness: Brightness.dark,
-        scaffoldBackgroundColor: const Color(0xFF111418),
+        // ─── [USER] WARNA BACKGROUND GLOBAL DARK MODE ───
+        scaffoldBackgroundColor: const Color(0xFF111418), // <-- Ubah warna Background Global Scaffold (Dark Mode)
         cardColor: const Color(0xFF1E232B),
         dividerColor: const Color(0xFF252B35),
         colorScheme: const ColorScheme.dark(

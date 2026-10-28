@@ -153,10 +153,13 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
           data: AppTheme.light,
           child: Scaffold(
         key: _scaffoldKey,
-        backgroundColor: const Color(0xFFF9F9F9),
+        // ─── [ADMIN OPERASIONAL] WARNA LATAR BELAKANG DASHBOARD ───
+        backgroundColor: const Color(0xFFF9F9F9), // <-- Ubah warna Background Dashboard Admin Operasional
         drawer: _buildOperationsDrawer(context),
+
+        // ─── [ADMIN OPERASIONAL] WARNA HEADER / TOPBAR (APPBAR) ───
         appBar: AppBar(
-          backgroundColor: Colors.white,
+          backgroundColor: Colors.white, // <-- Ubah warna TopBar/Header Admin Operasional
           elevation: 0,
           leadingWidth: 54,
           // Tombol P sebagai trigger drawer (menggantikan burger button)

@@ -465,7 +465,8 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppColors.background,
+      // ─── [USER] WARNA BACKGROUND HALAMAN UTAMA (HOME) ───
+      backgroundColor: AppColors.background, // <-- Mengambil warna dari AppColors.background (lib/theme/app_colors.dart)
       body: Stack(
         children: [
           // ─── Scrollable content (Bisa ditarik ke bawah untuk refresh GPS) ───
