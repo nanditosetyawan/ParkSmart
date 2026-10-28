@@ -10,7 +10,6 @@ import 'admin_operations_notifications_screen.dart';
 import 'admin_active_users_screen.dart';
 import 'admin_bookings_screen.dart';
 import 'manage_parking_screen.dart';
-import '../../sitemap_screen.dart';
 import '../../auth/login_screen.dart';
 import '../../../core/services/session_service.dart';
 import '../../../core/services/parking_notification_service.dart';
@@ -2528,27 +2527,6 @@ class _AdminOperationsDashboardScreenState extends State<AdminOperationsDashboar
                     },
                   ),
 
-                  const Divider(color: Color(0xFFF3F4F6), height: 24, indent: 16, endIndent: 16),
-                  Padding(
-                    padding: const EdgeInsets.fromLTRB(18, 4, 18, 6),
-                    child: Text(
-                      'UTILITAS SISTEM',
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        color: const Color(0xFF76777B),
-                        letterSpacing: 0.8,
-                      ),
-                    ),
-                  ),
-                  _buildDrawerItem(
-                    icon: Icons.map_outlined,
-                    label: 'Sitemap Navigasi Sistem',
-                    onTap: () {
-                      Navigator.pop(context);
-                      Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen()));
-                    },
-                  ),
                   const Divider(color: Color(0xFFF3F4F6), height: 24, indent: 16, endIndent: 16),
                   ListTile(
                     leading: const Icon(Icons.logout, color: Color(0xFFD94B4B)),

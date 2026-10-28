@@ -19,7 +19,6 @@ import '../session/active_session_screen.dart' as active;
 import 'package:google_fonts/google_fonts.dart';
 import 'package:geocoding/geocoding.dart';
 import '../../widgets/bottom_dock_navigation.dart';
-import '../sitemap_screen.dart';
 import '../../core/services/theme_service.dart';
 import '../../core/services/maintenance_service.dart';
 import '../../theme/app_colors.dart';
@@ -467,18 +466,6 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 100),
-        child: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen()));
-          },
-          label: const Text('Dev Sitemap'),
-          icon: const Icon(Icons.developer_board),
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
-        ),
-      ),
       body: Stack(
         children: [
           // ─── Scrollable content (Bisa ditarik ke bawah untuk refresh GPS) ───

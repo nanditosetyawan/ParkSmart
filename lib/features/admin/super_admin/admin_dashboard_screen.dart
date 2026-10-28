@@ -23,8 +23,6 @@ import '../../../core/services/session_service.dart';
 import 'admin_kyc_screen.dart';
 import 'admin_kyc_detail_modal.dart';
 import 'admin_arcade_screen.dart';
-
-import '../../sitemap_screen.dart';
 import '../../auth/login_screen.dart';
 
 typedef DashboardScreen = AdminDashboardScreen;
@@ -830,16 +828,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               const SizedBox(height: 80),
             ],
           ),
-        ),
-
-        floatingActionButton: FloatingActionButton.extended(
-          onPressed: () {
-            Navigator.push(context, MaterialPageRoute(builder: (_) => const SitemapScreen()));
-          },
-          label: const Text('Dev Sitemap'),
-          icon: const Icon(Icons.developer_board),
-          backgroundColor: const Color(0xFF1C1D1F),
-          foregroundColor: Colors.white,
         ),
       ),
     );
