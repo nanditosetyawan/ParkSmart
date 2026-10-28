@@ -31,17 +31,19 @@ class _AiAssistantScreenState extends State<AiAssistantScreen> {
   String? _customGroqApiKey;
   
   String get _apiKey {
-    if (_customGroqApiKey != null &&
-        _customGroqApiKey!.isNotEmpty &&
-        !_customGroqApiKey!.startsWith('gsk_b7S8')) {
-      return _customGroqApiKey!;
-    }
+    // 1. Prioritas Utama: Selalu ambil dari .env
     try {
       if (dotenv.isInitialized) {
         final key = dotenv.env['GROQ_API_KEY'];
         if (key != null && key.isNotEmpty && !key.startsWith('gsk_b7S8')) return key.trim();
       }
     } catch (_) {}
+    // 2. Fallback: Ambil dari custom/cache jika .env belum loaded
+    if (_customGroqApiKey != null &&
+        _customGroqApiKey!.isNotEmpty &&
+        !_customGroqApiKey!.startsWith('gsk_b7S8')) {
+      return _customGroqApiKey!;
+    }
     return '';
   }
   final String _modelName = 'qwen/qwen3.8-27b';
@@ -195,17 +197,11 @@ GAYA BAHASA:
     final text = _textController.text.trim();
     if (text.isEmpty) return;
 
-    // Pastikan selalu menggunakan API Key terbaru yang diinputkan oleh Super Admin
+    // Pastikan selalu menggunakan API Key terbaru yang aktif (prioritas .env)
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final latestKey = prefs.getString('groq_api_key');
-      if (latestKey != null && latestKey.isNotEmpty) {
-        if (latestKey.startsWith('gsk_b7S8')) {
-          await prefs.remove('groq_api_key');
-          _customGroqApiKey = null;
-        } else {
-          _customGroqApiKey = latestKey;
-        }
+      final activeKey = await AiConfigService.instance.loadActiveApiKey();
+      if (activeKey != null && activeKey.isNotEmpty) {
+        _customGroqApiKey = activeKey;
       }
     } catch (_) {}
 

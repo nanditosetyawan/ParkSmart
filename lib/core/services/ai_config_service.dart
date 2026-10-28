@@ -35,7 +35,15 @@ class AiConfigService {
       if (dotenv.isInitialized) {
         final envKey = dotenv.env['GROQ_API_KEY'];
         if (envKey != null && envKey.isNotEmpty && !envKey.startsWith('gsk_b7S8')) {
-          return envKey.trim();
+          final cleanKey = envKey.trim();
+          // Selalu sinkronkan cache lokal dengan .env terbaru agar tidak nyangkut key lama
+          try {
+            final prefs = await SharedPreferences.getInstance();
+            if (prefs.getString(prefKeyGroqApi) != cleanKey) {
+              await prefs.setString(prefKeyGroqApi, cleanKey);
+            }
+          } catch (_) {}
+          return cleanKey;
         }
       }
     } catch (e) {

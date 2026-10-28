@@ -3,6 +3,7 @@ import '../../../theme/app_theme.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'backend/admin_active_users_backend.dart';
+import 'backend/admin_operations_dashboard_backend.dart';
 import 'manage_parking_screen.dart';
 import '../../../core/services/parking_notification_service.dart';
 
@@ -126,10 +127,23 @@ class _ActiveUsersScreenState extends State<ActiveUsersScreen> {
                     onPressed: () async {
                       final sm = ScaffoldMessenger.of(context);
                       Navigator.pop(ctx);
+                      final targetUserId = session['user_id']?.toString();
+                      final plate = session['plate']?.toString() ?? 'Kendaraan';
+                      final userName = session['user']?.toString() ?? 'Pengguna';
+
+                      // 1. Rekam ke database system_notifications untuk user pemilik sesi
+                      await AdminOperationsDashboardBackend.instance.sendUrgentReminderNotification(
+                        userId: targetUserId,
+                        plateNumber: plate,
+                        locationName: session['location']?.toString(),
+                      );
+
+                      // 2. Munculkan notifikasi darurat sistem
                       await ParkingNotificationService.showSystemUrgentNotificationDirectly();
+
                       sm.showSnackBar(
                         SnackBar(
-                          content: Text('Notifikasi darurat peringatan berhasil dikirimkan ke ${session['user']}!'),
+                          content: Text('Notifikasi darurat peringatan berhasil dikirimkan ke $userName!'),
                           backgroundColor: const Color(0xFF17A18A),
                         ),
                       );

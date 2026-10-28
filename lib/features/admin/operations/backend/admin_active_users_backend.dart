@@ -49,6 +49,7 @@ class AdminActiveUsersBackend extends ChangeNotifier {
           .from('parking_sessions')
           .select('''
             id,
+            user_id,
             session_code,
             plate_number,
             vehicle_desc,
@@ -63,7 +64,7 @@ class AdminActiveUsersBackend extends ChangeNotifier {
             slot_id,
             location_id,
             booking_id,
-            users(full_name, phone),
+            users(id, full_name, phone),
             parking_locations(name, address),
             parking_slots(slot_code, floor_name)
           ''')
@@ -120,6 +121,7 @@ class AdminActiveUsersBackend extends ChangeNotifier {
           return {
             'id': row['session_code']?.toString() ?? 'SES-000',
             'db_id': row['id']?.toString(),
+            'user_id': row['user_id']?.toString() ?? userData?['id']?.toString() ?? '',
             'booking_id': row['booking_id']?.toString(),
             'location_id': row['location_id']?.toString() ?? '',
             'slot_id': row['slot_id']?.toString() ?? '',

@@ -2,12 +2,15 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'core/services/notification_service.dart';
 import 'core/services/parking_notification_service.dart';
 import 'core/services/currency_service.dart';
 import 'core/services/theme_service.dart';
 import 'core/services/maintenance_service.dart';
 import 'core/services/session_service.dart';
+import 'core/services/network_security_service.dart';
+import 'core/widgets/no_internet_overlay.dart';
 import 'theme/app_theme.dart';
 import 'dart:ui';
 import 'package:flutter/services.dart';
@@ -44,6 +47,13 @@ void main() async {
         anonKey: supabaseAnonKey,
       );
       debugPrint('Supabase berhasil diinisialisasi dari .env: $supabaseUrl');
+
+      // Simpan URL & Anon Key ke SharedPreferences agar dapat diakses oleh Background Service Isolate
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        await prefs.setString('supabase_url', supabaseUrl);
+        await prefs.setString('supabase_anon_key', supabaseAnonKey);
+      } catch (_) {}
     } catch (e) {
       debugPrint('Error Supabase.initialize: $e');
     }
@@ -91,6 +101,7 @@ void main() async {
     MaintenanceService.instance.init().catchError((e) => debugPrint('MaintenanceService init error: $e')),
     SessionService.instance.init().catchError((e) => debugPrint('SessionService init error: $e')),
     LanguageService.instance.init().catchError((e) => debugPrint('LanguageService init error: $e')),
+    NetworkSecurityService.instance.init().catchError((e) => debugPrint('NetworkSecurityService init error: $e')),
   ]);
 
   // 5. Jalankan Aplikasi Utama Secara Langsung (Mencegah Deadlock / Layar Hitam di Android & Web)
@@ -137,7 +148,7 @@ class _ParkSmartAppState extends State<ParkSmartApp> {
       builder: (context, _) {
         return MaterialApp(
           navigatorKey: navigatorKey,
-          title: 'SmartPark',
+          title: 'ParkSmart',
           debugShowCheckedModeBanner: false,
           themeMode: ThemeService.instance.themeMode,
           theme: AppTheme.light,
@@ -151,11 +162,17 @@ class _ParkSmartAppState extends State<ParkSmartApp> {
             },
           ),
           builder: (context, child) {
-            return Listener(
-              behavior: HitTestBehavior.translucent,
-              onPointerDown: (_) => SessionService.instance.recordUserActivity(),
-              onPointerMove: (_) => SessionService.instance.recordUserActivity(),
-              child: child ?? const SizedBox.shrink(),
+            return Stack(
+              children: [
+                Listener(
+                  behavior: HitTestBehavior.translucent,
+                  onPointerDown: (_) => SessionService.instance.recordUserActivity(),
+                  onPointerMove: (_) => SessionService.instance.recordUserActivity(),
+                  child: child ?? const SizedBox.shrink(),
+                ),
+                // Pengaman Jaringan Global (User & Admin)
+                const NoInternetOverlay(),
+              ],
             );
           },
           home: const SplashScreen(),

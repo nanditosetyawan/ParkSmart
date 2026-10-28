@@ -35,6 +35,7 @@ import '../../core/services/session_service.dart';
 import '../../core/services/currency_service.dart';
 import '../../core/services/language_service.dart';
 import '../../core/services/app_image_cache_service.dart';
+import '../../core/services/parking_notification_service.dart';
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -157,6 +158,8 @@ class _HomeScreenState extends State<HomeScreen> {
     );
     // Langsung minta akses GPS saat membuka aplikasi agar posisi map relevan
     _initGpsAndOrientation();
+    // Inisialisasi listener notifikasi darurat realtime dari petugas lapangan
+    ParkingNotificationService().startRealtimeUrgentListener();
     // Ambil data backend Supabase
     HomeBackend.instance.loadHomeData();
 

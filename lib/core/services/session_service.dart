@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'parking_notification_service.dart';
 import '../../features/auth/login_screen.dart';
 import '../../features/profile/backend/profile_backend.dart';
 import '../../features/profile/backend/payment_methods_backend.dart';
@@ -109,11 +110,17 @@ class SessionService with WidgetsBindingObserver {
             _lastActiveTime = DateTime.now();
             await _persistLastActiveTime(_lastActiveTime!);
             _startInactivityCheckTimer();
+            if (_userType == 'user') {
+              ParkingNotificationService().startRealtimeUrgentListener();
+            }
             debugPrint('[SessionService] Sesi dipulihkan. Sisa waktu: $formattedRemainingTime');
           }
         } else {
           _lastActiveTime = DateTime.now();
           _startInactivityCheckTimer();
+          if (_userType == 'user') {
+            ParkingNotificationService().startRealtimeUrgentListener();
+          }
         }
       }
     } catch (e) {
@@ -170,6 +177,10 @@ class SessionService with WidgetsBindingObserver {
       await prefs.remove(_kBackgroundTime);
     } catch (e) {
       debugPrint('[SessionService] Error startSession: $e');
+    }
+
+    if (userType == 'user') {
+      ParkingNotificationService().startRealtimeUrgentListener();
     }
 
     debugPrint('[SessionService] Sesi $userType dimulai untuk $userName ($identifier, uid: $userId). Batas waktu: 30 menit.');
@@ -320,6 +331,8 @@ class SessionService with WidgetsBindingObserver {
 
   /// Membersihkan seluruh data sesi (Manual Logout atau Timeout)
   Future<void> clearSession() async {
+    ParkingNotificationService().stopRealtimeUrgentListener();
+
     _isLoggedIn = false;
     _userType = null;
     _identifier = null;

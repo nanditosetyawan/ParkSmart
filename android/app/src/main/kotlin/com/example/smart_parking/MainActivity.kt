@@ -190,6 +190,33 @@ class MainActivity : FlutterFragmentActivity() {
                         result.error("SAVE_FAILED", e.localizedMessage, null)
                     }
                 }
+                "openNetworkSettings" -> {
+                    try {
+                        val intent = android.content.Intent(android.provider.Settings.ACTION_WIRELESS_SETTINGS).apply {
+                            flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                        }
+                        startActivity(intent)
+                        result.success(true)
+                    } catch (e: Exception) {
+                        try {
+                            val intent = android.content.Intent(android.provider.Settings.ACTION_WIFI_SETTINGS).apply {
+                                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                            }
+                            startActivity(intent)
+                            result.success(true)
+                        } catch (e2: Exception) {
+                            try {
+                                val intent = android.content.Intent(android.provider.Settings.ACTION_SETTINGS).apply {
+                                    flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+                                }
+                                startActivity(intent)
+                                result.success(true)
+                            } catch (e3: Exception) {
+                                result.error("OPEN_SETTINGS_FAILED", e3.localizedMessage, null)
+                            }
+                        }
+                    }
+                }
                 else -> result.notImplemented()
             }
         }

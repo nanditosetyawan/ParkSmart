@@ -639,6 +639,15 @@ class LanguageService extends ChangeNotifier {
   // KAMUS KATA & FRASA LENGKAP USER APP (Hardcode & Database)
   // =========================================================================
   static final Map<String, String> _dictionary = {
+    // ---------------- Pengaman Jaringan (Network Security) ----------------
+    'Internet Tidak Tersedia': 'No Internet Connection',
+    'Koneksi internet Anda terputus. Pastikan perangkat Anda terhubung ke jaringan Wi-Fi atau data seluler untuk melanjutkan penggunaan ParkSmart.': 'Your internet connection was lost. Please ensure your device is connected to Wi-Fi or cellular data to continue using ParkSmart.',
+    'Cek Jaringan': 'Check Network',
+    'Keluar Aplikasi': 'Exit App',
+    'Coba Hubungkan Lagi': 'Retry Connection',
+    'Memeriksa koneksi...': 'Checking connection...',
+    'TIDAK ADA KONEKSI': 'NO CONNECTION',
+
     // ---------------- Notifikasi di User ----------------
     'Saldo Dompet Masuk': 'Wallet Balance Received',
     'Injeksi Saldo Dompet': 'Wallet Balance Injected',

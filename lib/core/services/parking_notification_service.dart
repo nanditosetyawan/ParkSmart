@@ -1,16 +1,23 @@
 import 'dart:async';
+import 'dart:convert';
+import 'dart:typed_data';
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:flutter_background_service/flutter_background_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'session_service.dart';
+import '../../features/notification/backend/notification_backend.dart';
 
 /// ─── PARKING URGENT NOTIFICATION SERVICE ───
 /// Mengelola siklus penuh notifikasi darurat sesi parkir:
-/// 1. Trigger notif saat timer parkir tersisa ≤ 10 menit
-/// 2. Notif berulang setiap 3 menit jika user tidak merespons
-/// 3. Berhenti jika diklik user atau sesi diperpanjang (extend)
-/// 4. Bekerja bahkan saat aplikasi di-background / ditutup
+/// 1. Trigger notif saat timer parkir tersisa ≤ 10 menit atau ditekan oleh petugas lapangan (Admin Operasional)
+/// 2. Notif push melayang (Heads-up) dengan suara darurat (sound_darurat.mp3) diputar berulang (LOOP)
+///    menggunakan native FLAG_INSISTENT sampai user membuka notifikasi
+/// 3. Berhenti berbunyi jika diklik user, ditutup, atau sesi diperpanjang (extend)
+/// 4. Bekerja baik saat aplikasi aktif (Foreground Realtime) maupun saat di-background / di-clear (Background Service)
 class ParkingNotificationService {
   static final ParkingNotificationService _instance =
       ParkingNotificationService._internal();
@@ -18,6 +25,10 @@ class ParkingNotificationService {
   ParkingNotificationService._internal();
 
   static const int _urgentNotifId = 777;
+  static const String _kUrgentChannelId = 'urgent_parking_alarm_v5';
+  static const String _kUrgentChannelName = 'Peringatan Darurat Parkir (Alarm)';
+  static const String _kUrgentChannelDesc = 'Peringatan mendesak waktu parkir dengan alarm suara darurat looping';
+
   static const String _kSessionActive = 'ps_parking_session_active';
   static const String _kExpectedCheckout = 'ps_parking_expected_checkout';
   static const String _kNotifDismissed = 'ps_parking_notif_dismissed';
@@ -29,6 +40,7 @@ class ParkingNotificationService {
   static bool _pluginInitialized = false;
   Timer? _repeatTimer;
   bool _urgentActive = false;
+  RealtimeChannel? _realtimeUrgentChannel;
 
   // ─── INISIALISASI PLUGIN ──────────────────────────────────────────────────
 
@@ -40,7 +52,11 @@ class ParkingNotificationService {
     await _plugin.initialize(
       settings: settings,
       onDidReceiveNotificationResponse: (NotificationResponse response) {
-        if (response.id == _urgentNotifId || response.payload == 'expiring_session') {
+        if (response.id == _urgentNotifId ||
+            response.payload == 'expiring_session' ||
+            response.actionId == 'stop_alarm' ||
+            response.actionId == 'checkout_id' ||
+            response.actionId == 'perpanjang_id') {
           _markNotifDismissed();
           ParkingNotificationService().stopUrgentNotification();
         }
@@ -53,16 +69,17 @@ class ParkingNotificationService {
     if (androidPlugin != null) {
       await androidPlugin.requestNotificationsPermission();
 
-      // Buat channel darurat dengan custom sound
-      const urgentChannel = AndroidNotificationChannel(
-        'urgent_channel_v4',
-        'Urgent Parking Notifications',
-        description: 'Peringatan waktu parkir dengan suara darurat',
+      // Buat channel darurat dengan custom sound looping
+      final urgentChannel = AndroidNotificationChannel(
+        _kUrgentChannelId,
+        _kUrgentChannelName,
+        description: _kUrgentChannelDesc,
         importance: Importance.max,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('sound_darurat'),
+        sound: const RawResourceAndroidNotificationSound('sound_darurat'),
         audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
       );
       await androidPlugin.createNotificationChannel(urgentChannel);
 
@@ -114,25 +131,35 @@ class ParkingNotificationService {
     } catch (_) {}
   }
 
-  // ─── NOTIFIKASI DARURAT ───────────────────────────────────────────────────
+  // ─── NOTIFIKASI DARURAT ALARM (LOOPING SOUND & HEADS-UP) ──────────────────
 
-  static Future<void> _showUrgentNotif({String? customBody, int minsLeft = 10}) async {
+  /// Menampilkan notifikasi push melayang (Heads-up) dengan suara darurat
+  /// yang berbunyi secara berulang (LOOP) sampai dibuka oleh pengguna.
+  static Future<void> showUrgentAlarmNotification({
+    String? title,
+    String? body,
+    int? minsLeft,
+  }) async {
     await _ensurePluginInitialized();
     try {
-      const AndroidNotificationDetails androidDetails =
-          AndroidNotificationDetails(
-        'urgent_channel_v4',
-        'Urgent Parking Notifications',
-        channelDescription: 'Peringatan waktu parkir dengan suara darurat',
+      final androidDetails = AndroidNotificationDetails(
+        _kUrgentChannelId,
+        _kUrgentChannelName,
+        channelDescription: _kUrgentChannelDesc,
         importance: Importance.max,
-        priority: Priority.high,
+        priority: Priority.max,
         playSound: true,
-        sound: RawResourceAndroidNotificationSound('sound_darurat'),
+        sound: const RawResourceAndroidNotificationSound('sound_darurat'),
         audioAttributesUsage: AudioAttributesUsage.alarm,
         enableVibration: true,
+        vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
         fullScreenIntent: true,
+        category: AndroidNotificationCategory.alarm,
+        visibility: NotificationVisibility.public,
         autoCancel: true,
-        actions: <AndroidNotificationAction>[
+        // Native Android FLAG_INSISTENT (4): Audio berbunyi berulang (loop) sampai dibuka/dismiss
+        additionalFlags: Int32List.fromList(<int>[4]),
+        actions: const <AndroidNotificationAction>[
           AndroidNotificationAction(
             'perpanjang_id',
             'Perpanjang Waktu',
@@ -140,27 +167,39 @@ class ParkingNotificationService {
           ),
           AndroidNotificationAction(
             'checkout_id',
-            'Checkout Sekarang',
+            'Buka Tiket',
             showsUserInterface: true,
+          ),
+          AndroidNotificationAction(
+            'stop_alarm',
+            'Matikan Alarm',
+            cancelNotification: true,
           ),
         ],
       );
-      const NotificationDetails details =
-          NotificationDetails(android: androidDetails);
+      final details = NotificationDetails(android: androidDetails);
       await _plugin.show(
         id: _urgentNotifId,
-        title: '⚠️ Sisa Waktu Parkir $minsLeft Menit!',
-        body: customBody ??
-            'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
+        title: title ?? (minsLeft != null ? '⚠️ Sisa Waktu Parkir $minsLeft Menit!' : '⚠️ Peringatan Darurat Parkir!'),
+        body: body ?? 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
         notificationDetails: details,
         payload: 'expiring_session',
       );
       final prefs = await SharedPreferences.getInstance();
       await prefs.setInt(_kLastNotifTime, DateTime.now().millisecondsSinceEpoch);
-      debugPrint('[ParkingNotif] Notif darurat ditampilkan ($minsLeft menit)');
+      await prefs.setBool(_kNotifDismissed, false);
+      debugPrint('[ParkingNotif] showUrgentAlarmNotification berhasil dibunyikan dengan loop sound!');
     } catch (e) {
-      debugPrint('[ParkingNotif] _showUrgentNotif error: $e');
+      debugPrint('[ParkingNotif] showUrgentAlarmNotification error: $e');
     }
+  }
+
+  static Future<void> _showUrgentNotif({String? customBody, int minsLeft = 10}) async {
+    await showUrgentAlarmNotification(
+      title: '⚠️ Sisa Waktu Parkir $minsLeft Menit!',
+      body: customBody ?? 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
+      minsLeft: minsLeft,
+    );
   }
 
   Future<void> cancelUrgentNotification() async {
@@ -172,7 +211,7 @@ class ParkingNotificationService {
       await _plugin.cancel(id: _urgentNotifId);
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_kNotifDismissed, true);
-      debugPrint('[ParkingNotif] Notif darurat dibatalkan');
+      debugPrint('[ParkingNotif] Notif darurat dibatalkan & suara loop berhenti');
     } catch (e) {
       debugPrint('[ParkingNotif] cancelUrgentNotification error: $e');
     }
@@ -180,31 +219,62 @@ class ParkingNotificationService {
 
   Future<void> stopUrgentNotification() async => cancelUrgentNotification();
 
-  /// Trigger notifikasi darurat (10 Menit Tersisa) yang 100% identik dengan tombol Urgent Action di Developer Options Profil
+  /// Trigger notifikasi darurat manual (identik dengan tombol Developer Options Profil & Pengingat Petugas)
   static Future<void> showSystemUrgentNotificationDirectly({BuildContext? context}) async {
-    await _ensurePluginInitialized();
-    const AndroidNotificationDetails androidPlatformChannelSpecifics = AndroidNotificationDetails(
-      'urgent_channel_v4',
-      'Urgent Notifications',
-      channelDescription: 'Peringatan waktu parkir dengan suara darurat penuh',
-      importance: Importance.max,
-      priority: Priority.high,
-      playSound: true,
-      sound: RawResourceAndroidNotificationSound('sound_darurat'),
-      audioAttributesUsage: AudioAttributesUsage.alarm,
-      actions: <AndroidNotificationAction>[
-        AndroidNotificationAction('perpanjang_id', 'Perpanjang'),
-        AndroidNotificationAction('checkout_id', 'Checkout'),
-      ],
+    await showUrgentAlarmNotification(
+      title: '⚠️ Sisa Waktu Parkir 10 Menit!',
+      body: 'Waktu parkir hampir habis. Segera perpanjang atau checkout.',
+      minsLeft: 10,
     );
-    const NotificationDetails platformChannelSpecifics = NotificationDetails(android: androidPlatformChannelSpecifics);
-    await _plugin.show(
-      id: 0,
-      title: 'Sisa Waktu Parkir 10 Menit!',
-      body: 'Waktu hampir habis. Segera perpanjang atau checkout.',
-      notificationDetails: platformChannelSpecifics,
-      payload: 'expiring_session',
-    );
+  }
+
+  // ─── REALTIME LISTENER NOTIFIKASI DARURAT DARI OPERASIONAL (FOREGROUND) ───
+
+  /// Berlangganan event INSERT di tabel `system_notifications` secara realtime
+  /// Ketika Admin Operasional menekan "Kirim Pengingat", event langsung tiba di HP user
+  void startRealtimeUrgentListener() {
+    if (_realtimeUrgentChannel != null) return;
+    try {
+      final currentUid = SessionService.instance.userId;
+      if (currentUid == null || currentUid.isEmpty) return;
+
+      final client = Supabase.instance.client;
+      _realtimeUrgentChannel = client.channel('public:urgent_user_notif_$currentUid')
+        ..onPostgresChanges(
+          event: PostgresChangeEvent.insert,
+          schema: 'public',
+          table: 'system_notifications',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'recipient_user_id',
+            value: currentUid,
+          ),
+          callback: (payload) {
+            debugPrint('[ParkingNotif] Realtime urgent notif diterima dari admin: ${payload.newRecord}');
+            final newRow = payload.newRecord;
+            final nType = newRow['notification_type']?.toString().toLowerCase();
+            final aType = newRow['action_type']?.toString().toLowerCase();
+
+            if (nType == 'urgent' || aType == 'expiring_session') {
+              final title = newRow['title']?.toString() ?? '⚠️ Sisa Waktu Parkir 10 Menit!';
+              final message = newRow['message']?.toString() ?? 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout.';
+              showUrgentAlarmNotification(title: title, body: message);
+
+              // Update badge & daftar notifikasi di dalam aplikasi
+              NotificationBackend.instance.fetchNotifications();
+            }
+          },
+        )
+        ..subscribe();
+      debugPrint('[ParkingNotif] Realtime urgent listener aktif untuk user: $currentUid');
+    } catch (e) {
+      debugPrint('[ParkingNotif] startRealtimeUrgentListener error: $e');
+    }
+  }
+
+  void stopRealtimeUrgentListener() {
+    _realtimeUrgentChannel?.unsubscribe();
+    _realtimeUrgentChannel = null;
   }
 
   // ─── TRIGGER UTAMA ────────────────────────────────────────────────────────
@@ -367,15 +437,16 @@ void onBackgroundStart(ServiceInstance service) async {
     );
     await androidPlugin.createNotificationChannel(bgChannel);
 
-    const urgentChannel = AndroidNotificationChannel(
-      'urgent_channel_v4',
-      'Urgent Parking Notifications',
-      description: 'Peringatan waktu parkir dengan suara darurat',
+    final urgentChannel = AndroidNotificationChannel(
+      'urgent_parking_alarm_v5',
+      'Peringatan Darurat Parkir (Alarm)',
+      description: 'Peringatan mendesak waktu parkir dengan alarm suara darurat looping',
       importance: Importance.max,
       playSound: true,
-      sound: RawResourceAndroidNotificationSound('sound_darurat'),
+      sound: const RawResourceAndroidNotificationSound('sound_darurat'),
       audioAttributesUsage: AudioAttributesUsage.alarm,
       enableVibration: true,
+      vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
     );
     await androidPlugin.createNotificationChannel(urgentChannel);
   }
@@ -402,11 +473,62 @@ void onBackgroundStart(ServiceInstance service) async {
   Timer.periodic(const Duration(seconds: 15), (timer) async {
     try {
       final prefs = await SharedPreferences.getInstance();
+
+      // ─── 1. CEK NOTIFIKASI DARURAT DARI ADMIN LAPANGAN DI SUPABASE (BACKGROUND / KILLED) ───
+      final supabaseUrl = prefs.getString('supabase_url');
+      final supabaseAnonKey = prefs.getString('supabase_anon_key');
+      final currentUserId = prefs.getString('ps_session_user_id');
+
+      if (supabaseUrl != null &&
+          supabaseAnonKey != null &&
+          currentUserId != null &&
+          currentUserId.isNotEmpty) {
+        try {
+          final uri = Uri.parse(
+            '$supabaseUrl/rest/v1/system_notifications?recipient_user_id=eq.$currentUserId&is_read=eq.false&notification_type=eq.urgent&order=created_at.desc&limit=1',
+          );
+          final res = await http.get(uri, headers: {
+            'apikey': supabaseAnonKey,
+            'Authorization': 'Bearer $supabaseAnonKey',
+            'Accept': 'application/json',
+          }).timeout(const Duration(seconds: 5));
+
+          if (res.statusCode == 200) {
+            final List<dynamic> notifs = jsonDecode(res.body);
+            if (notifs.isNotEmpty) {
+              final latestNotif = notifs.first as Map<String, dynamic>;
+              final notifId = latestNotif['id']?.toString() ?? '';
+              final lastShownNotifId =
+                  prefs.getString('ps_last_shown_urgent_notif_id') ?? '';
+
+              if (notifId.isNotEmpty && notifId != lastShownNotifId) {
+                await prefs.setString('ps_last_shown_urgent_notif_id', notifId);
+                await prefs.setBool('ps_parking_notif_dismissed', false);
+
+                final title = latestNotif['title']?.toString() ??
+                    '⚠️ Sisa Waktu Parkir 10 Menit!';
+                final message = latestNotif['message']?.toString() ??
+                    'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout.';
+
+                await _bgShowUrgentAlarmNotif(
+                  plugin,
+                  title: title,
+                  body: message,
+                );
+                debugPrint(
+                    '[ParkingBG] Notifikasi darurat dari Admin berhasil dibunyikan di background!');
+              }
+            }
+          }
+        } catch (e) {
+          debugPrint('[ParkingBG] Cek notif server error: $e');
+        }
+      }
+
+      // ─── 2. MONITOR SISA WAKTU PARKIR LOKAL ───
       final sessionActive =
           prefs.getBool('ps_parking_session_active') ?? false;
       if (!sessionActive) {
-        timer.cancel();
-        service.stopSelf();
         return;
       }
 
@@ -425,8 +547,6 @@ void onBackgroundStart(ServiceInstance service) async {
       if (remainingSeconds <= 0) {
         await prefs.setBool('ps_parking_session_active', false);
         await plugin.cancel(id: 777);
-        timer.cancel();
-        service.stopSelf();
         return;
       }
 
@@ -440,7 +560,7 @@ void onBackgroundStart(ServiceInstance service) async {
         // lalu bunyikan berulang setiap 3 menit (180.000 ms) jika tidak ada tindakan
         if (lastNotifMs == 0 || elapsedMs >= 180000) {
           final minsLeft = (remainingSeconds / 60).ceil();
-          await _bgShowUrgentNotif(plugin, minsLeft: minsLeft > 0 ? minsLeft : 1);
+          await _bgShowUrgentAlarmNotif(plugin, minsLeft: minsLeft > 0 ? minsLeft : 1);
           await prefs.setInt('ps_parking_last_urgent_notif_time', nowMs);
           debugPrint('[ParkingBG] Notif darurat dikirim ($minsLeft menit). Mengulang dalam 3 menit jika belum direspons.');
         }
@@ -451,23 +571,31 @@ void onBackgroundStart(ServiceInstance service) async {
   });
 }
 
-Future<void> _bgShowUrgentNotif(FlutterLocalNotificationsPlugin plugin,
-    {int minsLeft = 10}) async {
+Future<void> _bgShowUrgentAlarmNotif(
+  FlutterLocalNotificationsPlugin plugin, {
+  String? title,
+  String? body,
+  int? minsLeft,
+}) async {
   try {
-    const AndroidNotificationDetails androidDetails =
-        AndroidNotificationDetails(
-      'urgent_channel_v4',
-      'Urgent Parking Notifications',
-      channelDescription: 'Peringatan waktu parkir dengan suara darurat',
+    final androidDetails = AndroidNotificationDetails(
+      'urgent_parking_alarm_v5',
+      'Peringatan Darurat Parkir (Alarm)',
+      channelDescription: 'Peringatan mendesak waktu parkir dengan alarm suara darurat looping',
       importance: Importance.max,
-      priority: Priority.high,
+      priority: Priority.max,
       playSound: true,
-      sound: RawResourceAndroidNotificationSound('sound_darurat'),
+      sound: const RawResourceAndroidNotificationSound('sound_darurat'),
       audioAttributesUsage: AudioAttributesUsage.alarm,
       enableVibration: true,
+      vibrationPattern: Int64List.fromList([0, 1000, 500, 1000, 500, 1000]),
       autoCancel: true,
       fullScreenIntent: true,
-      actions: <AndroidNotificationAction>[
+      category: AndroidNotificationCategory.alarm,
+      visibility: NotificationVisibility.public,
+      // Native Android FLAG_INSISTENT (4): Audio berbunyi berulang (loop) sampai dibuka/dismiss
+      additionalFlags: Int32List.fromList(<int>[4]),
+      actions: const <AndroidNotificationAction>[
         AndroidNotificationAction(
           'perpanjang_id',
           'Perpanjang Waktu',
@@ -475,23 +603,27 @@ Future<void> _bgShowUrgentNotif(FlutterLocalNotificationsPlugin plugin,
         ),
         AndroidNotificationAction(
           'checkout_id',
-          'Checkout Sekarang',
+          'Buka Tiket',
           showsUserInterface: true,
+        ),
+        AndroidNotificationAction(
+          'stop_alarm',
+          'Matikan Alarm',
+          cancelNotification: true,
         ),
       ],
     );
-    const NotificationDetails details =
-        NotificationDetails(android: androidDetails);
+    final details = NotificationDetails(android: androidDetails);
     await plugin.show(
       id: 777,
-      title: '⚠️ Sisa Waktu Parkir $minsLeft Menit!',
-      body: 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
+      title: title ?? (minsLeft != null ? '⚠️ Sisa Waktu Parkir $minsLeft Menit!' : '⚠️ Peringatan Darurat Parkir!'),
+      body: body ?? 'Waktu parkir Anda hampir habis. Segera perpanjang atau checkout untuk menghindari denda.',
       notificationDetails: details,
       payload: 'expiring_session',
     );
-    debugPrint('[ParkingBG] Notif BG ditampilkan ($minsLeft menit tersisa)');
+    debugPrint('[ParkingBG] Notif BG darurat ditampilkan dengan sound looping ($minsLeft menit tersisa)');
   } catch (e) {
-    debugPrint('[ParkingBG] _bgShowUrgentNotif error: $e');
+    debugPrint('[ParkingBG] _bgShowUrgentAlarmNotif error: $e');
   }
 }
 
@@ -505,7 +637,11 @@ Future<bool> onIosBackground(ServiceInstance service) async {
 /// Handler notifikasi dari background (top-level, diperlukan oleh flutter_local_notifications)
 @pragma('vm:entry-point')
 void _notifBackgroundHandler(NotificationResponse response) async {
-  if (response.id == 777 || response.payload == 'expiring_session') {
+  if (response.id == 777 ||
+      response.payload == 'expiring_session' ||
+      response.actionId == 'stop_alarm' ||
+      response.actionId == 'checkout_id' ||
+      response.actionId == 'perpanjang_id') {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool('ps_parking_notif_dismissed', true);
