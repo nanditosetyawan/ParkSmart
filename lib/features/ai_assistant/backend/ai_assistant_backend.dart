@@ -88,6 +88,8 @@ class AiAssistantBackend extends ChangeNotifier {
         matched = List.from(locations)
           ..sort((a, b) => ((a['hourly_rate_mobil'] ?? 5000) as num)
               .compareTo((b['hourly_rate_mobil'] ?? 5000) as num));
+      } else if (qLower.contains('penuh')) {
+        matched = locations.where((l) => ((l['available_slots'] ?? 0) as num) == 0).toList();
       } else if (qLower.contains('banyak') || qLower.contains('kosong') || qLower.contains('tersedia')) {
         matched = List.from(locations)
           ..sort((a, b) => ((b['available_slots'] ?? 0) as num)
@@ -96,9 +98,16 @@ class AiAssistantBackend extends ChangeNotifier {
         matched = locations;
       }
 
-      final responseText = matched.isNotEmpty
-          ? 'Saya menemukan ${matched.length} lokasi parkir yang sesuai dengan pencarian Anda.'
-          : 'Maaf, saat ini belum ada lokasi parkir yang sesuai di sekitar Anda.';
+      String responseText;
+      if (qLower.contains('penuh')) {
+        responseText = matched.isEmpty
+            ? 'Saat ini tidak ada lokasi parkir yang penuh! Semua lokasi masih memiliki slot kosong yang siap dipesan.'
+            : 'Berikut adalah ${matched.length} lokasi parkir yang saat ini berstatus penuh (0 slot tersedia).';
+      } else {
+        responseText = matched.isNotEmpty
+            ? 'Saya menemukan ${matched.length} lokasi parkir yang sesuai dengan pencarian Anda.'
+            : 'Maaf, saat ini belum ada lokasi parkir yang sesuai di sekitar Anda.';
+      }
 
       final result = {
         'response': responseText,

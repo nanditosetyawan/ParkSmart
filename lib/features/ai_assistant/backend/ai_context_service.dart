@@ -126,8 +126,14 @@ class AiContextService {
           reviewSummary = reviewTexts;
         }
 
+        final int availCount = (avail as num?)?.toInt() ?? 0;
+        final int totalCount = (total as num?)?.toInt() ?? 50;
+        final String slotStatus = availCount == 0
+            ? 'PENUH (0/$totalCount slot kosong, KUOTA HABIS / PENUH TOTAL)'
+            : 'TERSEDIA $availCount/$totalCount (Sisa $availCount slot KOSONG / READY siap ditempati)';
+
         buffer.writeln(
-          '- ID: $locId | Nama: $name ($city) | Alamat: $shortAddress | Status: $status | Buka: $opHours | Slot: $avail/$total | Tarif: Mobil Rp$rateMobil, Motor Rp$rateMotor | Rating: $rating/5 | Fasilitas: $facilities | Ulasan: $reviewSummary',
+          '- ID: $locId | Nama: $name ($city) | Status Slot: $slotStatus | Status Lokasi: $status | Alamat: $shortAddress | Buka: $opHours | Tarif: Mobil Rp$rateMobil, Motor Rp$rateMotor | Rating: $rating/5 | Fasilitas: $facilities | Ulasan: $reviewSummary',
         );
       }
       buffer.writeln();
