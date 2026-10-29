@@ -17,6 +17,17 @@ class _CacheEntry<T> {
   bool get isExpired => DateTime.now().difference(cachedAt) > ttl;
 }
 
+// ============================================================================
+// [PETUNJUK PRESENTASI - SISTEM PENYIMPANAN LOKAL & DUAL-LAYER CACHING]
+// Komponen: DatabaseCacheBalancerService
+// Arsitektur Penyimpanan:
+// 1. Layer 1 (In-Memory RAM): Akses data 0-latency selama aplikasi berjalan.
+// 2. Layer 2 (Persistent Local Storage): Menggunakan SharedPreferences
+//    - Key data: 'cache_<queryKey>' (disimpan dalam bentuk JSON String)
+//    - Key timestamp: 'cache_time_<queryKey>' (milidetik penyimpanan)
+// Cara Kerja: Mencegah over-querying dan lonjakan kuota database Supabase.
+// Data hanya di-fetch ulang dari server cloud jika TTL (Time To Live, misal 5-15 menit) telah lewat.
+// ============================================================================
 /// Service Penyeimbang Database (Cache Balancer)
 /// Mencegah request berulang kali ke database Supabase untuk data yang sama.
 /// Bekerja dengan dual-layer:

@@ -55,6 +55,15 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
     _startTimer();
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - TIMER HITUNG MUNDUR TIKET (COUNTDOWN TICKER)]
+  // Komponen: Timer.periodic(const Duration(seconds: 1), ...)
+  // Cara Kerja:
+  // 1. Setiap detik, timer membandingkan checkout time dari server dengan DateTime.now().
+  // 2. Saat sisa waktu <= 600 detik (10 menit), otomatis memicu notifikasi peringatan darurat.
+  // 3. Saat sisa waktu == 0, otomatis memanggil `_onSessionExpired()` yang mengarahkan
+  //    ke alur sesi kedaluwarsa / denda overtime / checkout.
+  // ============================================================================
   void _startTimer() {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
@@ -321,7 +330,27 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                         )
                       : Stack(
                     children: [
-                      SingleChildScrollView(
+                      // ============================================================================
+                      // [PETUNJUK PRESENTASI - PULL-TO-REFRESH SINKRONISASI WAKTU TIKET]
+                      // Mengambil ulang titik waktu target 'expected_check_out_time' dari Supabase
+                      // saat layar ditarik ke bawah (swipe-to-refresh).
+                      // Jika dosen menginjeksi 1 menit di database, cukup tarik layar ke bawah di sini!
+                      // ============================================================================
+                      RefreshIndicator(
+                        color: const Color(0xFF114177),
+                        onRefresh: () async {
+                          final sId = widget.sessionId ?? ActiveSessionBackend.instance.sessionId;
+                          await ActiveSessionBackend.instance.fetchActiveSession(sessionId: sId);
+                          if (mounted) {
+                            setState(() {
+                              _remainingSeconds = ActiveSessionBackend.instance.remainingSeconds;
+                              _urgentNotifTriggered = false;
+                            });
+                            _startTimer();
+                          }
+                        },
+                        child: SingleChildScrollView(
+                          physics: const AlwaysScrollableScrollPhysics(),
                         padding: const EdgeInsets.only(left: 24, right: 24, top: 8, bottom: 120),
                         child: Column(
                           children: [
@@ -737,6 +766,7 @@ class _ActiveSessionScreenState extends State<ActiveSessionScreen> {
                             ),
                           ],
                         ),
+                      ),
                       ),
                       // Bottom CTA
                       Positioned(

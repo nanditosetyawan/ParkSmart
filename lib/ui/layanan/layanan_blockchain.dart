@@ -11,7 +11,23 @@ class LayananBlockchain {
   LayananBlockchain._();
   static final LayananBlockchain instance = LayananBlockchain._();
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API BLOCKCHAIN ETHEREUM JSON-RPC & SMART CONTRACT]
+  // Node RPC: Ethereum Sepolia Testnet (https://ethereum-sepolia-rpc.publicnode.com)
+  // Smart Contract: KeanggotaanParkir (Address: 0x032220cE1517622D0622a72A76EbF76d55c16179)
+  // Protokol: JSON-RPC over HTTP (EVM - Ethereum Virtual Machine)
+  // Cara Ambil Data: Menggunakan Web3Client.call() untuk fungsi 'view' (read-only, tanpa biaya gas),
+  // dan Web3Client.sendTransaction() untuk transaksi write on-chain (minting token kartu anggota).
+  // ============================================================================
   // 1. Alamat RPC Jaringan Uji Sepolia (Infura / Alchemy / RPC Publik)
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API BLOCKCHAIN ETHEREUM JSON-RPC & SMART CONTRACT]
+  // Node RPC: Ethereum Sepolia Testnet (https://ethereum-sepolia-rpc.publicnode.com)
+  // Smart Contract: KeanggotaanParkir (Address: 0x032220cE1517622D0622a72A76EbF76d55c16179)
+  // Protokol: JSON-RPC over HTTP (EVM - Ethereum Virtual Machine)
+  // Cara Ambil Data: Menggunakan Web3Client.call() untuk fungsi 'view' (read-only, tanpa biaya gas),
+  // dan Web3Client.sendTransaction() untuk transaksi write on-chain (minting token kartu anggota).
+  // ============================================================================
   // 1. Alamat RPC Jaringan Uji Sepolia (Infura / Alchemy / RPC Publik)
   static String get urlRpc {
     final envUrl = dotenv.env['SEPOLIA_RPC_URL'];
@@ -174,6 +190,13 @@ class LayananBlockchain {
     return daftarKartu;
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - FUNGSI WRITE ON-CHAIN (BROADCAST BLOCKCHAIN)]
+  // Fungsi: Mengeksekusi penulisan smart contract (terbitkanKeanggotaan) di Sepolia
+  // Autentikasi Transaksi: Menggunakan RELAYER_PRIVAT_KEY (private key Ethereum) dari .env
+  // Parameter: userWallet (alamat wallet turunan UUID), tier, dan memberHashCode unik
+  // Output: Transaction Hash Ethereum (dapat diverifikasi di sepolia.etherscan.io/tx/<txHash>)
+  // ============================================================================
   /// Menerbitkan kartu keanggotaan baru secara riil ke jaringan blockchain Sepolia (On-Chain)
   /// Menggunakan Relayer Private Key dari .env untuk mengeksekusi kontrak pintar `terbitkanKeanggotaan`
   Future<String?> broadcastMemberCardOnChain({

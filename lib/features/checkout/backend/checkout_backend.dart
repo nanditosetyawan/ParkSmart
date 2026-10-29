@@ -338,6 +338,15 @@ class CheckoutBackend extends ChangeNotifier {
         }
       }
 
+      // ============================================================================
+      // [PETUNJUK PRESENTASI - FUNCTION PEMESANAN TIKET (CREATE BOOKING / HOLD)]
+      // Operasi Database: Supabase INSERT ke tabel 'bookings'
+      // Targeted Select: select('id, booking_code, total_price, ...') (Tanpa SELECT *)
+      // Kolom Utama: booking_code ('BK-XXXXX'), start_time, end_time, duration_hours,
+      //              payment_status ('unpaid'), booking_status ('upcoming'), qr_code_hash.
+      // Penguncian Slot: Status slot diubah menjadi 'reserved' agar slot tidak diserobot pengguna lain.
+      // Batas Pembayaran: Diberikan countdown hold slot selama 2 menit 59 detik.
+      // ============================================================================
       // 3. Insert ke tabel bookings jika belum ada hold booking (status awal 'unpaid' dengan hold time 2:59 menit)
       final bookingInsert = await _client.from('bookings').insert({
         'booking_code': bookingCode,
@@ -821,6 +830,16 @@ class CheckoutBackend extends ChangeNotifier {
     );
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - FUNCTION PEMBAYARAN TIKET (PAYMENT EXECUTION)]
+  // Alur Eksekusi Transaksi:
+  // 1. Validasi status hold booking dan batas waktu pembayaran 2:59 menit.
+  // 2. Jika ParkSmart Pay: cek saldo `wallet_balance` pengguna di `public.users`.
+  //    Potong saldo jika mencukupi (UPDATE users).
+  // 3. Update status tiket di `public.bookings`: payment_status = 'paid', booking_status = 'upcoming'.
+  // 4. Update status slot di `public.parking_slots`: status = 'occupied'.
+  // 5. Catat riwayat audit pembayaran di tabel `public.payments` (transaksi sukses).
+  // ============================================================================
   /// Memproses pembayaran booking setelah validasi PIN sukses
   Future<bool> markBookingAsPaid(String bookingId) async {
     try {

@@ -2,6 +2,15 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 /// Utility untuk hashing dan verifikasi password menggunakan SHA-256
+// ============================================================================
+// [PETUNJUK PRESENTASI - ENKRIPSI & KEAMANAN PASSWORD (SALTED SHA-256)]
+// Algoritma: SHA-256 Cryptographic Hash Algorithm dengan Custom Secret Salt
+// Cara Kerja:
+// 1. Password pengguna digabung dengan salt rahasia: '$_salt:$password'
+// 2. String diubah ke bytes (utf8.encode), lalu di-hash oleh engine sha256 (crypto package).
+// 3. Menghasilkan string heksadesimal 64-karakter ireversibel (satu arah).
+// 4. Di database Supabase (`public.users`), password hanya disimpan dalam bentuk hash ini.
+// ============================================================================
 class HashUtil {
   /// Salt aplikasi standar untuk mengamankan digest hash
   static const String _salt = 'ParkSmart_Secure_Salt_2026';

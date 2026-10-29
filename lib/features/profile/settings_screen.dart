@@ -143,6 +143,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   String _selectedParkingPref = 'Mobil SUV';
 
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - BIOMETRIK 1: FACE ID (PEMINDAIAN WAJAH)]
+  // Komponen: FaceIdScannerDialog (Kamera Depan + Deteksi Wajah)
+  // Cara Kerja: Menampilkan kamera pemindai wajah interaktif. Saat wajah terverifikasi,
+  // kredensial user disimpan ke SharedPreferences ('face_id_enabled', 'face_id_user_email').
+  // Di halaman Login, user cukup klik tombol Face ID untuk otentikasi cepat.
+  // ============================================================================
   Future<void> _handleFaceIdToggle(bool val) async {
     if (!val) {
       final prefs = await SharedPreferences.getInstance();
@@ -186,6 +193,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
     }
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - BIOMETRIK 2: SIDIK JARI (FINGERPRINT / LOCAL_AUTH)]
+  // Package: local_auth (LocalAuthentication)
+  // Cara Kerja:
+  // 1. Memeriksa dukungan hardware perangkat (auth.isDeviceSupported & canCheckBiometrics).
+  // 2. Mengecek apakah tipe sensor sidik jari terdaftar (BiometricType.fingerprint).
+  // 3. Menjalankan sensor bawaan Android/iOS (auth.authenticate).
+  // 4. Jika sukses, menyimpan flag 'fingerprint_enabled' & 'biometric_user_email' di SharedPreferences.
+  // ============================================================================
   Future<void> _handleFingerprintToggle(bool val) async {
     if (!val) {
       final prefs = await SharedPreferences.getInstance();

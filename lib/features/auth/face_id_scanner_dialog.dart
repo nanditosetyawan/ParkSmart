@@ -3,6 +3,15 @@ import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 import 'package:google_fonts/google_fonts.dart';
 
+// ============================================================================
+// [PETUNJUK PRESENTASI - BIOMETRIK PEMINDAIAN WAJAH (FACE ID CAMERA SCANNER)]
+// Komponen: FaceIdScannerDialog
+// Package: camera (CameraController - Sensor Kamera Depan)
+// Cara Kerja:
+// 1. Mengakses kamera depan (CameraLensDirection.front)
+// 2. Menampilkan oval scanner dengan laser pemindaian wajah real-time
+// 3. Memberikan umpan balik visual dan audio haptic saat pemindaian berhasil
+// ============================================================================
 /// Modal dialog pemindai wajah (Face ID) interaktif berbasis kamera depan.
 /// Memberikan efek pemindaian visual ala Face ID modern dengan lingkaran oval,
 /// garis scan laser animasi, dan konfirmasi autentikasi tanpa memunculkan prompt fingerprint Android.

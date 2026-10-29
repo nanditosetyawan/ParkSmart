@@ -10,6 +10,13 @@ class SupabaseStorageService {
 
   SupabaseClient get _client => Supabase.instance.client;
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API SUPABASE STORAGE (UPLOAD FILE MEDIA)]
+  // Storage Bucket: 'kyc-documents'
+  // Metode API: _client.storage.from(bucket).uploadBinary(...) & getPublicUrl(...)
+  // Optimasi: Melakukan kompresi citra hingga ~95% sebelum pengiriman HTTP multipart.
+  // Hasil: Menghasilkan URL publik HTTPS untuk disimpan ke kolom 'ktp_url' / 'selfie_url' di tabel users.
+  // ============================================================================
   static const String kycBucket = 'kyc-documents';
 
   /// Unggah foto KTP atau Selfie KYC dengan kompresi brutal 95%

@@ -120,6 +120,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
             'full_name': name,
             'email': email,
             'phone': phone,
+            // [PETUNJUK PRESENTASI - HASHING PASSWORD REGISTER DENGAN SALTED SHA-256]
             'password': HashUtil.hashPassword(password),
             'member_tier': 'BRONZE',
             'wallet_balance': 0.00,

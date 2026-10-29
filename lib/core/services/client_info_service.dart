@@ -109,6 +109,13 @@ class ClientInfoService {
     String location = 'Indonesia';
     String isp = 'Jaringan Aktif';
 
+    // ============================================================================
+    // [PETUNJUK PRESENTASI - API 1: IP PUBLIK (IPIFY)]
+    // API: Ipify Public IP API (https://api.ipify.org?format=json)
+    // Jenis: REST API Publik (HTTP GET JSON)
+    // Cara Ambil Data: Mengirim HTTP GET tanpa autentikasi, mengurai field JSON 'ip'
+    // untuk mendapatkan alamat IP publik perangkat pengguna untuk audit log keamanan.
+    // ============================================================================
     // 1. Ambil IP publik via api.ipify.org (Sangat andal & cepat)
     try {
       final res = await http
@@ -124,6 +131,14 @@ class ClientInfoService {
       // Fallback cadangan jika ipify timeout
     }
 
+    // ============================================================================
+    // [PETUNJUK PRESENTASI - API 2: GEOLOCATION & ISP (IP-API)]
+    // API: IP-API Geolocation (http://ip-api.com/json/)
+    // Jenis: REST API Publik (HTTP GET JSON)
+    // Cara Ambil Data: Mengirim HTTP GET, server IP-API mendeteksi IP pemanggil
+    // lalu mengembalikan data JSON: 'city', 'country', 'isp', dan 'query' (IP).
+    // Digunakan untuk menampilkan lokasi kota dan provider koneksi pada profil pengguna.
+    // ============================================================================
     // 2. Lengkapi info Kota & ISP via ip-api.com
     try {
       final resGeo = await http

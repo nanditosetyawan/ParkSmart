@@ -314,6 +314,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
 
+      // ============================================================================
+      // [PETUNJUK PRESENTASI - VERIFIKASI HASH PASSWORD LOGIN]
+      // Membandingkan plaintext input user dengan hash SHA-256 tersimpan di database via HashUtil.verifyPassword()
+      // ============================================================================
       final dbPassword = response['password']?.toString() ?? '';
       if (dbPassword.isEmpty || !HashUtil.verifyPassword(password, dbPassword)) {
         if (mounted) {
@@ -461,6 +465,10 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
         return;
       }
 
+      // ============================================================================
+      // [PETUNJUK PRESENTASI - VERIFIKASI HASH PASSWORD LOGIN]
+      // Membandingkan plaintext input user dengan hash SHA-256 tersimpan di database via HashUtil.verifyPassword()
+      // ============================================================================
       final dbPassword = response['password']?.toString() ?? '';
       if (dbPassword.isEmpty || !HashUtil.verifyPassword(password, dbPassword)) {
         if (mounted) {
@@ -993,6 +1001,11 @@ class _LoginScreenState extends State<LoginScreen> with SingleTickerProviderStat
                                             return;
                                           }
 
+                                          // ============================================================================
+                                          // [PETUNJUK PRESENTASI - LOGIN SIDIK JARI (BIOMETRIK)]
+                                          // Package: local_auth (LocalAuthentication.authenticate)
+                                          // Mengotentikasi sidik jari fisik HP -> jika lolos, query akun user langsung dari Supabase
+                                          // ============================================================================
                                           final LocalAuthentication auth = LocalAuthentication();
                                           try {
                                             final bool didAuthenticate = await auth.authenticate(

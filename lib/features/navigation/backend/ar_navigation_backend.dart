@@ -68,6 +68,16 @@ class ArNavigationBackend extends ChangeNotifier {
         queryKey: cacheKey,
         ttl: const Duration(minutes: 15),
         queryFn: () async {
+          // ============================================================================
+          // [PETUNJUK PRESENTASI - API RUTE NAVIGASI MENGEMUDI (OSRM ROUTING)]
+          // API: Open Source Routing Machine (OSRM)
+          // Endpoint: https://router.project-osrm.org/route/v1/driving/{lon1},{lat1};{lon2},{lat2}
+          // Query Params: overview=full&geometries=geojson&steps=true
+          // Jenis: REST API Publik (HTTP GET JSON)
+          // Cara Ambil Data: Mengirim koordinat awal dan tujuan, server menghitung rute jalan tercepat.
+          // Response JSON memuat polyline rute jalan, jarak tempuh (distance meters),
+          // estimasi durasi (duration seconds), dan instruksi turn-by-turn navigasi.
+          // ============================================================================
           final url = 'https://router.project-osrm.org/route/v1/driving/'
               '${start.longitude},${start.latitude};'
               '${end.longitude},${end.latitude}?overview=full&geometries=geojson&steps=true';

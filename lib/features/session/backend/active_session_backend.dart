@@ -116,6 +116,20 @@ class ActiveSessionBackend extends ChangeNotifier {
           _checkInTime = DateTime.tryParse(session['check_in_time'].toString())?.toLocal();
         }
 
+        // ============================================================================
+        // [PETUNJUK PRESENTASI - MEKANISME TIMER TIKET & SINKRONISASI SERVER]
+        // Kolom Database: 'expected_check_out_time' pada tabel 'public.parking_sessions'
+        // Cara Kerja Timer:
+        // 1. Sistem TIDAK menyimpan angka countdown statis (misal 3600), melainkan membaca
+        //    timestamp target checkout dari database: DateTime.tryParse(session['expected_check_out_time'])
+        // 2. Sisa waktu dihitung dinamis: expectedCheckOutTime.difference(DateTime.now()).inSeconds
+        // 3. KEBAL REFRESH & KEBAL HP MATI (Timestamp Absolut vs Stopwatch):
+        //    - Saat di-refresh (pull-down), waktu TIDAK ter-reset karena target timestamp di DB tetap sama.
+        //    - Saat HP mati dan hidup kembali, timer TIDAK ter-reset ke awal, melainkan langsung
+        //      menghitung selisih target waktu dengan jam saat HP hidup kembali.
+        // 4. TESTING DOSEN (INJECT 1 MENIT):
+        //    UPDATE public.parking_sessions SET expected_check_out_time = NOW() + INTERVAL '1 minute' WHERE status = 'active';
+        // ============================================================================
         if (session['expected_check_out_time'] != null) {
           _expectedCheckOutTime = DateTime.tryParse(session['expected_check_out_time'].toString())?.toLocal();
           if (_expectedCheckOutTime != null) {

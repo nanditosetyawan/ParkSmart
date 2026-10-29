@@ -553,6 +553,15 @@ class _ExploreMapScreenState extends State<ExploreMapScreen> {
     }
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API CUACA REAL-TIME (OPEN-METEO)]
+  // API: Open-Meteo Weather Forecast API
+  // Endpoint: https://api.open-meteo.com/v1/forecast?latitude=...&longitude=...&current_weather=true
+  // Jenis: REST API Publik (HTTP GET JSON, Bebas Kunci/Free API)
+  // Cara Ambil Data: Mengirim koordinat lintang (latitude) & bujur (longitude) posisi GPS pengguna/lokasi parkir.
+  // Response JSON memuat suhu (temperature), kecepatan angin, dan kode cuaca (weathercode)
+  // yang kemudian dikonversikan ke teks kondisi (Cerah, Hujan, Berawan) dan emoji cuaca di peta.
+  // ============================================================================
   Future<void> _fetchWeather(LatLng pos) async {
     try {
       final url = Uri.parse(

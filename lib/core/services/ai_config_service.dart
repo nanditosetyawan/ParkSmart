@@ -22,6 +22,12 @@ class AiConfigService {
   static const String prefKeyAiModel = 'ai_model_name';
   static const String prefKeyLastSyncedAt = 'ai_config_last_synced_at';
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API ENDPOINT GROQ CLOUD INFERENCE]
+  // API: Groq Cloud LPU™ API (https://api.groq.com/openai/v1/chat/completions)
+  // Format: OpenAI-compatible REST API (HTTP POST JSON)
+  // Fungsi: Menyediakan inferensi AI berkecepatan tinggi untuk model bahasa besar (LLM).
+  // ============================================================================
   static const String defaultProvider = 'Groq Cloud (LPU™ Inference)';
   static const String defaultModel = 'qwen/qwen3.8-27b';
   static const String defaultEndpoint = 'https://api.groq.com/openai/v1/chat/completions';
@@ -77,6 +83,14 @@ class AiConfigService {
 
     final cleanUrl = supabaseUrl.replaceAll(RegExp(r'/+$'), '');
 
+    // ============================================================================
+    // [PETUNJUK PRESENTASI - PEMANGGILAN API SUPABASE DIRECT REST (TANPA SDK)]
+    // Endpoint: $cleanUrl/rest/v1/system_settings?key=eq.ai_config&select=*
+    // Jenis: PostgREST HTTP REST API (Bukan format .from().select() SDK)
+    // Cara Ambil Data: Mengirim HTTP GET langsung dengan header 'apikey' dan 
+    // 'Authorization: Bearer <key>'. Digunakan untuk memuat konfigurasi sistem
+    // secara independen tanpa bergantung pada siklus hidup state SupabaseClient.
+    // ============================================================================
     // 1. Coba ambil dari system_settings (key = 'ai_config')
     try {
       final sysUri = Uri.parse('$cleanUrl/rest/v1/system_settings?key=eq.ai_config&select=*');

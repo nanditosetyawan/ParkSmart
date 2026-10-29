@@ -2884,6 +2884,18 @@ class _MountainChartPainter extends CustomPainter {
   }
 }
 
+// ============================================================================
+// [PETUNJUK PRESENTASI - JAM REALTIME DI SUPER ADMIN (MULTI-ZONA WAKTU)]
+// Komponen: _RealtimeTimeZonesDialog
+// Trigger: Ikon jam header Super Admin (admin_dashboard_screen.dart)
+// Cara Kerja:
+// 1. Menggunakan Timer.periodic(Duration(seconds: 1)) untuk re-render tampilan detik demi detik.
+// 2. Mengambil waktu UTC global (DateTime.now().toUtc()) lalu mengonversi ke zona waktu:
+//    - WIB: UTC + 7 jam
+//    - WITA: UTC + 8 jam
+//    - WIT: UTC + 9 jam
+//    - London: BST (UTC + 1) saat musim panas / GMT (UTC + 0) saat musim dingin (DST aware).
+// ============================================================================
 // ─── DIALOG WAKTU REALTIME INDONESIA (WIB, WITA, WIT) ───
 class _RealtimeTimeZonesDialog extends StatefulWidget {
   const _RealtimeTimeZonesDialog();

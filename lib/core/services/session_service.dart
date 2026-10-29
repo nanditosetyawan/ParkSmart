@@ -16,6 +16,18 @@ import '../../features/game/backend/car_game_backend.dart';
 import '../../features/game/backend/claws_car_backend.dart';
 import '../../main.dart' show navigatorKey;
 
+// ============================================================================
+// [PETUNJUK PRESENTASI - SISTEM PENYIMPANAN LOKAL SESI LOGIN & KEAMANAN OTOMATIS]
+// Komponen: SessionService
+// Media Penyimpanan: SharedPreferences (Disk Storage) + In-Memory State
+// Kunci-Kunci Lokal (Storage Keys):
+// - 'ps_session_is_logged_in': Status login aktif (boolean)
+// - 'ps_session_user_type': Jenis akun ('user' atau 'admin')
+// - 'ps_session_user_id': UUID unik akun dari Supabase
+// - 'ps_session_identifier': Email atau nomor telepon pengguna
+// - 'ps_session_admin_role': Role otoritas admin ('super_admin', 'operations', 'finance', 'cs')
+// - 'ps_session_last_active_time': Waktu interaksi layar terakhir untuk auto-logout 30 menit
+// ============================================================================
 /// Layanan Pengelola Sesi Terpadu (User & Admin) - ParkSmart ID
 /// Mengatur batas waktu tidak aktif (Inactivity Timeout) dan background session
 /// selama 30 menit. Jika waktu habis, sistem otomatis melakukan logout demi keamanan.

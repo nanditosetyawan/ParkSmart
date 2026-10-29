@@ -541,6 +541,15 @@ void onBackgroundStart(ServiceInstance service) async {
           currentUserId != null &&
           currentUserId.isNotEmpty) {
         try {
+          // ============================================================================
+          // [PETUNJUK PRESENTASI - API SUPABASE POSTGREST REST (BACKGROUND NOTIFICATION)]
+          // Endpoint: $supabaseUrl/rest/v1/system_notifications?...
+          // Jenis: Direct REST API via HTTP GET (Tanpa Supabase SDK)
+          // Alasan: Background isolate Flutter tidak memiliki instance Flutter engine / Supabase SDK lengkap.
+          // Cara Ambil Data: Menggunakan HTTP GET dengan filter URL:
+          // recipient_user_id=eq.<id>, is_read=eq.false, notification_type=eq.urgent
+          // dengan header 'apikey' dan 'Authorization: Bearer <anonKey>'.
+          // ============================================================================
           final uri = Uri.parse(
             '$supabaseUrl/rest/v1/system_notifications?recipient_user_id=eq.$currentUserId&is_read=eq.false&notification_type=eq.urgent&order=created_at.desc&limit=1',
           );

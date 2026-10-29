@@ -4,6 +4,13 @@ import '../../../core/services/database_cache_balancer_service.dart';
 import '../../../core/services/session_service.dart';
 import '../../profile/backend/profile_backend.dart';
 
+// ============================================================================
+// [PETUNJUK PRESENTASI - KEAMANAN TRANSAKSI & PIN (PIN_HASH)]
+// Komponen: PinBackend
+// Database: Kolom 'pin_hash' pada tabel 'public.users'
+// Cara Kerja: PIN 6-digit diamankan sebelum disimpan dan diverifikasi setiap kali
+// pengguna melakukan transaksi pembayaran booking parkir atau top-up.
+// ============================================================================
 /// Backend khusus untuk PinScreen
 /// Menangani verifikasi PIN transaksi dan keamanan dengan tabel `public.users.pin_hash`.
 /// Sistem bersifat overwriting (1 baris per pengguna).

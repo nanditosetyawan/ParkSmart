@@ -124,6 +124,13 @@ class CurrencyService extends ChangeNotifier {
     }
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API KURS MATA UANG & FORMATTING CURRENCY]
+  // API: Open Exchange Rates API (https://open.er-api.com/v6/latest/IDR)
+  // Jenis: REST API Publik (HTTP GET JSON, Tanpa API Key)
+  // Cara Ambil Data: Mengirim HTTP GET ke endpoint basis IDR, lalu menguraikan (decode)
+  // response JSON ['rates'] ke Map<String, double> untuk konversi nilai valas (USD, EUR, SGD, MYR, JPY).
+  // ============================================================================
   Future<bool> fetchLatestRates() async {
     _isLoading = true;
     notifyListeners();
@@ -131,6 +138,7 @@ class CurrencyService extends ChangeNotifier {
     try {
       // Timeout dipersingkat ke 2.5 detik agar tidak menyebabkan lag saat cold start / Web
       const timeoutDuration = Duration(milliseconds: 2500);
+      // Eksekusi pemanggilan REST API publik Open Exchange Rates
       final response = await http
           .get(Uri.parse('https://open.er-api.com/v6/latest/IDR'))
           .timeout(timeoutDuration);
@@ -191,6 +199,11 @@ class CurrencyService extends ChangeNotifier {
     await prefs.setBool(_prefsConversionEnabledKey, _isConversionEnabled);
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - FUNCTION CONVERT CURRENCY]
+  // Fungsi: Menghitung nominal konversi dari basis Rupiah (IDR) ke kurs mata uang tujuan
+  // Rumus: amountInIdr * rate (misal Rp 16.000 * 0.0000625 = $1.00)
+  // ============================================================================
   /// Convert amount from IDR base to target currency purely on the UI display
   double convert(num amountInIdr, [String? targetCurrency]) {
     if (!_isConversionEnabled) return amountInIdr.toDouble();
@@ -200,6 +213,13 @@ class CurrencyService extends ChangeNotifier {
     return amountInIdr.toDouble() * rate;
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - FUNCTION FORMAT CURRENCY]
+  // Fungsi: Mengubah angka numerik menjadi string mata uang berformat rapi
+  // Contoh Output:
+  // - IDR: "Rp 15.000" (menggunakan pemisah ribuan titik '.')
+  // - USD: "$ 0.95" (menggunakan pemisah desimal koma/titik sesuai decimals)
+  // ============================================================================
   /// Format an amount in IDR into the active currency string
   String format(num amountInIdr, {bool includeCode = false}) {
     final info = currentInfo;

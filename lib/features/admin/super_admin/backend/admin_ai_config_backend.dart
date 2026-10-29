@@ -114,6 +114,15 @@ class AdminAiConfigBackend extends ChangeNotifier {
     }
   }
 
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - API UJI KONEKSI AI LIVE (GROQ CLOUD)]
+  // API: Groq Cloud OpenAI-Compatible Chat Completion API
+  // Endpoint: https://api.groq.com/openai/v1/chat/completions
+  // Metode: HTTP POST JSON dengan Header 'Authorization: Bearer <testKey>'
+  // Payload: Model LLM, array prompt 'messages', dan 'max_tokens'
+  // Cara Kerja: Menghitung selisih waktu (latensi ms) pengiriman request hingga
+  // menerima potongan response pertama (HTTP 200 OK) dari superkomputer Groq LPU.
+  // ============================================================================
   /// Menguji koneksi langsung ke Groq Cloud
   Future<Map<String, dynamic>> testConnection(String testKey) async {
     final startTime = DateTime.now();
