@@ -207,6 +207,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   // Traffic / Kepadatan Lalu Lintas Real-Time (100% Gratis & Dinamis)
+  // ============================================================================
+  // [PETUNJUK PRESENTASI - KEPADATAN AREA & LIVE TRAFFIC REAL-TIME]
+  // Komponen: Card Kepadatan Area (HomeScreen)
+  // Sumber Data: Algoritma Heuristik Temporal Pola Jam Sibuk (Rush-Hour Modeling)
+  // Cara Kerja:
+  // 1. Membaca waktu DateTime.now() (jam, menit, dan status hari kerja/weekend).
+  // 2. Menghitung persentase kepadatan (%) secara dinamis dengan variasi fluktuasi menit modulo.
+  //    - Pagi & Sore (Jam Kerja): 86% - 100% (Macet Padat / Merah)
+  //    - Siang (Jam Makan): 56% - 71% (Ramai / Kuning)
+  //    - Malam/Normal: 14% - 54% (Lancar / Lengang / Hijau)
+  // 3. Mengapa tidak pakai Google Maps Traffic API?
+  //    Menghindari biaya tagihan API berbayar tinggi dan kuota billing, namun tetap
+  //    memberikan simulasi kondisi kepadatan lalu lintas kota yang presisi dan realistis.
+  // ============================================================================
   int get _trafficDensity {
     final now = DateTime.now();
     final hour = now.hour;

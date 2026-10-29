@@ -20,15 +20,6 @@ class LayananBlockchain {
   // dan Web3Client.sendTransaction() untuk transaksi write on-chain (minting token kartu anggota).
   // ============================================================================
   // 1. Alamat RPC Jaringan Uji Sepolia (Infura / Alchemy / RPC Publik)
-  // ============================================================================
-  // [PETUNJUK PRESENTASI - API BLOCKCHAIN ETHEREUM JSON-RPC & SMART CONTRACT]
-  // Node RPC: Ethereum Sepolia Testnet (https://ethereum-sepolia-rpc.publicnode.com)
-  // Smart Contract: KeanggotaanParkir (Address: 0x032220cE1517622D0622a72A76EbF76d55c16179)
-  // Protokol: JSON-RPC over HTTP (EVM - Ethereum Virtual Machine)
-  // Cara Ambil Data: Menggunakan Web3Client.call() untuk fungsi 'view' (read-only, tanpa biaya gas),
-  // dan Web3Client.sendTransaction() untuk transaksi write on-chain (minting token kartu anggota).
-  // ============================================================================
-  // 1. Alamat RPC Jaringan Uji Sepolia (Infura / Alchemy / RPC Publik)
   static String get urlRpc {
     final envUrl = dotenv.env['SEPOLIA_RPC_URL'];
     if (envUrl != null && envUrl.isNotEmpty && !envUrl.contains('ID_PROYEK_ANDA')) {
